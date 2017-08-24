@@ -1,5 +1,5 @@
 #include "uart.h"
-#include "led.h"
+#include "gpio.h"
 
 void UART_Init(){
     huart3.Instance = USART3;
@@ -11,7 +11,7 @@ void UART_Init(){
     huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart3.Init.OverSampling = UART_OVERSAMPLING_16;
     if (HAL_UART_Init(&huart3) != HAL_OK){
-        //Error_Handler();
+        Error_Handler();
     }
 
     GPIO_InitTypeDef GPIO_InitStruct;

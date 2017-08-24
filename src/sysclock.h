@@ -6,5 +6,6 @@
 
 
 void SystemClock_Config(void);
+void SysTick_Handler(void);
 
 #endif // SYSCLOCK_H

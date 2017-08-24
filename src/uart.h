@@ -4,7 +4,7 @@
 #include "stm32f1xx_hal.h"
 #include <string.h>
 
-#define UART_BAUDRATE			115200
+#define UART_BAUDRATE			9600
 #define UART_TIMEOUT			1000
 
 UART_HandleTypeDef huart3;
