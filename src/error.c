@@ -4,7 +4,7 @@ void Error_Handler(void){
     char tbuf[100];
     sprintf(tbuf,"ERROR HANDLER\n\r");
     send_uart(tbuf);
-    while(0){
+    while(1){
         set_led(LED_1, LED_OFF);
         set_led(LED_2, LED_OFF);
         set_led(LED_3, LED_OFF);

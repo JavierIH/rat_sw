@@ -9,6 +9,8 @@
 #include "uart.h"
 #include "pwm.h"
 #include "gpio.h"
+#include "motor.h"
+#include "encoder.h"
 
 
 #endif // MAIN_H
