@@ -3,15 +3,19 @@
 
 #include "error.h"
 
-#define ENCODER_L               0
-#define ENCODER_R               1
+typedef enum {ENCODER_L, ENCODER_R} encoder_t;
 
 TIM_HandleTypeDef htim1; //L
 TIM_HandleTypeDef htim2; //R
 
+uint16_t _encoder_state_r;
+uint16_t _encoder_state_l;
+
+void ENCODER_Init(void);
 void MX_TIM1_Init(void);
 void MX_TIM2_Init(void);
-int32_t get_encoder(uint8_t encoder);
+uint16_t get_encoder(encoder_t encoder);
+int32_t get_encoder_delta(encoder_t encoder);
 
 
 #endif // ENCODER_H

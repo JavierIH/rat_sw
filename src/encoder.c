@@ -1,5 +1,15 @@
 #include "encoder.h"
 
+
+void ENCODER_Init(void){
+    MX_TIM1_Init();
+    MX_TIM2_Init();
+    _encoder_state_l = 0;
+    _encoder_state_r = 0;
+    HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
+    HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+}
+
 void MX_TIM1_Init(void){
     TIM_Encoder_InitTypeDef sConfig;
     TIM_MasterConfigTypeDef sMasterConfig;
@@ -60,7 +70,7 @@ void MX_TIM2_Init(void){
     }
 }
 
-int32_t get_encoder(uint8_t encoder){
+uint16_t get_encoder(uint8_t encoder){
     if(encoder == ENCODER_L){
         return __HAL_TIM_GetCounter(&htim1);
     }
@@ -68,6 +78,23 @@ int32_t get_encoder(uint8_t encoder){
         return __HAL_TIM_GetCounter(&htim2);
     }
     else{
-        return -1;
+        return 0;
+    }
+}
+
+int32_t get_encoder_delta(uint8_t encoder){
+    uint16_t encoder_ref = 0;
+    if(encoder == ENCODER_L){
+        encoder_ref = _encoder_state_l;
+        _encoder_state_l = __HAL_TIM_GetCounter(&htim1);
+        return _encoder_state_l - encoder_ref;
+    }
+    else if(encoder == ENCODER_R){
+        encoder_ref = _encoder_state_r;
+        _encoder_state_r = __HAL_TIM_GetCounter(&htim2);
+        return _encoder_state_r  - encoder_ref;
+    }
+    else{
+        return 0;
     }
 }
