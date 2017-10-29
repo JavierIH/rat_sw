@@ -7,6 +7,7 @@
 #include "gpio.h"
 #include "motor.h"
 #include "encoder.h"
+#include "infrared.h"
 
 
 static void MX_ADC1_Init(void);
@@ -30,41 +31,23 @@ int main(void) {
     uint16_t after = 0;
 
     while(!get_button(BUTTON_START));
-    int x=40;
+    int x=10;
+    int cou=0;
     while (1){
+        //sprintf(text_buffer,"%d ---\n\r", cou);
+        //send_uart(text_buffer);
+        //cou++;
+        sprintf(text_buffer,"IR_FL: %d\t", get_ir(IR_FL));
+        send_uart(text_buffer);
+        sprintf(text_buffer,"IR_FR: %d\t", get_ir(IR_FR));
+        send_uart(text_buffer);
+        sprintf(text_buffer,"IR_SL: %d\t", get_ir(IR_SL));
+        send_uart(text_buffer);
+        sprintf(text_buffer,"IR_SR: %d\n\r", get_ir(IR_SR));
+        send_uart(text_buffer);
         set_led(LED_1, LED_ON);
-        set_led(LED_6, LED_OFF);
         HAL_Delay(x);
-        set_led(LED_2, LED_ON);
         set_led(LED_1, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_3, LED_ON);
-        set_led(LED_2, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_4, LED_ON);
-        set_led(LED_3, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_5, LED_ON);
-        set_led(LED_4, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_6, LED_ON);
-        set_led(LED_5, LED_OFF);
-        HAL_Delay(x*2);
-
-        set_led(LED_5, LED_ON);
-        set_led(LED_6, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_4, LED_ON);
-        set_led(LED_5, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_3, LED_ON);
-        set_led(LED_4, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_2, LED_ON);
-        set_led(LED_3, LED_OFF);
-        HAL_Delay(x);
-        set_led(LED_1, LED_ON);
-        set_led(LED_2, LED_OFF);
         HAL_Delay(x);
     }
 }
@@ -76,9 +59,9 @@ void setup(void){
     // Peripheral setup
     LED_Init();
     UART_Init();
-    PWM_Init();
-    MOTOR_Init();
-    ENCODER_Init();
+    //PWM_Init();
+    //MOTOR_Init();
+    //ENCODER_Init();
     IR_Init();
 }
 
