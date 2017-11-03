@@ -25,7 +25,7 @@ motor_sense_t _motor_sense_r;
 
 void MOTOR_Init();
 void set_sense(motor_t motor, motor_sense_t sense);
-void set_speed(motor_t motor, motor_sense_t speed);
+void set_speed(motor_t motor, int16_t speed);
 void update_speed(motor_t motor);
 int32_t get_speed(motor_t motor);
 

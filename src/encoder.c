@@ -98,3 +98,14 @@ int32_t get_encoder_delta(uint8_t encoder){
         return 0;
     }
 }
+
+int32_t get_encoder_diff(int32_t pos_a, int32_t pos_b){
+     int32_t result = pos_b - pos_a;
+     if(result > 32767){
+         result -= 65535;
+     }
+     else if (result < -32767){
+         result += 65535;
+     }
+     return result;
+}

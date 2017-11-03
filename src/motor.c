@@ -1,4 +1,5 @@
 #include "motor.h"
+#include "pwm.h"
 
 void MOTOR_Init(){
     GPIO_InitTypeDef GPIO_InitStruct;
@@ -59,6 +60,23 @@ void set_sense(motor_t motor, motor_sense_t sense){
             HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, GPIO_PIN_RESET);
         }
+    }
+}
+
+void set_speed(motor_t motor, int16_t speed){
+    if (speed > 0){
+        set_sense(motor, FORWARD);
+    }
+    else {
+        set_sense(motor, BACKWARD);
+        speed *= -1;
+    }
+    if(speed > 1000) speed = 1000;
+    if(motor == MOTOR_L){
+        set_pwm(PWM_2, speed);
+    }
+    else if (motor == MOTOR_R){
+        set_pwm(PWM_1, speed);
     }
 }
 

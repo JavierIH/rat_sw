@@ -16,6 +16,7 @@ void MX_TIM1_Init(void);
 void MX_TIM2_Init(void);
 uint16_t get_encoder(encoder_t encoder);
 int32_t get_encoder_delta(encoder_t encoder);
+int32_t get_encoder_diff(int32_t pos_a, int32_t pos_b);
 
 
 #endif // ENCODER_H
