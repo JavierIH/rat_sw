@@ -22,6 +22,8 @@
 
 void GPIO_Init();
 void set_led(uint16_t led_pin, GPIO_PinState state);
+void set_all_led(GPIO_PinState state);
+void led_animation();
 GPIO_PinState get_button(uint16_t button_pin);
 
 

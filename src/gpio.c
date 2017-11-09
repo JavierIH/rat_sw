@@ -50,6 +50,14 @@ void set_led(uint16_t led_pin, GPIO_PinState state){
         break;
     }
 }
+void set_all_led(GPIO_PinState state){
+    HAL_GPIO_WritePin(LED_L_PORT, LED_1, state);
+    HAL_GPIO_WritePin(LED_L_PORT, LED_2, state);
+    HAL_GPIO_WritePin(LED_L_PORT, LED_3, state);
+    HAL_GPIO_WritePin(LED_R_PORT, LED_4, state);
+    HAL_GPIO_WritePin(LED_R_PORT, LED_5, state);
+    HAL_GPIO_WritePin(LED_R_PORT, LED_6, state);
+}
 
 GPIO_PinState get_button(uint16_t button_pin){
     switch (button_pin) {
@@ -60,4 +68,41 @@ GPIO_PinState get_button(uint16_t button_pin){
             return HAL_GPIO_ReadPin(BUTTON_SELECT_PORT, BUTTON_SELECT);
         break;
     }
+}
+
+void led_animation(){
+    int time = 30;
+    set_led(LED_1, LED_ON);
+    set_led(LED_6, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_2, LED_ON);
+    set_led(LED_1, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_3, LED_ON);
+    set_led(LED_2, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_4, LED_ON);
+    set_led(LED_3, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_5, LED_ON);
+    set_led(LED_4, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_6, LED_ON);
+    set_led(LED_5, LED_OFF);
+    HAL_Delay(time);
+    set_led(LED_6, LED_OFF);
+    set_led(LED_5, LED_ON);
+    HAL_Delay(time);
+    set_led(LED_5, LED_OFF);
+    set_led(LED_4, LED_ON);
+    HAL_Delay(time);
+    set_led(LED_4, LED_OFF);
+    set_led(LED_3, LED_ON);
+    HAL_Delay(time);
+    set_led(LED_3, LED_OFF);
+    set_led(LED_2, LED_ON);
+    HAL_Delay(time);
+    set_led(LED_2, LED_OFF);
+    set_led(LED_1, LED_ON);
+    HAL_Delay(time);
 }

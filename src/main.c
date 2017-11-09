@@ -9,31 +9,24 @@
 #include "encoder.h"
 #include "infrared.h"
 
+char text_buffer[200];
 
-static void MX_ADC1_Init(void);
 void setup(void);
-//void SysTick_Handler(void);
 
 int main(void) {
     setup();
-    char text_buffer[200];
-    sprintf(text_buffer,"running...\n\r");
-    int i=0;
-    int up=1;
-    int mtime=30;
-    set_sense(MOTOR_R, FORWARD);
-    set_sense(MOTOR_L, FORWARD);
 
-    int32_t delta = 0;
-    uint16_t before = 0;
-    uint16_t after = 0;
-    set_led(LED_1, LED_OFF);
-
-    while(!get_button(BUTTON_START));
+    while(!get_button(BUTTON_START)){
+        led_animation();
+    }
+    set_all_led(LED_ON);
     HAL_Delay(2000);
+    set_all_led(LED_OFF);
 
-    int yaw_error;
-    int x_error;
+    int yaw_error = 0;
+    int x_error = 0;
+    int cell_progress = 0;
+    int ref_cell_progress = 0;
     while (1){
         /*sprintf(text_buffer,"IR_FL: %d\t", get_ir(IR_FL));
         send_uart(text_buffer);
@@ -42,47 +35,87 @@ int main(void) {
         sprintf(text_buffer,"IR_SL: %d\t", get_ir(IR_SL));
         send_uart(text_buffer);
         sprintf(text_buffer,"IR_SR: %d\n\r", get_ir(IR_SR));
+        send_uart(text_buffer);/**/
+        /*sprintf(text_buffer,"ENCODER_R: %d\t", __HAL_TIM_GetCounter(&htim2));
         send_uart(text_buffer);
-        set_led(LED_1, LED_ON);*/
+        sprintf(text_buffer,"ENCODER_L: %d\n\r", __HAL_TIM_GetCounter(&htim1));
+        send_uart(text_buffer);/**/
 
         yaw_error = 0;
 
-        //Si hay muro por los dos lados corrije
-        if(get_ir(IR_SL) > 500 && get_ir(IR_SR) > 150){
-            yaw_error = get_ir(IR_SR) - get_ir(IR_SL);
-            yaw_error += 370;
-            yaw_error/=4;
+        //Si hay muro por los dos lados corrije //TODO correcciones con un solo muros
+        if (get_ir(IR_SR) > 150){ //725
+            yaw_error = - 725 + get_ir(IR_SR);
+            //yaw_error += 370;
+            yaw_error/=3;
         }
+        else if(get_ir(IR_SL) > 500){ // 875
+            yaw_error = 875 - get_ir(IR_SL);
+            //yaw_error += 370;
+            yaw_error/=3;
+        }
+
+
+
+
         int x_error = get_ir(IR_FL);
         if (x_error > get_ir(IR_FR)) x_error = get_ir(IR_FR);
-        int speed_L = -yaw_error;
-        int speed_R = yaw_error;
+        int wall_correction_L = -yaw_error;
+        int wall_correction_R = yaw_error;
 
-        if(x_error < 800){
-            set_speed(MOTOR_L, 200 + speed_L);
-            set_speed(MOTOR_R, 200 + speed_R);
+        if(x_error < 800 && cell_progress < 1600){ //cruzando celda
+            set_speed(MOTOR_L, 230 + wall_correction_L);
+            set_speed(MOTOR_R, 230 + wall_correction_R);
+            cell_progress = get_encoder_diff(ref_cell_progress, __HAL_TIM_GetCounter(&htim2));
+            //sprintf(text_buffer,"progress: %d\n\r", cell_progress); send_uart(text_buffer);
         }
-        else{
-            set_speed(MOTOR_L, 0);
-            set_speed(MOTOR_R, 0);
-            HAL_Delay(500);
-            if (get_ir(IR_SL) < 500){ //girar izquierda
+        else{ // derecha, frente, izquierda, vuelta
+            cell_progress = 0;
+            if (get_ir(IR_SR) < 150){ //girar derecha
+                set_speed(MOTOR_L, 0);
+                set_speed(MOTOR_R, 0);
+                HAL_Delay(150);
+                //sprintf(text_buffer,"girar derecha\n\r"); send_uart(text_buffer);
                 int init_position_L = __HAL_TIM_GetCounter(&htim1);
-                //int init_position_R = __HAL_TIM_GetCounter(&htim2);
-                while(__HAL_TIM_GetCounter(&htim1) - init_position_L < 340){
-                    set_speed(MOTOR_L, -200);
-                    set_speed(MOTOR_R, 200);
-                    sprintf(text_buffer,"ENCODER_L: %d\t[%d]\n\r", init_position_L, __HAL_TIM_GetCounter(&htim1) - init_position_L);
-                    send_uart(text_buffer);
+                while(get_encoder_diff(init_position_L, __HAL_TIM_GetCounter(&htim1)) > -340){
+                    //sprintf(text_buffer,"%d\n\r", get_encoder_diff(__HAL_TIM_GetCounter(&htim1), init_position_L)); send_uart(text_buffer);
+                    set_speed(MOTOR_L, 200);
+                    set_speed(MOTOR_R, -200);
                 }
                 set_speed(MOTOR_L, 0);
                 set_speed(MOTOR_R, 0);
-                HAL_Delay(500);
+                cell_progress = 0;
+                ref_cell_progress = __HAL_TIM_GetCounter(&htim2);
+                set_speed(MOTOR_L, 0);
+                set_speed(MOTOR_R, 0);
+                HAL_Delay(150);
             }
-            else if (get_ir(IR_SR) < 150){ //girar derecha
-
+            else if(x_error < 400){ //seguir recto
+                //sprintf(text_buffer,"seguir recto\n\r"); send_uart(text_buffer);
+                cell_progress = 0;
+                ref_cell_progress = __HAL_TIM_GetCounter(&htim2);
             }
-            else {
+            else if (get_ir(IR_SL) < 500){ //girar izquierda
+                set_speed(MOTOR_L, 0);
+                set_speed(MOTOR_R, 0);
+                HAL_Delay(150);
+                //sprintf(text_buffer,"girar izquierda\n\r"); send_uart(text_buffer);
+                int init_position_L = __HAL_TIM_GetCounter(&htim1);
+                while(get_encoder_diff(init_position_L, __HAL_TIM_GetCounter(&htim1)) < 340){
+                    set_speed(MOTOR_L, -200);
+                    set_speed(MOTOR_R, 200);
+                }
+                cell_progress = 0;
+                ref_cell_progress = __HAL_TIM_GetCounter(&htim2);
+                set_speed(MOTOR_L, 0);
+                set_speed(MOTOR_R, 0);
+                HAL_Delay(150);
+            }
+            else{
+                //sprintf(text_buffer,"media vuelta\n\r"); send_uart(text_buffer);
+                set_speed(MOTOR_L, 0);
+                set_speed(MOTOR_R, 0);
+                HAL_Delay(150);
                 int current_position_L = __HAL_TIM_GetCounter(&htim1);
                 int final_position_L = current_position_L + 780;
                 if (final_position_L > 65535) final_position_L -= 65535;
@@ -103,10 +136,11 @@ int main(void) {
                     }
                     HAL_Delay(1);
                 }
-
+                cell_progress = 0;
+                ref_cell_progress = __HAL_TIM_GetCounter(&htim2);
                 set_speed(MOTOR_L, 0);
                 set_speed(MOTOR_R, 0);
-                HAL_Delay(500);
+                HAL_Delay(150);
             } //180 grados
         }
     }
@@ -115,8 +149,6 @@ int main(void) {
 void setup(void){
     HAL_Init();
     SystemClock_Config();
-
-    // Peripheral setup
     LED_Init();
     UART_Init();
     PWM_Init();
