@@ -33,5 +33,5 @@ void PWM_Init(){
 
 
 void set_pwm(uint8_t pwm_channel, uint16_t duty_cycle){
-    __HAL_TIM_SetCompare(&htim4, pwm_channel, duty_cycle);
+    __HAL_TIM_SET_COMPARE(&htim4, pwm_channel, duty_cycle);
 }

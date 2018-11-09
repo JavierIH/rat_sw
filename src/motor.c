@@ -11,13 +11,13 @@ void MOTOR_Init(){
     // Configure GPIO pin : PB6 PB7 PB3
     GPIO_InitStruct.Pin = MOTOR_R_IN1|MOTOR_R_IN2|MOTOR_L_IN1;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     // Configure GPIO pins : PA15
     GPIO_InitStruct.Pin = MOTOR_L_IN2;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     _motor_sense_l = FREE;

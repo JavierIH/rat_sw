@@ -21,11 +21,11 @@ void MX_TIM1_Init(void){
     htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim1.Init.RepetitionCounter = 0;
     sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-    sConfig.IC1Polarity = TIM_ICPOLARITY_BOTHEDGE;
+    sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
     sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
     sConfig.IC1Filter = 0;
-    sConfig.IC2Polarity = TIM_ICPOLARITY_BOTHEDGE;
+    sConfig.IC2Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
     sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
     sConfig.IC2Filter = 0;
@@ -51,11 +51,11 @@ void MX_TIM2_Init(void){
     htim2.Init.Period = 65535;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-    sConfig.IC1Polarity = TIM_ICPOLARITY_BOTHEDGE;
+    sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
     sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
     sConfig.IC1Filter = 0;
-    sConfig.IC2Polarity = TIM_ICPOLARITY_BOTHEDGE;
+    sConfig.IC2Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
     sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
     sConfig.IC2Filter = 0;
@@ -72,10 +72,10 @@ void MX_TIM2_Init(void){
 
 uint16_t get_encoder(uint8_t encoder){
     if(encoder == ENCODER_L){
-        return __HAL_TIM_GetCounter(&htim1);
+        return __HAL_TIM_GET_COUNTER(&htim1);
     }
     else if(encoder == ENCODER_R){
-        return __HAL_TIM_GetCounter(&htim2);
+        return __HAL_TIM_GET_COUNTER(&htim2);
     }
     else{
         return 0;
@@ -86,12 +86,12 @@ int32_t get_encoder_delta(uint8_t encoder){
     uint16_t encoder_ref = 0;
     if(encoder == ENCODER_L){
         encoder_ref = _encoder_state_l;
-        _encoder_state_l = __HAL_TIM_GetCounter(&htim1);
+        _encoder_state_l = __HAL_TIM_GET_COUNTER(&htim1);
         return _encoder_state_l - encoder_ref;
     }
     else if(encoder == ENCODER_R){
         encoder_ref = _encoder_state_r;
-        _encoder_state_r = __HAL_TIM_GetCounter(&htim2);
+        _encoder_state_r = __HAL_TIM_GET_COUNTER(&htim2);
         return _encoder_state_r  - encoder_ref;
     }
     else{

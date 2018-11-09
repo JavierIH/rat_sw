@@ -12,21 +12,21 @@ void LED_Init(){
     GPIO_InitStruct.Pin = LED_1|LED_2|LED_3;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(LED_L_PORT, &GPIO_InitStruct);
 
     // Configure GPIO pins : PA3 PA4 PA5
     GPIO_InitStruct.Pin = LED_4|LED_5|LED_6;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(LED_R_PORT, &GPIO_InitStruct);
 
     // Configure GPIO pins : PC13
     GPIO_InitStruct.Pin = BUTTON_START;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_MEDIUM;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(BUTTON_START_PORT, &GPIO_InitStruct);
 
     // Configure GPIO pins : PB5
