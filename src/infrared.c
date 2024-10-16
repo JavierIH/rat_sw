@@ -108,3 +108,24 @@ int get_ir(ir_sensor_t ir){
     }*/
     //return HAL_ADC_GetValue(&hadc1);
 }
+
+
+//-0.00000002083*x*x*x + 0.0001119*x*x - 0.2135*x + 185;
+float get_ir_mm(ir_sensor_t ir){
+    float x = get_ir(ir);
+    if(ir == IR_SL){
+        return -0.00000005219*x*x*x +0.0002629*x*x -0.4566*x +325.6;
+    }
+    else if(ir == IR_SR){
+        return -0.00000003241*x*x*x +0.0001505*x*x -0.25*x +189;
+    }
+    else if(ir == IR_FL){
+        return -0.00000002278*x*x*x +0.000132*x*x -0.2627*x +237.7;
+    }
+    else if(ir == IR_FR){
+        return -0.00000003535*x*x*x +0.0001995*x*x -0.3834*x +317.6;
+    }
+    else{
+        return -1;
+    }
+}

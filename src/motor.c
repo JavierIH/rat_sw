@@ -63,7 +63,15 @@ void set_sense(motor_t motor, motor_sense_t sense){
     }
 }
 
-void set_speed(motor_t motor, int16_t speed){
+void set_output(motor_t motor, int16_t speed){
+    if(motor == MOTOR_L){
+        _motor_speed_l = speed;
+    }
+    else if (motor == MOTOR_R){
+        _motor_speed_r = speed;
+    }
+
+
     if (speed > 0){
         set_sense(motor, FORWARD);
     }
@@ -89,12 +97,23 @@ void update_speed(motor_t motor){
     }
 }
 
-
-int32_t get_speed(motor_t motor){
+int32_t get_output(motor_t motor){
     if (motor == MOTOR_R){
         return _motor_speed_r;
     }
     else if (motor == MOTOR_L){
         return _motor_speed_l;
     }
+    else{
+        return 0;
+    }
 }
+
+//int32_t get_speed(motor_t motor){
+//    if (motor == MOTOR_R){
+//        return _motor_speed_r;
+//    }
+//    else if (motor == MOTOR_L){
+//        return _motor_speed_l;
+//    }
+//}

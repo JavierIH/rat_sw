@@ -14,6 +14,7 @@ ADC_ChannelConfTypeDef _sConfig;
 
 void IR_Init();
 int get_ir(ir_sensor_t ir);
+float get_ir_mm(ir_sensor_t ir);
 
 
 #endif // INFRARED_H

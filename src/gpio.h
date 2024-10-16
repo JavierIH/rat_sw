@@ -20,10 +20,12 @@
 #define LED_ON                  GPIO_PIN_SET
 #define LED_OFF                 GPIO_PIN_RESET
 
-void GPIO_Init();
+void LED_Init();
 void set_led(uint16_t led_pin, GPIO_PinState state);
 void set_all_led(GPIO_PinState state);
+void control_all_led(uint8_t led_state);
 void led_animation();
+void fast_blink();
 GPIO_PinState get_button(uint16_t button_pin);
 
 

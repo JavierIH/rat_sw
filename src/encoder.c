@@ -70,9 +70,18 @@ void MX_TIM2_Init(void){
     }
 }
 
-uint16_t get_encoder(uint8_t encoder){
+void reset_encoder(encoder_t encoder){
     if(encoder == ENCODER_L){
-        return __HAL_TIM_GET_COUNTER(&htim1);
+        __HAL_TIM_SET_COUNTER(&htim1, 0);
+    }
+    else if(encoder == ENCODER_R){
+        __HAL_TIM_SET_COUNTER(&htim2, 0);
+    }
+}
+
+uint16_t get_encoder(encoder_t encoder){
+    if(encoder == ENCODER_L){
+        return 65536-__HAL_TIM_GET_COUNTER(&htim1);
     }
     else if(encoder == ENCODER_R){
         return __HAL_TIM_GET_COUNTER(&htim2);
@@ -82,7 +91,7 @@ uint16_t get_encoder(uint8_t encoder){
     }
 }
 
-int32_t get_encoder_delta(uint8_t encoder){
+int32_t get_encoder_delta(encoder_t encoder){
     uint16_t encoder_ref = 0;
     if(encoder == ENCODER_L){
         encoder_ref = _encoder_state_l;

@@ -59,6 +59,15 @@ void set_all_led(GPIO_PinState state){
     HAL_GPIO_WritePin(LED_R_PORT, LED_6, state);
 }
 
+void control_all_led(uint8_t led_state){
+    set_led(LED_1, (led_state & (1 << 5)) ? LED_ON : LED_OFF);
+    set_led(LED_2, (led_state & (1 << 4)) ? LED_ON : LED_OFF);
+    set_led(LED_3, (led_state & (1 << 3)) ? LED_ON : LED_OFF);
+    set_led(LED_4, (led_state & (1 << 2)) ? LED_ON : LED_OFF);
+    set_led(LED_5, (led_state & (1 << 1)) ? LED_ON : LED_OFF);
+    set_led(LED_6, (led_state & (1 << 0)) ? LED_ON : LED_OFF);
+}
+
 GPIO_PinState get_button(uint16_t button_pin){
     switch (button_pin) {
         case BUTTON_START:
@@ -71,7 +80,7 @@ GPIO_PinState get_button(uint16_t button_pin){
 }
 
 void led_animation(){
-    int time = 30;
+    int time = 50;
     set_led(LED_1, LED_ON);
     set_led(LED_6, LED_OFF);
     HAL_Delay(time);
@@ -105,4 +114,13 @@ void led_animation(){
     set_led(LED_2, LED_OFF);
     set_led(LED_1, LED_ON);
     HAL_Delay(time);
+}
+
+void fast_blink(){
+    for(int i=0; i<3; i++){
+        set_all_led(LED_ON);
+        HAL_Delay(100);
+        set_all_led(LED_OFF);
+        HAL_Delay(100);
+    }
 }

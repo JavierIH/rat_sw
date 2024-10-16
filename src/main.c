@@ -9,144 +9,225 @@
 #include "encoder.h"
 #include "infrared.h"
 
-char text_buffer[200];
+#define     LANE_WIDTH              168.0 //mm
+#define     MAX_SIDE_WALL_DIST      130.0 //mm
+#define     TICKS_PER_CELL          1600 //ticks
+#define     TICKS_PER_TURN          490 //ticks
 
-void setup(void);
+typedef enum {UP_DIR, RIGHT_DIR, DOWN_DIR, LEFT_DIR} robot_heading_t;
 
-int main(void) {
-    setup();
+robot_heading_t robot_heading = UP_DIR;
+uint8_t robot_position_x = 1;
+uint8_t robot_position_y = 1;
+uint8_t goal_x = 8;
+uint8_t goal_y = 8;
+
+int started = 0;
+float lateral_error = 0;
+float prev_lateral_error = 0;
+float kp = 2;
+float kd = 30;
+float pd_straight = 0;
+int std_speed = 370;
+int boost = 0;
+
+
+void pid_config(int base_speed, float base_kp, float base_kd){
+    set_output(MOTOR_L, 0);
+    set_output(MOTOR_R, 0);
+    set_all_led(LED_ON);
+    print("PID configuration!\n");
+    HAL_Delay(1000);
+    int new_value = 0, value = 0;
+    print("--- SET SPEED ---\n");
+    control_all_led(0b00100000);
+    reset_encoder(ENCODER_L);
+    while(!get_button(BUTTON_START)){
+        new_value = base_speed + (int16_t)get_encoder(ENCODER_L)/2;
+        if(abs(value-new_value) >= 10){
+            value = (new_value/10)*10;
+            print("Speed: %d\n", value);
+        }
+    }
+    std_speed = value;
+    HAL_Delay(500);
+
+    print("--- SET Kp ---\n");
+    control_all_led(0b00010000);
+    reset_encoder(ENCODER_L);
+    value = 0;
+    while(!get_button(BUTTON_START)){
+        new_value = base_kp*10 + (int16_t)get_encoder(ENCODER_L)/20;
+        if(value!=new_value){
+            value = new_value;
+            print("Kp: %d.%d\n", value/10, value%10);
+        }
+    }
+    kp = value/10.0;
+    HAL_Delay(500);
+
+    print("--- SET Kd ---\n");
+    control_all_led(0b00001000);
+    reset_encoder(ENCODER_L);
+    value = 0;
+    while(!get_button(BUTTON_START)){
+        new_value = base_kd*10 + (int16_t)get_encoder(ENCODER_L)/20;
+        if(value!=new_value){
+            value = new_value;
+            print("Kd: %d.%d\n", value/10, value%10);
+        }
+    }
+    kd = value/10.0;
+    HAL_Delay(500);
+
+    print("Speed: %d    ", std_speed);
+    print("Kp: %d.%d    ", (int)kp, (int)(kp*10)%10);
+    print("Kd: %d.%d\n", (int)kd, (int)(kd*10)%10);
+
+    reset_encoder(ENCODER_L);
+    reset_encoder(ENCODER_R);
+}
+
+void cross_cell(){
+    int encoder_l_check = 0;
+    int encoder_r_check = 0;
+    int ir_check = 0;
+
+    uint32_t initial_enc_l = get_encoder(ENCODER_L);
+    uint32_t initial_enc_r = get_encoder(ENCODER_R);
+
+    while(!(encoder_l_check || encoder_r_check || ir_check)){
+        set_output(MOTOR_L, std_speed + boost + pd_straight);
+        set_output(MOTOR_R, std_speed + boost - pd_straight);
+
+        encoder_l_check = get_encoder_diff(initial_enc_l, get_encoder(ENCODER_L)) >= TICKS_PER_CELL;
+        encoder_r_check = get_encoder_diff(initial_enc_r, get_encoder(ENCODER_R)) >= TICKS_PER_CELL;
+        ir_check = get_ir_mm(IR_FL)<(94) && get_ir_mm(IR_FR)<(94);
+    }
+
+    // Update robot position
+    switch (robot_heading) {
+        case UP_DIR:    robot_position_y++; break;
+        case DOWN_DIR:  robot_position_y--; break;
+        case RIGHT_DIR: robot_position_x++; break;
+        case LEFT_DIR:  robot_position_x--; break;
+    }
+}
+
+void turn_left(){
+    int encoder_l_check = 0;
+    int encoder_r_check = 0;
+
+    uint32_t initial_enc_l = get_encoder(ENCODER_L);
+    uint32_t initial_enc_r = get_encoder(ENCODER_R);
+
+    set_output(MOTOR_L, 0);
+    set_output(MOTOR_R, 0);
+    HAL_Delay(150);
+
+
+    while(!(encoder_l_check || encoder_r_check)){
+        set_output(MOTOR_L, -150);
+        set_output(MOTOR_R, 150);
+
+        encoder_l_check = get_encoder_diff(initial_enc_l, get_encoder(ENCODER_L)) <= -TICKS_PER_TURN;
+        encoder_r_check = get_encoder_diff(initial_enc_r, get_encoder(ENCODER_R)) >= TICKS_PER_TURN;
+    }
+
+    set_output(MOTOR_L, 0);
+    set_output(MOTOR_R, 0);
+    HAL_Delay(150);
+
+    // Update robot heading
+    switch (robot_heading) {
+        case UP_DIR:    robot_heading = LEFT_DIR; break;
+        case DOWN_DIR:  robot_heading = RIGHT_DIR; break;
+        case RIGHT_DIR: robot_heading = UP_DIR; break;
+        case LEFT_DIR:  robot_heading = DOWN_DIR; break;
+    }
+}
+
+void turn_right(){
+    int encoder_l_check = 0;
+    int encoder_r_check = 0;
+
+    uint32_t initial_enc_l = get_encoder(ENCODER_L);
+    uint32_t initial_enc_r = get_encoder(ENCODER_R);
+
+    set_output(MOTOR_L, 0);
+    set_output(MOTOR_R, 0);
+    HAL_Delay(150);
+
+
+    while(!(encoder_l_check || encoder_r_check)){
+        set_output(MOTOR_L, 150);
+        set_output(MOTOR_R, -150);
+
+        encoder_l_check = get_encoder_diff(initial_enc_l, get_encoder(ENCODER_L)) >= TICKS_PER_TURN;
+        encoder_r_check = get_encoder_diff(initial_enc_r, get_encoder(ENCODER_R)) <= -TICKS_PER_TURN;
+    }
+
+    set_output(MOTOR_L, 0);
+    set_output(MOTOR_R, 0);
+    HAL_Delay(150);
+
+    // Update robot heading
+    switch (robot_heading) {
+        case UP_DIR:    robot_heading = RIGHT_DIR; break;
+        case DOWN_DIR:  robot_heading = LEFT_DIR; break;
+        case RIGHT_DIR: robot_heading = DOWN_DIR; break;
+        case LEFT_DIR:  robot_heading = UP_DIR; break;
+    }
+}
+
+void run_left_side(){
+    robot_position_x = 1;
+    robot_position_y = 1;
+    robot_heading = UP_DIR;
 
     while(!get_button(BUTTON_START)){
-        led_animation();
+        if(get_ir_mm(IR_SL) > 120){
+            turn_left();
+            cross_cell();
+        }
+        else if(get_ir_mm(IR_FL) > 120 || get_ir_mm(IR_FR) > 120){
+            cross_cell();
+        }
+        else if(get_ir_mm(IR_SR) > 120){
+            turn_right();
+            cross_cell();
+        }
+        else{
+            turn_right();
+        } 
     }
-    set_all_led(LED_ON);
-    HAL_Delay(2000);
-    set_all_led(LED_OFF);
+}
 
-    int yaw_error = 0;
-    int x_error = 0;
-    int cell_progress = 0;
-    int ref_cell_progress = 0;
-    while (1){
-        /*sprintf(text_buffer,"IR_FL: %d\t", get_ir(IR_FL));
-        send_uart(text_buffer);
-        sprintf(text_buffer,"IR_FR: %d\t", get_ir(IR_FR));
-        send_uart(text_buffer);
-        sprintf(text_buffer,"IR_SL: %d\t", get_ir(IR_SL));
-        send_uart(text_buffer);
-        sprintf(text_buffer,"IR_SR: %d\n\r", get_ir(IR_SR));
-        send_uart(text_buffer);/**/
-        /*sprintf(text_buffer,"ENCODER_R: %d\t", __HAL_TIM_GET_COUNTER(&htim2));
-        send_uart(text_buffer);
-        sprintf(text_buffer,"ENCODER_L: %d\n\r", __HAL_TIM_GET_COUNTER(&htim1));
-        send_uart(text_buffer);/**/
+void run_right_side(){
+    robot_position_x = 1;
+    robot_position_y = 1;
+    robot_heading = UP_DIR;
 
-        yaw_error = 0;
-
-        //Si hay muro por los dos lados corrije //TODO correcciones con un solo muros
-        if (get_ir(IR_SR) > 150){ //725
-            yaw_error = - 725 + get_ir(IR_SR);
-            //yaw_error += 370;
-            yaw_error*=0.5;
+    while(!get_button(BUTTON_START)){
+        if(get_ir_mm(IR_SR) > 120){
+            turn_right();
+            cross_cell();
         }
-        else if(get_ir(IR_SL) > 500){ // 875
-            yaw_error = 875 - get_ir(IR_SL);
-            //yaw_error += 370;
-            yaw_error*=0.5;
+        else if(get_ir_mm(IR_FL) > 120 || get_ir_mm(IR_FR) > 120){
+            cross_cell();
         }
-
-
-
-
-        int x_error = get_ir(IR_FL);
-        if (x_error > get_ir(IR_FR)) x_error = get_ir(IR_FR);
-        int wall_correction_L = -yaw_error;
-        int wall_correction_R = yaw_error;
-
-        if(x_error < 800 && cell_progress < 1600){ //cruzando celda
-            set_speed(MOTOR_L, 270 + wall_correction_L);
-            set_speed(MOTOR_R, 270 + wall_correction_R);
-            cell_progress = get_encoder_diff(ref_cell_progress, __HAL_TIM_GET_COUNTER(&htim2));
-            //sprintf(text_buffer,"progress: %d\n\r", cell_progress); send_uart(text_buffer);
+        else if(get_ir_mm(IR_SL) > 120){
+            turn_left();
+            cross_cell();
         }
-        else{ // derecha, frente, izquierda, vuelta
-            cell_progress = 0;
-            if (get_ir(IR_SR) < 150){ //girar derecha
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-                //sprintf(text_buffer,"girar derecha\n\r"); send_uart(text_buffer);
-                int init_position_L = __HAL_TIM_GET_COUNTER(&htim1);
-                while(get_encoder_diff(init_position_L, __HAL_TIM_GET_COUNTER(&htim1)) > -340){
-                    //sprintf(text_buffer,"%d\n\r", get_encoder_diff(__HAL_TIM_GET_COUNTER(&htim1), init_position_L)); send_uart(text_buffer);
-                    set_speed(MOTOR_L, 200);
-                    set_speed(MOTOR_R, -200);
-                }
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                cell_progress = 0;
-                ref_cell_progress = __HAL_TIM_GET_COUNTER(&htim2);
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-            }
-            else if(x_error < 400){ //seguir recto
-                //sprintf(text_buffer,"seguir recto\n\r"); send_uart(text_buffer);
-                cell_progress = 0;
-                ref_cell_progress = __HAL_TIM_GET_COUNTER(&htim2);
-            }
-            else if (get_ir(IR_SL) < 500){ //girar izquierda
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-                //sprintf(text_buffer,"girar izquierda\n\r"); send_uart(text_buffer);
-                int init_position_L = __HAL_TIM_GET_COUNTER(&htim1);
-                while(get_encoder_diff(init_position_L, __HAL_TIM_GET_COUNTER(&htim1)) < 340){
-                    set_speed(MOTOR_L, -200);
-                    set_speed(MOTOR_R, 200);
-                }
-                cell_progress = 0;
-                ref_cell_progress = __HAL_TIM_GET_COUNTER(&htim2);
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-            }
-            else{
-                //sprintf(text_buffer,"media vuelta\n\r"); send_uart(text_buffer);
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-                int current_position_L = __HAL_TIM_GET_COUNTER(&htim1);
-                int final_position_L = current_position_L + 780;
-                if (final_position_L > 65535) final_position_L -= 65535;
-
-                int encoder_diff_L = get_encoder_diff(current_position_L, final_position_L);
-
-                while(abs(encoder_diff_L) > 10){
-                    encoder_diff_L = get_encoder_diff(__HAL_TIM_GET_COUNTER(&htim1), final_position_L);
-                    //sprintf(text_buffer,"DIFF: %d\t[%d]\n\r", encoder_diff_L, __HAL_TIM_GET_COUNTER(&htim1));
-                    //send_uart(text_buffer);
-                    if(encoder_diff_L > 0){
-                        set_speed(MOTOR_L, -100 -encoder_diff_L/4);
-                        set_speed(MOTOR_R, +100 +encoder_diff_L/4);
-                    }
-                    else {
-                        set_speed(MOTOR_L, +100 -encoder_diff_L/4);
-                        set_speed(MOTOR_R, -100 +encoder_diff_L/4);
-                    }
-                    HAL_Delay(1);
-                }
-                cell_progress = 0;
-                ref_cell_progress = __HAL_TIM_GET_COUNTER(&htim2);
-                set_speed(MOTOR_L, 0);
-                set_speed(MOTOR_R, 0);
-                HAL_Delay(150);
-            } //180 grados
+        else{
+            turn_left();
         }
     }
 }
 
-void setup(void){
+
+int main(void) {
     HAL_Init();
     SystemClock_Config();
     LED_Init();
@@ -155,23 +236,74 @@ void setup(void){
     MOTOR_Init();
     ENCODER_Init();
     IR_Init();
+
+//    print("Press button to start\n");
+//    while(!get_button(BUTTON_START)){
+//        if(get_button(BUTTON_SELECT)){
+//            fast_blink();
+//            pid_config(std_speed, kp, kd);
+//            fast_blink();
+//        }
+//        led_animation();
+//    }
+//    print("Click START to run left side or SELECT to run right side\n");
+
+    while(1){
+        if(get_button(BUTTON_START)){
+            set_all_led(LED_ON);
+            HAL_Delay(5000);
+            set_all_led(LED_OFF);
+            started = 1;
+            HAL_Delay(20);
+            run_left_side();
+        }
+        else if(get_button(BUTTON_SELECT)){
+            set_all_led(LED_ON);
+            HAL_Delay(5000);
+            set_all_led(LED_OFF);
+            started = 1;
+            HAL_Delay(20);
+            run_right_side();
+        }
+        led_animation();
+    }
 }
+
+int current_speed = 0;
+int diff_speed = 0;
+float ir_dist = 0;
 
 void SysTick_Handler(void){ // function executed each 1ms
     static uint16_t task_tick = 0;
 
-    switch (task_tick++) { // each case is executed each 20ms
-        case 0:
-            update_speed(MOTOR_L);
-            update_speed(MOTOR_R);
+    if(started) switch (task_tick++) { // loop runs at 100Hz
+        case 0: // Boost
+            //boost = 0;
+            //if(get_ir_mm(IR_FL) > 200) boost = 100;
             break;
-        case 1:
-            //update speed pid
+
+        case 1: // Calculate PID
+            lateral_error = 0;
+            ir_dist = get_ir_mm(IR_SR);
+            if(ir_dist < MAX_SIDE_WALL_DIST){
+                control_all_led(0b00000111);
+                lateral_error = ir_dist - LANE_WIDTH/2.0;
+            }
+            else{
+                ir_dist = get_ir_mm(IR_SL);
+                if(ir_dist < MAX_SIDE_WALL_DIST){
+                    control_all_led(0b00111000);
+                    lateral_error = -ir_dist + LANE_WIDTH/2.0;
+                }
+                else{
+                    set_all_led(LED_OFF);
+                }
+            }
+            pd_straight = lateral_error*kp + (lateral_error-prev_lateral_error)*kd;
+            prev_lateral_error = lateral_error; 
             break;
-        //case 2:
-            //update turn pid
-        //    break;
-        case 20:
+
+        case 9:
             task_tick = 0;
             break;
     }

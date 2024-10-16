@@ -1,5 +1,7 @@
+#include <stdarg.h> 
 #include "uart.h"
 #include "gpio.h"
+
 
 void UART_Init(){
     huart3.Instance = USART3;
@@ -36,3 +38,13 @@ void send_uart(char* data){
     uint16_t size = strlen(data);
     HAL_UART_Transmit(&huart3, (uint8_t*)data, size, UART_TIMEOUT);
 }
+
+void print(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vsnprintf(_print_buffer, sizeof(_print_buffer), format, args);
+    va_end(args);
+    send_uart(_print_buffer);
+}
+
+

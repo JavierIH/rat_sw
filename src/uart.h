@@ -8,9 +8,12 @@
 #define UART_TIMEOUT			1000
 
 UART_HandleTypeDef huart3;
-uint8_t uart_send_buffer[100];
+
+char _print_buffer[100];
 
 void UART_Init();
 void send_uart(char* data);
+void print(const char *format, ...);
+
 
 #endif // UART_H
