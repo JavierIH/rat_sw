@@ -197,8 +197,8 @@ def draw(stdscr, state, port):
             if not connected and last_error:
                 stdscr.addstr(5, 24, last_error[: width - 26], curses.color_pair(P_BAD))
             stdscr.addstr(6, 2, "Motors: ", curses.color_pair(P_DIM))
-            stdscr.addstr(6, 10, "DISABLED", curses.color_pair(P_BAD) | curses.A_BOLD)
-            stdscr.addstr(6, 19, "(USB power only, MOTORS_ENABLED=0)", curses.color_pair(P_DIM))
+            stdscr.addstr(6, 10, "OFF", curses.color_pair(P_BAD) | curses.A_BOLD)
+            stdscr.addstr(6, 14, "(diag_test never drives them)", curses.color_pair(P_DIM))
 
             box_line(stdscr, 8, width, "\u2560", "\u256c", "\u2563", "\u2500")
 

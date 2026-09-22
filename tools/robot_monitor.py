@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Live monitor + command sender for the rat robot's real firmware (main.c).
+"""Live monitor + command console for the rat robot firmware (main.c).
 
-Shows the robot's UART output (exploration log, command confirmations) in a
-scrolling panel, and lets you type tuning commands that get sent straight to
-the robot over the same serial/Bluetooth link -- no reflash needed:
-    SPD 100      set straight-line speed
-    TURN 120     set turn speed
-    KP 2.5       set lateral PD proportional gain
-    KD 15        set lateral PD derivative gain
+Shows the robot's Bluetooth output (run log, maps, replies) in a scrolling
+panel and sends whatever you type as a command, no reflash needed. The most
+used ones (HELP on the robot lists them all):
+    MODE n       1 search, 2 speed run, 3/4 left/right wall follower,
+                 5 sensor monitor, 6 erase map
+    START / STOP launch / stop the selected mode
+    STATUS, MAP  state and parameters / ASCII map with the speed-run path
+    SPD n, FAST n, TURN n, KP f, KD f, KE f   live tuning (SAVE keeps them)
 
 Usage:
     python3 tools/robot_monitor.py [--port /dev/rfcomm0] [--baud 9600]
@@ -102,12 +103,12 @@ def init_colors():
 def line_attr(kind, text):
     if kind == "sent":
         return curses.color_pair(P_SENT) | curses.A_BOLD
-    if kind == "bad":
-        return curses.color_pair(P_BAD)
-    if kind == "info":
-        return curses.color_pair(P_OK)
-    if "Meta alcanzada" in text:
+    if kind == "bad" or text.startswith("!!"):
+        return curses.color_pair(P_BAD) | curses.A_BOLD
+    if kind == "info" or "Meta alcanzada" in text or text.startswith("Fin: OK"):
         return curses.color_pair(P_OK) | curses.A_BOLD
+    if text.startswith("==") or text.startswith("Fin:"):
+        return curses.color_pair(P_TITLE) | curses.A_BOLD
     return curses.A_NORMAL  # plain terminal default, always visible regardless of theme
 
 
@@ -180,16 +181,18 @@ def draw(stdscr, state, port):
             )
 
             cheatsheet = [
-                ("SPD n", "velocidad recta (std_speed)"),
-                ("TURN n", "velocidad de giro (turn_speed)"),
-                ("KP f", "ganancia proporcional del PD lateral"),
-                ("KD f", "ganancia derivativa del PD lateral"),
-                ("RESET", "borra el mapa de paredes conocido"),
-                ("START", "arranca la exploracion (como el boton fisico)"),
-                ("PAUSE", "frena los motores ya mismo"),
-                ("RESUME", "continua desde una pausa"),
-                ("DEBUG ON", "pausa automatica despues de cada celda"),
-                ("DEBUG OFF", "desactiva el modo paso a paso"),
+                ("MODE n", "1 busqueda  2 rapida  3/4 seguidor izq/der  5 sensores  6 borrar"),
+                ("START/STOP", "lanza / detiene el modo (como el boton START)"),
+                ("PAUSE/RESUME", "frena y espera / continua"),
+                ("STEP ON|OFF", "pausa tras cada accion (RESUME para seguir)"),
+                ("STATUS", "modo, posicion, parametros y camino rapido"),
+                ("MAP", "mapa ASCII con el camino rapido (robot parado)"),
+                ("IR / WALLS", "lectura de sensores / paredes detectadas ahora"),
+                ("SPD FAST TURN", "PWM de busqueda / crucero rapido / giro"),
+                ("KP KD KE f", "centrado P / D y mantener rumbo sin paredes"),
+                ("SAVE / ERASE", "guarda mapa+meta+parametros / borra el mapa"),
+                ("HOME", "el robot esta en la salida mirando al norte"),
+                ("HELP", "lista completa de comandos"),
             ]
             cheat_row = height + 2
             if cheat_row < max_y - 1:
@@ -203,8 +206,8 @@ def draw(stdscr, state, port):
                     row = cheat_row + 3 + i
                     if row >= max_y - 1:
                         break
-                    stdscr.addstr(row, 2, "%-10s" % cmd, curses.color_pair(P_WARN) | curses.A_BOLD)
-                    stdscr.addstr(row, 13, desc[: width - 15], curses.color_pair(P_DIM))
+                    stdscr.addstr(row, 2, "%-14s" % cmd, curses.color_pair(P_WARN) | curses.A_BOLD)
+                    stdscr.addstr(row, 17, desc[: width - 19], curses.color_pair(P_DIM))
                 last_row = min(cheat_row + 3 + len(cheatsheet), max_y - 1)
                 stdscr.addstr(last_row, 0, "\u255a" + "\u2550" * (width - 2) + "\u255d", curses.color_pair(P_HEAD))
 
