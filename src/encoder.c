@@ -1,5 +1,9 @@
 #include "encoder.h"
 
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
+uint16_t _encoder_state_r;
+uint16_t _encoder_state_l;
 
 void ENCODER_Init(void){
     MX_TIM1_Init();
@@ -96,12 +100,12 @@ int32_t get_encoder_delta(encoder_t encoder){
     if(encoder == ENCODER_L){
         encoder_ref = _encoder_state_l;
         _encoder_state_l = __HAL_TIM_GET_COUNTER(&htim1);
-        return _encoder_state_l - encoder_ref;
+        return -(int16_t)(_encoder_state_l - encoder_ref);
     }
     else if(encoder == ENCODER_R){
         encoder_ref = _encoder_state_r;
         _encoder_state_r = __HAL_TIM_GET_COUNTER(&htim2);
-        return _encoder_state_r  - encoder_ref;
+        return (int16_t)(_encoder_state_r - encoder_ref);
     }
     else{
         return 0;
@@ -111,10 +115,10 @@ int32_t get_encoder_delta(encoder_t encoder){
 int32_t get_encoder_diff(int32_t pos_a, int32_t pos_b){
      int32_t result = pos_b - pos_a;
      if(result > 32767){
-         result -= 65535;
+         result -= 65536;
      }
      else if (result < -32767){
-         result += 65535;
+         result += 65536;
      }
      return result;
 }

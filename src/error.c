@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "error.h"
 
 void Error_Handler(void){

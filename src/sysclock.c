@@ -15,7 +15,7 @@ void SystemClock_Config(void){
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
-        // Error_Handler();
+        Error_Handler();
     }
 
     // Initializes the CPU, AHB and APB busses clocks
@@ -32,7 +32,7 @@ void SystemClock_Config(void){
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
     PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK){
-        //Error_Handler();
+        Error_Handler();
     }
 
     // Updates the variable SystemCoreClock

@@ -5,11 +5,11 @@
 
 typedef enum {ENCODER_L, ENCODER_R} encoder_t;
 
-TIM_HandleTypeDef htim1; //L
-TIM_HandleTypeDef htim2; //R
+extern TIM_HandleTypeDef htim1; //L
+extern TIM_HandleTypeDef htim2; //R
 
-uint16_t _encoder_state_r;
-uint16_t _encoder_state_l;
+extern uint16_t _encoder_state_r;
+extern uint16_t _encoder_state_l;
 
 void ENCODER_Init(void);
 void MX_TIM1_Init(void);

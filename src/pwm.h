@@ -9,7 +9,7 @@
 #include "uart.h"
 #include "error.h"
 
-TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim4;
 
 void PWM_Init();
 void set_pwm(uint8_t pwm_channel, uint16_t duty_cycle);

@@ -1,5 +1,9 @@
 #include "infrared.h"
+#include "error.h"
 
+volatile uint32_t _adc_buf[4];
+DMA_HandleTypeDef hdma_adc1;
+ADC_HandleTypeDef hadc1;
 
 void IR_Init(){
 
@@ -65,19 +69,12 @@ void IR_Init(){
       }
 
 	  __enable_irq();
-      HAL_ADC_Start_DMA(&hadc1, (uint32_t*)_adc_buf, 4);
+      if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)_adc_buf, 4) != HAL_OK){
+        Error_Handler();
+      }
       //HAL_ADC_Start_IT(&hadc1);
       //HAL_ADC_Start(&hadc1);
 }
-
-/*void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
-    if(hadc->Instance == ADC1){
-        val[0] = _adc_buf[0];
-        val[1] = _adc_buf[1];
-        val[2] = _adc_buf[2];
-        val[3] = _adc_buf[3];
-    }
-}*/
 
 int get_ir(ir_sensor_t ir){
     switch (ir){

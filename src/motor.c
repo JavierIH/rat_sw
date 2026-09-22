@@ -1,6 +1,11 @@
 #include "motor.h"
 #include "pwm.h"
 
+int32_t _motor_speed_l;
+int32_t _motor_speed_r;
+motor_sense_t _motor_sense_l;
+motor_sense_t _motor_sense_r;
+
 void MOTOR_Init(){
     GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -64,6 +69,9 @@ void set_sense(motor_t motor, motor_sense_t sense){
 }
 
 void set_output(motor_t motor, int16_t speed){
+#if !MOTORS_ENABLED
+    return;
+#endif
     if(motor == MOTOR_L){
         _motor_speed_l = speed;
     }

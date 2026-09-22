@@ -76,6 +76,8 @@ GPIO_PinState get_button(uint16_t button_pin){
         case BUTTON_SELECT:
             return HAL_GPIO_ReadPin(BUTTON_SELECT_PORT, BUTTON_SELECT);
         break;
+        default:
+            return GPIO_PIN_RESET;
     }
 }
 

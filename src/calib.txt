@@ -1,0 +1,40 @@
+DISTANCE        30,     35,     40,     45,     50,     55,     60,     65,     70,     75,     80,     85,     90,     95,     100,        105,        110,        115,        120,        125,        130,        135,        140,        145,        150,        155,        160,        165,        170,        175,        180
+SL              2200,   1955,   1730,   1550,   1360,   1250,   1160,   1100,   1020,   950,    900,    850,    810,    770,    720,        690,        670,        650,        620,        600,        575,        555,        530,        505,        483,        470,        460,
+SR              2120,   1830,   1590,   1410,   1245,   1110,   995,    900,    830,    765,    680,    640,    570,    525,    470,        425,        384,        375,        327,        304,        282,        255,        232,        210,        185,        165,        150,
+FL                                      2700,   2210,   1950,   1725,   1520,   1370,   1250,   1125,   1040,   940,    870,    800,        750,        680,        635,        585,        560,        515,        490,        460,        437,        410,        390,        360,        340,        315,        292,        270
+FR                                      2525,   2080,   1855,   1650,   1490,   1325,   1230,   1135,   1065,   995,    940,    875,        835,        785,        760,        715,        690,        645,        625,        600,        560,        550,        540,        515,        490,        465,        444,        440
+
+
+
+
+SL  -0.001606 x + 0.5842 x - 74.02 x + 3875
+SR  -0.001504 x + 0.5657 x - 75.26 x + 3828
+FL  -0.001949 x + 0.8214 x - 119 x + 6399
+FR  -0.001815 x + 0.752 x - 106.7 x + 5803
+
+int _target_speed_l = 0;
+int _target_speed_r = 0;
+
+void set_robot_speed(int speed_l, int speed_r){
+    _target_speed_l = speed_l;
+    _target_speed_r = speed_r;
+}
+
+int last_encoder_read_l = 0;
+int last_encoder_read_r = 0;
+
+int get_speed(int motor){
+    int delta = 0;
+    if (motor == MOTOR_L){
+        int current_encoder_read = get_encoder(ENCODER_L);
+        delta = get_encoder_diff(last_encoder_read_l, current_encoder_read);
+        last_encoder_read_l = current_encoder_read;
+    }
+    if (motor == MOTOR_R){
+        int current_encoder_read = get_encoder(ENCODER_R);
+        delta = get_encoder_diff(last_encoder_read_r, current_encoder_read);
+        last_encoder_read_r = current_encoder_read;
+    }
+    int speed = delta;
+    return speed;
+}

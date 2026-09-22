@@ -1,5 +1,7 @@
 #include "pwm.h"
 
+TIM_HandleTypeDef htim4;
+
 void PWM_Init(){
     TIM_OC_InitTypeDef sConfigOC;
 

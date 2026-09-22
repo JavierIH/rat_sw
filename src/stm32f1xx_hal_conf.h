@@ -40,7 +40,6 @@
  extern "C" {
 #endif
 
-#include "main.h"
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 
@@ -110,6 +109,13 @@
 #if !defined  (HSI_VALUE)
   #define HSI_VALUE    ((uint32_t)8000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
+
+/**
+  * @brief Internal Low Speed oscillator (LSI) value.
+  */
+#if !defined  (LSI_VALUE)
+  #define LSI_VALUE    ((uint32_t)40000) /*!< Value of the Internal Low Speed oscillator in Hz */
+#endif /* LSI_VALUE */
 
 /**
   * @brief External Low Speed oscillator (LSE) value.
@@ -334,11 +340,11 @@
   *         If expr is true, it returns no value.
   * @retval None
   */
-  #define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
+  #define assert_param(expr) ((expr) ? (void)0U : assert_failed((uint8_t *)__FILE__, __LINE__))
 /* Exported functions ------------------------------------------------------- */
   void assert_failed(uint8_t* file, uint32_t line);
 #else
-  #define assert_param(expr) ((void)0)
+  #define assert_param(expr) ((void)0U)
 #endif /* USE_FULL_ASSERT */
 
 #ifdef __cplusplus
