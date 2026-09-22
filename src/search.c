@@ -3,6 +3,7 @@
 #include "params.h"
 #include "robot_config.h"
 #include "storage.h"
+#include "telemetry.h"
 #include "uart.h"
 
 typedef struct { uint8_t x, y; heading_t h; } pose_t;
@@ -44,6 +45,11 @@ uint8_t search_ready(void){
 void search_set_home(void){
     pose_reset();
     ready = 1;
+    telemetry_pose(pose.x, pose.y, pose.h);
+}
+
+void search_set_lost(void){
+    ready = 0;
 }
 
 void search_pose(uint8_t *x, uint8_t *y, heading_t *h){
@@ -62,13 +68,18 @@ static move_result_t sense_here(wall_sense_t *w){
     maze_observe(pose.x, pose.y, heading_left(pose.h), w->left);
     maze_observe(pose.x, pose.y, heading_right(pose.h), w->right);
     maze_mark_visited(pose.x, pose.y);
+    telemetry_cell(pose.x, pose.y, pose.h);
+    telemetry_background_row();
     return MOVE_OK;
 }
 
 static move_result_t turn_by(int8_t quarter_turns){
     if(!quarter_turns) return MOVE_OK;
     move_result_t r = motion_turn(quarter_turns);
-    if(r == MOVE_OK) pose.h = (heading_t)((pose.h + quarter_turns + 4) & 3);
+    if(r == MOVE_OK){
+        pose.h = (heading_t)((pose.h + quarter_turns + 4) & 3);
+        telemetry_pose(pose.x, pose.y, pose.h);
+    }
     return r;
 }
 
@@ -86,10 +97,12 @@ static move_result_t forward(uint8_t cells, int16_t speed){
             pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
             pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
         }
+        telemetry_pose(pose.x, pose.y, pose.h);
         motion_align_front();
     }
     else if(r == MOVE_BLOCKED){
         maze_mark_blocked(pose.x, pose.y, pose.h);
+        telemetry_cell(pose.x, pose.y, pose.h);
     }
     return r;
 }
@@ -167,6 +180,7 @@ static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs){
     }
     print("!! destino inalcanzable segun el mapa: olvido %u paredes dudosas (reparacion %u/%u)\n",
           forgotten, *repairs, MAP_MAX_RECOVERIES);
+    telemetry_map();    // the forgotten walls can be anywhere: resend the whole map
     return cost_a[pose_state()] != PLAN_INF ? REPLAN_OK : REPLAN_UNREACHABLE;
 }
 
@@ -209,6 +223,7 @@ run_result_t search_explore(void){
 
     pose_reset();
     ready = 0;
+    telemetry_activity(TM_TO_GOAL);
     print("== BUSQUEDA ==\n");
     for(;;){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "busqueda");
@@ -221,6 +236,7 @@ run_result_t search_explore(void){
             motion_indicate(IND_GOAL);
             save_map();
             phase = PH_OPTIMIZE;
+            telemetry_activity(TM_OPTIMIZE);
         }
         if(phase == PH_OPTIMIZE){
             uint8_t budget_left = optimize_steps < OPTIMIZE_MAX_STEPS;
@@ -228,6 +244,7 @@ run_result_t search_explore(void){
                 print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
                                   : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
                 phase = PH_TO_START;
+                telemetry_activity(TM_TO_START);
             }
         }
         if(phase == PH_TO_START && pose.x == START_X && pose.y == START_Y){
@@ -305,12 +322,14 @@ run_result_t search_fast_run(void){
         return RUN_FAILED;  // nothing moved: still ready
     }
     ready = 0;
+    telemetry_activity(TM_FAST);
     print("== CARRERA RAPIDA (coste %u) ==\n", cost);
     uint16_t steps = 0;
     run_result_t res = drive_to(&goal, params.fast_speed, "RAPIDA", &steps);
     if(res != RUN_OK) return res;
     print("Meta alcanzada en carrera rapida tras %u tramos\n", steps);
     motion_indicate(IND_GOAL);
+    telemetry_activity(TM_RETURN);
     res = drive_to(&home, params.search_speed, "VUELTA", &steps);
     if(res != RUN_OK) return res;
     return finish_at_start(steps);
@@ -322,6 +341,7 @@ run_result_t search_wall_follow(uint8_t left_hand){
 
     pose_reset();
     ready = 0;
+    telemetry_activity(TM_FOLLOW);
     print("== SEGUIDOR DE PARED %s ==\n", left_hand ? "IZQUIERDA" : "DERECHA");
     while(!maze_is_goal(pose.x, pose.y)){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");

@@ -53,6 +53,8 @@ static inline const char *move_result_name(move_result_t r){
 void motion_tick_1ms(void);             // from SysTick: steering controller at 100 Hz
 void motion_stop(void);
 uint8_t motion_wait(uint32_t ms);       // keeps polling inputs; 0 if aborted meanwhile
+// Both wheels at `pwm` (ramped, no steering) until the robot moved `ticks`.
+move_result_t motion_drive_straight(int16_t pwm, int32_t ticks);
 void motion_request_abort(void);
 void motion_clear_abort(void);
 uint8_t motion_abort_requested(void);

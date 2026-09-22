@@ -37,7 +37,7 @@ static uint8_t params_sane(const params_t *p){
         && p->search_speed >= 0 && p->search_speed <= 1000
         && p->fast_speed >= 0 && p->fast_speed <= 1000
         && p->turn_speed >= 0 && p->turn_speed <= 1000
-        && p->log_level <= 2;
+        && p->log_level <= 2 && p->telemetry <= 1;
 }
 
 uint8_t storage_save(void){

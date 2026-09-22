@@ -93,6 +93,10 @@ uint8_t uart_tx_idle(void){
     return tx_count == 0 && !tx_active;
 }
 
+uint8_t uart_tx_full(void){
+    return tx_count >= UART_TX_QUEUE_LEN;
+}
+
 void uart_flush(uint32_t timeout_ms){
     uint32_t start = HAL_GetTick();
     while(!uart_tx_idle() && HAL_GetTick() - start < timeout_ms){}

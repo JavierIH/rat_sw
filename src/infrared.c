@@ -21,13 +21,32 @@ static const uint8_t SCAN_POS[IR_COUNT] = {
 
 // Calibration: mm = a*x^3 + b*x^2 + c*x + d, x = raw ADC counts (fitted on
 // the robot; raw tables in calib.txt). Monotonic over the whole ADC range.
+#define CAL_FL  -0.00000002278f, 0.000132f,  -0.2627f, 237.7f
+#define CAL_FR  -0.00000003535f, 0.0001995f, -0.3834f, 317.6f
+#define CAL_SL  -0.00000005219f, 0.0002629f, -0.4566f, 325.6f
+#define CAL_SR  -0.00000003241f, 0.0001505f, -0.25f,   189.0f
+
 typedef struct { float a, b, c, d; } cubic_t;
 static const cubic_t CALIBRATION[IR_COUNT] = {
-    [IR_FL] = {-0.00000002278f, 0.000132f,  -0.2627f, 237.7f},
-    [IR_FR] = {-0.00000003535f, 0.0001995f, -0.3834f, 317.6f},
-    [IR_SL] = {-0.00000005219f, 0.0002629f, -0.4566f, 325.6f},
-    [IR_SR] = {-0.00000003241f, 0.0001505f, -0.25f,   189.0f},
+    [IR_FL] = {CAL_FL},
+    [IR_FR] = {CAL_FR},
+    [IR_SL] = {CAL_SL},
+    [IR_SR] = {CAL_SR},
 };
+
+// Calibration dumps carry the coefficients as text (nano printf has no %f).
+#define STRINGIFY(...) #__VA_ARGS__
+#define TEXT_OF(...) STRINGIFY(__VA_ARGS__)
+static const char *const CALIBRATION_TEXT[IR_COUNT] = {
+    [IR_FL] = TEXT_OF(CAL_FL),
+    [IR_FR] = TEXT_OF(CAL_FR),
+    [IR_SL] = TEXT_OF(CAL_SL),
+    [IR_SR] = TEXT_OF(CAL_SR),
+};
+
+const char *ir_calibration_text(ir_sensor_t ir){
+    return (unsigned)ir < IR_COUNT ? CALIBRATION_TEXT[ir] : "";
+}
 
 void IR_Init(void){
     ADC_ChannelConfTypeDef channel = {0};

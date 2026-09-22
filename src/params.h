@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Runtime-tunable parameters: changed live over Bluetooth (SPD, FAST, TURN,
-// KP, KD, KE, LOG) and persisted with SAVE. Defaults in robot_config.h.
+// KP, KD, KE, LOG, TELEM) and persisted with SAVE. Defaults in robot_config.h.
 typedef struct {
     float kp;               // steering PD, PWM per mm of lateral error
     float kd;               // steering PD, PWM per mm of error change per 10 ms
@@ -12,8 +12,8 @@ typedef struct {
     int16_t search_speed;   // PWM of search moves and of the final approach of every straight
     int16_t fast_speed;     // PWM cruise of speed-run straights
     int16_t turn_speed;     // PWM of in-place turns
-    uint8_t log_level;      // 0 = events, 1 = + decisions, 2 = + per-move telemetry
-    uint8_t reserved;
+    uint8_t log_level;      // 0 = events, 1 = + decisions, 2 = + per-move details
+    uint8_t telemetry;      // 1 = '@' lines for the live maze view (telemetry.h)
 } params_t;
 
 extern params_t params;

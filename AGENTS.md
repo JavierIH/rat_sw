@@ -47,8 +47,13 @@ Commands:
   `default_envs`; without it every env was flashed in turn, the last winning).
 - `make -C test/host` builds and runs the host test suite (see below).
   `test/host/build/host_tests --demo` shows a full search + speed run log and
-  the ASCII map exactly as the robot prints them.
-- CI (`.github/workflows/ci.yml`) builds all envs and runs the host tests.
+  the ASCII map exactly as the robot prints them; `--transcript <seed>
+  <openings> [practice] [phantom]` prints everything the robot would send
+  over Bluetooth (telemetry included) during a search + speed run.
+- `python3 -m unittest discover -s tools -p 'test_*.py'`: monitor and
+  calibration analysis tests. They replay `--transcript` output, so they also
+  check that the monitor's planner makes the same decisions as the firmware.
+- CI (`.github/workflows/ci.yml`) builds all envs and runs both test suites.
 
 **Flashing quirk**: the ST-Link V2 clone has old firmware that only supports
 the deprecated HLA transport. `upload_protocol = custom` calls openocd with
@@ -85,14 +90,25 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   4 votes), 100 Hz steering in SysTick, run control (abort/pause/step).
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
   goal, parameters) in the last flash page.
+- `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
+  documented in `telemetry.h`).
+- `calib.c/.h`: calibration recorder (CAL command): samples encoders,
+  requested PWM (`motor_get()`) and raw IR from SysTick into a 384-sample
+  buffer (6 KB), then dumps them as `@D` lines with every constant.
 - `commands.c/.h`: Bluetooth console (table in `COMMANDS[]`).
 - `main.c`: init, mode selection UI, run dispatch, `app_systick()`.
 - Drivers: `motor`, `pwm`, `encoder`, `infrared`, `gpio`, `uart`, `msp.c`
   (pins/DMA/IRQs), `sysclock.c`, `stm32f1xx_it.c` (SysTick, fault handlers),
   `error.c`, `stm32f1xx_hal_conf.h`.
 - `test_uart.c`, `test_diag.c`: entry points of the smoke-test envs.
-- `tools/robot_monitor.py`: curses console for the robot firmware.
-  `tools/dashboard.py`: live panel for `diag_test`.
+- `tools/robot_monitor.py`: live maze monitor + console (curses). Rebuilds
+  the map from the telemetry, recomputes the route with a Python port of the
+  planner (costs read from `robot_config.h`), renders each frame into an
+  off-screen `Canvas` then blits it (clipped, resize-safe), records sessions
+  to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
+  `tools/calib_data/` (`/nota` appends measurements).
+- `tools/calib_analyze.py`: reports and suggested constants from those CSVs.
+- `tools/dashboard.py`: live panel for `diag_test`.
 
 ## Operating the robot
 - SELECT cycles the mode (LED n = mode n): 1 search, 2 speed run, 3/4 left/
@@ -108,9 +124,14 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
 `SPD n`, `FAST n`, `TURN n`, `KP f`, `KD f`, `KE f`, `LOG 0-2`, `DEFAULTS`,
-`GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`.
+`GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`, `TELEM ON|OFF`,
+`CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
+- Lines starting with `@` are telemetry for the monitor (`@D` = calibration
+  dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
-  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `HELP`) are refused during a run.
+  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `HELP`, `SYNC`, `CAL`) are refused
+  during a run. `CAL` only validates and queues the test: it runs from the
+  main loop, so `STOP` keeps working during the test and the dump.
 - Decimals are parsed by hand (`parse_decimal`): this nano-libc has no `%f`
   in scanf/printf. Print floats with `fixed2()`.
 
@@ -137,6 +158,12 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.
+- Telemetry is sent only between actions, never from a control loop. Any map
+  change the per-cell `@C` lines do not cover must be followed by
+  `telemetry_map()` (see the map repair in `plan_explore()`).
+- `tools/robot_monitor.py` ports `maze_plan_to/from`, `maze_best_action`
+  (same tie order) and the OPTIM candidates. Change both together; the
+  transcript tests fail if they diverge.
 - float, never double: the M3 has no FPU (`-Wdouble-promotion` is on).
 - Motors are stopped at register level in every fault handler and in
   `Error_Handler()`; fault = slow blink, `Error_Handler` = fast blink.
@@ -144,6 +171,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Current status
 Verified on the PC simulator (hundreds of random 16x16 and 4x3 mazes, with and
 without sensor noise): searches always complete, the verified speed-run path
-is optimal with perfect sensing, and nothing crashes. Still to validate on the
-real robot and maze: the search itself after the rework, merged straights and
-`FAST` speed, `KE` heading hold (off by default).
+is optimal with perfect sensing, and nothing crashes. On the robot (bench):
+console, sensors and flash persistence verified. Still to validate on the
+real maze: the search itself after the rework, merged straights and `FAST`
+speed, `KE` heading hold (off by default), and the CAL tests that move.

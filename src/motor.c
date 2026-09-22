@@ -33,7 +33,14 @@ static void set_direction(motor_t motor, uint8_t forward){
     }
 }
 
+static volatile int16_t requested[2];
+
+int16_t motor_get(motor_t motor){
+    return requested[motor];
+}
+
 void motor_set(motor_t motor, int16_t pwm){
+    requested[motor] = pwm;
 #if MOTORS_ENABLED
     int32_t duty = pwm;
     set_direction(motor, duty > 0);

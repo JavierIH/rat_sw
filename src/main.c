@@ -1,5 +1,6 @@
 #include "stm32f1xx_hal.h"
 #include "app.h"
+#include "calib.h"
 #include "commands.h"
 #include "encoder.h"
 #include "gpio.h"
@@ -12,6 +13,7 @@
 #include "search.h"
 #include "storage.h"
 #include "sysclock.h"
+#include "telemetry.h"
 #include "uart.h"
 
 static const char *const MODE_NAME[MODE_COUNT + 1] = {
@@ -21,14 +23,25 @@ static const char *const MODE_NAME[MODE_COUNT + 1] = {
 static uint8_t mode = MODE_SEARCH;
 static uint8_t run_active;
 static volatile uint8_t start_requested;
+static volatile uint8_t cal_requested;
+static cal_test_t cal_test;
+static int32_t cal_a, cal_b;
 
 uint8_t app_run_active(void){ return run_active; }
 uint8_t app_mode(void){ return mode; }
 void app_request_start(void){ start_requested = 1; }
 
+void app_request_cal(cal_test_t test, int32_t a, int32_t b){
+    cal_test = test;
+    cal_a = a;
+    cal_b = b;
+    cal_requested = 1;
+}
+
 uint8_t app_set_mode(uint8_t m){
     if(m < 1 || m > MODE_COUNT) return 0;
     mode = m;
+    telemetry_mode(mode);
     return 1;
 }
 
@@ -36,11 +49,23 @@ const char *app_mode_name(uint8_t m){
     return m <= MODE_COUNT ? MODE_NAME[m] : "?";
 }
 
+static void sync_telemetry(telemetry_activity_t activity){
+    uint8_t x, y;
+    heading_t h;
+    search_pose(&x, &y, &h);
+    telemetry_sync(mode, activity, x, y, h);
+}
+
+void app_telemetry_sync(void){
+    sync_telemetry(TM_IDLE);
+}
+
 // Every millisecond, from SysTick.
 void app_systick(void){
     encoder_tick();
     buttons_tick();
     motion_tick_1ms();
+    calib_tick_1ms();
 }
 
 // Idle: the selected mode's LED, briefly off once a second as a heartbeat.
@@ -84,6 +109,7 @@ static void erase_map_confirmed(void){
             maze_init();
             leds_all(0);
             print(storage_save() ? "Mapa borrado\n" : "!! error escribiendo la flash\n");
+            sync_telemetry(TM_ERASE);
             return;
         }
         if(button_take_press(BUTTON_SELECT) || motion_abort_requested()) break;
@@ -97,9 +123,11 @@ static void run_mode(uint8_t m){
     buttons_clear();
     run_active = 1;
     if(m == MODE_SENSORS){
+        telemetry_activity(TM_SENSORS);
         sensor_monitor();
     }
     else if(m == MODE_ERASE){
+        telemetry_activity(TM_ERASE);
         erase_map_confirmed();
     }
     else if(m == MODE_FAST && search_fast_path_cost() == PLAN_INF){
@@ -108,7 +136,10 @@ static void run_mode(uint8_t m){
     else{
         print("Modo %u %s: arranca en %u ms (START o STOP cancela)\n", m, MODE_NAME[m], START_DELAY_MS);
         leds_all(1);
-        uint8_t go = motion_wait(START_DELAY_MS);   // hands away
+        uint32_t countdown_start = HAL_GetTick();
+        sync_telemetry(TM_COUNTDOWN);   // the monitor starts the run with the full map
+        uint32_t spent = HAL_GetTick() - countdown_start;
+        uint8_t go = motion_wait(spent < START_DELAY_MS ? START_DELAY_MS - spent : 0);   // hands away
         leds_all(0);
         if(!go){
             print("cancelado\n");
@@ -132,6 +163,37 @@ static void run_mode(uint8_t m){
     run_active = 0;
     motion_clear_abort();
     buttons_clear();
+    uint8_t x, y;
+    heading_t h;
+    search_pose(&x, &y, &h);
+    telemetry_activity(TM_IDLE);
+    telemetry_pose(x, y, h);
+}
+
+static void run_calibration(void){
+    motion_clear_abort();
+    buttons_clear();
+    run_active = 1;
+    telemetry_activity(TM_CALIBRATE);
+    uint8_t go = 1;
+    if(calib_moves(cal_test)){
+        print("CAL: el robot se movera en %u ms (START o STOP cancela)\n", START_DELAY_MS);
+        leds_all(1);
+        go = motion_wait(START_DELAY_MS);
+        leds_all(0);
+    }
+    if(go){
+        if(calib_moves(cal_test)) search_set_lost();
+        calib_run(cal_test, cal_a, cal_b);
+    }
+    else{
+        print("cancelado\n");
+    }
+    motion_stop();
+    run_active = 0;
+    motion_clear_abort();
+    buttons_clear();
+    telemetry_activity(TM_IDLE);
 }
 
 static void print_banner(storage_status_t stored){
@@ -168,11 +230,12 @@ int main(void){
     storage_status_t stored = storage_load();
     uart_start_receive();
     print_banner(stored);
+    sync_telemetry(TM_IDLE);
 
     for(;;){
         commands_poll();
         if(button_take_press(BUTTON_SELECT)){
-            mode = (uint8_t)(mode % MODE_COUNT + 1);
+            app_set_mode((uint8_t)(mode % MODE_COUNT + 1));
             print("modo %u: %s\n", mode, MODE_NAME[mode]);
         }
         uint8_t pressed = button_take_press(BUTTON_START);
@@ -180,6 +243,10 @@ int main(void){
         if(pressed || start_requested){
             start_requested = 0;
             run_mode(mode);
+        }
+        if(cal_requested){
+            cal_requested = 0;
+            run_calibration();
         }
         show_mode();
     }

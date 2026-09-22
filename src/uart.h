@@ -18,6 +18,7 @@ void uart_send(const char *text);
 void print(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 uint8_t uart_tx_idle(void);
+uint8_t uart_tx_full(void);
 void uart_flush(uint32_t timeout_ms);       // wait until everything queued was sent
 void uart_wait_space(uint32_t timeout_ms);  // wait for a free slot (bulk output while stopped)
 

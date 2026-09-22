@@ -31,10 +31,32 @@ rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; fallo =
 3 parpadeos rápidos; parpadeo continuo rápido = `Error_Handler`; parpadeo lento
 continuo = fallo grave de CPU (motores parados).
 
+## Monitor en vivo
+
+```
+python3 tools/robot_monitor.py                 # /dev/rfcomm0 a 9600 baudios
+python3 tools/robot_monitor.py --replay tools/logs/<sesion>.log --speed 4
+```
+
+Dibuja el laberinto mientras el robot lo explora: paredes confirmadas y
+dudosas, celdas visitadas (en amarillo las de este run), el robot con su
+orientación, la **ruta que va a seguir** (calculada con el mismo planificador
+y costes que el firmware), las celdas candidatas mientras optimiza y, parado,
+el camino rápido verificado. Al lado, el log con colores y la consola.
+
+- Teclas: Enter envía, ↑/↓ historial, RePág/AvPág desplazan el log, Tab
+  muestra la ayuda, **Ctrl+X manda STOP**, Esc sale. Locales: `/full`
+  (16x16 siempre), `/ascii`, `/clear`, `/nota`.
+- Cada sesión se graba en `tools/logs/` y se puede reproducir con `--replay`.
+- El robot envía la telemetría (líneas `@…` de ~20 bytes) solo entre
+  acciones; el monitor solo transmite cuando escribes (más un `SYNC` al
+  conectar). No frena al robot. `TELEM OFF` la desactiva.
+- Abre el puerto en exclusiva: si otro programa lo usa, lo dice.
+
 ## Consola Bluetooth
 
-HC-05 a 9600 baudios (`/dev/rfcomm0`). Monitor recomendado:
-`python3 tools/robot_monitor.py`. Un comando por línea; `HELP` los lista.
+Un comando por línea (en el monitor o en cualquier terminal serie); `HELP`
+los lista.
 
 | Comando | Qué hace |
 |---|---|
@@ -47,6 +69,32 @@ HC-05 a 9600 baudios (`/dev/rfcomm0`). Monitor recomendado:
 | `LOG 0-2`, `DEFAULTS` | detalle del log; parámetros por defecto |
 | `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) |
 | `SAVE`, `ERASE`, `HOME`, `RESET` | guardar, borrar mapa, "estoy en la salida", reiniciar |
+| `SYNC`, `TELEM ON/OFF` | reenviar mapa y estado al monitor; activar la telemetría |
+| `CAL …` | pruebas de calibración (ver abajo) |
+
+## Datos de calibración
+
+El robot graba encoders, PWM aplicado y los 4 IR en crudo cada 2-10 ms
+durante una prueba y al acabar los vuelca; el monitor los guarda como CSV en
+`tools/calib_data/` con todas las constantes del firmware. Las pruebas que
+mueven el robot esperan 2 s (START o STOP cancelan).
+
+| Prueba | Qué hacer | Para calibrar |
+|---|---|---|
+| `CAL NOISE [ms]` | robot quieto (no se mueve) | ruido de los sensores |
+| `CAL STRAIGHT [celdas] [pwm]` | en un pasillo; luego `/nota medido <mm> mm` | distancia por celda, centrado KP/KD |
+| `CAL TURN [±cuartos]` | en el sitio; luego `/nota angulo <grados>` | `TICKS_PER_TURN`, sobregiro |
+| `CAL STEP [pwm] [ms]` | espacio libre delante | modelo del motor, frenada |
+| `CAL IR [mm]` | pegado a una pared de frente; `/nota inicio <mm> mm` | curva de los IR frontales |
+| `CAL DUMP` | — | reenviar la última grabación |
+
+```
+python3 tools/calib_analyze.py tools/calib_data/*.csv
+```
+
+resume cada fichero y, con las notas, propone valores concretos (por
+ejemplo `CELL_TICKS`/`MOVE_EXTRA_TICKS` combinando rectas de 1 y 3 celdas, o
+coeficientes nuevos de los IR listos para `infrared.c`).
 
 ## Puesta a punto tras el rework
 
@@ -69,6 +117,7 @@ pio run                  # firmware del robot
 pio run -t upload        # flashear (ST-Link con openocd, ver AGENTS.md)
 make -C test/host        # tests en PC: planificador, estrategias y simulador
 test/host/build/host_tests --demo   # log y mapa de una búsqueda simulada
+python3 -m unittest discover -s tools -p 'test_*.py'   # monitor y análisis
 ```
 
 Entornos de prueba de hardware: `pio run -e uart_test` y `pio run -e diag_test`

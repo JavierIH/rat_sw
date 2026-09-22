@@ -351,6 +351,27 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     return result;
 }
 
+move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
+    odo_t o;
+    guard_t g;
+    move_result_t result = MOVE_OK;
+    moved = 1;
+    odo_start(&o);
+    guard_start(&g, MOVE_TIMEOUT_BASE_MS);
+    ramp_reset();
+    for(;;){
+        wait_next_ms();
+        odo_update(&o);
+        if(abs32((o.dl + o.dr) / 2) >= ticks) break;
+        result = guard_check(&g, odo_travel(&o));
+        if(result != MOVE_OK) break;
+        drive_ramped(MOTOR_L, pwm);
+        drive_ramped(MOTOR_R, pwm);
+    }
+    motors_off();
+    return result;
+}
+
 void motion_align_front(void){
     float fl = ir_mm(IR_FL);
     float fr = ir_mm(IR_FR);

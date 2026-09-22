@@ -22,3 +22,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make -C test/host
+      - run: python3 -m unittest discover -s tools -p 'test_*.py'

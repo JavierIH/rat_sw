@@ -10,6 +10,7 @@
 #include "params.h"
 #include "search.h"
 #include "storage.h"
+#include "telemetry.h"
 #include "uart.h"
 
 typedef struct {
@@ -72,11 +73,21 @@ static uint8_t parse_decimal(const char **s, float *out){
     return 1;
 }
 
-// Non-negative value with two decimals, e.g. "30.00".
-static const char *fixed2(char *buf, size_t size, float v){
+const char *format_fixed2(char *buf, unsigned size, float v){
     uint32_t cents = (uint32_t)(v * 100.0f + 0.5f);
     snprintf(buf, size, "%lu.%02lu", (unsigned long)(cents / 100u), (unsigned long)(cents % 100u));
     return buf;
+}
+
+static uint8_t parse_int(const char **s, int32_t *out){
+    const char *p = skip_spaces(*s);
+    uint8_t negative = *p == '-';
+    uint32_t v;
+    if(negative) p++;
+    if(!is_digit(*p) || !parse_uint(&p, &v)) return 0;
+    *s = p;
+    *out = negative ? -(int32_t)v : (int32_t)v;
+    return 1;
 }
 
 static uint8_t parse_on_off(const char *args, uint8_t *on){
@@ -101,8 +112,8 @@ static void cmd_status(const char *args){
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
     print("SPD %d FAST %d TURN %d KP %s KD %s KE %s LOG %u%s\n", params.search_speed, params.fast_speed,
-          params.turn_speed, fixed2(kp, sizeof(kp), params.kp), fixed2(kd, sizeof(kd), params.kd),
-          fixed2(ke, sizeof(ke), params.ke), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
+          params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(kd, sizeof(kd), params.kd),
+          format_fixed2(ke, sizeof(ke), params.ke), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
@@ -187,11 +198,11 @@ static void set_gain(const char *args, float *dst, float max, const char *name){
     float v;
     char buf[12];
     if(!parse_decimal(&args, &v) || !at_end(args) || v > max){
-        print("%s 0-%s (decimales con punto)\n", name, fixed2(buf, sizeof(buf), max));
+        print("%s 0-%s (decimales con punto)\n", name, format_fixed2(buf, sizeof(buf), max));
         return;
     }
     *dst = v;   // single aligned 32-bit store: the SysTick controller never sees half of it
-    print("%s=%s\n", name, fixed2(buf, sizeof(buf), v));
+    print("%s=%s\n", name, format_fixed2(buf, sizeof(buf), v));
 }
 
 static void cmd_spd(const char *args){ set_speed(args, &params.search_speed, "SPD"); }
@@ -255,6 +266,7 @@ static void cmd_goal(const char *args){
     }
     print("meta (%lu,%lu)-(%lu,%lu) (SAVE para guardarla)\n", (unsigned long)v[0], (unsigned long)v[1],
           (unsigned long)v[2], (unsigned long)v[3]);
+    app_telemetry_sync();
 }
 
 static void cmd_save(const char *args){
@@ -266,12 +278,82 @@ static void cmd_erase(const char *args){
     (void)args;
     maze_init();
     print(storage_save() ? "mapa borrado (RAM y flash)\n" : "mapa borrado en RAM; !! error escribiendo la flash\n");
+    app_telemetry_sync();
 }
 
 static void cmd_home(const char *args){
     (void)args;
     search_set_home();
     print("robot en la salida mirando al norte: listo\n");
+}
+
+static void cmd_sync(const char *args){
+    (void)args;
+    app_telemetry_sync();
+}
+
+static void cmd_telem(const char *args){
+    uint8_t on;
+    if(!parse_on_off(args, &on)){
+        print("TELEM ON|OFF\n");
+        return;
+    }
+    params.telemetry = on;
+    print(on ? "telemetria ON\n" : "telemetria OFF\n");
+    if(on && !app_run_active()) app_telemetry_sync();
+}
+
+// CAL <test> [args]: validated here, run by the main loop (so STOP keeps
+// working during the test), recorded and dumped by calib.c.
+static void cmd_cal(const char *args){
+    static const struct { const char *name; cal_test_t test; } TESTS[] = {
+        {"NOISE", CAL_NOISE}, {"STRAIGHT", CAL_STRAIGHT}, {"TURN", CAL_TURN},
+        {"STEP", CAL_STEP}, {"IR", CAL_IR}, {"DUMP", CAL_DUMP},
+    };
+    const char *p = skip_spaces(args);
+    size_t len = strcspn(p, " ");
+    int found = -1;
+    for(int i = 0; i < (int)(sizeof(TESTS) / sizeof(TESTS[0])); i++){
+        if(strlen(TESTS[i].name) == len && strncmp(TESTS[i].name, p, len) == 0) found = i;
+    }
+    p += len;
+    int32_t a = 0, b = 0;
+    uint8_t ok = found >= 0;
+    if(ok){
+        switch(TESTS[found].test){
+            case CAL_NOISE:     // [ms]
+                a = 2000;
+                if(parse_int(&p, &a)) ok = a >= 100 && a <= 3000;
+                break;
+            case CAL_STRAIGHT:  // [cells] [pwm]
+                a = 1;
+                b = params.search_speed;
+                if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= 0 && b <= 1000;
+                ok = ok && a >= 1 && a <= MAZE_SIZE - 1;
+                break;
+            case CAL_TURN:      // [quarter turns, negative = left]
+                a = 4;
+                if(parse_int(&p, &a)) ok = a != 0 && a >= -8 && a <= 8;
+                break;
+            case CAL_STEP:      // [pwm] [ms]
+                a = params.search_speed;
+                b = 500;
+                if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= 50 && b <= 2000;
+                ok = ok && a >= 0 && a <= 1000;
+                break;
+            case CAL_IR:        // [mm]
+                a = 200;
+                if(parse_int(&p, &a)) ok = a >= 20 && a <= 300;
+                break;
+            case CAL_DUMP:
+                break;
+        }
+    }
+    if(!ok || !at_end(p)){
+        print("CAL NOISE [ms] | STRAIGHT [celdas] [pwm] | TURN [+-cuartos] | STEP [pwm] [ms] | IR [mm] | DUMP\n");
+        return;
+    }
+    app_request_cal(TESTS[found].test, a, b);
 }
 
 static void cmd_reset(const char *args){
@@ -299,6 +381,9 @@ static const command_t COMMANDS[] = {
     {"KD",       cmd_kd,       0, "f: ganancia D de centrado"},
     {"KE",       cmd_ke,       0, "f: mantener rumbo sin paredes (0 = off)"},
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},
+    {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
+    {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},
+    {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|STEP|IR|DUMP: datos de calibracion"},
     {"DEFAULTS", cmd_defaults, 0, "parametros por defecto"},
     {"IR",       cmd_ir,       0, "lectura de sensores y encoders"},
     {"WALLS",    cmd_walls,    1, "detecta las paredes ahora"},

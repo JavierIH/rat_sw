@@ -14,6 +14,7 @@ void MOTOR_Init(void);
 // Signed duty, -1000..1000 (clamped). Positive drives the robot forward;
 // 0 leaves the bridge in reverse at zero duty, as it always has.
 void motor_set(motor_t motor, int16_t pwm);
+int16_t motor_get(motor_t motor);   // last duty requested (recorded by CAL tests)
 
 // Register-level stop for fault handlers, where HAL state cannot be trusted:
 // zero duty on both channels and all bridge inputs low. Harmless before the

@@ -22,6 +22,7 @@ run_result_t search_wall_follow(uint8_t left_hand);
 // 1 while the robot is known to be at the start cell facing north.
 uint8_t search_ready(void);
 void search_set_home(void);     // the robot was placed at the start facing north
+void search_set_lost(void);     // moved by something else: no longer at the start
 void search_pose(uint8_t *x, uint8_t *y, heading_t *h);
 
 // Planner-based reports: robot stopped only (they reuse the run's buffers).

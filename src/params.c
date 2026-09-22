@@ -13,7 +13,7 @@ static const params_t DEFAULTS = {
     .fast_speed = PARAM_FAST_SPEED,
     .turn_speed = PARAM_TURN_SPEED,
     .log_level = PARAM_LOG_LEVEL,
-    .reserved = 0,
+    .telemetry = PARAM_TELEMETRY,
 };
 
 params_t params = {
@@ -24,7 +24,7 @@ params_t params = {
     .fast_speed = PARAM_FAST_SPEED,
     .turn_speed = PARAM_TURN_SPEED,
     .log_level = PARAM_LOG_LEVEL,
-    .reserved = 0,
+    .telemetry = PARAM_TELEMETRY,
 };
 
 void params_reset(void){

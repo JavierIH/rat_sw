@@ -10,5 +10,8 @@
 # Host tests
 test/host/build/
 
+# Monitor session recordings (calibration CSVs in tools/calib_data/ are kept)
+tools/logs/
+
 # Python
 __pycache__/

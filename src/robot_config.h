@@ -87,5 +87,6 @@
 #define PARAM_KD                30.0f
 #define PARAM_KE                0.0f    // encoder heading hold without side walls: off until tuned
 #define PARAM_LOG_LEVEL         2
+#define PARAM_TELEMETRY         1       // '@' lines for tools/robot_monitor.py
 
 #endif // ROBOT_CONFIG_H

@@ -10,6 +10,7 @@
 #include "search.h"
 #include "sim.h"
 #include "storage.h"
+#include "telemetry.h"
 
 extern int host_verbose;
 extern unsigned char fake_flash[FLASH_STORE_SIZE];
@@ -599,11 +600,111 @@ static void demo(void){
     search_print_map();
 }
 
+// --transcript <seed> <openings> [practice]: everything the robot would send
+// over Bluetooth during a search and a speed run on one random maze, telemetry
+// included, as tools/test_robot_monitor.py consumes it. Lines starting with
+// '#' are markers for the test, not firmware output.
+// Random 4x3 practice maze (spanning tree, start cell closed to the east)
+// plus `openings` random extra passages.
+static void practice_truth(uint32_t seed, uint16_t openings){
+    uint8_t seen[4][3] = {{0}};
+    uint8_t sx[12], sy[12];
+    int top = 0;
+    truth_reset(1);
+    srand(seed);
+    sx[0] = 0;
+    sy[0] = 0;
+    seen[0][0] = 1;
+    while(top >= 0){
+        uint8_t x = sx[top], y = sy[top];
+        heading_t options[4];
+        int n = 0;
+        for(int h = 0; h < 4; h++){
+            int nx = x + heading_dx((heading_t)h), ny = y + heading_dy((heading_t)h);
+            if(nx < 0 || ny < 0 || nx >= 4 || ny >= 3 || seen[nx][ny]) continue;
+            if(x == 0 && y == 0 && h == EAST) continue;
+            options[n++] = (heading_t)h;
+        }
+        if(!n){
+            top--;
+            continue;
+        }
+        heading_t h = options[rand() % n];
+        truth_set_wall(x, y, h, 0);
+        x = (uint8_t)(x + heading_dx(h));
+        y = (uint8_t)(y + heading_dy(h));
+        seen[x][y] = 1;
+        top++;
+        sx[top] = x;
+        sy[top] = y;
+    }
+    for(uint16_t i = 0; i < openings; i++){
+        uint8_t x = (uint8_t)(rand() % 4), y = (uint8_t)(rand() % 3);
+        if(x < 3 && !(x == 0 && y == 0) && rand() % 2) truth_set_wall(x, y, EAST, 0);
+        else if(y < 2) truth_set_wall(x, y, NORTH, 0);
+    }
+}
+
+// Walls the robot "believes" around the goal before starting: forces the
+// map repair path (telemetry must resend the map).
+static void phantom_walls(void){
+    uint8_t g[4];
+    maze_get_goal(g);
+    for(uint8_t x = g[0]; x <= g[2]; x++){
+        maze_mark_blocked(x, g[1], SOUTH);
+        maze_mark_blocked(x, g[3], NORTH);
+    }
+    for(uint8_t y = g[1]; y <= g[3]; y++){
+        maze_mark_blocked(g[0], y, WEST);
+        maze_mark_blocked(g[2], y, EAST);
+    }
+}
+
+static void transcript(uint32_t seed, uint16_t openings, int practice, int phantom){
+    host_verbose = 1;
+    if(practice){
+        maze_set_goal(3, 2, 3, 2);
+        practice_truth(seed, openings);
+    }
+    else{
+        maze_set_goal(7, 7, 8, 8);
+        truth_generate(seed, openings);
+    }
+    maze_init();
+    if(phantom) phantom_walls();
+    params_reset();
+    params.log_level = 1;
+    fake_flash_wipe();
+    sim_reset(0.0, seed);
+    search_set_home();
+    telemetry_sync(1, TM_COUNTDOWN, 0, 0, NORTH);
+    run_result_t r = search_explore();
+    telemetry_activity(TM_IDLE);
+    printf("#RESULT search %d\n#CHECK\n", (int)r);
+    telemetry_sync(1, TM_IDLE, sim_x, sim_y, sim_h);
+    if(r != RUN_OK) return;
+    sim_reset(0.0, seed + 1);
+    telemetry_sync(2, TM_COUNTDOWN, 0, 0, NORTH);
+    r = search_fast_run();
+    telemetry_activity(TM_IDLE);
+    printf("#RESULT fast %d\n#CHECK\n", (int)r);
+    telemetry_sync(2, TM_IDLE, sim_x, sim_y, sim_h);
+}
+
 int main(int argc, char **argv){
     host_verbose = argc > 1 && strcmp(argv[1], "-v") == 0;
     fake_flash_wipe();
     if(argc > 1 && strcmp(argv[1], "--demo") == 0){
         demo();
+        return 0;
+    }
+    if(argc > 3 && strcmp(argv[1], "--transcript") == 0){
+        int practice = 0, phantom = 0;
+        for(int i = 4; i < argc; i++){
+            practice |= strcmp(argv[i], "practice") == 0;
+            phantom |= strcmp(argv[i], "phantom") == 0;
+        }
+        transcript((uint32_t)strtoul(argv[2], NULL, 10), (uint16_t)strtoul(argv[3], NULL, 10), practice, phantom);
         return 0;
     }
 
