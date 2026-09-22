@@ -1,13 +1,12 @@
 #include "stm32f1xx_hal.h"
-#include "msp.h"
-#include "sysclock.h"
-#include "error.h"
-#include "uart.h"
+#include "encoder.h"
 #include "gpio.h"
 #include "infrared.h"
-#include "encoder.h"
+#include "sysclock.h"
+#include "uart.h"
 
-// Motors intentionally untouched here (board powered over USB/ST-Link only).
+// LED + IR + encoder live panel (env diag_test) for tools/dashboard.py.
+// Motors are never driven (safe on ST-Link/USB power).
 #define WALL_MM 200
 
 int main(void){
@@ -20,40 +19,22 @@ int main(void){
 
     HAL_Delay(500);
 
-    while(1){
-        int fl = (int)get_ir_mm(IR_FL);
-        int fr = (int)get_ir_mm(IR_FR);
-        int sl = (int)get_ir_mm(IR_SL);
-        int sr = (int)get_ir_mm(IR_SR);
+    for(;;){
+        int fl = (int)ir_mm(IR_FL);
+        int fr = (int)ir_mm(IR_FR);
+        int sl = (int)ir_mm(IR_SL);
+        int sr = (int)ir_mm(IR_SR);
 
-        // Mirror the real robot's wall-proximity LED indicators so the panel
-        // doubles as a check that IR readings and LED wiring make sense together.
-        set_led(LED_1, (sl < WALL_MM) ? LED_ON : LED_OFF);
-        set_led(LED_2, (fl < WALL_MM) ? LED_ON : LED_OFF);
-        set_led(LED_3, (fl < WALL_MM || fr < WALL_MM) ? LED_ON : LED_OFF);
-        set_led(LED_4, (fl < WALL_MM || fr < WALL_MM) ? LED_ON : LED_OFF);
-        set_led(LED_5, (fr < WALL_MM) ? LED_ON : LED_OFF);
-        set_led(LED_6, (sr < WALL_MM) ? LED_ON : LED_OFF);
+        // Same layout as the robot's sensor monitor mode, so the panel also
+        // checks that IR readings and LED wiring agree.
+        uint8_t leds[6] = {sl < WALL_MM, fl < WALL_MM, fl < WALL_MM || fr < WALL_MM,
+                           fl < WALL_MM || fr < WALL_MM, fr < WALL_MM, sr < WALL_MM};
+        for(uint8_t i = 0; i < 6; i++) led_set((uint8_t)(i + 1), leds[i]);
 
-        int l1 = HAL_GPIO_ReadPin(LED_L_PORT, LED_1);
-        int l2 = HAL_GPIO_ReadPin(LED_L_PORT, LED_2);
-        int l3 = HAL_GPIO_ReadPin(LED_L_PORT, LED_3);
-        int l4 = HAL_GPIO_ReadPin(LED_R_PORT, LED_4);
-        int l5 = HAL_GPIO_ReadPin(LED_R_PORT, LED_5);
-        int l6 = HAL_GPIO_ReadPin(LED_R_PORT, LED_6);
-
-        int enc_l = get_encoder(ENCODER_L);
-        int enc_r = get_encoder(ENCODER_R);
-
-        print("DATA,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
-              l1, l2, l3, l4, l5, l6, sl, fl, fr, sr, enc_l, enc_r);
+        print("DATA,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%u\n",
+              leds[0], leds[1], leds[2], leds[3], leds[4], leds[5], sl, fl, fr, sr,
+              encoder_raw(ENCODER_L), encoder_raw(ENCODER_R));
 
         HAL_Delay(150);
     }
-}
-
-// not provided by main.c in this build, needed for HAL_Delay()
-void SysTick_Handler(void){
-    HAL_IncTick();
-    HAL_SYSTICK_IRQHandler();
 }

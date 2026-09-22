@@ -1,124 +1,68 @@
 #include "encoder.h"
+#include "stm32f1xx_hal.h"
+#include "error.h"
 
-TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-uint16_t _encoder_state_r;
-uint16_t _encoder_state_l;
+// Input filter: 6 samples at fDTS/4 (333 ns) must agree. Rejects motor PWM
+// noise spikes, orders of magnitude shorter than real encoder edges.
+#define ENCODER_INPUT_FILTER 6
+
+static TIM_HandleTypeDef htim1;
+static TIM_HandleTypeDef htim2;
+
+static volatile int32_t total_l, total_r;
+static uint16_t last_l, last_r;
+
+static void encoder_timer_init(TIM_HandleTypeDef *htim, TIM_TypeDef *instance){
+    TIM_Encoder_InitTypeDef config = {0};
+    TIM_MasterConfigTypeDef master = {0};
+
+    htim->Instance = instance;
+    htim->Init.Prescaler = 0;
+    htim->Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim->Init.Period = 0xFFFF;
+    htim->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim->Init.RepetitionCounter = 0;
+    config.EncoderMode = TIM_ENCODERMODE_TI12;
+    config.IC1Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
+    config.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+    config.IC1Prescaler = TIM_ICPSC_DIV1;
+    config.IC1Filter = ENCODER_INPUT_FILTER;
+    config.IC2Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
+    config.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+    config.IC2Prescaler = TIM_ICPSC_DIV1;
+    config.IC2Filter = ENCODER_INPUT_FILTER;
+    if(HAL_TIM_Encoder_Init(htim, &config) != HAL_OK) Error_Handler();
+
+    master.MasterOutputTrigger = TIM_TRGO_RESET;
+    master.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if(HAL_TIMEx_MasterConfigSynchronization(htim, &master) != HAL_OK) Error_Handler();
+}
 
 void ENCODER_Init(void){
-    MX_TIM1_Init();
-    MX_TIM2_Init();
-    _encoder_state_l = 0;
-    _encoder_state_r = 0;
+    encoder_timer_init(&htim1, TIM1);
+    encoder_timer_init(&htim2, TIM2);
     HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+    last_l = (uint16_t)TIM1->CNT;
+    last_r = (uint16_t)TIM2->CNT;
 }
 
-void MX_TIM1_Init(void){
-    TIM_Encoder_InitTypeDef sConfig;
-    TIM_MasterConfigTypeDef sMasterConfig;
-
-    htim1.Instance = TIM1;
-    htim1.Init.Prescaler = 0;
-    htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim1.Init.Period = 65535;
-    htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim1.Init.RepetitionCounter = 0;
-    sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-    sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-    sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-    sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-    sConfig.IC1Filter = 0;
-    sConfig.IC2Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-    sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-    sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-    sConfig.IC2Filter = 0;
-    if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK){
-        Error_Handler();
-    }
-
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK){
-        Error_Handler();
-    }
+// Called every ms: a 16-bit counter cannot move 32768 ticks in that time, so
+// the signed difference is always the true increment.
+void encoder_tick(void){
+    uint16_t l = (uint16_t)TIM1->CNT;
+    uint16_t r = (uint16_t)TIM2->CNT;
+    total_l -= (int16_t)(uint16_t)(l - last_l);     // left counter runs backwards when driving forward
+    total_r += (int16_t)(uint16_t)(r - last_r);
+    last_l = l;
+    last_r = r;
 }
 
-/* TIM2 init function */
-void MX_TIM2_Init(void){
-    TIM_Encoder_InitTypeDef sConfig;
-    TIM_MasterConfigTypeDef sMasterConfig;
-
-    htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 0;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 65535;
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-    sConfig.IC1Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-    sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-    sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-    sConfig.IC1Filter = 0;
-    sConfig.IC2Polarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-    sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-    sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-    sConfig.IC2Filter = 0;
-    if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK){
-        Error_Handler();
-    }
-
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK){
-        Error_Handler();
-    }
+int32_t encoder_total(encoder_t encoder){
+    return encoder == ENCODER_L ? total_l : total_r;
 }
 
-void reset_encoder(encoder_t encoder){
-    if(encoder == ENCODER_L){
-        __HAL_TIM_SET_COUNTER(&htim1, 0);
-    }
-    else if(encoder == ENCODER_R){
-        __HAL_TIM_SET_COUNTER(&htim2, 0);
-    }
-}
-
-uint16_t get_encoder(encoder_t encoder){
-    if(encoder == ENCODER_L){
-        return 65536-__HAL_TIM_GET_COUNTER(&htim1);
-    }
-    else if(encoder == ENCODER_R){
-        return __HAL_TIM_GET_COUNTER(&htim2);
-    }
-    else{
-        return 0;
-    }
-}
-
-int32_t get_encoder_delta(encoder_t encoder){
-    uint16_t encoder_ref = 0;
-    if(encoder == ENCODER_L){
-        encoder_ref = _encoder_state_l;
-        _encoder_state_l = __HAL_TIM_GET_COUNTER(&htim1);
-        return -(int16_t)(_encoder_state_l - encoder_ref);
-    }
-    else if(encoder == ENCODER_R){
-        encoder_ref = _encoder_state_r;
-        _encoder_state_r = __HAL_TIM_GET_COUNTER(&htim2);
-        return (int16_t)(_encoder_state_r - encoder_ref);
-    }
-    else{
-        return 0;
-    }
-}
-
-int32_t get_encoder_diff(int32_t pos_a, int32_t pos_b){
-     int32_t result = pos_b - pos_a;
-     if(result > 32767){
-         result -= 65536;
-     }
-     else if (result < -32767){
-         result += 65536;
-     }
-     return result;
+uint16_t encoder_raw(encoder_t encoder){
+    if(encoder == ENCODER_L) return (uint16_t)(0u - TIM1->CNT);
+    return (uint16_t)TIM2->CNT;
 }

@@ -1,9 +1,8 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#include "uart.h"
-#include "gpio.h"
-
+// Fatal HAL initialisation error: stops the motors, reports over the console
+// and blinks all LEDs fast forever.
 void Error_Handler(void);
 
 #endif // ERROR_H

@@ -30,208 +30,48 @@
   *
   ******************************************************************************
   */
-/* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
-#include "stm32f1xx.h"
 #include "stm32f1xx_it.h"
+#include "motor.h"
 
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_usart3_tx;
-extern ADC_HandleTypeDef hadc1;
 extern UART_HandleTypeDef huart3;
 
-/******************************************************************************/
-/*            Cortex-M3 Processor Interruption and Exception Handlers         */
-/******************************************************************************/
+// Application hook run every 1 ms from SysTick. The robot firmware (main.c)
+// overrides it; the hardware test firmwares do not need one.
+__weak void app_systick(void){}
 
-/**
-* @brief This function handles Non maskable interrupt.
-*/
-void NMI_Handler(void)
-{
-  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
-  /* USER CODE END NonMaskableInt_IRQn 0 */
-  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-
-  /* USER CODE END NonMaskableInt_IRQn 1 */
+// Last resort for faults: the motors are stopped at register level (the HAL
+// may be corrupt) and the LEDs blink slowly, distinct from Error_Handler's
+// fast blink. Without this a crash mid-run left the wheels driving.
+static void fault_halt(void){
+    motor_emergency_stop();
+    for(;;){
+        GPIOB->ODR ^= (1u << 13) | (1u << 14) | (1u << 15);
+        GPIOA->ODR ^= (1u << 3) | (1u << 4) | (1u << 5);
+        for(volatile uint32_t i = 0; i < 2000000u; i++){}
+    }
 }
 
-/**
-* @brief This function handles Hard fault interrupt.
-*/
-void HardFault_Handler(void)
-{
-  /* USER CODE BEGIN HardFault_IRQn 0 */
+void NMI_Handler(void){}
+void HardFault_Handler(void){ fault_halt(); }
+void MemManage_Handler(void){ fault_halt(); }
+void BusFault_Handler(void){ fault_halt(); }
+void UsageFault_Handler(void){ fault_halt(); }
+void SVC_Handler(void){}
+void DebugMon_Handler(void){}
+void PendSV_Handler(void){}
 
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-  }
-  /* USER CODE BEGIN HardFault_IRQn 1 */
-
-  /* USER CODE END HardFault_IRQn 1 */
+void SysTick_Handler(void){
+    HAL_IncTick();
+    app_systick();
 }
 
-/**
-* @brief This function handles Memory management fault.
-*/
-void MemManage_Handler(void)
-{
-  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
-  /* USER CODE END MemoryManagement_IRQn 0 */
-  while (1)
-  {
-  }
-  /* USER CODE BEGIN MemoryManagement_IRQn 1 */
-
-  /* USER CODE END MemoryManagement_IRQn 1 */
+// USART3 TX DMA.
+void DMA1_Channel2_IRQHandler(void){
+    HAL_DMA_IRQHandler(&hdma_usart3_tx);
 }
 
-/**
-* @brief This function handles Prefetch fault, memory access fault.
-*/
-void BusFault_Handler(void)
-{
-  /* USER CODE BEGIN BusFault_IRQn 0 */
-
-  /* USER CODE END BusFault_IRQn 0 */
-  while (1)
-  {
-  }
-  /* USER CODE BEGIN BusFault_IRQn 1 */
-
-  /* USER CODE END BusFault_IRQn 1 */
+void USART3_IRQHandler(void){
+    HAL_UART_IRQHandler(&huart3);
 }
-
-/**
-* @brief This function handles Undefined instruction or illegal state.
-*/
-void UsageFault_Handler(void)
-{
-  /* USER CODE BEGIN UsageFault_IRQn 0 */
-
-  /* USER CODE END UsageFault_IRQn 0 */
-  while (1)
-  {
-  }
-  /* USER CODE BEGIN UsageFault_IRQn 1 */
-
-  /* USER CODE END UsageFault_IRQn 1 */
-}
-
-/**
-* @brief This function handles System service call via SWI instruction.
-*/
-void SVC_Handler(void)
-{
-  /* USER CODE BEGIN SVCall_IRQn 0 */
-
-  /* USER CODE END SVCall_IRQn 0 */
-  /* USER CODE BEGIN SVCall_IRQn 1 */
-
-  /* USER CODE END SVCall_IRQn 1 */
-}
-
-/**
-* @brief This function handles Debug monitor.
-*/
-void DebugMon_Handler(void)
-{
-  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-
-  /* USER CODE END DebugMonitor_IRQn 0 */
-  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-
-  /* USER CODE END DebugMonitor_IRQn 1 */
-}
-
-/**
-* @brief This function handles Pendable request for system service.
-*/
-void PendSV_Handler(void)
-{
-  /* USER CODE BEGIN PendSV_IRQn 0 */
-
-  /* USER CODE END PendSV_IRQn 0 */
-  /* USER CODE BEGIN PendSV_IRQn 1 */
-
-  /* USER CODE END PendSV_IRQn 1 */
-}
-
-///**
-//* @brief This function handles System tick timer.
-//*/
-//void SysTick_Handler(void)
-//{
-//  /* USER CODE BEGIN SysTick_IRQn 0 */
-//
-//  /* USER CODE END SysTick_IRQn 0 */
-//  HAL_IncTick();
-//  HAL_SYSTICK_IRQHandler();
-//  /* USER CODE BEGIN SysTick_IRQn 1 */
-//
-//  /* USER CODE END SysTick_IRQn 1 */
-//}
-
-/******************************************************************************/
-/* STM32F1xx Peripheral Interrupt Handlers                                    */
-/* Add here the Interrupt Handlers for the used peripherals.                  */
-/* For the available peripheral interrupt handler names,                      */
-/* please refer to the startup file (startup_stm32f1xx.s).                    */
-/******************************************************************************/
-
-/**
-* @brief This function handles DMA1 channel1 global interrupt.
-*/
-void DMA1_Channel1_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 1 */
-}
-
-/**
-* @brief This function handles DMA1 channel2 global interrupt (USART3 TX).
-*/
-void DMA1_Channel2_IRQHandler(void)
-{
-  HAL_DMA_IRQHandler(&hdma_usart3_tx);
-}
-
-/**
-* @brief This function handles USART3 global interrupt.
-*/
-void USART3_IRQHandler(void)
-{
-  HAL_UART_IRQHandler(&huart3);
-}
-
-/**
-* @brief This function handles ADC1 and ADC2 global interrupts.
-*/
-void ADC1_2_IRQHandler(void)
-{
-  /* USER CODE BEGIN ADC1_2_IRQn 0 */
-
-  /* USER CODE END ADC1_2_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC1_2_IRQn 1 */
-
-  /* USER CODE END ADC1_2_IRQn 1 */
-}
-
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

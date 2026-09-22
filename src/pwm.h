@@ -1,17 +1,15 @@
 #ifndef PWM_H
 #define PWM_H
 
-#define PWM_1                   TIM_CHANNEL_3
-#define PWM_2                   TIM_CHANNEL_4
-
+#include <stdint.h>
 #include "stm32f1xx_hal.h"
-#include "msp.h"
-#include "uart.h"
-#include "error.h"
 
-extern TIM_HandleTypeDef htim4;
+// TIM4 at 72 MHz / 1001 = ~72 kHz, duty 0..PWM_MAX.
+#define PWM_RIGHT   TIM_CHANNEL_3   // PB8
+#define PWM_LEFT    TIM_CHANNEL_4   // PB9
+#define PWM_MAX     1000
 
-void PWM_Init();
-void set_pwm(uint8_t pwm_channel, uint16_t duty_cycle);
+void PWM_Init(void);
+void pwm_set(uint32_t channel, uint16_t duty);
 
 #endif // PWM_H

@@ -1,32 +1,22 @@
-#ifndef LED_H
-#define LED_H
+#ifndef GPIO_H
+#define GPIO_H
 
-#include "stm32f1xx_hal.h"
+#include <stdint.h>
 
-#define LED_1                   GPIO_PIN_13
-#define LED_2                   GPIO_PIN_14
-#define LED_3                   GPIO_PIN_15
-#define LED_4                   GPIO_PIN_3
-#define LED_5                   GPIO_PIN_4
-#define LED_6                   GPIO_PIN_5
-#define BUTTON_START            GPIO_PIN_13
-#define BUTTON_SELECT           GPIO_PIN_5
+// Six status LEDs (1-3 on the left, 4-6 on the right) and the two buttons.
+// Both buttons read high when pressed and rely on the PCB's external
+// resistors (no internal pull), hence the debouncing.
 
-#define LED_L_PORT              GPIOB
-#define LED_R_PORT              GPIOA
-#define BUTTON_START_PORT       GPIOC
-#define BUTTON_SELECT_PORT      GPIOB
+typedef enum { BUTTON_START, BUTTON_SELECT } button_t;
 
-#define LED_ON                  GPIO_PIN_SET
-#define LED_OFF                 GPIO_PIN_RESET
+void LED_Init(void);                        // LEDs and buttons
+void led_set(uint8_t led, uint8_t on);      // led: 1..6
+void leds_set_mask(uint8_t mask);           // bit 5 = LED 1 ... bit 0 = LED 6
+void leds_all(uint8_t on);
+void leds_blink(uint8_t times, uint32_t half_period_ms);   // blocking
 
-void LED_Init();
-void set_led(uint16_t led_pin, GPIO_PinState state);
-void set_all_led(GPIO_PinState state);
-void control_all_led(uint8_t led_state);
-void led_animation();
-void fast_blink();
-GPIO_PinState get_button(uint16_t button_pin);
+void buttons_tick(void);                    // every 1 ms (SysTick)
+uint8_t button_take_press(button_t button); // 1 once per debounced press
+void buttons_clear(void);
 
-
-#endif // LED_H
+#endif // GPIO_H

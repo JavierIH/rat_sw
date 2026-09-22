@@ -1,23 +1,15 @@
 #ifndef ENCODER_H
 #define ENCODER_H
 
-#include "error.h"
+#include <stdint.h>
 
-typedef enum {ENCODER_L, ENCODER_R} encoder_t;
+// Quadrature encoders: TIM1 = left, TIM2 = right (x4 counting).
 
-extern TIM_HandleTypeDef htim1; //L
-extern TIM_HandleTypeDef htim2; //R
-
-extern uint16_t _encoder_state_r;
-extern uint16_t _encoder_state_l;
+typedef enum { ENCODER_L, ENCODER_R } encoder_t;
 
 void ENCODER_Init(void);
-void MX_TIM1_Init(void);
-void MX_TIM2_Init(void);
-void reset_encoder(encoder_t encoder);
-uint16_t get_encoder(encoder_t encoder);
-int32_t get_encoder_delta(encoder_t encoder);
-int32_t get_encoder_diff(int32_t pos_a, int32_t pos_b);
-
+void encoder_tick(void);                    // every 1 ms (SysTick): extends the counters to 32 bits
+int32_t encoder_total(encoder_t encoder);   // ticks since boot, forward positive, no wrap-around
+uint16_t encoder_raw(encoder_t encoder);    // hardware counter, left inverted so forward counts up
 
 #endif // ENCODER_H

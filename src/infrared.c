@@ -1,128 +1,79 @@
 #include "infrared.h"
+#include "stm32f1xx_hal.h"
 #include "error.h"
 
-volatile uint32_t _adc_buf[4];
+#define IR_MAX_MM 400.0f
+
 DMA_HandleTypeDef hdma_adc1;
-ADC_HandleTypeDef hadc1;
+static ADC_HandleTypeDef hadc1;
 
-void IR_Init(){
+// Conversion k of scan position p lands in adc_buf[k * IR_COUNT + p].
+static volatile uint16_t adc_buf[IR_OVERSAMPLE * IR_COUNT];
 
-     /* DMA controller clock enable */
-     __HAL_RCC_DMA1_CLK_ENABLE();
+// Scan order is CH6 (PA6), CH7 (PA7), CH8 (PB0), CH9 (PB1).
+static const uint32_t SCAN_CHANNEL[IR_COUNT] = {ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_8, ADC_CHANNEL_9};
+static const uint8_t SCAN_POS[IR_COUNT] = {
+    [IR_FL] = 3,    // CH9
+    [IR_FR] = 0,    // CH6
+    [IR_SL] = 2,    // CH8
+    [IR_SR] = 1,    // CH7
+};
 
-     /* DMA interrupt init */
-     /* DMA1_Channel1_IRQn interrupt configuration */
-     HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-     HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+// Calibration: mm = a*x^3 + b*x^2 + c*x + d, x = raw ADC counts (fitted on
+// the robot; raw tables in calib.txt). Monotonic over the whole ADC range.
+typedef struct { float a, b, c, d; } cubic_t;
+static const cubic_t CALIBRATION[IR_COUNT] = {
+    [IR_FL] = {-0.00000002278f, 0.000132f,  -0.2627f, 237.7f},
+    [IR_FR] = {-0.00000003535f, 0.0001995f, -0.3834f, 317.6f},
+    [IR_SL] = {-0.00000005219f, 0.0002629f, -0.4566f, 325.6f},
+    [IR_SR] = {-0.00000003241f, 0.0001505f, -0.25f,   189.0f},
+};
 
-      ADC_ChannelConfTypeDef sConfig;
+void IR_Init(void){
+    ADC_ChannelConfTypeDef channel = {0};
 
-        /**Common config
-        */
-      hadc1.Instance = ADC1;
-      hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-      hadc1.Init.ContinuousConvMode = ENABLE;
-      hadc1.Init.DiscontinuousConvMode = DISABLE;
-      hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-      hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-      hadc1.Init.NbrOfConversion = 4;
-      if (HAL_ADC_Init(&hadc1) != HAL_OK)
-      {
-        Error_Handler();
-      }
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    hadc1.Instance = ADC1;
+    hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = IR_COUNT;
+    if(HAL_ADC_Init(&hadc1) != HAL_OK) Error_Handler();     // pins + DMA: HAL_ADC_MspInit
 
-        /**Configure Regular Channel
-        */
-      sConfig.Channel = ADC_CHANNEL_6;
-      sConfig.Rank = 1;
-      sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
-      if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-      {
-        Error_Handler();
-      }
+    channel.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+    for(uint8_t i = 0; i < IR_COUNT; i++){
+        channel.Channel = SCAN_CHANNEL[i];
+        channel.Rank = i + 1u;
+        if(HAL_ADC_ConfigChannel(&hadc1, &channel) != HAL_OK) Error_Handler();
+    }
+    if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) Error_Handler();
 
-        /**Configure Regular Channel
-        */
-      sConfig.Channel = ADC_CHANNEL_7;
-      sConfig.Rank = 2;
-      if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-      {
-        Error_Handler();
-      }
-
-        /**Configure Regular Channel
-        */
-      sConfig.Channel = ADC_CHANNEL_8;
-      sConfig.Rank = 3;
-      if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-      {
-        Error_Handler();
-      }
-
-        /**Configure Regular Channel
-        */
-      sConfig.Channel = ADC_CHANNEL_9;
-      sConfig.Rank = 4;
-      if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-      {
-        Error_Handler();
-      }
-
-	  __enable_irq();
-      if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)_adc_buf, 4) != HAL_OK){
-        Error_Handler();
-      }
-      //HAL_ADC_Start_IT(&hadc1);
-      //HAL_ADC_Start(&hadc1);
+    // Circular DMA refreshes the buffer every ~450 us forever. Its interrupts
+    // are left disabled in the NVIC: nothing needs them, and they used to
+    // fire ~71000 times per second.
+    if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buf, IR_OVERSAMPLE * IR_COUNT) != HAL_OK) Error_Handler();
 }
 
-int get_ir(ir_sensor_t ir){
-    switch (ir){
-        case IR_FL:
-        //_sConfig.Channel = ADC_CHANNEL_6;
-        return _adc_buf[3];
-        break;
-
-        case IR_FR:
-        return _adc_buf[0];
-        break;
-
-        case IR_SL:
-        return _adc_buf[2];
-        break;
-
-        case IR_SR:
-        return _adc_buf[1];
-        break;
-
-        default:
-        return 0;
-        break;
-
-    }
-    /*if (HAL_ADC_ConfigChannel(&hadc1, &_sConfig) != HAL_OK){
-        Error_Handler();
-    }*/
-    //return HAL_ADC_GetValue(&hadc1);
+static uint32_t raw_sum(ir_sensor_t ir){
+    uint32_t sum = 0;
+    for(uint8_t k = 0; k < IR_OVERSAMPLE; k++) sum += adc_buf[k * IR_COUNT + SCAN_POS[ir]];
+    return sum;
 }
 
+uint16_t ir_raw(ir_sensor_t ir){
+    if((unsigned)ir >= IR_COUNT) return 0;
+    return (uint16_t)((raw_sum(ir) + IR_OVERSAMPLE / 2) / IR_OVERSAMPLE);
+}
 
-//-0.00000002083*x*x*x + 0.0001119*x*x - 0.2135*x + 185;
-float get_ir_mm(ir_sensor_t ir){
-    float x = get_ir(ir);
-    if(ir == IR_SL){
-        return -0.00000005219*x*x*x +0.0002629*x*x -0.4566*x +325.6;
-    }
-    else if(ir == IR_SR){
-        return -0.00000003241*x*x*x +0.0001505*x*x -0.25*x +189;
-    }
-    else if(ir == IR_FL){
-        return -0.00000002278*x*x*x +0.000132*x*x -0.2627*x +237.7;
-    }
-    else if(ir == IR_FR){
-        return -0.00000003535*x*x*x +0.0001995*x*x -0.3834*x +317.6;
-    }
-    else{
-        return -1;
-    }
+// Single precision on purpose: the Cortex-M3 has no FPU and double math is
+// several times slower in software. This runs in the 100 Hz control loop.
+float ir_mm(ir_sensor_t ir){
+    if((unsigned)ir >= IR_COUNT) return IR_MAX_MM;
+    const cubic_t *k = &CALIBRATION[ir];
+    float x = (float)raw_sum(ir) * (1.0f / IR_OVERSAMPLE);
+    float mm = ((k->a * x + k->b) * x + k->c) * x + k->d;
+    if(mm < 0.0f) return 0.0f;
+    return mm > IR_MAX_MM ? IR_MAX_MM : mm;
 }

@@ -1,13 +1,15 @@
+#include "uart.h"
 #include <stdarg.h>
 #include <stdio.h>
-#include "uart.h"
-#include "gpio.h"
+#include <string.h>
+#include "stm32f1xx_hal.h"
 #include "error.h"
 
-#define UART_TX_QUEUE_LEN 8
-#define UART_TX_MSG_LEN 140
-#define UART_RX_QUEUE_LEN 4
-#define UART_RX_LINE_LEN 64
+#define UART_TX_QUEUE_LEN   8
+#define UART_TX_MSG_LEN     140
+#define UART_RX_QUEUE_LEN   4
+#define UART_RX_LINE_LEN    64
+#define PRINT_BUFFER_LEN    120
 
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart3_tx;
@@ -26,30 +28,23 @@ static volatile uint8_t rx_head;
 static volatile uint8_t rx_tail;
 static volatile uint8_t rx_count;
 
+// Called with interrupts disabled or from the UART/DMA interrupts.
+static void tx_drop_head(void){
+    tx_head = (uint8_t)((tx_head + 1) % UART_TX_QUEUE_LEN);
+    tx_count--;
+}
+
 static void uart_start_next_tx(void){
     if(tx_active || tx_count == 0) return;
     tx_active = 1;
-    if(HAL_UART_Transmit_DMA(&huart3, (uint8_t *)tx_queue[tx_head], strlen(tx_queue[tx_head])) != HAL_OK){
+    const char *msg = tx_queue[tx_head];
+    if(HAL_UART_Transmit_DMA(&huart3, (uint8_t *)msg, (uint16_t)strlen(msg)) != HAL_OK){
         tx_active = 0;
-        tx_head = (uint8_t)((tx_head + 1) % UART_TX_QUEUE_LEN);
-        tx_count--;
+        tx_drop_head();
     }
 }
 
-static void uart_enqueue(const char *data){
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
-    if(tx_count < UART_TX_QUEUE_LEN){
-        strncpy(tx_queue[tx_tail], data, UART_TX_MSG_LEN - 1);
-        tx_queue[tx_tail][UART_TX_MSG_LEN - 1] = '\0';
-        tx_tail = (uint8_t)((tx_tail + 1) % UART_TX_QUEUE_LEN);
-        tx_count++;
-        uart_start_next_tx();
-    }
-    if(!primask) __enable_irq();
-}
-
-void UART_Init(){
+void UART_Init(void){
     huart3.Instance = USART3;
     huart3.Init.BaudRate = UART_BAUDRATE;
     huart3.Init.WordLength = UART_WORDLENGTH_8B;
@@ -58,91 +53,102 @@ void UART_Init(){
     huart3.Init.Mode = UART_MODE_TX_RX;
     huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart3) != HAL_OK){
+    if(HAL_UART_Init(&huart3) != HAL_OK){   // pins, DMA and IRQs: HAL_UART_MspInit (msp.c)
         Error_Handler();
     }
-
-    GPIO_InitTypeDef GPIO_InitStruct;
-    __HAL_RCC_USART3_CLK_ENABLE();
-
-    /**USART3 GPIO Configuration
-    PB10     ------> USART3_TX
-    PB11     ------> USART3_RX
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_11;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
-void send_uart(char* data){
-    uart_enqueue(data);
+void uart_send(const char *text){
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    if(tx_count < UART_TX_QUEUE_LEN){
+        strncpy(tx_queue[tx_tail], text, UART_TX_MSG_LEN - 1);
+        tx_queue[tx_tail][UART_TX_MSG_LEN - 1] = '\0';
+        tx_tail = (uint8_t)((tx_tail + 1) % UART_TX_QUEUE_LEN);
+        tx_count++;
+        uart_start_next_tx();
+    }
+    if(!primask) __enable_irq();
 }
 
-void print(const char *format, ...) {
-    char print_buffer[100];
+void print(const char *format, ...){
+    char text[PRINT_BUFFER_LEN];
     va_list args;
     va_start(args, format);
-    vsnprintf(print_buffer, sizeof(print_buffer), format, args);
+    vsnprintf(text, sizeof(text), format, args);
     va_end(args);
 
-    // Expand bare \n to \r\n: raw terminals (picocom, screen, ...) don't move
-    // the cursor back to column 0 on \n alone, only a real UART "cooked" tty does.
-    char crlf_buffer[UART_TX_MSG_LEN];
+    // Expand \n to \r\n: raw terminals (picocom, screen...) need the \r.
+    char crlf[UART_TX_MSG_LEN];
     size_t j = 0;
-    for(size_t i = 0; print_buffer[i] != '\0' && j < sizeof(crlf_buffer) - 2; i++){
-        if(print_buffer[i] == '\n'){
-            crlf_buffer[j++] = '\r';
-        }
-        crlf_buffer[j++] = print_buffer[i];
+    for(size_t i = 0; text[i] != '\0' && j < sizeof(crlf) - 2; i++){
+        if(text[i] == '\n') crlf[j++] = '\r';
+        crlf[j++] = text[i];
     }
-    crlf_buffer[j] = '\0';
-
-    send_uart(crlf_buffer);
+    crlf[j] = '\0';
+    uart_send(crlf);
 }
 
 uint8_t uart_tx_idle(void){
     return tx_count == 0 && !tx_active;
 }
 
+void uart_flush(uint32_t timeout_ms){
+    uint32_t start = HAL_GetTick();
+    while(!uart_tx_idle() && HAL_GetTick() - start < timeout_ms){}
+}
+
+void uart_wait_space(uint32_t timeout_ms){
+    uint32_t start = HAL_GetTick();
+    while(tx_count >= UART_TX_QUEUE_LEN && HAL_GetTick() - start < timeout_ms){}
+}
+
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
     if(huart->Instance != USART3) return;
-    if(tx_count > 0){
-        tx_head = (uint8_t)((tx_head + 1) % UART_TX_QUEUE_LEN);
-        tx_count--;
-    }
+    if(tx_count > 0) tx_drop_head();
     tx_active = 0;
     uart_start_next_tx();
 }
 
-// --- Non-blocking line receive (for live tuning over Bluetooth) ---
+// ---- Line receive (commands) -------------------------------------------------------
 
 void uart_start_receive(void){
     HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-    if(huart->Instance == USART3){
-        if(rx_byte == '\n' || rx_byte == '\r'){
-            if(rx_index > 0){
-                rx_build[rx_index] = '\0';
-                if(rx_count < UART_RX_QUEUE_LEN){
-                    strncpy(rx_queue[rx_tail], rx_build, UART_RX_LINE_LEN);
-                    rx_tail = (uint8_t)((rx_tail + 1) % UART_RX_QUEUE_LEN);
-                    rx_count++;
-                }
-                rx_index = 0;
+    if(huart->Instance != USART3) return;
+    if(rx_byte == '\n' || rx_byte == '\r'){
+        if(rx_index > 0){
+            rx_build[rx_index] = '\0';
+            if(rx_count < UART_RX_QUEUE_LEN){
+                memcpy(rx_queue[rx_tail], rx_build, (size_t)rx_index + 1);
+                rx_tail = (uint8_t)((rx_tail + 1) % UART_RX_QUEUE_LEN);
+                rx_count++;
             }
+            rx_index = 0;
         }
-        else if(rx_index < sizeof(rx_build) - 1){
-            rx_build[rx_index++] = (char)rx_byte;
-        }
-        HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
+    }
+    else if(rx_index < sizeof(rx_build) - 1){
+        rx_build[rx_index++] = (char)rx_byte;
+    }
+    HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
+    if(huart->Instance != USART3) return;
+    // An overrun (e.g. interrupts held off while flash is written, or a
+    // Bluetooth reconnect burst) makes the HAL abort reception for good.
+    // Restart it, dropping the damaged partial line; HAL_BUSY here just
+    // means reception survived the error.
+    rx_index = 0;
+    HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
+    // A DMA error ends the transmit without a completion callback: drop that
+    // message and keep the queue moving instead of stalling it forever.
+    if(tx_active && huart->gState == HAL_UART_STATE_READY){
+        tx_active = 0;
+        if(tx_count > 0) tx_drop_head();
+        uart_start_next_tx();
     }
 }
 
@@ -153,11 +159,10 @@ uint8_t uart_read_line(char *buffer, uint8_t buffer_size){
         if(!primask) __enable_irq();
         return 0;
     }
-    strncpy(buffer, rx_queue[rx_head], buffer_size - 1);
+    strncpy(buffer, rx_queue[rx_head], (size_t)buffer_size - 1);
     buffer[buffer_size - 1] = '\0';
     rx_head = (uint8_t)((rx_head + 1) % UART_RX_QUEUE_LEN);
     rx_count--;
     if(!primask) __enable_irq();
     return 1;
 }
-

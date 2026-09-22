@@ -1,19 +1,17 @@
 #include "stm32f1xx_hal.h"
-#include "msp.h"
-#include "sysclock.h"
-#include "error.h"
-#include "uart.h"
 #include "gpio.h"
+#include "sysclock.h"
+#include "uart.h"
 
-// Visual-only diagnostic (independent of UART/Bluetooth) for the state right
-// before the very first transmit attempt: 1=READY 2=BUSY_TX 3=BUSY_RX 4=BUSY_TX_RX 5=BUSY 6=other
+// UART / Bluetooth smoke test (env uart_test): motors, encoders and IR are
+// never touched. The LEDs first blink the UART state right before the first
+// transmit (1=READY 2=BUSY_TX 3=BUSY_RX 4=BUSY_TX_RX 5=BUSY 6=other), then a
+// numbered line goes out every second.
+
+extern UART_HandleTypeDef huart3;
+
 static void blink_count(int n){
-    for(int i = 0; i < n; i++){
-        set_all_led(LED_ON);
-        HAL_Delay(150);
-        set_all_led(LED_OFF);
-        HAL_Delay(150);
-    }
+    leds_blink((uint8_t)n, 150);
     HAL_Delay(1500);
 }
 
@@ -23,7 +21,7 @@ int main(void){
     LED_Init();
     UART_Init();
 
-    HAL_Delay(2000); // give the HC-05 time to reconnect before sending anything
+    HAL_Delay(2000);    // give the HC-05 time to reconnect before sending anything
 
     HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart3);
     int state_code = 6;
@@ -34,25 +32,19 @@ int main(void){
     else if(state == HAL_UART_STATE_BUSY) state_code = 5;
     blink_count(state_code);
 
-    // Sent back-to-back (microseconds apart): tells us if it's specifically
-    // "the very first send ever" that's lost, regardless of BT/timing.
+    // Back to back (microseconds apart): shows whether specifically the very
+    // first transmit is lost, independently of Bluetooth timing.
     print("first\n");
     print("second\n");
     HAL_Delay(2000);
 
     int counter = 0;
     print("UART test start\n");
-    while(1){
-        set_all_led(LED_ON);
+    for(;;){
+        leds_all(1);
         print("UART test #%d\n", counter++);
         HAL_Delay(200);
-        set_all_led(LED_OFF);
+        leds_all(0);
         HAL_Delay(800);
     }
-}
-
-// not provided by main.c in this build, needed for HAL_Delay()
-void SysTick_Handler(void){
-    HAL_IncTick();
-    HAL_SYSTICK_IRQHandler();
 }

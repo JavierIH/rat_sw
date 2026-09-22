@@ -1,128 +1,108 @@
 #include "gpio.h"
+#include "stm32f1xx_hal.h"
+#include "robot_config.h"
 
-void LED_Init(){
-    GPIO_InitTypeDef GPIO_InitStruct;
+#define LED_L_PORT          GPIOB   // LED 1-3: PB13-PB15
+#define LED_L_PINS          (GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15)
+#define LED_R_PORT          GPIOA   // LED 4-6: PA3-PA5
+#define LED_R_PINS          (GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5)
+#define BUTTON_START_PORT   GPIOC
+#define BUTTON_START_PIN    GPIO_PIN_13
+#define BUTTON_SELECT_PORT  GPIOB
+#define BUTTON_SELECT_PIN   GPIO_PIN_5
 
-    // GPIO Ports Clock Enable
+static const uint16_t LED_PIN[6] = {GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5};
+
+typedef struct {
+    uint8_t stable;             // debounced level
+    uint8_t count;              // ms the raw level has differed from it
+    volatile uint8_t pressed;   // latched press event
+} button_state_t;
+
+static button_state_t buttons[2];
+
+static uint8_t button_raw(button_t button){
+    if(button == BUTTON_START) return HAL_GPIO_ReadPin(BUTTON_START_PORT, BUTTON_START_PIN) == GPIO_PIN_SET;
+    return HAL_GPIO_ReadPin(BUTTON_SELECT_PORT, BUTTON_SELECT_PIN) == GPIO_PIN_SET;
+}
+
+void LED_Init(void){
+    GPIO_InitTypeDef gpio = {0};
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
-    // Configure GPIO pin : PB13 PB14 PB15
-    GPIO_InitStruct.Pin = LED_1|LED_2|LED_3;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    HAL_GPIO_Init(LED_L_PORT, &GPIO_InitStruct);
+    gpio.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio.Speed = GPIO_SPEED_FREQ_LOW;
+    gpio.Pin = LED_L_PINS;
+    HAL_GPIO_Init(LED_L_PORT, &gpio);
+    gpio.Pin = LED_R_PINS;
+    HAL_GPIO_Init(LED_R_PORT, &gpio);
 
-    // Configure GPIO pins : PA3 PA4 PA5
-    GPIO_InitStruct.Pin = LED_4|LED_5|LED_6;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    HAL_GPIO_Init(LED_R_PORT, &GPIO_InitStruct);
+    gpio.Mode = GPIO_MODE_INPUT;
+    gpio.Pull = GPIO_NOPULL;
+    gpio.Pin = BUTTON_START_PIN;
+    HAL_GPIO_Init(BUTTON_START_PORT, &gpio);
+    gpio.Pin = BUTTON_SELECT_PIN;
+    HAL_GPIO_Init(BUTTON_SELECT_PORT, &gpio);
 
-    // Configure GPIO pins : PC13
-    GPIO_InitStruct.Pin = BUTTON_START;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    HAL_GPIO_Init(BUTTON_START_PORT, &GPIO_InitStruct);
-
-    // Configure GPIO pins : PB5
-    GPIO_InitStruct.Pin = BUTTON_SELECT;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(BUTTON_SELECT_PORT, &GPIO_InitStruct);
+    // A button already held at power-up is not a press.
+    buttons[BUTTON_START].stable = button_raw(BUTTON_START);
+    buttons[BUTTON_SELECT].stable = button_raw(BUTTON_SELECT);
 }
 
-void set_led(uint16_t led_pin, GPIO_PinState state){
-    switch (led_pin) {
-        case LED_1:
-        case LED_2:
-        case LED_3:
-            HAL_GPIO_WritePin(LED_L_PORT, led_pin, state);
-        break;
-        case LED_4:
-        case LED_5:
-        case LED_6:
-            HAL_GPIO_WritePin(LED_R_PORT, led_pin, state);
-        break;
+void led_set(uint8_t led, uint8_t on){
+    if(led < 1 || led > 6) return;
+    GPIO_TypeDef *port = led <= 3 ? LED_L_PORT : LED_R_PORT;
+    HAL_GPIO_WritePin(port, LED_PIN[led - 1], on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
+// One BSRR write per port: atomic, so it is safe from the SysTick handler too.
+void leds_set_mask(uint8_t mask){
+    uint32_t left = 0, right = 0;
+    for(uint8_t i = 0; i < 3; i++){
+        if(mask & (1u << (5 - i))) left |= LED_PIN[i];
+        if(mask & (1u << (2 - i))) right |= LED_PIN[3 + i];
     }
-}
-void set_all_led(GPIO_PinState state){
-    HAL_GPIO_WritePin(LED_L_PORT, LED_1, state);
-    HAL_GPIO_WritePin(LED_L_PORT, LED_2, state);
-    HAL_GPIO_WritePin(LED_L_PORT, LED_3, state);
-    HAL_GPIO_WritePin(LED_R_PORT, LED_4, state);
-    HAL_GPIO_WritePin(LED_R_PORT, LED_5, state);
-    HAL_GPIO_WritePin(LED_R_PORT, LED_6, state);
+    LED_L_PORT->BSRR = left | ((uint32_t)(LED_L_PINS & ~left) << 16);
+    LED_R_PORT->BSRR = right | ((uint32_t)(LED_R_PINS & ~right) << 16);
 }
 
-void control_all_led(uint8_t led_state){
-    set_led(LED_1, (led_state & (1 << 5)) ? LED_ON : LED_OFF);
-    set_led(LED_2, (led_state & (1 << 4)) ? LED_ON : LED_OFF);
-    set_led(LED_3, (led_state & (1 << 3)) ? LED_ON : LED_OFF);
-    set_led(LED_4, (led_state & (1 << 2)) ? LED_ON : LED_OFF);
-    set_led(LED_5, (led_state & (1 << 1)) ? LED_ON : LED_OFF);
-    set_led(LED_6, (led_state & (1 << 0)) ? LED_ON : LED_OFF);
+void leds_all(uint8_t on){
+    leds_set_mask(on ? 0x3F : 0x00);
 }
 
-GPIO_PinState get_button(uint16_t button_pin){
-    switch (button_pin) {
-        case BUTTON_START:
-            return HAL_GPIO_ReadPin(BUTTON_START_PORT, BUTTON_START);
-        break;
-        case BUTTON_SELECT:
-            return HAL_GPIO_ReadPin(BUTTON_SELECT_PORT, BUTTON_SELECT);
-        break;
-        default:
-            return GPIO_PIN_RESET;
+void leds_blink(uint8_t times, uint32_t half_period_ms){
+    for(uint8_t i = 0; i < times; i++){
+        leds_all(1);
+        HAL_Delay(half_period_ms);
+        leds_all(0);
+        HAL_Delay(half_period_ms);
     }
 }
 
-void led_animation(){
-    int time = 50;
-    set_led(LED_1, LED_ON);
-    set_led(LED_6, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_2, LED_ON);
-    set_led(LED_1, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_3, LED_ON);
-    set_led(LED_2, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_4, LED_ON);
-    set_led(LED_3, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_5, LED_ON);
-    set_led(LED_4, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_6, LED_ON);
-    set_led(LED_5, LED_OFF);
-    HAL_Delay(time);
-    set_led(LED_6, LED_OFF);
-    set_led(LED_5, LED_ON);
-    HAL_Delay(time);
-    set_led(LED_5, LED_OFF);
-    set_led(LED_4, LED_ON);
-    HAL_Delay(time);
-    set_led(LED_4, LED_OFF);
-    set_led(LED_3, LED_ON);
-    HAL_Delay(time);
-    set_led(LED_3, LED_OFF);
-    set_led(LED_2, LED_ON);
-    HAL_Delay(time);
-    set_led(LED_2, LED_OFF);
-    set_led(LED_1, LED_ON);
-    HAL_Delay(time);
+void buttons_tick(void){
+    for(uint8_t b = 0; b < 2; b++){
+        button_state_t *s = &buttons[b];
+        uint8_t raw = button_raw((button_t)b);
+        if(raw == s->stable){
+            s->count = 0;
+        }
+        else if(++s->count >= BUTTON_DEBOUNCE_MS){
+            s->stable = raw;
+            s->count = 0;
+            if(raw) s->pressed = 1;
+        }
+    }
 }
 
-void fast_blink(){
-    for(int i=0; i<3; i++){
-        set_all_led(LED_ON);
-        HAL_Delay(100);
-        set_all_led(LED_OFF);
-        HAL_Delay(100);
-    }
+uint8_t button_take_press(button_t button){
+    if(!buttons[button].pressed) return 0;
+    buttons[button].pressed = 0;
+    return 1;
+}
+
+void buttons_clear(void){
+    buttons[BUTTON_START].pressed = 0;
+    buttons[BUTTON_SELECT].pressed = 0;
 }

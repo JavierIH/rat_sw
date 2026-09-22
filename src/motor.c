@@ -1,127 +1,47 @@
 #include "motor.h"
+#include "stm32f1xx_hal.h"
 #include "pwm.h"
 
-int32_t _motor_speed_l;
-int32_t _motor_speed_r;
-motor_sense_t _motor_sense_l;
-motor_sense_t _motor_sense_r;
+#define MOTOR_R_IN1     GPIO_PIN_6      // PB6
+#define MOTOR_R_IN2     GPIO_PIN_7      // PB7
+#define MOTOR_L_IN1     GPIO_PIN_3      // PB3 (JTAG pin, freed in HAL_MspInit)
+#define MOTOR_L_IN2     GPIO_PIN_15     // PA15 (JTAG pin, freed in HAL_MspInit)
 
-void MOTOR_Init(){
-    GPIO_InitTypeDef GPIO_InitStruct;
-
-    // GPIO Ports Clock Enable
+void MOTOR_Init(void){
+    GPIO_InitTypeDef gpio = {0};
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    // Configure GPIO pin : PB6 PB7 PB3
-    GPIO_InitStruct.Pin = MOTOR_R_IN1|MOTOR_R_IN2|MOTOR_L_IN1;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    // Configure GPIO pins : PA15
-    GPIO_InitStruct.Pin = MOTOR_L_IN2;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    _motor_sense_l = FREE;
-    _motor_sense_r = FREE;
+    gpio.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio.Speed = GPIO_SPEED_FREQ_MEDIUM;
+    gpio.Pin = MOTOR_R_IN1 | MOTOR_R_IN2 | MOTOR_L_IN1;
+    HAL_GPIO_Init(GPIOB, &gpio);
+    gpio.Pin = MOTOR_L_IN2;
+    HAL_GPIO_Init(GPIOA, &gpio);
 }
 
-void set_sense(motor_t motor, motor_sense_t sense){
-    if (motor == MOTOR_R){
-        if(sense == FORWARD){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN2, GPIO_PIN_SET);
-        }
-        else if (sense == BACKWARD){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN1, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN2, GPIO_PIN_RESET);
-        }
-        else if (sense == BRAKE){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN1, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN2, GPIO_PIN_SET);
-        }
-        else if (sense == FREE){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN2, GPIO_PIN_RESET);
-        }
+static void set_direction(motor_t motor, uint8_t forward){
+    GPIO_PinState fwd = forward ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    GPIO_PinState rev = forward ? GPIO_PIN_RESET : GPIO_PIN_SET;
+    if(motor == MOTOR_R){
+        HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN1, rev);
+        HAL_GPIO_WritePin(GPIOB, MOTOR_R_IN2, fwd);
     }
-    else if (motor == MOTOR_L){
-        if(sense == FORWARD){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, GPIO_PIN_RESET);
-        }
-        else if (sense == BACKWARD){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, GPIO_PIN_SET);
-        }
-        else if (sense == BRAKE){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, GPIO_PIN_SET);
-        }
-        else if (sense == FREE){
-            HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, GPIO_PIN_RESET);
-        }
+    else{   // the left bridge inputs are wired the other way round
+        HAL_GPIO_WritePin(GPIOB, MOTOR_L_IN1, fwd);
+        HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, rev);
     }
 }
 
-void set_output(motor_t motor, int16_t speed){
-#if !MOTORS_ENABLED
-    return;
+void motor_set(motor_t motor, int16_t pwm){
+#if MOTORS_ENABLED
+    int32_t duty = pwm;
+    set_direction(motor, duty > 0);
+    if(duty < 0) duty = -duty;
+    if(duty > PWM_MAX) duty = PWM_MAX;
+    pwm_set(motor == MOTOR_L ? PWM_LEFT : PWM_RIGHT, (uint16_t)duty);
+#else
+    (void)motor;
+    (void)pwm;
 #endif
-    if(motor == MOTOR_L){
-        _motor_speed_l = speed;
-    }
-    else if (motor == MOTOR_R){
-        _motor_speed_r = speed;
-    }
-
-
-    if (speed > 0){
-        set_sense(motor, FORWARD);
-    }
-    else {
-        set_sense(motor, BACKWARD);
-        speed *= -1;
-    }
-    if(speed > 1000) speed = 1000;
-    if(motor == MOTOR_L){
-        set_pwm(PWM_2, speed);
-    }
-    else if (motor == MOTOR_R){
-        set_pwm(PWM_1, speed);
-    }
 }
-
-void update_speed(motor_t motor){
-    if (motor == MOTOR_R){
-        _motor_speed_r = get_encoder_delta(ENCODER_R); // /sample time 1ms
-    }
-    else if (motor == MOTOR_L){
-        _motor_speed_l = get_encoder_delta(ENCODER_L);
-    }
-}
-
-int32_t get_output(motor_t motor){
-    if (motor == MOTOR_R){
-        return _motor_speed_r;
-    }
-    else if (motor == MOTOR_L){
-        return _motor_speed_l;
-    }
-    else{
-        return 0;
-    }
-}
-
-//int32_t get_speed(motor_t motor){
-//    if (motor == MOTOR_R){
-//        return _motor_speed_r;
-//    }
-//    else if (motor == MOTOR_L){
-//        return _motor_speed_l;
-//    }
-//}

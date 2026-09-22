@@ -1,17 +1,17 @@
 #ifndef INFRARED_H
 #define INFRARED_H
 
-#include "stm32f1xx_hal.h"
+#include <stdint.h>
 
-typedef enum {IR_FL, IR_FR, IR_SL, IR_SR} ir_sensor_t;
+// Four IR distance sensors on ADC1, sampled continuously by circular DMA with
+// no CPU involvement. Each reading averages the last IR_OVERSAMPLE conversions.
 
-extern volatile uint32_t _adc_buf[4];
-extern DMA_HandleTypeDef hdma_adc1;
-extern ADC_HandleTypeDef hadc1;
+#define IR_OVERSAMPLE 16
 
-void IR_Init();
-int get_ir(ir_sensor_t ir);
-float get_ir_mm(ir_sensor_t ir);
+typedef enum { IR_FL, IR_FR, IR_SL, IR_SR, IR_COUNT } ir_sensor_t;
 
+void IR_Init(void);
+uint16_t ir_raw(ir_sensor_t ir);    // averaged ADC counts, 0..4095
+float ir_mm(ir_sensor_t ir);        // calibrated distance, clamped to 0..400 mm
 
 #endif // INFRARED_H
