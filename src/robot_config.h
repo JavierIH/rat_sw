@@ -35,10 +35,11 @@
 #define MOVE_EXTRA_TICKS        140
 #define TICKS_FOR_CELLS(n)      ((int32_t)(n) * CELL_TICKS + MOVE_EXTRA_TICKS)
 // Default of TURNTICKS: half the wheel difference at which a 90 deg in-place
-// turn brakes (~4.5 ticks per degree). Tuned on the maze with CAL TURN +-4 at
-// TURN 140: at 422-430 every turn overshot and the next straight had to
-// correct ~40 ticks of heading; at 390 that correction averages ~0.
-#define TICKS_PER_TURN          390
+// turn brakes (~4.5 ticks per degree). Tuned at TURN 140 with the robot facing
+// a wall: IR, CAL TURN +-4, IR, comparing FL - FR before and after (~1.1 mm
+// per tick over 4 turns). Right turns are exact at 383, left ones at ~378:
+// 381 splits the difference (~0.5 deg per turn each way).
+#define TICKS_PER_TURN          381
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
