@@ -238,6 +238,19 @@ static move_result_t guard_check(guard_t *g, int32_t travel){
     return MOVE_OK;
 }
 
+// Extra duty while the wheels have not started moving (static friction).
+static int16_t breakaway(const guard_t *g, int16_t *max_used){
+    uint32_t idle = HAL_GetTick() - g->progress_ms;
+    int32_t boost = idle > BREAKAWAY_DELAY_MS ? (int32_t)(idle - BREAKAWAY_DELAY_MS) / BREAKAWAY_MS_PER_PWM : 0;
+    if(boost > BREAKAWAY_MAX_PWM) boost = BREAKAWAY_MAX_PWM;
+    if(boost > *max_used) *max_used = (int16_t)boost;
+    return (int16_t)boost;
+}
+
+static void print_boost(int16_t boost){
+    if(boost > 0) print("  arranque dificil: hizo falta +%d PWM\n", boost);
+}
+
 // ---- Straight moves ---------------------------------------------------------------------------
 
 // Cruise, then brake linearly over FAST_DECEL_TICKS so that the last
@@ -255,6 +268,7 @@ static move_result_t back_up(odo_t *move){
     odo_t own;
     guard_t g;
     move_result_t result = MOVE_BLOCKED;
+    int16_t max_boost = 0;
     odo_start(&own);
     guard_start(&g, 2 * DRIFT_CORRECT_TIMEOUT_MS);
     ramp_reset();
@@ -268,12 +282,14 @@ static move_result_t back_up(odo_t *move){
             result = check == MOVE_ABORTED ? MOVE_ABORTED : MOVE_LOST;
             break;
         }
-        drive_ramped(MOTOR_L, -DRIFT_CORRECT_SPEED);
-        drive_ramped(MOTOR_R, -DRIFT_CORRECT_SPEED);
+        int16_t duty = (int16_t)(DRIFT_CORRECT_SPEED + breakaway(&g, &max_boost));
+        drive_ramped(MOTOR_L, (int16_t)-duty);
+        drive_ramped(MOTOR_R, (int16_t)-duty);
     }
     motors_off();
     print("obstaculo delante: marcha atras %s (L=%ld R=%ld)\n",
           result == MOVE_BLOCKED ? "OK" : move_result_name(result), (long)move->dl, (long)move->dr);
+    print_boost(max_boost);
     return result;
 }
 
@@ -287,6 +303,7 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     odo_t o;
     guard_t g;
     uint8_t ir_close = 0, ir_emergency = 0;
+    int16_t max_boost = 0;
     const char *stop = "ENC";
     move_result_t result;
     odo_start(&o);
@@ -333,7 +350,7 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
             }
         }
 
-        float speed = (float)profile_speed(remaining, cruise_speed, final_speed);
+        float speed = (float)(profile_speed(remaining, cruise_speed, final_speed) + breakaway(&g, &max_boost));
         float steer = steer_out;
         drive_ramped(MOTOR_L, (int16_t)(speed + steer));
         drive_ramped(MOTOR_R, (int16_t)(speed - steer));
@@ -347,6 +364,7 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
               cells, (long)o.dl, (long)o.dr, (long)target, stop,
               (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR));
     }
+    print_boost(max_boost);
     if(result == MOVE_BLOCKED) result = back_up(&o);
     return result;
 }
@@ -355,6 +373,7 @@ move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
     odo_t o;
     guard_t g;
     move_result_t result = MOVE_OK;
+    int16_t max_boost = 0;
     moved = 1;
     odo_start(&o);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS);
@@ -365,10 +384,13 @@ move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
         if(abs32((o.dl + o.dr) / 2) >= ticks) break;
         result = guard_check(&g, odo_travel(&o));
         if(result != MOVE_OK) break;
-        drive_ramped(MOTOR_L, pwm);
-        drive_ramped(MOTOR_R, pwm);
+        int16_t boost = breakaway(&g, &max_boost);
+        int16_t duty = (int16_t)(pwm >= 0 ? pwm + boost : pwm - boost);
+        drive_ramped(MOTOR_L, duty);
+        drive_ramped(MOTOR_R, duty);
     }
     motors_off();
+    print_boost(max_boost);
     return result;
 }
 
@@ -382,10 +404,11 @@ void motion_align_front(void){
 
     // Farther than expected: forward. Closer: back.
     const int32_t target = abs32(error_mm) * TICKS_PER_MM;
-    const int16_t speed = error_mm > 0 ? DRIFT_CORRECT_SPEED : -DRIFT_CORRECT_SPEED;
+    const int16_t sign = error_mm > 0 ? 1 : -1;
     odo_t o;
     guard_t g;
     move_result_t result = MOVE_OK;
+    int16_t max_boost = 0;
     odo_start(&o);
     guard_start(&g, DRIFT_CORRECT_TIMEOUT_MS);
     ramp_reset();
@@ -395,13 +418,15 @@ void motion_align_front(void){
         if(abs32(o.dl) >= target || abs32(o.dr) >= target) break;
         result = guard_check(&g, odo_travel(&o));
         if(result != MOVE_OK) break;
-        drive_ramped(MOTOR_L, speed);
-        drive_ramped(MOTOR_R, speed);
+        int16_t duty = (int16_t)(sign * (DRIFT_CORRECT_SPEED + breakaway(&g, &max_boost)));
+        drive_ramped(MOTOR_L, duty);
+        drive_ramped(MOTOR_R, duty);
     }
     motors_off();
     if(params.log_level >= 2){
         print("alineado frontal: err=%ldmm L=%ld R=%ld%s%s\n", (long)error_mm, (long)o.dl, (long)o.dr,
               result == MOVE_OK ? "" : " ", result == MOVE_OK ? "" : move_result_name(result));
+        print_boost(max_boost);
     }
 }
 
@@ -411,6 +436,7 @@ static move_result_t turn_quarter(int8_t dir){
     odo_t o;
     guard_t g;
     move_result_t result;
+    int16_t max_boost = 0;
     const int16_t speed = params.turn_speed;
     odo_start(&o);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS);
@@ -422,8 +448,9 @@ static move_result_t turn_quarter(int8_t dir){
         if(result != MOVE_OK) break;
         // Half the wheel difference, exactly as TICKS_PER_TURN was calibrated.
         if(dir * (o.dl - o.dr) / 2 >= TICKS_PER_TURN) break;
-        drive_ramped(MOTOR_L, (int16_t)(dir * speed));
-        drive_ramped(MOTOR_R, (int16_t)(-dir * speed));
+        int16_t duty = (int16_t)(speed + breakaway(&g, &max_boost));
+        drive_ramped(MOTOR_L, (int16_t)(dir * duty));
+        drive_ramped(MOTOR_R, (int16_t)(-dir * duty));
     }
     motors_off();
     // The turn calibration includes this pause before the next move.
@@ -433,6 +460,7 @@ static move_result_t turn_quarter(int8_t dir){
         print("giro %s: L=%ld R=%ld obj=%d fin=%s\n", dir > 0 ? "der" : "izq",
               (long)o.dl, (long)o.dr, TICKS_PER_TURN, result == MOVE_OK ? "ENC" : move_result_name(result));
     }
+    print_boost(max_boost);
     return result;
 }
 

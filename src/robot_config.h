@@ -70,7 +70,13 @@
 #define TURN_SETTLE_MS          150     // pause after every 90 deg turn (turn calibration depends on it)
 #define MOVE_TIMEOUT_BASE_MS    5000    // move watchdog: base...
 #define MOVE_TIMEOUT_PER_CELL_MS 2000   // ...plus per cell
-#define STALL_TIMEOUT_MS        500     // wheels commanded but not turning for this long = stalled
+// Static friction: wheels still this long into a move get extra duty, 1 PWM
+// every BREAKAWAY_MS_PER_PWM ms up to BREAKAWAY_MAX_PWM, dropped as soon as
+// they turn (in-place turns at low PWM need it: the wheels scrub sideways).
+#define BREAKAWAY_DELAY_MS      120
+#define BREAKAWAY_MS_PER_PWM    4
+#define BREAKAWAY_MAX_PWM       150
+#define STALL_TIMEOUT_MS        800     // still not turning after that (full boost included) = stalled
 #define STALL_MIN_TICKS         20      // travel that counts as progress for the stall detector
 #define START_DELAY_MS          2000    // countdown after START (hands away)
 #define BUTTON_DEBOUNCE_MS      20

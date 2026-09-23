@@ -147,6 +147,13 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - A move only updates the pose when it is confirmed (`MOVE_OK`). `MOVE_BLOCKED`
   means the robot backed up to where it started, so the pose is still valid.
   Anything else invalidates it and ends the run (`search_ready()` = 0).
+- Static friction: every move loop adds a breakaway boost (`breakaway()` in
+  motion.c) while the wheels have not moved yet, dropped the moment they do,
+  so calibrated stops are unaffected. In-place turns at `TURN` 110 needed it on
+  the real maze (the wheels scrub sideways): a stall is only declared after
+  `STALL_TIMEOUT_MS` with the full boost. The log prints "arranque dificil:
+  hizo falta +N PWM" when used; if turns always need it, raise `TURN`
+  and recalibrate `TICKS_PER_TURN` (CAL TURN).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
 - Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
