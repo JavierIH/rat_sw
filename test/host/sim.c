@@ -8,6 +8,7 @@ heading_t sim_h;
 static uint8_t truth[MAZE_SIZE][MAZE_SIZE];
 static double noise;
 static double side_doubt;
+static uint8_t sides_fresh;     // a straight just ended: sides read on the way in (as motion.c)
 static uint32_t rng_state = 1;
 static uint32_t abort_after;
 
@@ -117,6 +118,7 @@ void sim_reset(double sensor_noise, uint32_t seed){
     rng_state = seed ? seed : 1;
     abort_after = 0;
     side_doubt = 0.0;
+    sides_fresh = 0;
 }
 
 void sim_side_doubt(double probability){
@@ -140,11 +142,14 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     out->right = noisy(truth_wall(sim_x, sim_y, heading_right(sim_h)));
     if(side_doubt > 0.0 && rand_unit() < side_doubt) out->left = SEEN_DOUBTFUL;
     if(side_doubt > 0.0 && rand_unit() < side_doubt) out->right = SEEN_DOUBTFUL;
+    out->moving = sides_fresh;
+    sides_fresh = 0;
     return MOVE_OK;
 }
 
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     (void)cruise_speed;
+    sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.forward_moves++;
     for(uint8_t i = 0; i < cells; i++){
@@ -160,10 +165,12 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
     }
+    sides_fresh = cells > 0;
     return MOVE_OK;
 }
 
 move_result_t motion_turn(int8_t quarter_turns){
+    sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.quarter_turns += (uint32_t)(quarter_turns < 0 ? -quarter_turns : quarter_turns);
     sim_h = (heading_t)((sim_h + quarter_turns + 4) & 3);

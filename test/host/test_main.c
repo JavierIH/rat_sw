@@ -204,35 +204,35 @@ static void test_side_doubt(void){
     const float close = FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM;
     wall_sense_t w;
     // Square to a front wall at the right distance: sides trusted.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 1, 1, 94, 94, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
     // Rotated left (FL farther): the right beam swings forward.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 1, 1, 110, 80, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_PRESENT && w.right == SEEN_DOUBTFUL);
     // Rotated right.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 1, 1, 80, 110, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_DOUBTFUL && w.right == SEEN_PRESENT);
     // The square offset is taken into account.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 1, 1, 80, 110, -30, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
     // Stopped too close to the front wall: both sides doubtful.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 1, 1, 50, 52, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_DOUBTFUL && w.right == SEEN_DOUBTFUL);
     // Only the right front sensor sees something: only the right side doubted.
-    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 0, 1, 300, 90, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_PRESENT && w.right == SEEN_DOUBTFUL);
     // Nothing in front: nothing to go on, sides trusted.
-    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT};
+    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT, 0};
     motion_doubt_sides(&w, 0, 0, 300, 300, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
     // "No wall" readings are never doubted: that failure only adds walls.
-    w = (wall_sense_t){SEEN_PRESENT, SEEN_ABSENT, SEEN_ABSENT};
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_ABSENT, SEEN_ABSENT, 0};
     motion_doubt_sides(&w, 1, 1, 50, 52, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_ABSENT && w.right == SEEN_ABSENT);
 }

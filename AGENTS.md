@@ -200,8 +200,12 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - Side walls after a straight are read on the way in, `SIDE_PASS_TICKS`
   before its end, where the angled beams hit the middle of the walls (`lados=`
   in the log). Read at the stop they caught the next post as phantom walls
-  (9 in the first logs, some at 82-98 mm). After turns they are still read at
-  the stop, with the doubt rule.
+  (9 in the first logs, some at 82-98 mm). `wall_sense_t.moving` says which
+  way they were read. Read at the stop right after a turn they gave 5 phantoms
+  in 14, so `sense_here()` then records only "no wall" (those walls were seen
+  before the turn anyway). At the start they are trusted: the robot was placed
+  centred by hand, and doubting them cost the 16x16 search 33% more actions
+  in the simulator.
   The IR stop (armed in the last half cell) uses the FL/FR average, like the
   front alignment, and fires `FRONT_STOP_LEAD_MM` early because the robot
   coasts that far. After a move that ends facing a wall, `motion_align_front()`
@@ -233,9 +237,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 Verified on the PC simulator (hundreds of random 16x16 and 4x3 mazes, with and
 without sensor noise): searches always complete, the verified speed-run path
 is optimal with perfect sensing, and nothing crashes (also with 20% of side
-readings doubtful). On the robot (bench): console, sensors, flash persistence,
-telemetry, CAL NOISE/DUMP (including STOP mid-dump) verified, and the stall
-detector aborted a turn with unpowered wheels as designed. Still to validate
-on the real maze: the search itself after the rework, merged straights and
-`FAST` speed, `KE` heading hold (off by default), the side-doubt rule with a
-calibrated `FRONT_SQUARE_OFFSET_MM`, and the CAL tests that move.
+readings doubtful). On the practice maze: full search + return at SPD 400 in
+27.9 s (59.5 s at the start of the rework), every IR stop within ~3 mm of the
+reference even when it fired at ~390 mm/s, no phantom walls on the way in,
+turns calibrated with CAL TURN +-4 (TURNTICKS 381), FRONT_SQUARE_OFFSET_MM
+confirmed with CAL NOISE (-15.4). Speed runs worked up to FAST 350 with the old
+braking; with the STOP_SPEED profile still to validate above FAST 400, as is
+the steering (KP/KD tuned at 150) at those speeds and `KE` (off by default).

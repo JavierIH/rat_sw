@@ -140,8 +140,8 @@
 #define MAP_MAX_RECOVERIES      3       // "goal unreachable" map repairs allowed per run
 
 // ---- Runtime parameter defaults (see params.h) ----------------------------------------
-#define PARAM_SEARCH_SPEED      150     // PWM 0-1000
-#define PARAM_FAST_SPEED        220
+#define PARAM_SEARCH_SPEED      400     // PWM 0-1000 (practice-maze search at 400: 27.9 s, every stop within ~3 mm)
+#define PARAM_FAST_SPEED        400     // never below SPD: straights of the speed run cruise at it
 #define PARAM_TURN_SPEED        140     // 110 needed the breakaway boost in ~1/4 of the turns
 #define PARAM_TURN_TICKS        TICKS_PER_TURN
 #define PARAM_KP                2.0f

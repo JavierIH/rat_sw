@@ -20,6 +20,7 @@ static const char *const ACTION_NAME[5] = {"-", "AVANZA", "IZQ", "DER", "MEDIA V
 
 static pose_t pose = {START_X, START_Y, NORTH};
 static uint8_t ready = 1;               // pose is the start facing north, for real
+static uint8_t turned;                  // turned in place since the last straight
 static uint16_t cost_a[MAZE_STATES];    // planner buffers
 static uint16_t cost_b[MAZE_STATES];
 
@@ -27,6 +28,7 @@ static void pose_reset(void){
     pose.x = START_X;
     pose.y = START_Y;
     pose.h = NORTH;
+    turned = 0;
 }
 
 static uint16_t pose_state(void){
@@ -68,6 +70,15 @@ static const char SIGHTING_CHAR[3] = {'0', '1', '?'};
 static move_result_t sense_here(wall_sense_t *w){
     move_result_t r = motion_sense_walls(w);
     if(r != MOVE_OK) return r;
+    // Sides read from the stop after a turn caught posts and the passage just
+    // driven through: 5 phantom walls in 14 such readings on the practice
+    // maze. After a turn only a "no wall" is recorded; the walls there were
+    // seen before the turn, by the front sensors or on the way in. (At the
+    // start the robot was placed centred by hand: those readings are kept.)
+    if(!w->moving && turned){
+        if(w->left == SEEN_PRESENT) w->left = SEEN_DOUBTFUL;
+        if(w->right == SEEN_PRESENT) w->right = SEEN_DOUBTFUL;
+    }
     maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
     if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
     if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
@@ -81,6 +92,7 @@ static move_result_t turn_by(int8_t quarter_turns){
     if(!quarter_turns) return MOVE_OK;
     move_result_t r = motion_turn(quarter_turns);
     if(r == MOVE_OK){
+        turned = 1;
         pose.h = (heading_t)((pose.h + quarter_turns + 4) & 3);
         telemetry_pose(pose.x, pose.y, pose.h);
     }
@@ -96,6 +108,7 @@ static move_result_t forward(uint8_t cells, int16_t speed){
 
     move_result_t r = motion_forward(cells, speed);
     if(r == MOVE_OK){
+        turned = 0;
         for(uint8_t i = 0; i < cells; i++){
             maze_mark_crossed(pose.x, pose.y, pose.h);
             pose.x = (uint8_t)(pose.x + heading_dx(pose.h));

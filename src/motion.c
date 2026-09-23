@@ -649,6 +649,7 @@ move_result_t motion_sense_walls(wall_sense_t *out){
                        FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM);
     // Just arrived from a straight: the sides read on the way in are better
     // than any reading from here (see SIDE_PASS_TICKS).
+    out->moving = side_pass.valid;
     if(side_pass.valid){
         out->left = side_pass.votes_l >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
         out->right = side_pass.votes_r >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;

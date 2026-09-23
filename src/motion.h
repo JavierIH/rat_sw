@@ -20,17 +20,21 @@ typedef enum {
 // A side reading can also be doubtful: the pose made a phantom wall likely
 // (see SIDE_YAW_DOUBT_MM). Doubtful readings must not be recorded.
 typedef enum { SEEN_ABSENT = 0, SEEN_PRESENT = 1, SEEN_DOUBTFUL = 2 } sighting_t;
-typedef struct { uint8_t front, left, right; } wall_sense_t;   // sighting_t (front never doubtful)
+typedef struct {
+    uint8_t front, left, right;     // sighting_t (front never doubtful)
+    uint8_t moving;                 // 1: the sides were read on the way in, during the straight that ended here
+} wall_sense_t;
 
 typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
 
-// Drives `cells` cells straight. Merged straights cruise at `cruise_speed`
-// and brake to the search speed for the last cell, so every stop happens at
-// the speed the cell length was calibrated at. Stops early on a front wall.
+// Drives `cells` cells straight. Cruises at `cruise_speed` and slows down to
+// STOP_SPEED before the end, so every stop happens at the speed the cell
+// length was calibrated at. Stops early on a front wall.
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);
 // Turns in place: -1 = 90 deg left, +1 = 90 deg right, 2 = 180 deg.
 move_result_t motion_turn(int8_t quarter_turns);
-// Majority-voted wall readings with the robot stopped.
+// Majority-voted wall readings: the front with the robot stopped, the sides
+// from the straight that just ended if there was one (see `moving`).
 move_result_t motion_sense_walls(wall_sense_t *out);
 // Side readings exposed to phantom walls, given the front sensor votes and
 // their average readings (mm). Pure: shared with the host tests.
