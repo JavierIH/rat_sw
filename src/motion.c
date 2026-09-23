@@ -149,26 +149,37 @@ static void steer_update(void){
     steer_ref_t ref = REF_NONE;
     float error = 0.0f;
     uint8_t leds = 0x00;
-    float d = ir_mm(IR_SR);
-    if(d < SIDE_WALL_TRACK_MM){
+    const float sr = ir_mm(IR_SR), sl = ir_mm(IR_SL);
+    const float error_r = sr - LANE_WIDTH_MM / 2.0f;
+    const float error_l = LANE_WIDTH_MM / 2.0f - sl;
+    uint8_t right = sr < SIDE_WALL_TRACK_MM;
+    const uint8_t left = sl < SIDE_WALL_TRACK_MM;
+    // The right wall first, as calibrated, unless its reading is implausible
+    // (the angled beam catching a post or a wall ahead) and the left one
+    // agrees better with where the robot can be.
+    const float abs_r = error_r < 0.0f ? -error_r : error_r;
+    const float abs_l = error_l < 0.0f ? -error_l : error_l;
+    if(right && left && abs_r > STEER_ERROR_MAX_MM && abs_l < abs_r) right = 0;
+    if(right){
         ref = REF_RIGHT;
-        error = d - LANE_WIDTH_MM / 2.0f;
+        error = error_r;
         leds = 0x07;
     }
-    else{
-        d = ir_mm(IR_SL);
-        if(d < SIDE_WALL_TRACK_MM){
-            ref = REF_LEFT;
-            error = LANE_WIDTH_MM / 2.0f - d;
-            leds = 0x38;
-        }
+    else if(left){
+        ref = REF_LEFT;
+        error = error_l;
+        leds = 0x38;
     }
 
     float out;
     if(ref != REF_NONE){
-        // A new reference (start of a move, or the other wall) must not
-        // produce a derivative kick.
-        if(ref != steer_prev_ref) steer_prev_error = error;
+        if(error > STEER_ERROR_MAX_MM) error = STEER_ERROR_MAX_MM;
+        else if(error < -STEER_ERROR_MAX_MM) error = -STEER_ERROR_MAX_MM;
+        // A new reference (start of a move, or the other wall), or a jump no
+        // real motion causes in 10 ms (a wall edge or a post seen by the
+        // angled beam), must not produce a derivative kick.
+        float change = error - steer_prev_error;
+        if(ref != steer_prev_ref || change > STEER_JUMP_MM || change < -STEER_JUMP_MM) steer_prev_error = error;
         float trim = steer_trim;
         if(params.ki <= 0.0f) trim = 0.0f;
         else if(encoder_idle_ms() < STEER_TRIM_MOVING_MS
@@ -425,11 +436,58 @@ move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
     return result;
 }
 
+static float front_skew(void){
+    return ir_mm(IR_FL) - ir_mm(IR_FR) - (float)FRONT_SQUARE_OFFSET_MM;
+}
+
+// Rotates in place until the front sensors read square to the wall again.
+// Closed loop on the IR itself, so no degrees-to-ticks conversion is needed.
+// Every move leaves some heading error (+-10 deg per cell was common); without
+// this it carried over, through the turns, into the next moves.
+static void square_to_front(void){
+    float skew = front_skew();
+    if(skew <= SQUARE_TOL_MM && skew >= -SQUARE_TOL_MM) return;
+    if(skew > SQUARE_MAX_SKEW_MM || skew < -SQUARE_MAX_SKEW_MM) return;
+    const int8_t dir = skew > 0.0f ? 1 : -1;     // FL farther: yawed left, rotate right
+    odo_t o;
+    guard_t g;
+    move_result_t result = MOVE_OK;
+    int16_t max_boost = 0;
+    odo_start(&o);
+    guard_start(&g, SQUARE_TIMEOUT_MS);
+    ramp_reset();
+    for(;;){
+        wait_next_ms();
+        odo_update(&o);
+        if((float)dir * front_skew() <= 0.0f) break;                     // square (or just past it)
+        if(dir * (o.dl - o.dr) / 2 >= SQUARE_MAX_TICKS) break;
+        result = guard_check(&g, odo_travel(&o));
+        if(result != MOVE_OK) break;
+        int16_t duty = (int16_t)(params.turn_speed + breakaway(&g, &max_boost));
+        drive_ramped(MOTOR_L, (int16_t)(dir * duty));
+        drive_ramped(MOTOR_R, (int16_t)(-dir * duty));
+    }
+    motors_off();
+    if(result == MOVE_OK) wait_still(TURN_STILL_MS, TURN_SETTLE_MS);
+    odo_update(&o);
+    if(params.log_level >= 2){
+        print("escuadrado: sesgo=%dmm L=%ld R=%ld -> %dmm%s%s\n", (int)skew, (long)o.dl, (long)o.dr,
+              (int)front_skew(), result == MOVE_OK ? "" : " ", result == MOVE_OK ? "" : move_result_name(result));
+        print_boost(max_boost);
+    }
+}
+
 void motion_align_front(void){
     float fl = ir_mm(IR_FL);
     float fr = ir_mm(IR_FR);
     if(fl >= WALL_DETECT_MM || fr >= WALL_DETECT_MM) return;
-    if(abs32((int32_t)fl - (int32_t)fr) > FRONT_IR_MAX_DIFF_MM) return;
+    // Heading first (with the robot still), then distance with fresh readings.
+    wait_still(TURN_STILL_MS, TURN_SETTLE_MS);
+    square_to_front();
+    fl = ir_mm(IR_FL);
+    fr = ir_mm(IR_FR);
+    if(fl >= WALL_DETECT_MM || fr >= WALL_DETECT_MM) return;
+    if(abs32((int32_t)(fl - fr) - FRONT_SQUARE_OFFSET_MM) > FRONT_IR_MAX_DIFF_MM) return;
     int32_t error_mm = (int32_t)((fl + fr) / 2.0f) - FRONT_WALL_REF_MM;
     if(abs32(error_mm) <= ALIGN_DEADBAND_MM || abs32(error_mm) > DRIFT_CORRECT_MAX_MM) return;
 

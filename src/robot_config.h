@@ -56,16 +56,20 @@
 // post or the front wall: a phantom side wall. With something in front, the
 // front sensors reveal that pose, and a "wall" reading on the exposed side is
 // then treated as doubtful (not recorded) instead of trusted.
-#define FRONT_SQUARE_OFFSET_MM  0       // FL - FR when square to a wall at the cell centre (calibrate: CAL NOISE)
+// FL - FR when square to a wall at the cell centre: median of 44 IR stops
+// on the practice maze (sd 5.7 mm). Confirm with CAL NOISE, robot squared by hand.
+#define FRONT_SQUARE_OFFSET_MM  -15
 #define SIDE_YAW_DOUBT_MM       20      // |FL - FR - offset| beyond this: yawed, doubt the side it turns towards
 #define SIDE_CLOSE_DOUBT_MM     25      // front wall this much closer than FRONT_WALL_REF_MM: doubt both sides
 
 // ---- Motion ----------------------------------------------------------------------
 #define STEER_PERIOD_MS         10      // steering controller period (SysTick divider)
-#define PD_STRAIGHT_MAX         150     // clamp of the steering correction (PWM)
+#define PD_STRAIGHT_MAX         80      // clamp of the steering correction (PWM; 150 let one bad reading swerve 35 deg)
+#define STEER_ERROR_MAX_MM      25      // wall error clamp: beyond it the reading is a transient, not the robot
+#define STEER_JUMP_MM           6       // error change in 10 ms no real motion can cause: no derivative kick
 #define STEER_TRIM_MAX          50      // clamp of the learned motor imbalance (integral term, PWM)
 #define STEER_TRIM_MOVING_MS    20      // the integral only learns while a wheel moved this recently...
-#define STEER_TRIM_ERROR_MM     25      // ...and the wall error is below this
+#define STEER_TRIM_ERROR_MM     12      // ...and the wall error is below this (it learned transients at 25)
 #define ACCEL_STEP_PER_MS       4       // max PWM change per ms (start ramp)
 // Front-wall stop armed in the last half cell. With a quarter, a robot that
 // arrived a few cm ahead of its encoders (common after turns) entered the
@@ -78,6 +82,12 @@
 #define FAST_DECEL_TICKS        CELL_TICKS         // ...after braking linearly from cruise over this
 #define DRIFT_CORRECT_MAX_MM    30      // front-wall alignment ignored beyond this error (unreliable)
 #define ALIGN_DEADBAND_MM       5       // ...and skipped below this one (not worth a stop-and-go)
+// Squaring to a front wall: rotate in place until FL - FR is back to
+// FRONT_SQUARE_OFFSET_MM. Resets the heading error every move leaves behind.
+#define SQUARE_TOL_MM           5       // |FL - FR - offset| tolerated (~5 deg)
+#define SQUARE_MAX_SKEW_MM      35      // beyond this the readings are not a flat wall: leave it
+#define SQUARE_MAX_TICKS        90      // never rotate more than ~20 deg
+#define SQUARE_TIMEOUT_MS       800
 #define DRIFT_CORRECT_SPEED     105     // PWM for alignment nudges and backing up (80 needed the breakaway boost every time)
 #define DRIFT_CORRECT_TIMEOUT_MS 1000
 #define TURN_STILL_MS           20      // after a turn, wait until the wheels are this long still...
@@ -115,7 +125,7 @@
 #define PARAM_KP                2.0f
 #define PARAM_KD                30.0f
 #define PARAM_KE                0.0f    // encoder heading hold without side walls: off until tuned
-#define PARAM_KI                1.5f    // steering integral: P alone settled ~11 mm left of the centre
+#define PARAM_KI                0.5f    // steering integral: P alone settled ~11 mm left (1.5 swung +-20 PWM)
 #define PARAM_LOG_LEVEL         2
 #define PARAM_TELEMETRY         1       // '@' lines for tools/robot_monitor.py
 

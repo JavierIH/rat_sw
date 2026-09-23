@@ -163,9 +163,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   close to the front wall, FL-FR skew, or only one front sensor seeing
   something) is not recorded at all. Never turn a doubtful reading into
   "absent": the failure only produces phantom walls, and "absent" readings
-  stay trusted. `FRONT_SQUARE_OFFSET_MM` (FL-FR when square to a wall) must be
-  calibrated for the yaw rule to be symmetric: robot centred in a cell, square
-  to a wall, `CAL NOISE`, then `calib_analyze.py` prints the value.
+  stay trusted. `FRONT_SQUARE_OFFSET_MM` (FL-FR when square to a wall, -15:
+  median of 44 IR stops) makes the yaw rule symmetric and is the target of the
+  front squaring. Confirm it with the robot centred and squared by hand to a
+  wall: `CAL NOISE`, then `calib_analyze.py` prints the value.
 - The steering PID prefers the right wall because the SL and FR calibrations
   read ~10 mm long compared with `calib.txt` (SR and FL fit within ~5 mm).
   Recalibrate before switching to two-wall centering.
@@ -175,6 +176,14 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   integral (`KI`, `steer_trim`) learns that imbalance from the walls while the
   wheels turn (errors under `STEER_TRIM_ERROR_MM`), keeps it across moves and
   applies it without walls too. `LOG 2` prints it as `trim=` on every move.
+  At `KI` 1.5 and a 25 mm window it learned transients and swung +-20 PWM
+  between moves, so the default is 0.5 with 12 mm.
+- The angled side sensors also catch posts and walls ahead, which once made
+  the robot swerve 35 deg in a cell (caught as `MOVE_SLIPPED`). The steering
+  therefore clamps the wall error (`STEER_ERROR_MAX_MM`) and its output
+  (`PD_STRAIGHT_MAX` 80), skips the derivative on jumps no motion can cause
+  (`STEER_JUMP_MM` in 10 ms), and uses the left wall when the right reading is
+  implausible and the left one agrees better.
 - Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`,
   assuming the +140-tick correction found on single-cell moves is per move.
   Verify on hardware: if long straights end long/short, tune the split.
@@ -182,8 +191,11 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   `CELL_TICKS`/`TICKS_PER_TURN`/`FRONT_WALL_REF_MM` were calibrated that way.
   The IR stop (armed in the last half cell) uses the FL/FR average, like the
   front alignment, and fires `FRONT_STOP_LEAD_MM` early because the robot
-  coasts that far; the alignment only corrects errors beyond
-  `ALIGN_DEADBAND_MM`.
+  coasts that far. After a move that ends facing a wall, `motion_align_front()`
+  first squares the robot (rotates in place until FL-FR is within
+  `SQUARE_TOL_MM` of `FRONT_SQUARE_OFFSET_MM`, closed loop on the IR), which
+  resets the heading error moves leave behind, then corrects the distance if it
+  is off by more than `ALIGN_DEADBAND_MM`.
 - The 90 deg turn threshold is the runtime parameter `TURNTICKS`
   (`params.turn_ticks`, default `TICKS_PER_TURN`, ~5 ticks per degree), so it
   can be tuned live. After a turn the robot waits only until the encoders are
