@@ -7,7 +7,7 @@
 #include "params.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-#define STORE_VERSION   1u
+#define STORE_VERSION   2u
 
 typedef struct {
     uint32_t magic;
@@ -37,6 +37,7 @@ static uint8_t params_sane(const params_t *p){
         && p->search_speed >= 0 && p->search_speed <= 1000
         && p->fast_speed >= 0 && p->fast_speed <= 1000
         && p->turn_speed >= 0 && p->turn_speed <= 1000
+        && p->turn_ticks >= 300 && p->turn_ticks <= 600
         && p->log_level <= 2 && p->telemetry <= 1;
 }
 
@@ -55,10 +56,8 @@ uint8_t storage_save(void){
 storage_status_t storage_load(void){
     memcpy(&record, flash_store_data(), sizeof(record));
     if(record.magic != STORE_MAGIC) return STORAGE_EMPTY;
-    if(record.version != STORE_VERSION || record.size != sizeof(record_t)
-       || record.crc != record_crc(&record) || !params_sane(&record.params)){
-        return STORAGE_CORRUPT;
-    }
+    if(record.version != STORE_VERSION || record.size != sizeof(record_t)) return STORAGE_STALE;
+    if(record.crc != record_crc(&record) || !params_sane(&record.params)) return STORAGE_CORRUPT;
     if(record.signature != params_defaults_signature()) return STORAGE_STALE;
     if(!maze_import(&record.maze)) return STORAGE_CORRUPT;
     params = record.params;

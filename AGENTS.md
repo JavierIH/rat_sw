@@ -73,8 +73,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `robot_config.h`: every compile-time constant with its unit (geometry,
   calibration, thresholds, planner costs) and the defaults of the runtime
   parameters.
-- `params.c/.h`: runtime parameters (`SPD`, `FAST`, `TURN`, `KP`, `KD`, `KE`,
-  `LOG`), persisted with the map.
+- `params.c/.h`: runtime parameters (`SPD`, `FAST`, `TURN`, `TURNTICKS`, `KP`,
+  `KD`, `KE`, `LOG`, `TELEM`), persisted with the map.
 - `maze.c/.h` (pure): map + planner.
   - Walls carry signed evidence in [-3, 3], one slot per wall shared by both
     cells. > 0 wall, <= 0 passable for exploration, <= -2 (two consistent
@@ -126,9 +126,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
-`SPD n`, `FAST n`, `TURN n`, `KP f`, `KD f`, `KE f`, `LOG 0-2`, `DEFAULTS`,
-`GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`, `TELEM ON|OFF`,
-`CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
+`SPD n`, `FAST n`, `TURN n`, `TURNTICKS n`, `KP f`, `KD f`, `KE f`, `LOG 0-2`,
+`DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`,
+`TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -153,7 +153,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   the real maze (the wheels scrub sideways): a stall is only declared after
   `STALL_TIMEOUT_MS` with the full boost. The log prints "arranque dificil:
   hizo falta +N PWM" when used; if turns always need it, raise `TURN`
-  and recalibrate `TICKS_PER_TURN` (CAL TURN).
+  and recalibrate the turn threshold (CAL TURN, `TURNTICKS`).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
 - Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
@@ -171,8 +171,14 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   assuming the +140-tick correction found on single-cell moves is per move.
   Verify on hardware: if long straights end long/short, tune the split.
 - Stops are hard brakes at `search_speed` (fast straights brake to it first):
-  `TICKS_PER_CELL`/`TICKS_PER_TURN`/`FRONT_WALL_REF_MM` were calibrated that
-  way. Turns wait `TURN_SETTLE_MS` after stopping; the calibration includes it.
+  `CELL_TICKS`/`TICKS_PER_TURN`/`FRONT_WALL_REF_MM` were calibrated that way.
+  The IR stop fires `FRONT_STOP_LEAD_MM` early because the robot coasts that
+  far; the front alignment only corrects errors beyond `ALIGN_DEADBAND_MM`.
+- The 90 deg turn threshold is the runtime parameter `TURNTICKS`
+  (`params.turn_ticks`, default `TICKS_PER_TURN`, ~5 ticks per degree), so it
+  can be tuned live. After a turn the robot waits only until the encoders are
+  still for `TURN_STILL_MS` (capped at `TURN_SETTLE_MS`), so the final angle
+  includes all the coasting.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.

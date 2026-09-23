@@ -363,6 +363,7 @@ static void test_storage(void){
     maze_mark_visited(4, 4);
     maze_set_goal(3, 2, 3, 2);
     params.search_speed = 123;
+    params.turn_ticks = 415;
     params.kd = 12.5f;
     CHECK(storage_save());
 
@@ -376,6 +377,7 @@ static void test_storage(void){
     CHECK(maze_is_goal(3, 2));
     CHECK(!maze_is_goal(7, 7));
     CHECK_EQ(params.search_speed, 123);
+    CHECK_EQ(params.turn_ticks, 415);
     CHECK(params.kd == 12.5f);
 
     // A corrupt record is rejected and leaves RAM untouched.
@@ -399,6 +401,18 @@ static void test_storage(void){
     CHECK_EQ(maze_wall(4, 4, EAST), WALL_UNKNOWN);
     CHECK_EQ(params.search_speed, PARAM_SEARCH_SPEED);
     CHECK(params_defaults_signature() == params_defaults_signature());
+
+    // Older record layout (another STORE_VERSION): stale, not corrupt.
+    fake_flash[8] ^= 0xFF;
+    fake_flash[4] ^= 0x03;          // version
+    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
+    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    CHECK_EQ(storage_load(), STORAGE_STALE);
+    fake_flash[4] ^= 0x03;
+    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
+    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    params_reset();
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 

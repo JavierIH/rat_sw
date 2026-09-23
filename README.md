@@ -65,6 +65,7 @@ los lista.
 | `STATUS`, `MAP` | estado y parámetros; mapa ASCII con el camino rápido |
 | `IR`, `WALLS` | sensores en mm y crudo; paredes detectadas ahora mismo |
 | `SPD n`, `FAST n`, `TURN n` | PWM de búsqueda, crucero rápido y giro (0-1000) |
+| `TURNTICKS n` | ticks de un giro de 90° (~5 por grado; menos = gira menos) |
 | `KP f`, `KD f`, `KE f` | centrado en pasillo; `KE` mantiene el rumbo sin paredes (0 = off) |
 | `LOG 0-2`, `DEFAULTS` | detalle del log; parámetros por defecto |
 | `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) |
@@ -83,7 +84,7 @@ mueven el robot esperan 2 s (START o STOP cancelan).
 |---|---|---|
 | `CAL NOISE [ms]` | robot quieto (no se mueve) | ruido de los sensores |
 | `CAL STRAIGHT [celdas] [pwm]` | en un pasillo; luego `/nota medido <mm> mm` | distancia por celda, centrado KP/KD |
-| `CAL TURN [±cuartos]` | en el sitio; luego `/nota angulo <grados>` | `TICKS_PER_TURN`, sobregiro |
+| `CAL TURN [±cuartos]` | en el sitio; luego `/nota angulo <grados>` | `TURNTICKS`, sobregiro |
 | `CAL STEP [pwm] [ms]` | espacio libre delante | modelo del motor, frenada |
 | `CAL IR [mm]` | pegado a una pared de frente; `/nota inicio <mm> mm` | curva de los IR frontales |
 | `CAL DUMP` | — | reenviar la última grabación |

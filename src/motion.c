@@ -65,6 +65,16 @@ uint8_t motion_wait(uint32_t ms){
     return 1;
 }
 
+// Waits until the wheels have been still for `still_ms`, at most `max_ms`.
+static uint8_t wait_still(uint32_t still_ms, uint32_t max_ms){
+    uint32_t start = HAL_GetTick();
+    while(encoder_idle_ms() < still_ms && HAL_GetTick() - start < max_ms){
+        poll_inputs();
+        if(abort_flag) return 0;
+    }
+    return !abort_flag;
+}
+
 uint8_t motion_checkpoint(void){
     poll_inputs();
     if(step_mode && moved && !abort_flag){
@@ -333,7 +343,9 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         float fr = ir_mm(IR_FR);
         if(remaining <= FRONT_STOP_ZONE_TICKS){
             // Final approach: a front wall is the best position reference.
-            ir_close = (fl < FRONT_WALL_REF_MM && fr < FRONT_WALL_REF_MM) ? (uint8_t)(ir_close + 1) : 0;
+            // Brake a little early: the robot coasts the rest of the way.
+            const float stop_mm = FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM;
+            ir_close = (fl < stop_mm && fr < stop_mm) ? (uint8_t)(ir_close + 1) : 0;
             if(ir_close >= FRONT_STOP_CONFIRM_MS){
                 stop = "IR";
                 break;
@@ -400,7 +412,7 @@ void motion_align_front(void){
     if(fl >= WALL_DETECT_MM || fr >= WALL_DETECT_MM) return;
     if(abs32((int32_t)fl - (int32_t)fr) > FRONT_IR_MAX_DIFF_MM) return;
     int32_t error_mm = (int32_t)((fl + fr) / 2.0f) - FRONT_WALL_REF_MM;
-    if(error_mm == 0 || abs32(error_mm) > DRIFT_CORRECT_MAX_MM) return;
+    if(abs32(error_mm) <= ALIGN_DEADBAND_MM || abs32(error_mm) > DRIFT_CORRECT_MAX_MM) return;
 
     // Farther than expected: forward. Closer: back.
     const int32_t target = abs32(error_mm) * TICKS_PER_MM;
@@ -447,18 +459,18 @@ static move_result_t turn_quarter(int8_t dir){
         result = guard_check(&g, odo_travel(&o));
         if(result != MOVE_OK) break;
         // Half the wheel difference, exactly as TICKS_PER_TURN was calibrated.
-        if(dir * (o.dl - o.dr) / 2 >= TICKS_PER_TURN) break;
+        if(dir * (o.dl - o.dr) / 2 >= params.turn_ticks) break;
         int16_t duty = (int16_t)(speed + breakaway(&g, &max_boost));
         drive_ramped(MOTOR_L, (int16_t)(dir * duty));
         drive_ramped(MOTOR_R, (int16_t)(-dir * duty));
     }
     motors_off();
-    // The turn calibration includes this pause before the next move.
-    if(result == MOVE_OK && !motion_wait(TURN_SETTLE_MS)) result = MOVE_ABORTED;
+    // Let the rotation die out before anything else is measured or started.
+    if(result == MOVE_OK && !wait_still(TURN_STILL_MS, TURN_SETTLE_MS)) result = MOVE_ABORTED;
     odo_update(&o);
     if(params.log_level >= 2){
         print("giro %s: L=%ld R=%ld obj=%d fin=%s\n", dir > 0 ? "der" : "izq",
-              (long)o.dl, (long)o.dr, TICKS_PER_TURN, result == MOVE_OK ? "ENC" : move_result_name(result));
+              (long)o.dl, (long)o.dr, params.turn_ticks, result == MOVE_OK ? "ENC" : move_result_name(result));
     }
     print_boost(max_boost);
     return result;

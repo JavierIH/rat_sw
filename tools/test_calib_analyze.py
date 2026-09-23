@@ -20,7 +20,7 @@ import robot_monitor as rm  # noqa: E402
 
 FL_CAL = (-0.00000002278, 0.000132, -0.2627, 237.7)
 INFO = [
-    "@D INFO ticks_per_mm=9 cell_ticks=1620 move_extra_ticks=140 ticks_per_turn=430 turn_settle_ms=150",
+    "@D INFO ticks_per_mm=9 cell_ticks=1620 move_extra_ticks=140 ticks_per_turn=430 turn_still_ms=20",
     "@D INFO spd=150 fast=220 turn=110 kp=2.00 kd=30.00 ke=0.00 pd_max=150 accel_step_per_ms=4",
     "@D INFO wall_detect_mm=140 front_ref_mm=94 front_emergency_mm=60 side_track_mm=130 lane_mm=168",
     '@D INFO ir_cal_fl="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"',

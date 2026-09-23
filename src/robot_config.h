@@ -34,12 +34,16 @@
 // If long straights end consistently long/short, tune CELL_TICKS vs this.
 #define MOVE_EXTRA_TICKS        140
 #define TICKS_FOR_CELLS(n)      ((int32_t)(n) * CELL_TICKS + MOVE_EXTRA_TICKS)
-#define TICKS_PER_TURN          430     // per-wheel average for a 90 deg in-place turn (was 490: turns landed at 100-105 deg)
+// Default of TURNTICKS: half the wheel difference at which a 90 deg in-place
+// turn brakes (~5 ticks per degree). 490 landed at 100-105 deg; at 430 the
+// wheels stopped at 438 +- 1.4 and turns were still slightly over 90.
+#define TICKS_PER_TURN          422
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
 #define SIDE_WALL_TRACK_MM      130     // a side wall is used as steering reference only below this
 #define FRONT_WALL_REF_MM       94      // front IR average when centered in a cell facing a wall
+#define FRONT_STOP_LEAD_MM      11      // IR stop fires this much early: measured coast after it (was ending 10.8 mm too close)
 #define FRONT_EMERGENCY_MM      60      // both front sensors this close before the final approach = unexpected obstacle
 #define FRONT_IR_MAX_DIFF_MM    30      // FL/FR disagreement beyond this: front not trusted for alignment
 #define WALL_SAMPLES            5       // wall sensing: samples per sensor...
@@ -65,9 +69,11 @@
 #define FAST_APPROACH_TICKS     (CELL_TICKS / 2)   // straights end at search speed for this long...
 #define FAST_DECEL_TICKS        CELL_TICKS         // ...after braking linearly from cruise over this
 #define DRIFT_CORRECT_MAX_MM    30      // front-wall alignment ignored beyond this error (unreliable)
-#define DRIFT_CORRECT_SPEED     80      // PWM for alignment nudges and backing up
+#define ALIGN_DEADBAND_MM       5       // ...and skipped below this one (not worth a stop-and-go)
+#define DRIFT_CORRECT_SPEED     105     // PWM for alignment nudges and backing up (80 needed the breakaway boost every time)
 #define DRIFT_CORRECT_TIMEOUT_MS 1000
-#define TURN_SETTLE_MS          150     // pause after every 90 deg turn (turn calibration depends on it)
+#define TURN_STILL_MS           20      // after a turn, wait until the wheels are this long still...
+#define TURN_SETTLE_MS          150     // ...but no longer than this (it used to be a fixed 150 ms)
 #define MOVE_TIMEOUT_BASE_MS    5000    // move watchdog: base...
 #define MOVE_TIMEOUT_PER_CELL_MS 2000   // ...plus per cell
 // Static friction: wheels still this long into a move get extra duty, 1 PWM
@@ -97,6 +103,7 @@
 #define PARAM_SEARCH_SPEED      150     // PWM 0-1000
 #define PARAM_FAST_SPEED        220
 #define PARAM_TURN_SPEED        110
+#define PARAM_TURN_TICKS        TICKS_PER_TURN
 #define PARAM_KP                2.0f
 #define PARAM_KD                30.0f
 #define PARAM_KE                0.0f    // encoder heading hold without side walls: off until tuned

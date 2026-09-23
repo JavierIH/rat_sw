@@ -10,6 +10,7 @@ static TIM_HandleTypeDef htim1;
 static TIM_HandleTypeDef htim2;
 
 static volatile int32_t total_l, total_r;
+static volatile uint32_t last_motion_ms;
 static uint16_t last_l, last_r;
 
 static void encoder_timer_init(TIM_HandleTypeDef *htim, TIM_TypeDef *instance){
@@ -52,10 +53,15 @@ void ENCODER_Init(void){
 void encoder_tick(void){
     uint16_t l = (uint16_t)TIM1->CNT;
     uint16_t r = (uint16_t)TIM2->CNT;
+    if(l != last_l || r != last_r) last_motion_ms = HAL_GetTick();
     total_l -= (int16_t)(uint16_t)(l - last_l);     // left counter runs backwards when driving forward
     total_r += (int16_t)(uint16_t)(r - last_r);
     last_l = l;
     last_r = r;
+}
+
+uint32_t encoder_idle_ms(void){
+    return HAL_GetTick() - last_motion_ms;
 }
 
 int32_t encoder_total(encoder_t encoder){

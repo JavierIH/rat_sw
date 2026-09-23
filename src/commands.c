@@ -111,8 +111,8 @@ static void cmd_status(const char *args){
     print("modo %u %s | %s | robot (%u,%u)%c %s\n", app_mode(), app_mode_name(app_mode()),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
-    print("SPD %d FAST %d TURN %d KP %s KD %s KE %s LOG %u%s\n", params.search_speed, params.fast_speed,
-          params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(kd, sizeof(kd), params.kd),
+    print("SPD %d FAST %d TURN %d TURNTICKS %d KP %s KD %s KE %s LOG %u%s\n", params.search_speed, params.fast_speed,
+          params.turn_speed, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(kd, sizeof(kd), params.kd),
           format_fixed2(ke, sizeof(ke), params.ke), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
@@ -208,6 +208,16 @@ static void set_gain(const char *args, float *dst, float max, const char *name){
 static void cmd_spd(const char *args){ set_speed(args, &params.search_speed, "SPD"); }
 static void cmd_fast(const char *args){ set_speed(args, &params.fast_speed, "FAST"); }
 static void cmd_turn(const char *args){ set_speed(args, &params.turn_speed, "TURN"); }
+static void cmd_turnticks(const char *args){
+    uint32_t v;
+    if(!parse_uint(&args, &v) || !at_end(args) || v < 300u || v > 600u){
+        print("TURNTICKS 300-600 (ticks de un giro de 90; ahora %d)\n", params.turn_ticks);
+        return;
+    }
+    params.turn_ticks = (int16_t)v;
+    print("TURNTICKS=%d (SAVE para guardarlo)\n", params.turn_ticks);
+}
+
 static void cmd_kp(const char *args){ set_gain(args, &params.kp, 100.0f, "KP"); }
 static void cmd_kd(const char *args){ set_gain(args, &params.kd, 1000.0f, "KD"); }
 static void cmd_ke(const char *args){ set_gain(args, &params.ke, 100.0f, "KE"); }
@@ -379,6 +389,7 @@ static const command_t COMMANDS[] = {
     {"SPD",      cmd_spd,      0, "n: PWM de busqueda y de final de recta"},
     {"FAST",     cmd_fast,     0, "n: PWM de crucero en carrera rapida"},
     {"TURN",     cmd_turn,     0, "n: PWM de giro"},
+    {"TURNTICKS", cmd_turnticks, 0, "n: ticks de un giro de 90 (menos = gira menos)"},
     {"KP",       cmd_kp,       0, "f: ganancia P de centrado"},
     {"KD",       cmd_kd,       0, "f: ganancia D de centrado"},
     {"KE",       cmd_ke,       0, "f: mantener rumbo sin paredes (0 = off)"},

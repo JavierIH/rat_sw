@@ -226,7 +226,7 @@ def analyze_straight(rec, out, measured_pairs):
 def analyze_turn(rec, out):
     quarters = rec.args[0] if rec.args else 4
     direction = 1 if quarters > 0 else -1
-    tpt = rec.number("ticks_per_turn", 430)
+    tpt = rec.number("ticks_per_turn", 422)
     rot = [direction * (l - r) / 2 for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
     segments, start = [], None
     for i in range(rec.n):
@@ -256,8 +256,8 @@ def analyze_turn(rec, out):
         total = rot[-1] - (rot[first - 1] if first > 0 else rot[first])
         per_degree = total / angle
         suggested = 90 * per_degree - mean(overshoots)
-        out.append("  medido %.0f grados -> %.2f ticks/grado; TICKS_PER_TURN sugerido %.0f (ahora %d)"
-                   % (angle, per_degree, suggested, tpt))
+        out.append("  medido %.0f grados -> %.2f ticks/grado; TICKS_PER_TURN sugerido %.0f (ahora %d):"
+                   " pruebalo con TURNTICKS %.0f" % (angle, per_degree, suggested, tpt, suggested))
     else:
         out.append("  (anota el angulo real girado con: /nota angulo <grados>)")
 

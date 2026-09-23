@@ -89,8 +89,8 @@ static void dump(void){
     print("@D INFO period_ms=%u samples=%u capacity=%u result=%s build=\"%s %s\"\n",
           period_ms, count, CAL_CAPACITY, outcome, __DATE__, __TIME__);
     if(!wait_slot()) goto interrupted;
-    print("@D INFO ticks_per_mm=%u cell_ticks=%u move_extra_ticks=%u ticks_per_turn=%u turn_settle_ms=%u\n",
-          TICKS_PER_MM, CELL_TICKS, MOVE_EXTRA_TICKS, TICKS_PER_TURN, TURN_SETTLE_MS);
+    print("@D INFO ticks_per_mm=%u cell_ticks=%u move_extra_ticks=%u ticks_per_turn=%d turn_still_ms=%u\n",
+          TICKS_PER_MM, CELL_TICKS, MOVE_EXTRA_TICKS, params.turn_ticks, TURN_STILL_MS);
     if(!wait_slot()) goto interrupted;
     print("@D INFO spd=%d fast=%d turn=%d kp=%s kd=%s ke=%s pd_max=%u accel_step_per_ms=%u\n",
           params.search_speed, params.fast_speed, params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp),

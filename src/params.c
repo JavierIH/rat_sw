@@ -3,7 +3,7 @@
 #include "robot_config.h"
 
 // No implicit padding: the struct is checksummed and stored byte for byte.
-_Static_assert(sizeof(params_t) == 20, "params_t layout changed");
+_Static_assert(sizeof(params_t) == 24, "params_t layout changed");
 
 static const params_t DEFAULTS = {
     .kp = PARAM_KP,
@@ -12,6 +12,7 @@ static const params_t DEFAULTS = {
     .search_speed = PARAM_SEARCH_SPEED,
     .fast_speed = PARAM_FAST_SPEED,
     .turn_speed = PARAM_TURN_SPEED,
+    .turn_ticks = PARAM_TURN_TICKS,
     .log_level = PARAM_LOG_LEVEL,
     .telemetry = PARAM_TELEMETRY,
 };
@@ -23,6 +24,7 @@ params_t params = {
     .search_speed = PARAM_SEARCH_SPEED,
     .fast_speed = PARAM_FAST_SPEED,
     .turn_speed = PARAM_TURN_SPEED,
+    .turn_ticks = PARAM_TURN_TICKS,
     .log_level = PARAM_LOG_LEVEL,
     .telemetry = PARAM_TELEMETRY,
 };
