@@ -91,6 +91,11 @@ uint8_t motion_checkpoint(void){
 static int16_t ramp_pwm[2];
 static uint32_t ramp_ms[2];
 
+static void wheel_stop(motor_t motor){
+    ramp_pwm[motor] = 0;
+    motor_set(motor, 0);
+}
+
 static void ramp_reset(void){
     ramp_pwm[MOTOR_L] = 0;
     ramp_pwm[MOTOR_R] = 0;
@@ -214,6 +219,18 @@ void motion_tick_1ms(void){
 
 // ---- Move supervision ----------------------------------------------------------------------
 
+// Side walls sampled on the way into the last cell of a forward move, used by
+// the next motion_sense_walls() instead of reading them at the stop. Any other
+// action makes them stale.
+static struct { uint8_t valid, n, votes_l, votes_r; } side_pass;
+
+static void side_pass_clear(void){
+    side_pass.valid = 0;
+    side_pass.n = 0;
+    side_pass.votes_l = 0;
+    side_pass.votes_r = 0;
+}
+
 typedef struct {
     int32_t l0, r0;     // encoder totals at the start
     int32_t dl, dr;     // travel since then
@@ -289,13 +306,21 @@ static void print_boost(int16_t boost){
 
 // ---- Straight moves ---------------------------------------------------------------------------
 
-// Cruise, then brake linearly over FAST_DECEL_TICKS so that the last
-// FAST_APPROACH_TICKS run at the search speed, where stops are calibrated.
-static int16_t profile_speed(int32_t remaining, int16_t cruise, int16_t final_speed){
-    if(cruise <= final_speed || remaining <= FAST_APPROACH_TICKS) return final_speed;
-    int32_t over = remaining - FAST_APPROACH_TICKS;
-    if(over >= FAST_DECEL_TICKS) return cruise;
-    return (int16_t)(final_speed + (int32_t)(cruise - final_speed) * over / FAST_DECEL_TICKS);
+// Cruise, then slow down linearly (DECEL_TICKS_PER_PWM) so that the last
+// APPROACH_TICKS run at STOP_SPEED, where every stop was calibrated.
+static int16_t profile_speed(int32_t remaining, int16_t cruise){
+    if(cruise <= STOP_SPEED) return cruise;
+    if(remaining <= APPROACH_TICKS) return STOP_SPEED;
+    int32_t limit = STOP_SPEED + (remaining - APPROACH_TICKS) / DECEL_TICKS_PER_PWM;
+    return (int16_t)(limit < cruise ? limit : cruise);
+}
+
+// Extra coasting, in ticks, of braking at v ticks/ms instead of at the
+// calibrated approach speed.
+static int32_t extra_coast(float v){
+    float extra = BRAKE_TICKS_PER_V2 * (v * v - STOP_SPEED_TPMS * STOP_SPEED_TPMS);
+    if(extra <= 0.0f) return 0;
+    return extra > BRAKE_EXTRA_MAX_TICKS ? BRAKE_EXTRA_MAX_TICKS : (int32_t)extra;
 }
 
 // After an early obstacle stop: reverse to where the move started, which is
@@ -330,10 +355,10 @@ static move_result_t back_up(odo_t *move){
 }
 
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
+    side_pass_clear();
     if(!cells) return MOVE_OK;
     moved = 1;
     const int32_t target = TICKS_FOR_CELLS(cells);
-    const int16_t final_speed = params.search_speed;
     const int32_t max_wheel_diff = ENCODER_MAX_DIFF_TICKS + (int32_t)(cells - 1) * ENCODER_MAX_DIFF_PER_CELL;
 
     odo_t o;
@@ -342,6 +367,11 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     int16_t max_boost = 0;
     const char *stop = "ENC";
     move_result_t result;
+    // Speed from the travel 8 ms ago (ring buffer), for the braking margin.
+    int32_t history[8] = {0};
+    uint8_t slot = 0;
+    float v = 0.0f;
+    int32_t traveled = 0;
     odo_start(&o);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS + (uint32_t)cells * MOVE_TIMEOUT_PER_CELL_MS);
     ramp_reset();
@@ -357,12 +387,25 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
 
         // Robot center = average of both wheels: under steering one wheel
         // runs ahead, and stopping on it left the robot short.
-        int32_t traveled = (o.dl + o.dr) / 2;
+        traveled = (o.dl + o.dr) / 2;
+        v = (float)(traveled - history[slot]) / 8.0f;
+        history[slot] = traveled;
+        slot = (uint8_t)((slot + 1u) & 7u);
+        const int32_t extra = extra_coast(v);
         int32_t remaining = target - traveled;
-        if(remaining <= 0){
+        if(remaining <= extra){
             result = abs32(o.dl - o.dr) <= max_wheel_diff ? MOVE_OK : MOVE_SLIPPED;
             if(result != MOVE_OK) stop = move_result_name(result);
             break;
+        }
+
+        // Side walls of the destination cell, read on the way in: here the
+        // angled beams hit the middle of its walls. At the stop they aim a
+        // couple of cm from the next post, and caught it as phantom walls.
+        if(remaining <= SIDE_PASS_TICKS && side_pass.n < WALL_SAMPLES){
+            side_pass.n++;
+            if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
+            if(ir_mm(IR_SR) < WALL_DETECT_MM) side_pass.votes_r++;
         }
 
         float fl = ir_mm(IR_FL);
@@ -372,9 +415,10 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
             // Both sensors must see it; their average is the distance, as in
             // motion_align_front() (FR reads ~15 mm more than FL, so "both
             // closer than X" really stopped on FR alone). Brake a little
-            // early: the robot coasts the rest of the way.
-            const uint8_t at_wall = fl < WALL_DETECT_MM && fr < WALL_DETECT_MM
-                                 && (fl + fr) * 0.5f < FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM;
+            // early: the robot coasts the rest of the way, more if it is
+            // still faster than the approach speed.
+            const float stop_mm = FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM + (float)extra / TICKS_PER_MM;
+            const uint8_t at_wall = fl < WALL_DETECT_MM && fr < WALL_DETECT_MM && (fl + fr) * 0.5f < stop_mm;
             ir_close = at_wall ? (uint8_t)(ir_close + 1) : 0;
             if(ir_close >= FRONT_STOP_CONFIRM_MS){
                 stop = "IR";
@@ -383,8 +427,9 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         }
         else{
             // Something this close before the final approach was not in the
-            // plan: stop before touching it.
-            ir_emergency = (fl < FRONT_EMERGENCY_MM && fr < FRONT_EMERGENCY_MM) ? (uint8_t)(ir_emergency + 1) : 0;
+            // plan: stop before touching it (farther out when going faster).
+            const float near_mm = FRONT_EMERGENCY_MM + (float)extra / TICKS_PER_MM;
+            ir_emergency = (fl < near_mm && fr < near_mm) ? (uint8_t)(ir_emergency + 1) : 0;
             if(ir_emergency >= FRONT_STOP_CONFIRM_MS){
                 result = traveled < CELL_TICKS / 2 ? MOVE_BLOCKED : MOVE_LOST;
                 stop = "OBSTACULO";
@@ -392,22 +437,31 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
             }
         }
 
-        float speed = (float)(profile_speed(remaining, cruise_speed, final_speed) + breakaway(&g, &max_boost));
+        float speed = (float)(profile_speed(remaining, cruise_speed) + breakaway(&g, &max_boost));
         float steer = steer_out;
         drive_ramped(MOTOR_L, (int16_t)(speed + steer));
         drive_ramped(MOTOR_R, (int16_t)(speed - steer));
     }
     motors_off();
     steer_stop();
+    // Nothing else (sensing, a turn) may start while the robot still slides.
+    const int32_t braked_at = traveled;
+    if(result == MOVE_OK && !wait_still(TURN_STILL_MS, FORWARD_SETTLE_MAX_MS)) result = MOVE_ABORTED;
     odo_update(&o);
+    side_pass.valid = result == MOVE_OK && side_pass.n >= WALL_SAMPLES;
 
     if(params.log_level >= 2){
-        print("avance %u: L=%ld R=%ld obj=%ld fin=%s IR(FL=%d FR=%d SL=%d SR=%d) trim=%d\n",
-              cells, (long)o.dl, (long)o.dr, (long)target, stop,
-              (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR), (int)steer_trim);
+        print("avance %u: L=%ld R=%ld obj=%ld fin=%s v=%dmm/s inercia=%ld IR(FL=%d FR=%d SL=%d SR=%d) lados=%c%c trim=%d\n",
+              cells, (long)o.dl, (long)o.dr, (long)target, stop, (int)(v * 1000.0f / TICKS_PER_MM),
+              (long)((o.dl + o.dr) / 2 - braked_at), (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
+              (int)ir_mm(IR_SR), side_pass.valid ? (side_pass.votes_l >= WALL_VOTES ? '1' : '0') : '-',
+              side_pass.valid ? (side_pass.votes_r >= WALL_VOTES ? '1' : '0') : '-', (int)steer_trim);
     }
     print_boost(max_boost);
-    if(result == MOVE_BLOCKED) result = back_up(&o);
+    if(result == MOVE_BLOCKED){
+        side_pass_clear();
+        result = back_up(&o);
+    }
     return result;
 }
 
@@ -417,6 +471,7 @@ move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
     move_result_t result = MOVE_OK;
     int16_t max_boost = 0;
     moved = 1;
+    side_pass_clear();
     odo_start(&o);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS);
     ramp_reset();
@@ -459,7 +514,7 @@ static void square_to_front(void){
     for(;;){
         wait_next_ms();
         odo_update(&o);
-        if((float)dir * front_skew() <= 0.0f) break;                     // square (or just past it)
+        if((float)dir * front_skew() <= SQUARE_STOP_LEAD_MM) break;      // nearly square: it coasts the rest
         if(dir * (o.dl - o.dr) / 2 >= SQUARE_MAX_TICKS) break;
         result = guard_check(&g, odo_travel(&o));
         if(result != MOVE_OK) break;
@@ -504,12 +559,17 @@ void motion_align_front(void){
     for(;;){
         wait_next_ms();
         odo_update(&o);
-        if(abs32(o.dl) >= target || abs32(o.dr) >= target) break;
+        // Each wheel stops at its own target: stopping both on the first one
+        // left the robot rotated a few degrees (the right wheel runs faster).
+        const uint8_t l_done = abs32(o.dl) >= target, r_done = abs32(o.dr) >= target;
+        if(l_done && r_done) break;
         result = guard_check(&g, odo_travel(&o));
         if(result != MOVE_OK) break;
         int16_t duty = (int16_t)(sign * (DRIFT_CORRECT_SPEED + breakaway(&g, &max_boost)));
-        drive_ramped(MOTOR_L, duty);
-        drive_ramped(MOTOR_R, duty);
+        if(l_done) wheel_stop(MOTOR_L);
+        else drive_ramped(MOTOR_L, duty);
+        if(r_done) wheel_stop(MOTOR_R);
+        else drive_ramped(MOTOR_R, duty);
     }
     motors_off();
     if(params.log_level >= 2){
@@ -527,6 +587,7 @@ static move_result_t turn_quarter(int8_t dir){
     move_result_t result;
     int16_t max_boost = 0;
     const int16_t speed = params.turn_speed;
+    side_pass_clear();     // the sides are other walls now
     odo_start(&o);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS);
     ramp_reset();
@@ -586,6 +647,13 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     out->right = votes[IR_SR] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
     motion_doubt_sides(out, fl_seen, fr_seen, sum[IR_FL] / WALL_SAMPLES, sum[IR_FR] / WALL_SAMPLES,
                        FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM);
+    // Just arrived from a straight: the sides read on the way in are better
+    // than any reading from here (see SIDE_PASS_TICKS).
+    if(side_pass.valid){
+        out->left = side_pass.votes_l >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
+        out->right = side_pass.votes_r >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
+    }
+    side_pass_clear();
     return MOVE_OK;
 }
 
@@ -608,4 +676,5 @@ void motion_indicate(indication_t what){
 void motion_stop(void){
     steer_stop();
     motors_off();
+    side_pass_clear();
 }

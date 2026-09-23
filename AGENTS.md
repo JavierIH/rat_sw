@@ -187,15 +187,30 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`,
   assuming the +140-tick correction found on single-cell moves is per move.
   Verify on hardware: if long straights end long/short, tune the split.
-- Stops are hard brakes at `search_speed` (fast straights brake to it first):
-  `CELL_TICKS`/`TICKS_PER_TURN`/`FRONT_WALL_REF_MM` were calibrated that way.
+- Every straight (search at `SPD`, speed run at `FAST`) slows down to
+  `STOP_SPEED` (150) over `DECEL_TICKS_PER_PWM` per PWM of difference and runs
+  the last `APPROACH_TICKS` at it, then hard-brakes: `CELL_TICKS`,
+  `MOVE_EXTRA_TICKS`, `FRONT_STOP_LEAD_MM` and `FRONT_WALL_REF_MM` were
+  calibrated braking from 150. Before, `SPD` was also the braking speed, and
+  at `SPD` 400-500 the robot overran every stop by ~3 cm and hit walls. If it
+  still arrives faster, the ENC/IR stops (and the emergency distance) move
+  earlier by ~`BRAKE_TICKS_PER_V2`*v^2 from the measured speed. A straight
+  ends only when the wheels are still (`FORWARD_SETTLE_MAX_MS`); `LOG 2`
+  prints the braking speed `v=` and the coasting `inercia=`.
+- Side walls after a straight are read on the way in, `SIDE_PASS_TICKS`
+  before its end, where the angled beams hit the middle of the walls (`lados=`
+  in the log). Read at the stop they caught the next post as phantom walls
+  (9 in the first logs, some at 82-98 mm). After turns they are still read at
+  the stop, with the doubt rule.
   The IR stop (armed in the last half cell) uses the FL/FR average, like the
   front alignment, and fires `FRONT_STOP_LEAD_MM` early because the robot
   coasts that far. After a move that ends facing a wall, `motion_align_front()`
   first squares the robot (rotates in place until FL-FR is within
   `SQUARE_TOL_MM` of `FRONT_SQUARE_OFFSET_MM`, closed loop on the IR), which
   resets the heading error moves leave behind, then corrects the distance if it
-  is off by more than `ALIGN_DEADBAND_MM`.
+  is off by more than `ALIGN_DEADBAND_MM`, each wheel stopping at its own
+  target (stopping both on the first one rotated the robot). FL-FR only
+  changes ~0.7 mm per degree, so squaring is coarse (for errors > ~10 deg).
 - The 90 deg turn threshold is the runtime parameter `TURNTICKS`
   (`params.turn_ticks`, default `TICKS_PER_TURN`, ~5 ticks per degree), so it
   can be tuned live. After a turn the robot waits only until the encoders are

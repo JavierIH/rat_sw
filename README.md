@@ -64,7 +64,7 @@ los lista.
 | `PAUSE`, `RESUME`, `STEP ON/OFF` | pausa, y modo paso a paso (para tras cada acción) |
 | `STATUS`, `MAP` | estado y parámetros; mapa ASCII con el camino rápido |
 | `IR`, `WALLS` | sensores en mm y crudo; paredes detectadas ahora mismo |
-| `SPD n`, `FAST n`, `TURN n` | PWM de búsqueda, crucero rápido y giro (0-1000) |
+| `SPD n`, `FAST n`, `TURN n` | PWM de crucero en búsqueda y en carrera rápida, y de giro (0-1000). Cada recta frena a 150 antes de parar, así que las paradas no dependen de ellos |
 | `TURNTICKS n` | ticks de un giro de 90° (~5 por grado; menos = gira menos) |
 | `KP f`, `KI f`, `KD f`, `KE f` | centrado en pasillo (`KI` corrige el desvío por motores desiguales); `KE` mantiene el rumbo sin paredes (0 = off) |
 | `LOG 0-2`, `DEFAULTS` | detalle del log; parámetros por defecto |
