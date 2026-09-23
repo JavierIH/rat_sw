@@ -97,7 +97,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   documented in `telemetry.h`).
 - `calib.c/.h`: calibration recorder (CAL command): samples encoders,
   requested PWM (`motor_get()`) and raw IR from SysTick into a 384-sample
-  buffer (6 KB), then dumps them as `@D` lines with every constant.
+  buffer (6 KB; when full it halves its resolution instead of dropping the
+  end), then dumps them as `@D` lines with every constant.
 - `commands.c/.h`: Bluetooth console (table in `COMMANDS[]`).
 - `main.c`: init, mode selection UI, run dispatch, `app_systick()`.
 - Drivers: `motor`, `pwm`, `encoder`, `infrared`, `gpio`, `uart`, `msp.c`
@@ -149,8 +150,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   Anything else invalidates it and ends the run (`search_ready()` = 0).
 - Static friction: every move loop adds a breakaway boost (`breakaway()` in
   motion.c) while the wheels have not moved yet, dropped the moment they do,
-  so calibrated stops are unaffected. In-place turns at `TURN` 110 needed it on
-  the real maze (the wheels scrub sideways): a stall is only declared after
+  so calibrated stops are unaffected. In-place turns at `TURN` 110 needed it in
+  ~1/4 of the turns on the real maze (the wheels scrub sideways), hence the
+  default of 140 with `TURNTICKS` 390: a stall is only declared after
   `STALL_TIMEOUT_MS` with the full boost. The log prints "arranque dificil:
   hizo falta +N PWM" when used; if turns always need it, raise `TURN`
   and recalibrate the turn threshold (CAL TURN, `TURNTICKS`).

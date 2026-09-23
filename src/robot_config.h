@@ -35,9 +35,10 @@
 #define MOVE_EXTRA_TICKS        140
 #define TICKS_FOR_CELLS(n)      ((int32_t)(n) * CELL_TICKS + MOVE_EXTRA_TICKS)
 // Default of TURNTICKS: half the wheel difference at which a 90 deg in-place
-// turn brakes (~5 ticks per degree). 490 landed at 100-105 deg; at 430 the
-// wheels stopped at 438 +- 1.4 and turns were still slightly over 90.
-#define TICKS_PER_TURN          422
+// turn brakes (~4.5 ticks per degree). Tuned on the maze with CAL TURN +-4 at
+// TURN 140: at 422-430 every turn overshot and the next straight had to
+// correct ~40 ticks of heading; at 390 that correction averages ~0.
+#define TICKS_PER_TURN          390
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
@@ -109,7 +110,7 @@
 // ---- Runtime parameter defaults (see params.h) ----------------------------------------
 #define PARAM_SEARCH_SPEED      150     // PWM 0-1000
 #define PARAM_FAST_SPEED        220
-#define PARAM_TURN_SPEED        110
+#define PARAM_TURN_SPEED        140     // 110 needed the breakaway boost in ~1/4 of the turns
 #define PARAM_TURN_TICKS        TICKS_PER_TURN
 #define PARAM_KP                2.0f
 #define PARAM_KD                30.0f

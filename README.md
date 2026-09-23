@@ -76,7 +76,8 @@ los lista.
 ## Datos de calibración
 
 El robot graba encoders, PWM aplicado y los 4 IR en crudo cada 2-10 ms
-durante una prueba y al acabar los vuelca; el monitor los guarda como CSV en
+durante una prueba (si no cabe, espacia las muestras en vez de cortar el
+final) y al acabar los vuelca; el monitor los guarda como CSV en
 `tools/calib_data/` con todas las constantes del firmware. Las pruebas que
 mueven el robot esperan 2 s (START o STOP cancelan).
 

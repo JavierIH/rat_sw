@@ -11,6 +11,7 @@
 #include "uart.h"
 
 #define CAL_CAPACITY    384     // 6 KB of RAM
+#define CAL_MAX_PERIOD_MS 50    // coarsest resolution before a recording gives up
 #define CAL_COAST_MS    300     // keep recording after the motion ends
 
 typedef struct {
@@ -23,7 +24,7 @@ _Static_assert(sizeof(sample_t) == 16, "sample layout");
 
 static sample_t samples[CAL_CAPACITY];
 static volatile uint16_t count;
-static volatile uint8_t recording;
+static volatile uint8_t recording, full;
 static uint8_t period_ms, divider;
 static int32_t enc_l0, enc_r0;
 static char description[32];
@@ -33,8 +34,17 @@ void calib_tick_1ms(void){
     if(!recording) return;
     if(divider == 0){
         if(count >= CAL_CAPACITY){
-            recording = 0;      // full: the dump says so
-            return;
+            // Full: halve the resolution instead of losing the end of the
+            // test. The even samples stay evenly spaced at twice the period,
+            // and this one lands exactly on the next slot of the new grid.
+            if(period_ms * 2u > CAL_MAX_PERIOD_MS){
+                recording = 0;
+                full = 1;       // the dump says so
+                return;
+            }
+            for(uint16_t i = 0; i < CAL_CAPACITY / 2; i++) samples[i] = samples[2 * i];
+            count = CAL_CAPACITY / 2;
+            period_ms = (uint8_t)(period_ms * 2u);
         }
         sample_t *s = &samples[count];
         s->enc_l = (int16_t)(encoder_total(ENCODER_L) - enc_l0);
@@ -49,9 +59,10 @@ void calib_tick_1ms(void){
 
 static void record_start(uint32_t period){
     recording = 0;
+    full = 0;
     count = 0;
     divider = 0;
-    period_ms = (uint8_t)(period < 1 ? 1 : period > 50 ? 50 : period);
+    period_ms = (uint8_t)(period < 1 ? 1 : period > CAL_MAX_PERIOD_MS ? CAL_MAX_PERIOD_MS : period);
     enc_l0 = encoder_total(ENCODER_L);
     enc_r0 = encoder_total(ENCODER_R);
     recording = 1;
@@ -176,6 +187,6 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
     record_stop();
     outcome = move_result_name(r);
     print("CAL %s: %s, %u muestras cada %u ms%s\n", description, outcome, count, period_ms,
-          count >= CAL_CAPACITY ? " (buffer lleno: prueba mas corta)" : "");
+          full ? " (buffer lleno: prueba mas corta)" : "");
     dump();
 }
