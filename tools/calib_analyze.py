@@ -164,6 +164,14 @@ def analyze_noise(rec, out):
     worst = max(stdev([rec.ir_mm(s, r) or 0 for r in rec.data["raw_" + s]]) for s in SENSORS)
     if worst > 3:
         out.append("  ! un sensor oscila mas de 3 mm: revisa conexiones o sube el promediado (IR_OVERSAMPLE)")
+    fl = [rec.ir_mm("fl", r) for r in rec.data["raw_fl"]]
+    fr = [rec.ir_mm("fr", r) for r in rec.data["raw_fr"]]
+    if fl[0] is not None and fr[0] is not None and max(fl) < 140 and max(fr) < 140:
+        # Only meaningful if the robot was square to a wall, centred in its cell.
+        offset = mean(fl) - mean(fr)
+        out.append("  FL-FR = %+.1f mm. Si el robot estaba recto frente a una pared y centrado en la celda:" % offset)
+        out.append("     #define FRONT_SQUARE_OFFSET_MM  %d   (ahora %s)"
+                   % (round(offset), rec.meta.get("front_square_offset_mm", "?")))
 
 
 def analyze_straight(rec, out, measured_pairs):

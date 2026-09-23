@@ -200,6 +200,43 @@ static void test_evidence(void){
     CHECK(!maze_is_goal(9, 7));
 }
 
+static void test_side_doubt(void){
+    const float close = FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM;
+    wall_sense_t w;
+    // Square to a front wall at the right distance: sides trusted.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 1, 1, 94, 94, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
+    // Rotated left (FL farther): the right beam swings forward.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 1, 1, 110, 80, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_PRESENT && w.right == SEEN_DOUBTFUL);
+    // Rotated right.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 1, 1, 80, 110, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_DOUBTFUL && w.right == SEEN_PRESENT);
+    // The square offset is taken into account.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 1, 1, 80, 110, -30, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
+    // Stopped too close to the front wall: both sides doubtful.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 1, 1, 50, 52, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_DOUBTFUL && w.right == SEEN_DOUBTFUL);
+    // Only the right front sensor sees something: only the right side doubted.
+    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 0, 1, 300, 90, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_PRESENT && w.right == SEEN_DOUBTFUL);
+    // Nothing in front: nothing to go on, sides trusted.
+    w = (wall_sense_t){SEEN_ABSENT, SEEN_PRESENT, SEEN_PRESENT};
+    motion_doubt_sides(&w, 0, 0, 300, 300, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_PRESENT && w.right == SEEN_PRESENT);
+    // "No wall" readings are never doubted: that failure only adds walls.
+    w = (wall_sense_t){SEEN_PRESENT, SEEN_ABSENT, SEEN_ABSENT};
+    motion_doubt_sides(&w, 1, 1, 50, 52, 0, SIDE_YAW_DOUBT_MM, close);
+    CHECK(w.left == SEEN_ABSENT && w.right == SEEN_ABSENT);
+}
+
 static void test_planner_basics(void){
     cellset_t goal;
     maze_init();
@@ -381,11 +418,12 @@ static void print_summary(const char *name, const summary_t *s){
 }
 
 // Full competition cycle on one maze: search, then speed run + return.
-static void run_cycle(summary_t *s, double noise, uint32_t seed){
+static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     maze_init();
     params_reset();
     fake_flash_wipe();
     sim_reset(noise, seed);
+    sim_side_doubt(doubt);
     search_set_home();
     s->runs++;
 
@@ -403,6 +441,7 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed){
 
     CHECK_EQ(storage_load(), STORAGE_LOADED);   // the search saved its map
     sim_reset(noise, seed ^ 0x9E3779B9u);
+    sim_side_doubt(doubt);
     r = search_fast_run();
     if(r == RUN_OK) s->fast_ok++;
     s->back_home += sim_x == START_X && sim_y == START_Y && sim_h == NORTH && search_ready();
@@ -415,21 +454,30 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed){
 static void test_competition_mazes(void){
     printf("simulation (16x16, goal (7,7)-(8,8)):\n");
     maze_set_goal(7, 7, 8, 8);
-    const struct { const char *name; uint16_t openings; double noise; } suites[] = {
-        {"perfect mazes", 0, 0.0},
-        {"mazes with loops", 40, 0.0},
-        {"open mazes (many loops)", 150, 0.0},
-        {"loops + 1% sensor noise", 40, 0.01},
-        {"loops + 3% sensor noise", 40, 0.03},
+    const struct { const char *name; uint16_t openings; double noise, doubt; } suites[] = {
+        {"perfect mazes", 0, 0.0, 0.0},
+        {"mazes with loops", 40, 0.0, 0.0},
+        {"open mazes (many loops)", 150, 0.0, 0.0},
+        {"loops + 20% doubtful sides", 40, 0.0, 0.2},
+        {"loops + 1% sensor noise", 40, 0.01, 0.0},
+        {"loops + 3% sensor noise", 40, 0.03, 0.0},
     };
     for(size_t i = 0; i < sizeof(suites) / sizeof(suites[0]); i++){
         summary_t s = {0};
         for(uint32_t m = 1; m <= 100; m++){
             truth_generate(m * 2654435761u + (uint32_t)i, suites[i].openings);
-            run_cycle(&s, suites[i].noise, m + 1000u * (uint32_t)i);
+            run_cycle(&s, suites[i].noise, m + 1000u * (uint32_t)i, suites[i].doubt);
         }
         print_summary(suites[i].name, &s);
-        if(suites[i].noise == 0.0){
+        if(suites[i].doubt > 0.0){
+            // Doubtful readings only withhold information: never a wrong
+            // belief, never a crash, always done.
+            CHECK_EQ(s.search_ok, s.runs);
+            CHECK_EQ(s.consistent, s.runs);
+            CHECK_EQ(s.fast_ok, s.runs);
+            CHECK_EQ(s.crashes, 0);
+        }
+        else if(suites[i].noise == 0.0){
             // Perfect sensing: everything must work every time.
             CHECK_EQ(s.search_ok, s.runs);
             CHECK_EQ(s.consistent, s.runs);
@@ -497,7 +545,7 @@ static void test_practice_maze(void){
                 truth_set_wall((uint8_t)(1 + rand() % 2), (uint8_t)(rand() % 2), NORTH, 0);
             }
         }
-        run_cycle(&s, 0.0, m + 77u);
+        run_cycle(&s, 0.0, m + 77u, 0.0);
     }
     print_summary("practice mazes", &s);
     CHECK_EQ(s.search_ok, s.runs);
@@ -710,6 +758,7 @@ int main(int argc, char **argv){
 
     test_crc32();
     test_evidence();
+    test_side_doubt();
     test_planner_basics();
     test_planner_against_reference();
     test_storage();

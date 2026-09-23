@@ -149,6 +149,15 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"FL raw\s+[\d.]+ \+-\s+([\d.]+)", text), 5, delta=1)
         self.assertIn("encoders: quietos", text)
 
+    def test_square_offset_from_a_wall(self):
+        # Facing a wall square: FL reads ~100 mm, FR ~112 mm.
+        rows = [(0, 0, 0, 0, fl_raw_for(100), 700, 900, 60) for _ in range(50)]
+        path = save(self.tmp.name, "noise 500", 10, rows)
+        fr_mm = ca.load(path).ir_mm("fr", 700)
+        text = ca.report([path])
+        self.assertAlmostEqual(number(r"FL-FR = ([-+\d.]+) mm", text), 100 - fr_mm, delta=0.6)
+        self.assertIn("#define FRONT_SQUARE_OFFSET_MM", text)
+
     def test_missing_measurements_ask_for_notes(self):
         rows = [(i * 10, i * 10, 150, 150, 0, 0, 0, 0) for i in range(50)] + [(500, 500) + (0,) * 6]
         text = ca.report([save(self.tmp.name, "straight 1 150", 5, rows)])

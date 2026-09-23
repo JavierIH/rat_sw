@@ -109,6 +109,12 @@ laberinto real conviene validar, en este orden:
    el reparto entre `CELL_TICKS` y `MOVE_EXTRA_TICKS`.
 3. Sube `FAST` poco a poco (220 por defecto) y guarda con `SAVE`.
 4. Opcional: `KE 0.5` para mantener el rumbo donde no hay paredes laterales.
+5. Sensores laterales (van en el morro a 15°): si el robot se para
+   demasiado cerca de una pared frontal o torcido, su lectura de "hay pared"
+   en el lado expuesto se marca dudosa (`?` en el log y en `WALLS`) y no se
+   apunta en el mapa. Para que detecte bien el giro, calibra
+   `FRONT_SQUARE_OFFSET_MM`: robot centrado en una celda y recto frente a una
+   pared, `CAL NOISE`, y `calib_analyze.py` te da el valor.
 
 ## Compilar, flashear y probar
 

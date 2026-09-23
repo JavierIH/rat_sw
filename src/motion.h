@@ -17,7 +17,10 @@ typedef enum {
     MOVE_LOST,      // obstacle mid-move: position unknown
 } move_result_t;
 
-typedef struct { uint8_t front, left, right; } wall_sense_t;
+// A side reading can also be doubtful: the pose made a phantom wall likely
+// (see SIDE_YAW_DOUBT_MM). Doubtful readings must not be recorded.
+typedef enum { SEEN_ABSENT = 0, SEEN_PRESENT = 1, SEEN_DOUBTFUL = 2 } sighting_t;
+typedef struct { uint8_t front, left, right; } wall_sense_t;   // sighting_t (front never doubtful)
 
 typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
 
@@ -29,6 +32,27 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);
 move_result_t motion_turn(int8_t quarter_turns);
 // Majority-voted wall readings with the robot stopped.
 move_result_t motion_sense_walls(wall_sense_t *out);
+// Side readings exposed to phantom walls, given the front sensor votes and
+// their average readings (mm). Pure: shared with the host tests.
+static inline void motion_doubt_sides(wall_sense_t *w, uint8_t fl_seen, uint8_t fr_seen,
+                                      float fl_mm, float fr_mm, float square_offset,
+                                      float yaw_doubt, float close_mm){
+    uint8_t doubt_left = 0, doubt_right = 0;
+    if(fl_seen && fr_seen){
+        float skew = fl_mm - fr_mm - square_offset;     // > 0: rotated left, the right beam swings forward
+        uint8_t too_close = (fl_mm + fr_mm) / 2.0f < close_mm;
+        doubt_right = too_close || skew > yaw_doubt;
+        doubt_left = too_close || skew < -yaw_doubt;
+    }
+    else{
+        // Something ahead on one side only (strong yaw or a post): the side
+        // beam on that side can be hitting it too.
+        doubt_left = fl_seen;
+        doubt_right = fr_seen;
+    }
+    if(doubt_left && w->left == SEEN_PRESENT) w->left = SEEN_DOUBTFUL;
+    if(doubt_right && w->right == SEEN_PRESENT) w->right = SEEN_DOUBTFUL;
+}
 // If a wall is in front, nudges to the calibrated distance from it.
 void motion_align_front(void);
 // Between actions: handles commands, pause and single-step mode. Returns 0

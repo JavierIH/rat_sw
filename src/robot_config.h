@@ -46,6 +46,14 @@
 #define WALL_VOTES              4       // ...that must agree to call a wall
 #define WALL_SAMPLE_MS          8       // spacing between samples
 #define SENSE_SETTLE_MS         30      // let the chassis stop rocking before sensing
+// The side sensors sit at the nose, angled 15 deg forward. Stopped too far
+// forward or yawed, their beam leaves the cell next to the post and hits the
+// post or the front wall: a phantom side wall. With something in front, the
+// front sensors reveal that pose, and a "wall" reading on the exposed side is
+// then treated as doubtful (not recorded) instead of trusted.
+#define FRONT_SQUARE_OFFSET_MM  0       // FL - FR when square to a wall at the cell centre (calibrate: CAL NOISE)
+#define SIDE_YAW_DOUBT_MM       20      // |FL - FR - offset| beyond this: yawed, doubt the side it turns towards
+#define SIDE_CLOSE_DOUBT_MM     25      // front wall this much closer than FRONT_WALL_REF_MM: doubt both sides
 
 // ---- Motion ----------------------------------------------------------------------
 #define PD_STRAIGHT_MAX         150     // clamp of the steering correction (PWM)

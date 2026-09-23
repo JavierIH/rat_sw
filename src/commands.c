@@ -243,7 +243,9 @@ static void cmd_walls(const char *args){
         print("cancelado\n");
         return;
     }
-    print("paredes: frente=%u izq=%u der=%u\n", w.front, w.left, w.right);
+    static const char SIGHTING[3] = {'0', '1', '?'};
+    print("paredes: frente=%c izq=%c der=%c (? = lateral dudoso, no se apunta)\n",
+          SIGHTING[w.front], SIGHTING[w.left], SIGHTING[w.right]);
 }
 
 static void cmd_map(const char *args){

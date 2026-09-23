@@ -30,7 +30,7 @@ HOST_DIR = os.path.join(ROOT, "test", "host")
 HOST_TESTS = os.path.join(HOST_DIR, "build", "host_tests")
 MONITOR = os.path.join(HERE, "robot_monitor.py")
 ACTION_NAME = {"F": "AVANZA", "L": "IZQ", "R": "DER", "U": "MEDIA VUELTA", None: "-"}
-DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F\d I\d D\d coste=(\d+) -> (.+)$")
+DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F[01] I[01?] D[01?] coste=(\d+) -> (.+)$")
 SEGMENT = re.compile(r"^(RAPIDA|VUELTA) \((\d+),(\d+)\)([NESW]) giro (-?\d+) \+ (\d+) celdas$")
 FAST_COST = re.compile(r"^Camino rapido verificado: coste (\d+)$")
 

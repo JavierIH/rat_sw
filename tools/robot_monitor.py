@@ -886,6 +886,8 @@ class ReplayLink(threading.Thread):
                 self.on_line(text)
             elif direction == ">":
                 self.on_sent(text)
+            elif direction == "!":
+                self.on_sent("-- %s --" % text)
         self.on_status(False, "fin de la reproduccion de " + name)
 
     def send(self, text):
@@ -955,6 +957,8 @@ class Monitor:
             self.dirty = True
 
     def on_status(self, connected, message):
+        if self.recorder:   # link events in the recording help diagnose drops later
+            self.recorder.write("!", message or ("conectado" if connected else "desconectado"))
         with self.lock:
             changed = connected != self.view.connected or message != self.view.link_text
             self.view.connected, self.view.link_text = connected, message
@@ -969,7 +973,10 @@ class Monitor:
 
     def on_replay_sent(self, text):
         with self.lock:
-            self.add_log("sent", "> " + sanitize(text))
+            if text.startswith("-- "):      # recorded link event
+                self.add_log("info", sanitize(text))
+            else:
+                self.add_log("sent", "> " + sanitize(text))
             self.dirty = True
 
     # -- UI thread

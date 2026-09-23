@@ -30,6 +30,7 @@ void truth_load_into_map(void);
 
 void sim_reset(double sensor_noise, uint32_t seed);   // robot at (0,0) facing north
 void sim_abort_after(uint32_t actions);               // 0 = never
+void sim_side_doubt(double probability);               // side readings reported doubtful
 uint32_t sim_rand(void);
 
 #endif // SIM_H

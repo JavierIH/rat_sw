@@ -60,13 +60,17 @@ void search_pose(uint8_t *x, uint8_t *y, heading_t *h){
 
 // ---- Actions ---------------------------------------------------------------------
 
-// Senses the three visible walls and feeds them to the map.
+static const char SIGHTING_CHAR[3] = {'0', '1', '?'};
+
+// Senses the three visible walls and feeds them to the map. Doubtful side
+// readings (possible phantom walls) are left out: the wall keeps whatever the
+// map knew, and is confirmed later from a better pose.
 static move_result_t sense_here(wall_sense_t *w){
     move_result_t r = motion_sense_walls(w);
     if(r != MOVE_OK) return r;
-    maze_observe(pose.x, pose.y, pose.h, w->front);
-    maze_observe(pose.x, pose.y, heading_left(pose.h), w->left);
-    maze_observe(pose.x, pose.y, heading_right(pose.h), w->right);
+    maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
+    if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
+    if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
     maze_mark_visited(pose.x, pose.y);
     telemetry_cell(pose.x, pose.y, pose.h);
     telemetry_background_row();
@@ -258,15 +262,16 @@ run_result_t search_explore(void){
         }
         action_t a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
         if(params.log_level >= 1){
-            print("%s (%u,%u)%c F%u I%u D%u coste=%u -> %s\n", PHASE_TAG[phase], pose.x, pose.y,
-                  HEADING_CHAR[pose.h], w.front, w.left, w.right, cost_a[pose_state()], ACTION_NAME[a]);
+            print("%s (%u,%u)%c F%c I%c D%c coste=%u -> %s\n", PHASE_TAG[phase], pose.x, pose.y,
+                  HEADING_CHAR[pose.h], SIGHTING_CHAR[w.front], SIGHTING_CHAR[w.left], SIGHTING_CHAR[w.right],
+                  cost_a[pose_state()], ACTION_NAME[a]);
         }
         if(++steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
         if(phase == PH_OPTIMIZE) optimize_steps++;
         // The map may still believe in a passage the sensors now see closed:
         // never drive into it. The sighting already raised its evidence, so
         // sensing again converges to the truth.
-        if(a == ACT_FORWARD && w.front) continue;
+        if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
         r = do_action(a);
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
     }
@@ -288,7 +293,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
         int8_t turn;
         uint8_t cells;
         if(maze_first_segment(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, &cells)){
-            if(turn == 0 && w.front) continue;
+            if(turn == 0 && w.front == SEEN_PRESENT) continue;
             if(params.log_level >= 1){
                 print("%s (%u,%u)%c giro %d + %u celdas\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn, cells);
             }
@@ -302,7 +307,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
                 print("%s (%u,%u)%c sin camino verificado -> %s\n", tag, pose.x, pose.y,
                       HEADING_CHAR[pose.h], ACTION_NAME[a]);
             }
-            if(a == ACT_FORWARD && w.front) continue;
+            if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
             r = do_action(a);
         }
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, tag);

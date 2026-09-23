@@ -454,15 +454,21 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     // source of phantom walls.
     if(!motion_wait(SENSE_SETTLE_MS)) return MOVE_ABORTED;
     uint8_t votes[IR_COUNT] = {0};
+    float sum[IR_COUNT] = {0.0f};
     for(uint8_t i = 0; i < WALL_SAMPLES; i++){
         if(i && !motion_wait(WALL_SAMPLE_MS)) return MOVE_ABORTED;
         for(uint8_t s = 0; s < IR_COUNT; s++){
-            if(ir_mm((ir_sensor_t)s) < WALL_DETECT_MM) votes[s]++;
+            float mm = ir_mm((ir_sensor_t)s);
+            sum[s] += mm;
+            if(mm < WALL_DETECT_MM) votes[s]++;
         }
     }
-    out->front = votes[IR_FL] >= WALL_VOTES && votes[IR_FR] >= WALL_VOTES;
-    out->left = votes[IR_SL] >= WALL_VOTES;
-    out->right = votes[IR_SR] >= WALL_VOTES;
+    uint8_t fl_seen = votes[IR_FL] >= WALL_VOTES, fr_seen = votes[IR_FR] >= WALL_VOTES;
+    out->front = fl_seen && fr_seen ? SEEN_PRESENT : SEEN_ABSENT;
+    out->left = votes[IR_SL] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
+    out->right = votes[IR_SR] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
+    motion_doubt_sides(out, fl_seen, fr_seen, sum[IR_FL] / WALL_SAMPLES, sum[IR_FR] / WALL_SAMPLES,
+                       FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM);
     return MOVE_OK;
 }
 

@@ -26,6 +26,9 @@ Goal configuration:
 - 4 IR distance sensors (FL/FR/SL/SR) on ADC1, scanned continuously by circular
   DMA into a 16x oversampling buffer; `ir_mm()` applies a cubic calibration
   (float, Horner). Raw calibration tables in `src/calib.txt`.
+- The side sensors SL/SR are mounted at the nose, angled 15 deg forward (not
+  perpendicular). Stopped too far forward or yawed, their beam leaves the cell
+  by the post and reports a phantom side wall (yawed left: SR; right: SL).
 - 6 LEDs (1-3 left, 4-6 right) + 2 buttons (`START` PC13, `SELECT` PB5),
   `GPIO_NOPULL` with external resistors, debounced in SysTick (20 ms) because
   motor PWM noise can glitch them.
@@ -146,6 +149,14 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   Anything else invalidates it and ends the run (`search_ready()` = 0).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
+- Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
+  something in front, a "wall" reading on the side exposed by the pose (too
+  close to the front wall, FL-FR skew, or only one front sensor seeing
+  something) is not recorded at all. Never turn a doubtful reading into
+  "absent": the failure only produces phantom walls, and "absent" readings
+  stay trusted. `FRONT_SQUARE_OFFSET_MM` (FL-FR when square to a wall) must be
+  calibrated for the yaw rule to be symmetric: robot centred in a cell, square
+  to a wall, `CAL NOISE`, then `calib_analyze.py` prints the value.
 - The steering PD prefers the right wall because the SL and FR calibrations
   read ~10 mm long compared with `calib.txt` (SR and FL fit within ~5 mm).
   Recalibrate before switching to two-wall centering.
@@ -171,7 +182,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Current status
 Verified on the PC simulator (hundreds of random 16x16 and 4x3 mazes, with and
 without sensor noise): searches always complete, the verified speed-run path
-is optimal with perfect sensing, and nothing crashes. On the robot (bench):
-console, sensors and flash persistence verified. Still to validate on the
-real maze: the search itself after the rework, merged straights and `FAST`
-speed, `KE` heading hold (off by default), and the CAL tests that move.
+is optimal with perfect sensing, and nothing crashes (also with 20% of side
+readings doubtful). On the robot (bench): console, sensors, flash persistence,
+telemetry, CAL NOISE/DUMP (including STOP mid-dump) verified, and the stall
+detector aborted a turn with unpowered wheels as designed. Still to validate
+on the real maze: the search itself after the rework, merged straights and
+`FAST` speed, `KE` heading hold (off by default), the side-doubt rule with a
+calibrated `FRONT_SQUARE_OFFSET_MM`, and the CAL tests that move.

@@ -83,41 +83,48 @@ static void dump(void){
         return;
     }
     // Every constant the analysis may need, so each file stands on its own.
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D BEGIN %s\n", description);
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D INFO period_ms=%u samples=%u capacity=%u result=%s build=\"%s %s\"\n",
           period_ms, count, CAL_CAPACITY, outcome, __DATE__, __TIME__);
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D INFO ticks_per_mm=%u cell_ticks=%u move_extra_ticks=%u ticks_per_turn=%u turn_settle_ms=%u\n",
           TICKS_PER_MM, CELL_TICKS, MOVE_EXTRA_TICKS, TICKS_PER_TURN, TURN_SETTLE_MS);
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D INFO spd=%d fast=%d turn=%d kp=%s kd=%s ke=%s pd_max=%u accel_step_per_ms=%u\n",
           params.search_speed, params.fast_speed, params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(kd, sizeof(kd), params.kd), format_fixed2(ke, sizeof(ke), params.ke),
           PD_STRAIGHT_MAX, ACCEL_STEP_PER_MS);
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u lane_mm=%u\n",
           WALL_DETECT_MM, FRONT_WALL_REF_MM, FRONT_EMERGENCY_MM, SIDE_WALL_TRACK_MM, (unsigned)LANE_WIDTH_MM);
+    if(!wait_slot()) goto interrupted;
+    print("@D INFO front_square_offset_mm=%d side_yaw_doubt_mm=%u side_close_doubt_mm=%u wall_samples=%u wall_votes=%u\n",
+          FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, SIDE_CLOSE_DOUBT_MM, WALL_SAMPLES, WALL_VOTES);
     static const char *const NAME[IR_COUNT] = {"fl", "fr", "sl", "sr"};
     for(uint8_t i = 0; i < IR_COUNT; i++){
-        if(!wait_slot()) return;
+        if(!wait_slot()) goto interrupted;
         print("@D INFO ir_cal_%s=\"%s\"\n", NAME[i], ir_calibration_text((ir_sensor_t)i));
     }
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr\n");
     for(uint16_t i = 0; i < count; i++){
         const sample_t *s = &samples[i];
-        if(!wait_slot()){
-            print("CAL: envio interrumpido (CAL DUMP lo repite)\n");
-            return;
-        }
+        if(!wait_slot()) goto interrupted;
         print("@D %lu,%d,%d,%d,%d,%u,%u,%u,%u\n", (unsigned long)i * period_ms, s->enc_l, s->enc_r,
               s->pwm_l, s->pwm_r, s->ir[IR_FL], s->ir[IR_FR], s->ir[IR_SL], s->ir[IR_SR]);
     }
-    if(!wait_slot()) return;
+    if(!wait_slot()) goto interrupted;
     print("@D END result=%s samples=%u\n", outcome, count);
     print("CAL: %u muestras enviadas (%s)\n", count, description);
+    return;
+
+interrupted:
+    // The queue is usually full right now (that is what the dump was waiting
+    // for): wait for room, or this message would be dropped.
+    uart_wait_space(1000);
+    print("CAL: envio interrumpido (CAL DUMP lo repite)\n");
 }
 
 // ---- Experiments -----------------------------------------------------------------------
