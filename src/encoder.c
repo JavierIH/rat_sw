@@ -61,7 +61,12 @@ void encoder_tick(void){
 }
 
 uint32_t encoder_idle_ms(void){
-    return HAL_GetTick() - last_motion_ms;
+    // Timestamp first: if SysTick fires between the two reads it only makes
+    // the timestamp older. Read the other way round, a tick in between made
+    // it newer than `now`, the difference wrapped around to ~4e9 ms and
+    // wait_still() returned while the wheels were still turning.
+    const uint32_t last = last_motion_ms;
+    return HAL_GetTick() - last;
 }
 
 int32_t encoder_total(encoder_t encoder){
