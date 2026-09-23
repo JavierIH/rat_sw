@@ -43,7 +43,7 @@
 #define WALL_DETECT_MM          140     // closer than this = wall present
 #define SIDE_WALL_TRACK_MM      130     // a side wall is used as steering reference only below this
 #define FRONT_WALL_REF_MM       94      // front IR average when centered in a cell facing a wall
-#define FRONT_STOP_LEAD_MM      11      // IR stop fires this much early: measured coast after it (was ending 10.8 mm too close)
+#define FRONT_STOP_LEAD_MM      2       // IR stop fires this much early: the robot coasts ~2 mm after it
 #define FRONT_EMERGENCY_MM      60      // both front sensors this close before the final approach = unexpected obstacle
 #define FRONT_IR_MAX_DIFF_MM    30      // FL/FR disagreement beyond this: front not trusted for alignment
 #define WALL_SAMPLES            5       // wall sensing: samples per sensor...
@@ -60,9 +60,16 @@
 #define SIDE_CLOSE_DOUBT_MM     25      // front wall this much closer than FRONT_WALL_REF_MM: doubt both sides
 
 // ---- Motion ----------------------------------------------------------------------
+#define STEER_PERIOD_MS         10      // steering controller period (SysTick divider)
 #define PD_STRAIGHT_MAX         150     // clamp of the steering correction (PWM)
+#define STEER_TRIM_MAX          50      // clamp of the learned motor imbalance (integral term, PWM)
+#define STEER_TRIM_MOVING_MS    20      // the integral only learns while a wheel moved this recently...
+#define STEER_TRIM_ERROR_MM     25      // ...and the wall error is below this
 #define ACCEL_STEP_PER_MS       4       // max PWM change per ms (start ramp)
-#define FRONT_STOP_ZONE_TICKS   (TICKS_FOR_CELLS(1) / 4)   // front-wall stop only armed in the last quarter cell
+// Front-wall stop armed in the last half cell. With a quarter, a robot that
+// arrived a few cm ahead of its encoders (common after turns) entered the
+// zone already too close and stopped 14-22 mm past the reference.
+#define FRONT_STOP_ZONE_TICKS   (TICKS_FOR_CELLS(1) / 2)
 #define FRONT_STOP_CONFIRM_MS   3       // consecutive 1 ms readings needed for an IR stop
 #define ENCODER_MAX_DIFF_TICKS  300     // L/R travel mismatch that invalidates a 1-cell move...
 #define ENCODER_MAX_DIFF_PER_CELL 100   // ...plus this per extra cell of a merged straight
@@ -107,6 +114,7 @@
 #define PARAM_KP                2.0f
 #define PARAM_KD                30.0f
 #define PARAM_KE                0.0f    // encoder heading hold without side walls: off until tuned
+#define PARAM_KI                1.5f    // steering integral: P alone settled ~11 mm left of the centre
 #define PARAM_LOG_LEVEL         2
 #define PARAM_TELEMETRY         1       // '@' lines for tools/robot_monitor.py
 

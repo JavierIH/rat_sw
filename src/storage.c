@@ -7,7 +7,7 @@
 #include "params.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-#define STORE_VERSION   2u
+#define STORE_VERSION   3u
 
 typedef struct {
     uint32_t magic;
@@ -33,7 +33,7 @@ static uint8_t params_sane(const params_t *p){
     // Written by us with range-checked values; this only guards against a
     // layout mix-up that the CRC could not catch.
     return p->kp >= 0.0f && p->kp <= 100.0f && p->kd >= 0.0f && p->kd <= 1000.0f
-        && p->ke >= 0.0f && p->ke <= 100.0f
+        && p->ke >= 0.0f && p->ke <= 100.0f && p->ki >= 0.0f && p->ki <= 100.0f
         && p->search_speed >= 0 && p->search_speed <= 1000
         && p->fast_speed >= 0 && p->fast_speed <= 1000
         && p->turn_speed >= 0 && p->turn_speed <= 1000

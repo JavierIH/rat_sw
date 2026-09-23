@@ -66,7 +66,7 @@ los lista.
 | `IR`, `WALLS` | sensores en mm y crudo; paredes detectadas ahora mismo |
 | `SPD n`, `FAST n`, `TURN n` | PWM de búsqueda, crucero rápido y giro (0-1000) |
 | `TURNTICKS n` | ticks de un giro de 90° (~5 por grado; menos = gira menos) |
-| `KP f`, `KD f`, `KE f` | centrado en pasillo; `KE` mantiene el rumbo sin paredes (0 = off) |
+| `KP f`, `KI f`, `KD f`, `KE f` | centrado en pasillo (`KI` corrige el desvío por motores desiguales); `KE` mantiene el rumbo sin paredes (0 = off) |
 | `LOG 0-2`, `DEFAULTS` | detalle del log; parámetros por defecto |
 | `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) |
 | `SAVE`, `ERASE`, `HOME`, `RESET` | guardar, borrar mapa, "estoy en la salida", reiniciar |

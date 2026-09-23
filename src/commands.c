@@ -104,15 +104,16 @@ static void cmd_help(const char *args);
 
 static void cmd_status(const char *args){
     (void)args;
-    char kp[12], kd[12], ke[12];
+    char kp[12], ki[12], kd[12], ke[12];
     uint8_t x, y;
     heading_t h;
     search_pose(&x, &y, &h);
     print("modo %u %s | %s | robot (%u,%u)%c %s\n", app_mode(), app_mode_name(app_mode()),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
-    print("SPD %d FAST %d TURN %d TURNTICKS %d KP %s KD %s KE %s LOG %u%s\n", params.search_speed, params.fast_speed,
-          params.turn_speed, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(kd, sizeof(kd), params.kd),
+    print("SPD %d FAST %d TURN %d TURNTICKS %d KP %s KI %s KD %s KE %s LOG %u%s\n", params.search_speed,
+          params.fast_speed, params.turn_speed, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
+          format_fixed2(ki, sizeof(ki), params.ki), format_fixed2(kd, sizeof(kd), params.kd),
           format_fixed2(ke, sizeof(ke), params.ke), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
@@ -219,6 +220,7 @@ static void cmd_turnticks(const char *args){
 }
 
 static void cmd_kp(const char *args){ set_gain(args, &params.kp, 100.0f, "KP"); }
+static void cmd_ki(const char *args){ set_gain(args, &params.ki, 100.0f, "KI"); }
 static void cmd_kd(const char *args){ set_gain(args, &params.kd, 1000.0f, "KD"); }
 static void cmd_ke(const char *args){ set_gain(args, &params.ke, 100.0f, "KE"); }
 
@@ -391,6 +393,7 @@ static const command_t COMMANDS[] = {
     {"TURN",     cmd_turn,     0, "n: PWM de giro"},
     {"TURNTICKS", cmd_turnticks, 0, "n: ticks de un giro de 90 (menos = gira menos)"},
     {"KP",       cmd_kp,       0, "f: ganancia P de centrado"},
+    {"KI",       cmd_ki,       0, "f: ganancia I de centrado (corrige el desvio; 0 = off)"},
     {"KD",       cmd_kd,       0, "f: ganancia D de centrado"},
     {"KE",       cmd_ke,       0, "f: mantener rumbo sin paredes (0 = off)"},
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},

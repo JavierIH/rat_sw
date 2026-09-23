@@ -77,7 +77,7 @@ static uint8_t wait_slot(void){
 }
 
 static void dump(void){
-    char kp[12], kd[12], ke[12];
+    char kp[12], ki[12], kd[12], ke[12];
     if(!count){
         print("CAL: no hay datos grabados\n");
         return;
@@ -92,9 +92,10 @@ static void dump(void){
     print("@D INFO ticks_per_mm=%u cell_ticks=%u move_extra_ticks=%u ticks_per_turn=%d turn_still_ms=%u\n",
           TICKS_PER_MM, CELL_TICKS, MOVE_EXTRA_TICKS, params.turn_ticks, TURN_STILL_MS);
     if(!wait_slot()) goto interrupted;
-    print("@D INFO spd=%d fast=%d turn=%d kp=%s kd=%s ke=%s pd_max=%u accel_step_per_ms=%u\n",
+    print("@D INFO spd=%d fast=%d turn=%d kp=%s ki=%s kd=%s ke=%s pd_max=%u accel_step_per_ms=%u\n",
           params.search_speed, params.fast_speed, params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp),
-          format_fixed2(kd, sizeof(kd), params.kd), format_fixed2(ke, sizeof(ke), params.ke),
+          format_fixed2(ki, sizeof(ki), params.ki), format_fixed2(kd, sizeof(kd), params.kd),
+          format_fixed2(ke, sizeof(ke), params.ke),
           PD_STRAIGHT_MAX, ACCEL_STEP_PER_MS);
     if(!wait_slot()) goto interrupted;
     print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u lane_mm=%u\n",

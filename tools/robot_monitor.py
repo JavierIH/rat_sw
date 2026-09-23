@@ -666,7 +666,7 @@ HELP_LINES = [
     ("", "  MODE n   1 busqueda 2 rapida 3/4 seguidor 5 sensores 6 borrar"),
     ("", "  START STOP PAUSE RESUME STEP ON|OFF"),
     ("", "  STATUS MAP IR WALLS SYNC TELEM ON|OFF"),
-    ("", "  SPD FAST TURN TURNTICKS n   KP KD KE f   LOG 0-2"),
+    ("", "  SPD FAST TURN TURNTICKS n   KP KI KD KE f   LOG 0-2"),
     ("", "  GOAL x y [x1 y1]  SAVE ERASE HOME DEFAULTS RESET"),
     ("", "  CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP  datos de calibracion"),
     ("", ""),

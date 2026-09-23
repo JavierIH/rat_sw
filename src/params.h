@@ -4,12 +4,13 @@
 #include <stdint.h>
 
 // Runtime-tunable parameters: changed live over Bluetooth (SPD, FAST, TURN,
-// TURNTICKS, KP, KD, KE, LOG, TELEM) and persisted with SAVE. Defaults in
+// TURNTICKS, KP, KI, KD, KE, LOG, TELEM) and persisted with SAVE. Defaults in
 // robot_config.h.
 typedef struct {
-    float kp;               // steering PD, PWM per mm of lateral error
-    float kd;               // steering PD, PWM per mm of error change per 10 ms
+    float kp;               // steering PID, PWM per mm of lateral error
+    float kd;               // steering PID, PWM per mm of error change per 10 ms
     float ke;               // heading hold without side walls, PWM per encoder tick (0 = off)
+    float ki;               // steering PID, PWM per mm of lateral error per second (0 = off)
     int16_t search_speed;   // PWM of search moves and of the final approach of every straight
     int16_t fast_speed;     // PWM cruise of speed-run straights
     int16_t turn_speed;     // PWM of in-place turns

@@ -74,7 +74,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   calibration, thresholds, planner costs) and the defaults of the runtime
   parameters.
 - `params.c/.h`: runtime parameters (`SPD`, `FAST`, `TURN`, `TURNTICKS`, `KP`,
-  `KD`, `KE`, `LOG`, `TELEM`), persisted with the map.
+  `KI`, `KD`, `KE`, `LOG`, `TELEM`), persisted with the map.
 - `maze.c/.h` (pure): map + planner.
   - Walls carry signed evidence in [-3, 3], one slot per wall shared by both
     cells. > 0 wall, <= 0 passable for exploration, <= -2 (two consistent
@@ -90,7 +90,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   them on the robot; `test/host/sim.c` implements them in a simulated maze.
 - `motion.c`: 1 kHz move loops (forward N cells with cruise/brake profile,
   90/180 deg turns, front-wall alignment, back-up), wall sensing (5 samples,
-  4 votes), 100 Hz steering in SysTick, run control (abort/pause/step).
+  4 votes), 100 Hz PID steering in SysTick, run control (abort/pause/step).
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
   goal, parameters) in the last flash page.
 - `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
@@ -126,9 +126,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
-`SPD n`, `FAST n`, `TURN n`, `TURNTICKS n`, `KP f`, `KD f`, `KE f`, `LOG 0-2`,
-`DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`,
-`TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
+`SPD n`, `FAST n`, `TURN n`, `TURNTICKS n`, `KP f`, `KI f`, `KD f`, `KE f`,
+`LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
+`SYNC`, `TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -164,16 +164,24 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   stay trusted. `FRONT_SQUARE_OFFSET_MM` (FL-FR when square to a wall) must be
   calibrated for the yaw rule to be symmetric: robot centred in a cell, square
   to a wall, `CAL NOISE`, then `calib_analyze.py` prints the value.
-- The steering PD prefers the right wall because the SL and FR calibrations
+- The steering PID prefers the right wall because the SL and FR calibrations
   read ~10 mm long compared with `calib.txt` (SR and FL fit within ~5 mm).
   Recalibrate before switching to two-wall centering.
+- The motors pull unevenly: with P only the robot drove ~11 mm left of the
+  centre (SL ~72, SR ~94 for a target of 84), which after a left turn put it
+  ~2 cm ahead of the encoders and after a right turn ~2 cm behind. The
+  integral (`KI`, `steer_trim`) learns that imbalance from the walls while the
+  wheels turn (errors under `STEER_TRIM_ERROR_MM`), keeps it across moves and
+  applies it without walls too. `LOG 2` prints it as `trim=` on every move.
 - Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`,
   assuming the +140-tick correction found on single-cell moves is per move.
   Verify on hardware: if long straights end long/short, tune the split.
 - Stops are hard brakes at `search_speed` (fast straights brake to it first):
   `CELL_TICKS`/`TICKS_PER_TURN`/`FRONT_WALL_REF_MM` were calibrated that way.
-  The IR stop fires `FRONT_STOP_LEAD_MM` early because the robot coasts that
-  far; the front alignment only corrects errors beyond `ALIGN_DEADBAND_MM`.
+  The IR stop (armed in the last half cell) uses the FL/FR average, like the
+  front alignment, and fires `FRONT_STOP_LEAD_MM` early because the robot
+  coasts that far; the alignment only corrects errors beyond
+  `ALIGN_DEADBAND_MM`.
 - The 90 deg turn threshold is the runtime parameter `TURNTICKS`
   (`params.turn_ticks`, default `TICKS_PER_TURN`, ~5 ticks per degree), so it
   can be tuned live. After a turn the robot waits only until the encoders are

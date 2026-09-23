@@ -365,6 +365,7 @@ static void test_storage(void){
     params.search_speed = 123;
     params.turn_ticks = 415;
     params.kd = 12.5f;
+    params.ki = 0.75f;
     CHECK(storage_save());
 
     maze_init();
@@ -379,6 +380,7 @@ static void test_storage(void){
     CHECK_EQ(params.search_speed, 123);
     CHECK_EQ(params.turn_ticks, 415);
     CHECK(params.kd == 12.5f);
+    CHECK(params.ki == 0.75f);
 
     // A corrupt record is rejected and leaves RAM untouched.
     maze_init();

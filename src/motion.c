@@ -120,6 +120,7 @@ static volatile uint8_t steer_on;
 static volatile float steer_out;
 static volatile steer_ref_t steer_prev_ref;
 static float steer_prev_error;
+static volatile float steer_trim;       // integral term: the motors' imbalance, kept across moves
 static int32_t steer_heading_ref;
 static uint8_t steer_divider;
 
@@ -135,9 +136,14 @@ static void steer_stop(void){
     leds_set_mask(0);
 }
 
-// PD on the distance to one side wall (the right one first, as calibrated).
+// PID on the distance to one side wall (the right one first, as calibrated).
 // With no wall in range it holds the heading from the encoder difference
-// instead (gain KE; 0 = coast straight as before).
+// instead (gain KE; 0 = coast straight as before). The integral is the
+// differential PWM the motors need to drive straight: P alone settled ~11 mm
+// off-centre, which after a turn became a forward error of several cm. It is
+// learned only from walls while the wheels turn and the error is moderate
+// (bigger ones are transients or a post seen by the angled sensor), kept
+// across moves and applied without walls too.
 static void steer_update(void){
     if(!steer_on) return;
     steer_ref_t ref = REF_NONE;
@@ -163,13 +169,22 @@ static void steer_update(void){
         // A new reference (start of a move, or the other wall) must not
         // produce a derivative kick.
         if(ref != steer_prev_ref) steer_prev_error = error;
-        out = params.kp * error + params.kd * (error - steer_prev_error);
+        float trim = steer_trim;
+        if(params.ki <= 0.0f) trim = 0.0f;
+        else if(encoder_idle_ms() < STEER_TRIM_MOVING_MS
+                && error < STEER_TRIM_ERROR_MM && error > -STEER_TRIM_ERROR_MM){
+            trim += params.ki * error * (STEER_PERIOD_MS / 1000.0f);
+            if(trim > STEER_TRIM_MAX) trim = STEER_TRIM_MAX;
+            else if(trim < -STEER_TRIM_MAX) trim = -STEER_TRIM_MAX;
+        }
+        steer_trim = trim;
+        out = params.kp * error + params.kd * (error - steer_prev_error) + trim;
         steer_prev_error = error;
     }
     else{
         int32_t twist = encoder_total(ENCODER_L) - encoder_total(ENCODER_R);
         if(steer_prev_ref != REF_NONE) steer_heading_ref = twist;  // walls just lost: hold this heading
-        out = -params.ke * (float)(twist - steer_heading_ref);
+        out = -params.ke * (float)(twist - steer_heading_ref) + (params.ki > 0.0f ? steer_trim : 0.0f);
     }
     steer_prev_ref = ref;
 
@@ -180,7 +195,7 @@ static void steer_update(void){
 }
 
 void motion_tick_1ms(void){
-    if(++steer_divider >= 10){
+    if(++steer_divider >= STEER_PERIOD_MS){
         steer_divider = 0;
         steer_update();
     }
@@ -343,9 +358,13 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         float fr = ir_mm(IR_FR);
         if(remaining <= FRONT_STOP_ZONE_TICKS){
             // Final approach: a front wall is the best position reference.
-            // Brake a little early: the robot coasts the rest of the way.
-            const float stop_mm = FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM;
-            ir_close = (fl < stop_mm && fr < stop_mm) ? (uint8_t)(ir_close + 1) : 0;
+            // Both sensors must see it; their average is the distance, as in
+            // motion_align_front() (FR reads ~15 mm more than FL, so "both
+            // closer than X" really stopped on FR alone). Brake a little
+            // early: the robot coasts the rest of the way.
+            const uint8_t at_wall = fl < WALL_DETECT_MM && fr < WALL_DETECT_MM
+                                 && (fl + fr) * 0.5f < FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM;
+            ir_close = at_wall ? (uint8_t)(ir_close + 1) : 0;
             if(ir_close >= FRONT_STOP_CONFIRM_MS){
                 stop = "IR";
                 break;
@@ -372,9 +391,9 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     odo_update(&o);
 
     if(params.log_level >= 2){
-        print("avance %u: L=%ld R=%ld obj=%ld fin=%s IR(FL=%d FR=%d SL=%d SR=%d)\n",
+        print("avance %u: L=%ld R=%ld obj=%ld fin=%s IR(FL=%d FR=%d SL=%d SR=%d) trim=%d\n",
               cells, (long)o.dl, (long)o.dr, (long)target, stop,
-              (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR));
+              (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR), (int)steer_trim);
     }
     print_boost(max_boost);
     if(result == MOVE_BLOCKED) result = back_up(&o);

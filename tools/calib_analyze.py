@@ -343,8 +343,8 @@ def report(paths):
         out.append("=" * 72)
         out.append("%s  [%s, %d muestras cada %.0f ms, firmware %s]"
                    % (path, rec.test, rec.n, rec.period, rec.meta.get("build", "?")))
-        out.append("  SPD %s FAST %s TURN %s KP %s KD %s KE %s" % tuple(
-            rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "kd", "ke")))
+        out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
+            rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))
         for note in rec.notes:
             out.append("  nota: " + note)
         if rec.n == 0:
