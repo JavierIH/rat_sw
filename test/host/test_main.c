@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include "control.h"
+#include "control_sim.h"
 #include "crc32.h"
 #include "flash_store.h"
 #include "maze.h"
@@ -755,11 +758,193 @@ static void transcript(uint32_t seed, uint16_t openings, int practice, int phant
     telemetry_sync(2, TM_IDLE, sim_x, sim_y, sim_h);
 }
 
+// ---- Speed control ------------------------------------------------------------------
+
+static void test_profile(void){
+    profile_t p;
+    profile_reset(&p);
+    // Triangle (never reaches top), then trapezoid: exact arrival at rest.
+    const float cases[][3] = {{50.0f, 1000.0f, 3000.0f}, {540.0f, 700.0f, 3000.0f}, {-90.0f, 500.0f, 5000.0f}};
+    for(size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++){
+        profile_reset(&p);
+        profile_start(&p, cases[i][0], cases[i][1], 0.0f, cases[i][2]);
+        float vmax = 0.0f, amax = 0.0f, alast = 0.0f;
+        int steps = 0;
+        while(p.active && steps < 10000){
+            profile_step(&p, 0.001f);
+            vmax = fmaxf(vmax, fabsf(p.speed));
+            if(p.active) amax = fmaxf(amax, fabsf(p.accel));
+            else alast = fabsf(p.accel);
+            steps++;
+        }
+        CHECK(!p.active);
+        CHECK(p.pos == cases[i][0]);
+        CHECK(p.speed == 0.0f);
+        CHECK(vmax <= cases[i][1] + 0.01f);
+        CHECK(amax <= cases[i][2] * 1.01f);
+        // The last step drops the few mm/s left to zero at once.
+        CHECK(alast <= cases[i][2] * 3.0f);
+        // No slower than the ideal time plus a few ms.
+        const float d = fabsf(cases[i][0]), v = cases[i][1], a = cases[i][2];
+        const float ideal = d > v * v / a ? d / v + v / a : 2.0f * sqrtf(d / a);
+        CHECK(steps < (int)(ideal * 1000.0f) + 10);
+    }
+
+    // The target moves closer mid-way (front wall): never reverses, stops there.
+    profile_reset(&p);
+    profile_start(&p, 180.0f, 500.0f, 0.0f, 3000.0f);
+    float last = 0.0f;
+    uint8_t forward_only = 1;
+    for(int i = 0; i < 5000 && p.active; i++){
+        if(i == 300) p.target = p.pos + 30.0f;
+        profile_step(&p, 0.001f);
+        forward_only &= p.pos >= last;
+        last = p.pos;
+    }
+    CHECK(forward_only);
+    CHECK(!p.active);
+    CHECK(p.pos == p.target);
+
+    // Resume after a pause: from standstill at the given position.
+    profile_reset(&p);
+    profile_start(&p, 100.0f, 300.0f, 0.0f, 2000.0f);
+    for(int i = 0; i < 200; i++) profile_step(&p, 0.001f);
+    profile_resume(&p, 60.0f);
+    CHECK(p.speed == 0.0f);
+    CHECK(p.active);
+    for(int i = 0; i < 5000 && p.active; i++) profile_step(&p, 0.001f);
+    CHECK(p.pos == 100.0f);
+}
+
+static void test_steering_filter(void){
+    const steer_config_t k = {
+        .kp = 1.0f, .ki = 0.0f, .max_deg = STEER_MAX_DEG, .curve_deg = 2.0f, .slew_mm = STEER_SLEW_MM_PER_MS,
+        .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
+        .center_r_mm = LANE_WIDTH_MM / 2.0f, .error_max_mm = STEER_ERROR_MAX_MM,
+        .bias_window_mm = STEER_BIAS_WINDOW_MM, .delay_steps = 0, .average_steps = 1,
+    };
+    steer_t s;
+    steer_reset(&s);
+    for(int i = 0; i < 50; i++) steer_step(&s, &k, 84.0f, 84.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(fabsf(s.heading) < 0.01f);
+    CHECK_EQ(s.wall, STEER_WALL_BOTH);
+    // One wall only: that one.
+    for(int i = 0; i < 50; i++) steer_step(&s, &k, 250.0f, 84.0f, 0.5f, 0.0f, 1.0f);
+    CHECK_EQ(s.wall, STEER_WALL_RIGHT);
+    CHECK(fabsf(s.heading) < 0.01f);
+    for(int i = 0; i < 50; i++) steer_step(&s, &k, 84.0f, 84.0f, 0.5f, 0.0f, 1.0f);
+    // A post caught by the right beam for 2 ms: the estimate barely moves.
+    steer_step(&s, &k, 84.0f, 50.0f, 0.5f, 0.0f, 1.0f);
+    steer_step(&s, &k, 84.0f, 50.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(fabsf(s.lateral) <= 2.0f * STEER_SLEW_MM_PER_MS + 0.001f);
+    // Robot 10 mm left of centre: heads right, KP deg per mm.
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(fabsf(s.heading - 10.0f * k.kp) < 0.01f || fabsf(s.heading - STEER_MAX_DEG) < 0.01f);
+    CHECK(s.heading > 0.0f);
+    // Fading out at the end of a move: back to straight.
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 0.0f);
+    CHECK(fabsf(s.heading) < 0.01f);
+    // No walls: hold the heading.
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 250.0f, 250.0f, 0.5f, 0.0f, 1.0f);
+    CHECK_EQ(s.wall, STEER_WALL_NONE);
+    CHECK(fabsf(s.heading) < 0.01f);
+}
+
+static void test_speed_control(void){
+    // Nominal robot, 15 mm off-centre: exact distance, centred within the
+    // first half, no weaving, at search and speed-run speeds.
+    const float speeds[] = {300.0f, 500.0f, 800.0f};
+    for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
+        plant_t p = plant_nominal();
+        p.y0 = 8.0f;
+        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);
+        CHECK(fabsf(r.travelled - 540.0f) < 1.0f);
+        CHECK(r.fwd_err_max < 5.0f);
+        CHECK(r.rot_err_max < 6.0f);
+        // The side IR resolve ~2 mm; above STEER_VREF_MM_S the centring
+        // works over a longer distance (it weaved on the robot otherwise).
+        CHECK(r.y_late < (speeds[i] > STEER_VREF_MM_S ? 5.0f : 3.0f));
+        p.y0 = 15.0f;               // a bad start: centred within the move (more slowly
+        r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);     // above STEER_VREF_MM_S)
+        CHECK(fabsf(r.y_end) < (speeds[i] > STEER_VREF_MM_S ? 6.0f : 3.0f));
+        CHECK(r.crossings <= 4);   // also counts +-0.5 mm wobbles at the centre
+        CHECK(fabsf(r.yaw_end) < 2.0f);
+        CHECK(r.ms < 3000);
+    }
+    // Model off by 20 % either way, slower motors, more friction and dead time.
+    const plant_t base = plant_nominal();
+    plant_t variants[5];
+    for(int i = 0; i < 5; i++) variants[i] = base;
+    variants[0].gain_l = variants[0].gain_r = 0.8f;
+    variants[1].gain_l = variants[1].gain_r = 1.2f;
+    variants[2].tau = 0.08f;
+    variants[3].friction = 40.0f;
+    variants[3].stiction = 160.0f;
+    variants[4].dead_ms = 6;    // measured: none
+    for(int i = 0; i < 5; i++){
+        variants[i].y0 = 10.0f;
+        sim_result_t r = sim_straight(&variants[i], 540.0f, 600.0f, 3000.0f, PARAM_KP, PARAM_KI);
+        CHECK(fabsf(r.travelled - 540.0f) < 1.5f);
+        CHECK(r.y_late < 5.0f);
+        CHECK(r.fwd_err_max < 10.0f);
+    }
+    // Unequal motors (the right one 8 % stronger than modelled): still straight.
+    plant_t uneven = base;
+    uneven.gain_r = 1.08f;
+    sim_result_t r = sim_straight(&uneven, 900.0f, 700.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(r.y_late < 3.0f);     // 2.0 even with equal motors: IR steps and yaw friction
+    // A turn left the robot 5 deg off the corridor: the integral finds it.
+    plant_t yawed = base;
+    yawed.yaw0 = 5.0f;
+    r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(fabsf(r.y_end) < 2.5f);
+    // Out of PWM (flat battery at full speed): rotation keeps priority.
+    plant_t flat = base;
+    flat.gain_l = flat.gain_r = 0.7f;
+    flat.y0 = 5.0f;
+    r = sim_straight(&flat, 900.0f, 1000.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(r.y_late < 6.0f);
+    // Turns: exact angle (encoder), quick.
+    const float angles[] = {90.0f, -90.0f, 180.0f};
+    for(size_t i = 0; i < sizeof(angles) / sizeof(angles[0]); i++){
+        r = sim_turn(&base, angles[i], PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+        CHECK(fabsf(r.turned - angles[i]) < 0.5f);
+        CHECK(fabsf(r.travelled) < 1.0f);
+        CHECK(r.ms < (fabsf(angles[i]) > 90.0f ? 600u : 450u));
+    }
+}
+
+// host_tests --control: the numbers behind test_speed_control(), for tuning.
+static void control_report(void){
+    printf("recta 540 mm, 15 mm descentrado (KP %.2f KI %.2f):\n", (double)PARAM_KP, (double)PARAM_KI);
+    const float speeds[] = {300.0f, 500.0f, 800.0f, 1000.0f};
+    for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
+        plant_t p = plant_nominal();
+        p.y0 = 15.0f;
+        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);
+        printf("  %4.0f mm/s: %4u ms, recorrido %.2f mm, error max %.2f mm / %.2f deg, y 2a mitad %.2f mm,"
+               " final %+.2f mm %+.2f deg, cruces %d, PWM max %d\n", (double)speeds[i], r.ms, (double)r.travelled,
+               (double)r.fwd_err_max, (double)r.rot_err_max, (double)r.y_late, (double)r.y_end, (double)r.yaw_end,
+               r.crossings, r.pwm_max);
+    }
+    const float angles[] = {90.0f, 180.0f};
+    for(size_t i = 0; i < 2; i++){
+        plant_t p = plant_nominal();
+        sim_result_t r = sim_turn(&p, angles[i], PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+        printf("giro %.0f: %u ms, girado %.2f deg, error max %.2f deg, desplazamiento %.2f mm\n", (double)angles[i],
+               r.ms, (double)r.turned, (double)r.rot_err_max, (double)r.travelled);
+    }
+}
+
 int main(int argc, char **argv){
     host_verbose = argc > 1 && strcmp(argv[1], "-v") == 0;
     fake_flash_wipe();
     if(argc > 1 && strcmp(argv[1], "--demo") == 0){
         demo();
+        return 0;
+    }
+    if(argc > 1 && strcmp(argv[1], "--control") == 0){
+        control_report();
         return 0;
     }
     if(argc > 3 && strcmp(argv[1], "--transcript") == 0){
@@ -782,6 +967,9 @@ int main(int argc, char **argv){
     test_wall_followers();
     test_practice_maze();
     test_competition_mazes();
+    test_profile();
+    test_steering_filter();
+    test_speed_control();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;
