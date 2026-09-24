@@ -73,10 +73,23 @@ static uint8_t parse_decimal(const char **s, float *out){
     return 1;
 }
 
-const char *format_fixed2(char *buf, unsigned size, float v){
-    uint32_t cents = (uint32_t)(v * 100.0f + 0.5f);
-    snprintf(buf, size, "%lu.%02lu", (unsigned long)(cents / 100u), (unsigned long)(cents % 100u));
+const char *format_fixed(char *buf, unsigned size, float v, uint8_t decimals){
+    static const uint32_t SCALE[4] = {1u, 10u, 100u, 1000u};
+    if(decimals > 3) decimals = 3;
+    const char *sign = v < 0.0f ? "-" : "";
+    const uint32_t units = (uint32_t)((v < 0.0f ? -v : v) * (float)SCALE[decimals] + 0.5f);
+    const unsigned long whole = units / SCALE[decimals], frac = units % SCALE[decimals];
+    switch(decimals){
+        case 0:  snprintf(buf, size, "%s%lu", sign, whole); break;
+        case 1:  snprintf(buf, size, "%s%lu.%01lu", sign, whole, frac); break;
+        case 2:  snprintf(buf, size, "%s%lu.%02lu", sign, whole, frac); break;
+        default: snprintf(buf, size, "%s%lu.%03lu", sign, whole, frac); break;
+    }
     return buf;
+}
+
+const char *format_fixed2(char *buf, unsigned size, float v){
+    return format_fixed(buf, size, v, 2);
 }
 
 static uint8_t parse_int(const char **s, int32_t *out){
