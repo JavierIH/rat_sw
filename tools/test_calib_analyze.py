@@ -59,6 +59,27 @@ def save(directory, description, period, rows, notes=()):
     return capture.last_path
 
 
+NEW_INFO = [
+    "@D INFO ticks_per_mm=9.05 cell_mm=180 turn_ticks=400 kv_l=0.92 kv_r=0.90 tau_ms=50.00 ks=20",
+    "@D INFO spd=400 fast=500 accel=3000 turn=500 turn_accel=5000 kp=1.00 ki=4.00",
+] + INFO[2:]
+
+
+def save_new(directory, description, period, rows, notes=()):
+    """A dump from the speed-control firmware: two more columns, the reference."""
+    capture = rm.CalibrationCapture(directory)
+    lines = ["@D BEGIN " + description,
+             '@D INFO period_ms=%d samples=%d capacity=320 result=OK build="test"' % (period, len(rows))]
+    lines += NEW_INFO + ["@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot"]
+    lines += ["@D %d,%s" % (i * period, ",".join(str(int(round(v))) for v in row)) for i, row in enumerate(rows)]
+    lines += ["@D END result=OK samples=%d" % len(rows)]
+    for line in lines:
+        capture.feed(line)
+    for note in notes:
+        capture.note(note)
+    return capture.last_path
+
+
 def number(pattern, text):
     m = re.search(pattern, text)
     if not m:
@@ -93,6 +114,71 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"constante de tiempo ~(\d+) ms", text), 60, delta=12)
         self.assertAlmostEqual(number(r"frenada: ([\d.]+) mm", text), 400 * 0.030, delta=3)
         self.assertAlmostEqual(number(r"\(([-+\d.]+)%\)", text), 1.0, delta=0.2)
+
+    def test_motor_model_from_steps(self):
+        # PWM = KV * v + KS per wheel: left KV 0.95 KS 30, right KV 0.88 KS 30, tau 50 ms.
+        paths = []
+        for pwm in (200, 400, 600):
+            period, on_ms, rows, pl, pr, vl, vr = 2, 400, [], 0.0, 0.0, 0.0, 0.0
+            for i in range(350):
+                t = i * period
+                on = t < on_ms
+                tl = (pwm - 30) / 0.95 if on else 0.0
+                tr = (pwm - 30) / 0.88 if on else 0.0
+                k = 1 - math.exp(-period / 50.0)
+                vl += (tl - vl) * k
+                vr += (tr - vr) * k
+                pl += vl * period / 1000.0 * 9.05
+                pr += vr * period / 1000.0 * 9.05
+                p = pwm if on else 0
+                rows.append((pl, pr, p, p, 0, 0, 0, 0))
+            paths.append(save(self.tmp.name, "step %d %d" % (pwm, on_ms), period, rows))
+        text = ca.report(paths)
+        self.assertAlmostEqual(number(r"MOTOR_KV_L +([\d.]+)f", text), 0.95, delta=0.03)
+        self.assertAlmostEqual(number(r"MOTOR_KV_R +([\d.]+)f", text), 0.88, delta=0.03)
+        self.assertAlmostEqual(number(r"MOTOR_KS_PWM +([\d.]+)f", text), 30, delta=8)
+        self.assertAlmostEqual(number(r"MOTOR_TAU_S +([\d.]+)f", text), 0.050, delta=0.008)
+
+    def test_controlled_straight(self):
+        # 3 cells at 500 mm/s, 0.5 mm behind the reference, 12 mm left of centre
+        # at the start and centred by the end; 543 mm measured.
+        rows, ref, tpm = [], 0.0, 9.05
+        n = 600
+        for i in range(n):
+            ref = min(540.0, ref + 500 * 0.002)
+            pos = max(0.0, ref - 0.5)
+            y = 12.0 * max(0.0, 1 - i / 150.0)
+            sr = fl_raw_for(84 + y)      # the FL curve stands in for SR: only mm matter here
+            on = ref < 540.0 or i < n - 20
+            rows.append((pos * tpm, pos * tpm, 500 if on else 0, 500 if on else 0, 0, 0, 0, sr, ref * 10, 0))
+        path = save_new(self.tmp.name, "straight 3 500", 2, rows, ["medido 543 mm"])
+        with open(path) as f:
+            text = f.read().replace('ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f,   189.0f"',
+                                    'ir_cal_sr="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"')
+        with open(path, "w") as f:
+            f.write(text)
+        text = ca.report([path])
+        self.assertIn("con control de velocidad", text)
+        self.assertAlmostEqual(number(r"error de avance max ([\d.]+) mm", text), 0.5, delta=0.1)
+        self.assertAlmostEqual(number(r"inicio ([-+\d.]+) mm", text), 12, delta=1.5)
+        self.assertAlmostEqual(number(r"2a mitad ([-+\d.]+) \+-", text), 0, delta=1.0)
+        self.assertAlmostEqual(number(r"WHEEL_TICKS_PER_MM ([\d.]+)", text), 539.5 * tpm / 543, delta=0.02)
+
+    def test_controlled_turns(self):
+        # Four 90 deg turns, the encoders exactly on the reference; 352 deg measured.
+        rows, tpm, mpd = [], 9.05, 400 / 90 / 9.05
+        angle = 0.0
+        for k in range(4):
+            for i in range(60):
+                angle = 90.0 * k + 90.0 * (i + 1) / 60
+                half = angle * mpd * tpm
+                rows.append((half, -half, 300, -300, 0, 0, 0, 0, 0, angle * 100))
+            for i in range(20):
+                half = angle * mpd * tpm
+                rows.append((half, -half, 0, 0, 0, 0, 0, 0, 0, angle * 100))
+        text = ca.report([save_new(self.tmp.name, "turn 4", 5, rows, ["angulo 352"])])
+        self.assertEqual(len(re.findall(r"\+90\.00 grados de encoder", text)), 4, text)
+        self.assertAlmostEqual(number(r"TURNTICKS (\d+)", text), 400 * 352 / 360, delta=2)
 
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140

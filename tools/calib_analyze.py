@@ -11,8 +11,12 @@ firmware constant and the samples. Physical measurements added with
     turn:      /nota angulo 352           total angle actually turned (degrees)
     ir:        /nota inicio 40 mm         front sensors to wall when the sweep starts
 
-Straight recordings of different lengths, all measured, are combined to
-split the distance calibration into CELL_TICKS and MOVE_EXTRA_TICKS.
+Recordings from the speed-control firmware carry the profile reference
+(ref_fwd, ref_rot): straights and turns then report how closely the wheels
+followed it, the centring and the real distance/angle. Open-loop steps
+(CAL STEP) at two or more PWMs give the motor model constants
+(MOTOR_KV_L/R, MOTOR_KS_PWM, MOTOR_TAU_S). Older recordings (no reference)
+are still analysed as before.
 """
 import argparse
 import math
@@ -174,11 +178,120 @@ def analyze_noise(rec, out):
                    % (round(offset), rec.meta.get("front_square_offset_mm", "?")))
 
 
+def controlled(rec):
+    """Recorded by the speed-control firmware (profile reference present)."""
+    return "ref_fwd" in rec.data
+
+
+def side_errors(rec, upto):
+    """Lateral error (mm, > 0 = left of centre) as the centring sees it: both
+    walls averaged when both are in range, else the one there is."""
+    lane, track = rec.number("lane_mm", 168), rec.number("side_track_mm", 130)
+    center_l, center_r = rec.number("center_l", lane / 2), rec.number("center_r", lane / 2)
+    out = []
+    for i in range(upto):
+        sl = rec.ir_mm("sl", rec.data["raw_sl"][i])
+        sr = rec.ir_mm("sr", rec.data["raw_sr"][i])
+        errors = []
+        if sr is not None and sr < track:
+            errors.append(sr - center_r)
+        if sl is not None and sl < track:
+            errors.append(center_l - sl)
+        if errors:
+            out.append((i, mean(errors)))
+    return out
+
+
+def analyze_straight_controlled(rec, out):
+    cells = rec.args[0] if rec.args else 1
+    speed = rec.args[1] if len(rec.args) > 1 else rec.number("spd")
+    tpm = rec.number("ticks_per_mm", 9.05)
+    mpd = rec.number("turn_ticks", 400) / 90 / tpm     # wheel mm per degree
+    ticks = average_ticks(rec)
+    fwd = [t / tpm for t in ticks]
+    rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+    ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
+    ref_r = [v / 100.0 for v in rec.data["ref_rot"]]
+    on = [i for i in range(rec.n) if motor_on(rec, i)]
+    end = (on[-1] + 1) if on else rec.n
+    out.append("Recta de %d celda(s) a %s mm/s con control de velocidad (%s)"
+               % (cells, int(speed) if speed is not None else "?", rec.meta.get("result", "?")))
+    out.append("  recorrido %.1f mm (referencia %.1f, plan %d) en %.0f ms"
+               % (fwd[-1], ref_f[end - 1], cells * CELL_MM, (end - (on[0] if on else 0)) * rec.period))
+    v = speed_mm_s(rec, ticks, smooth=2)
+    if on:
+        out.append("  velocidad maxima %.0f mm/s" % max(v[i] for i in on))
+    ef = [ref_f[i] - fwd[i] for i in on]
+    er = [ref_r[i] - rot[i] for i in on]
+    if ef:
+        out.append("  seguimiento: error de avance max %.2f mm (medio %+.2f), de rumbo max %.2f grados"
+                   % (max(abs(e) for e in ef), mean(ef), max(abs(e) for e in er)))
+    pwm = [max(abs(rec.data["pwm_l"][i]), abs(rec.data["pwm_r"][i])) for i in on]
+    saturated = sum(1 for p in pwm if p >= 1000)
+    if saturated:
+        out.append("  ! PWM al maximo en %d muestras de %d: sin margen, baja la velocidad o ACCEL" % (saturated, len(pwm)))
+    errors = side_errors(rec, end)
+    if len(errors) > 5:
+        values = [e for _, e in errors]
+        half = values[len(values) // 2:]
+        crossings = sum(1 for a, b in zip(values, values[1:]) if (a < 0) != (b < 0))
+        seconds = len(values) * rec.period / 1000.0
+        out.append("  centrado: inicio %+.1f mm, 2a mitad %+.1f +- %.1f mm, %.1f cruces/s"
+                   % (values[0], mean(half), stdev(half), crossings / seconds if seconds else 0))
+        heading = [ref_r[i] for i, _ in errors]
+        out.append("  rumbo pedido por el centrado: %+.1f .. %+.1f grados" % (min(heading), max(heading)))
+    out.append("  giro medido por los encoders al final: %+.2f grados" % rot[-1])
+    measured = rec.note_value("medido", "real", "mide")
+    if measured:
+        out.append("  medido %.0f mm -> WHEEL_TICKS_PER_MM %.3f (ahora %.2f)" % (measured, ticks[-1] / measured, tpm))
+    else:
+        out.append("  (anota la distancia real con: /nota medido <mm> mm)")
+
+
+def analyze_turn_controlled(rec, out):
+    quarters = rec.args[0] if rec.args else 4
+    tpm = rec.number("ticks_per_mm", 9.05)
+    tt = rec.number("turn_ticks", 400)
+    mpd = tt / 90 / tpm
+    rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+    ref_r = [v / 100.0 for v in rec.data["ref_rot"]]
+    fwd = [t / tpm for t in average_ticks(rec)]
+    segments, start = [], None
+    for i in range(rec.n):
+        on = motor_on(rec, i)
+        if on and start is None:
+            start = i
+        elif not on and start is not None:
+            segments.append((start, i))
+            start = None
+    if start is not None:
+        segments.append((start, rec.n))
+    out.append("Giro de %d cuartos con control de velocidad (%s), %d giros detectados"
+               % (abs(quarters), rec.meta.get("result", "?"), len(segments)))
+    for k, (a, b) in enumerate(segments):
+        rest = rot[a - 1] if a > 0 else 0.0
+        ref_rest = ref_r[a - 1] if a > 0 else 0.0
+        err = max(abs((ref_r[i] - ref_rest) - (rot[i] - rest)) for i in range(a, b))
+        out.append("  giro %d: %+.2f grados de encoder en %.0f ms, error de seguimiento max %.2f grados"
+                   % (k + 1, rot[b - 1] - rest, (b - a) * rec.period, err))
+    out.append("  desplazamiento del centro: %.1f mm" % max(abs(f) for f in fwd))
+    angle = rec.note_value("angulo", "grados")
+    if angle:
+        total = abs(rot[-1])
+        out.append("  medido %.0f grados reales para %.0f de encoder: TURNTICKS %.0f (ahora %.0f)"
+                   % (angle, total, tt * angle / total if total else tt, tt))
+    else:
+        out.append("  (anota el angulo real girado con: /nota angulo <grados>, o compara FL-FR con CAL NOISE)")
+
+
 def analyze_straight(rec, out, measured_pairs):
     cells = rec.args[0] if rec.args else 1
     pwm = rec.args[1] if len(rec.args) > 1 else rec.number("spd")
     tpm = rec.number("ticks_per_mm", 9)
-    target = cells * rec.number("cell_ticks", 1620) + rec.number("move_extra_ticks", 140)
+    extra = rec.number("move_extra_ticks", 140)
+    if extra >= 2 ** 31:    # dumps before Sep 24 printed it unsigned
+        extra -= 2 ** 32
+    target = cells * rec.number("cell_ticks", 1620) + extra
     ticks = average_ticks(rec)
     stop = stop_index(rec)
     at_stop, final = ticks[max(0, stop - 1)], ticks[-1]
@@ -262,7 +375,7 @@ def analyze_turn(rec, out):
         out.append("  (anota el angulo real girado con: /nota angulo <grados>)")
 
 
-def analyze_step(rec, out):
+def analyze_step(rec, out, motor_points=None):
     pwm = rec.args[0] if rec.args else rec.number("spd")
     tpm = rec.number("ticks_per_mm", 9)
     ticks = average_ticks(rec)
@@ -277,6 +390,11 @@ def analyze_step(rec, out):
     steady = v[t0 + int(last * 0.7):off] or v[t0:off]
     v_ss = mean(steady)
     out.append("  velocidad estable %.0f mm/s -> ganancia %.2f mm/s por unidad de PWM" % (v_ss, v_ss / pwm if pwm else 0))
+    wheel = {}
+    for side in ("l", "r"):
+        vw = speed_mm_s(rec, rec.data["enc_" + side], smooth=1)
+        wheel[side] = mean(vw[t0 + int(last * 0.7):off] or vw[t0:off])
+    out.append("  por rueda: izquierda %.0f mm/s, derecha %.0f mm/s" % (wheel["l"], wheel["r"]))
 
     def crossing(fraction):     # ms after the step when the speed crosses fraction * v_ss
         level = fraction * v_ss
@@ -291,6 +409,8 @@ def analyze_step(rec, out):
         tau = 1.5 * (t63 - t28)
         out.append("  tiempo muerto %.0f ms" % max(0.0, t63 - tau))
         out.append("  constante de tiempo ~%.0f ms (modelo de primer orden)" % tau)
+        if motor_points is not None and pwm:
+            motor_points.append((pwm, wheel["l"], wheel["r"], tau, max(0.0, t63 - tau)))
     rest = next((i for i in range(off, rec.n - 1) if all(ticks[j] == ticks[i] for j in range(i, min(rec.n, i + 5)))), rec.n - 1)
     out.append("  frenada: %.1f mm en %.0f ms desde el corte" % ((ticks[rest] - ticks[off]) / tpm, (rest - off) * rec.period))
     drift = rec.data["enc_l"][off] - rec.data["enc_r"][off]
@@ -333,24 +453,34 @@ def analyze_ir(rec, out):
         out.append("     #define CAL_%s  %.5gf, %.5gf, %.5gf, %.5gf" % (s.upper(), a, b, c, d))
 
 
-ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "step": analyze_step, "ir": analyze_ir}
+ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir}
 
 
 def report(paths):
-    out, measured_pairs = [], []
+    out, measured_pairs, motor_points = [], [], []
     for path in paths:
         rec = load(path)
         out.append("=" * 72)
         out.append("%s  [%s, %d muestras cada %.0f ms, firmware %s]"
                    % (path, rec.test, rec.n, rec.period, rec.meta.get("build", "?")))
-        out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
-            rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))
+        if "accel" in rec.meta:
+            out.append("  SPD %s FAST %s ACCEL %s TURN %s TACCEL %s KP %s KI %s" % tuple(
+                rec.meta.get(k, "?") for k in ("spd", "fast", "accel", "turn", "turn_accel", "kp", "ki")))
+        else:
+            out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
+                rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))
         for note in rec.notes:
             out.append("  nota: " + note)
         if rec.n == 0:
             out.append("  sin muestras")
+        elif rec.kind == "straight" and controlled(rec):
+            analyze_straight_controlled(rec, out)
         elif rec.kind == "straight":
             analyze_straight(rec, out, measured_pairs)
+        elif rec.kind == "turn" and controlled(rec):
+            analyze_turn_controlled(rec, out)
+        elif rec.kind == "step":
+            analyze_step(rec, out, motor_points)
         elif rec.kind in ANALYSES:
             ANALYSES[rec.kind](rec, out)
         else:
@@ -367,7 +497,36 @@ def report(paths):
         extra = (sy - cell * sx) / n
         out.append("=" * 72)
         out.append("Con %d rectas medidas: CELL_TICKS ~ %.0f, MOVE_EXTRA_TICKS ~ %.0f" % (n, cell, extra))
+    if len({p for p, _, _, _, _ in motor_points}) >= 2:
+        out.append("=" * 72)
+        out.extend(motor_model(motor_points))
     return "\n".join(out)
+
+
+def fit_line(xs, ys):
+    """Least squares y = a x + b."""
+    n = len(xs)
+    sx, sy = sum(xs), sum(ys)
+    sxx, sxy = sum(x * x for x in xs), sum(x * y for x, y in zip(xs, ys))
+    a = (n * sxy - sx * sy) / (n * sxx - sx * sx)
+    return a, (sy - a * sx) / n
+
+
+def motor_model(points):
+    """Feedforward constants from open-loop steps: PWM = KV * v + KS per wheel."""
+    pwm = [p for p, _, _, _, _ in points]
+    kv_l, ks_l = fit_line([l for _, l, _, _, _ in points], pwm)
+    kv_r, ks_r = fit_line([r for _, _, r, _, _ in points], pwm)
+    tau = mean([t for _, _, _, t, _ in points])
+    dead = mean([d for _, _, _, _, d in points])
+    return ["Modelo del motor con %d escalones (PWM = KV * velocidad + KS):" % len(points),
+            "  izquierda: KV %.3f PWM por mm/s, KS %.0f PWM" % (kv_l, ks_l),
+            "  derecha:   KV %.3f PWM por mm/s, KS %.0f PWM" % (kv_r, ks_r),
+            "  constante de tiempo media %.0f ms, tiempo muerto %.0f ms" % (tau, dead),
+            "     #define MOTOR_KV_L              %.3ff" % kv_l,
+            "     #define MOTOR_KV_R              %.3ff" % kv_r,
+            "     #define MOTOR_TAU_S             %.3ff" % (tau / 1000.0),
+            "     #define MOTOR_KS_PWM            %.1ff" % max(0.0, (ks_l + ks_r) / 2)]
 
 
 def main(argv=None):
