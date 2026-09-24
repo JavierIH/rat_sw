@@ -72,6 +72,29 @@ void leds_all(uint8_t on){
     leds_set_mask(on ? 0x3F : 0x00);
 }
 
+// The boot sweep of the original firmware (develop, 7dccc63 led_animation()),
+// same order and timing: one LED runs 1 -> 6 -> 1, 50 ms per step.
+#define LED_SWEEP_STEP_MS 50
+
+void leds_sweep(uint8_t times){
+    for(uint8_t n = 0; n < times; n++){
+        led_set(1, 1);
+        led_set(6, 0);
+        HAL_Delay(LED_SWEEP_STEP_MS);
+        for(uint8_t i = 2; i <= 6; i++){        // the next one on, then the previous off
+            led_set(i, 1);
+            led_set((uint8_t)(i - 1), 0);
+            HAL_Delay(LED_SWEEP_STEP_MS);
+        }
+        for(uint8_t i = 5; i >= 1; i--){        // on the way back: off first, then on
+            led_set((uint8_t)(i + 1), 0);
+            led_set(i, 1);
+            HAL_Delay(LED_SWEEP_STEP_MS);
+        }
+    }
+    leds_all(0);
+}
+
 void leds_blink(uint8_t times, uint32_t half_period_ms){
     for(uint8_t i = 0; i < times; i++){
         leds_all(1);

@@ -230,6 +230,7 @@ int main(void){
     storage_status_t stored = storage_load();
     uart_start_receive();
     print_banner(stored);
+    leds_sweep(2);
     sync_telemetry(TM_IDLE);
 
     for(;;){

@@ -14,6 +14,7 @@ void led_set(uint8_t led, uint8_t on);      // led: 1..6
 void leds_set_mask(uint8_t mask);           // bit 5 = LED 1 ... bit 0 = LED 6
 void leds_all(uint8_t on);
 void leds_blink(uint8_t times, uint32_t half_period_ms);   // blocking
+void leds_sweep(uint8_t times);             // boot animation: one LED 1 -> 6 -> 1 (blocking)
 
 void buttons_tick(void);                    // every 1 ms (SysTick)
 uint8_t button_take_press(button_t button); // 1 once per debounced press
