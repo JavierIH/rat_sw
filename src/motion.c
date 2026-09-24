@@ -1,6 +1,9 @@
 #include "motion.h"
+#include <math.h>
+#include <string.h>
 #include "stm32f1xx_hal.h"
 #include "commands.h"
+#include "control.h"
 #include "encoder.h"
 #include "gpio.h"
 #include "infrared.h"
@@ -9,12 +12,17 @@
 #include "robot_config.h"
 #include "uart.h"
 
-// Every movement is a loop paced at exactly 1 kHz. Positions come from the
-// 32-bit encoder odometry, steering from the 100 Hz controller in SysTick.
+// Every move is a motion profile that the speed control (control.h) follows:
+// SysTick steps it every millisecond and drives the motors, so the robot
+// keeps moving smoothly while this code, in the main context, watches the
+// sensors, moves the target (front wall) and decides when the move is over.
 
-static int32_t abs32(int32_t v){
-    return v < 0 ? -v : v;
-}
+#define FRONT_CONFIRM_MS    3       // consecutive 1 ms readings for a front-wall decision
+#define FRONT_ZONE_MM       (CELL_MM / 2)   // the front wall at the end of a move is tracked in its last half cell
+#define FRONT_EARLY_MAX_MM  (CELL_MM / 2)   // the IR may end a move this much before the encoders say...
+#define FRONT_LATE_MAX_MM   30              // ...or this much after
+#define STEER_FADE_MM       40      // the centring fades out over the last mm of a move: it stops parallel
+#define SQUARE_SPEED_DIV    2       // squaring rotates at half the turn speed
 
 static void motors_off(void){
     motor_set(MOTOR_L, 0);
@@ -41,7 +49,6 @@ uint8_t motion_step_mode(void){ return step_mode; }
 
 void motion_set_paused(uint8_t on){
     paused = on;
-    if(on) motors_off();
 }
 
 void motion_set_step_mode(uint8_t on){
@@ -65,16 +72,6 @@ uint8_t motion_wait(uint32_t ms){
     return 1;
 }
 
-// Waits until the wheels have been still for `still_ms`, at most `max_ms`.
-static uint8_t wait_still(uint32_t still_ms, uint32_t max_ms){
-    uint32_t start = HAL_GetTick();
-    while(encoder_idle_ms() < still_ms && HAL_GetTick() - start < max_ms){
-        poll_inputs();
-        if(abort_flag) return 0;
-    }
-    return !abort_flag;
-}
-
 uint8_t motion_checkpoint(void){
     poll_inputs();
     if(step_mode && moved && !abort_flag){
@@ -86,135 +83,136 @@ uint8_t motion_checkpoint(void){
     return !abort_flag;
 }
 
-// ---- Acceleration ramp ------------------------------------------------------------
+// ---- Speed control (SysTick) ---------------------------------------------------------
 
-static int16_t ramp_pwm[2];
-static uint32_t ramp_ms[2];
+static control_config_t control_cfg = {
+    .ticks_per_mm = WHEEL_TICKS_PER_MM,
+    .mm_per_deg = TICKS_PER_TURN / 90.0f / WHEEL_TICKS_PER_MM,
+    .kv_l = MOTOR_KV_L,
+    .kv_r = MOTOR_KV_R,
+    .tau = MOTOR_TAU_S,
+    .ks = MOTOR_KS_PWM,
+    .fwd_kp = FWD_KP,
+    .fwd_kd = FWD_KD,
+    .rot_kp = ROT_KP,
+    .rot_kd = ROT_KD,
+    .rot_ki = ROT_KI,
+    .rot_i_max = ROT_I_MAX,
+    .pwm_limit = CONTROL_PWM_LIMIT,
+    .settle_ki_fwd = SETTLE_KI_FWD,
+    .settle_ki_rot = SETTLE_KI_ROT,
+    .settle_i_max = SETTLE_I_MAX,
+};
 
-static void wheel_stop(motor_t motor){
-    ramp_pwm[motor] = 0;
-    motor_set(motor, 0);
-}
+static steer_config_t steer_cfg = {
+    .max_deg = STEER_MAX_DEG,
+    .curve_deg = STEER_CURVE_DEG_PER_MM,
+    .slew_mm = STEER_SLEW_MM_PER_MS,
+    .track_mm = SIDE_WALL_TRACK_MM,
+    .center_l_mm = SIDE_CENTER_L_MM,
+    .center_r_mm = SIDE_CENTER_R_MM,
+    .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = STEER_BIAS_WINDOW_MM,
+    // average_steps, delay_steps: set per move (TUNE STEER_AVG, IR_DELAY)
+};
 
-static void ramp_reset(void){
-    ramp_pwm[MOTOR_L] = 0;
-    ramp_pwm[MOTOR_R] = 0;
-    ramp_ms[MOTOR_L] = ramp_ms[MOTOR_R] = HAL_GetTick();
-}
+// Live-tunable (TUNE) values that are not in the two configs above.
+static float ir_delay = IR_DELAY_MS;            // ms
+static float front_track = FRONT_TRACK_MM;      // mm
+static float front_ref = FRONT_WALL_REF_MM;     // mm
+static float sense_settle = SENSE_SETTLE_MS;    // ms
+static float steer_average = STEER_AVERAGE_MS;  // ms
+static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
+static float steer_vref = STEER_VREF_MM_S;      // mm/s
 
-// Moves the duty towards `target` by at most ACCEL_STEP_PER_MS per elapsed
-// ms, so the wheels never snap from standstill (and slip). Stops bypass the
-// ramp on purpose: the calibrated stopping points assume a hard brake.
-static void drive_ramped(motor_t motor, int16_t target){
-    uint32_t now = HAL_GetTick();
-    int32_t max_step = ACCEL_STEP_PER_MS * (int32_t)(now - ramp_ms[motor]);
-    ramp_ms[motor] = now;
-    if(max_step < 1) max_step = 1;
-    int32_t diff = (int32_t)target - ramp_pwm[motor];
-    if(diff > max_step) diff = max_step;
-    else if(diff < -max_step) diff = -max_step;
-    ramp_pwm[motor] = (int16_t)(ramp_pwm[motor] + diff);
-    motor_set(motor, ramp_pwm[motor]);
-}
-
-// ---- Steering (100 Hz, SysTick) ---------------------------------------------------------
-
-typedef enum { REF_NONE, REF_RIGHT, REF_LEFT, REF_RESTART } steer_ref_t;
-
-static volatile uint8_t steer_on;
-static volatile float steer_out;
-static volatile steer_ref_t steer_prev_ref;
-static float steer_prev_error;
-static volatile float steer_trim;       // integral term: the motors' imbalance, kept across moves
-static int32_t steer_heading_ref;
-static uint8_t steer_divider;
-
-static void steer_start(void){
-    steer_prev_ref = REF_RESTART;
-    steer_out = 0.0f;
-    steer_on = 1;
-}
-
-static void steer_stop(void){
-    steer_on = 0;       // from now on SysTick leaves the LEDs alone
-    steer_out = 0.0f;
-    leds_set_mask(0);
-}
-
-// PID on the distance to one side wall (the right one first, as calibrated).
-// With no wall in range it holds the heading from the encoder difference
-// instead (gain KE; 0 = coast straight as before). The integral is the
-// differential PWM the motors need to drive straight: P alone settled ~11 mm
-// off-centre, which after a turn became a forward error of several cm. It is
-// learned only from walls while the wheels turn and the error is moderate
-// (bigger ones are transients or a post seen by the angled sensor), kept
-// across moves and applied without walls too.
-static void steer_update(void){
-    if(!steer_on) return;
-    steer_ref_t ref = REF_NONE;
-    float error = 0.0f;
-    uint8_t leds = 0x00;
-    const float sr = ir_mm(IR_SR), sl = ir_mm(IR_SL);
-    const float error_r = sr - LANE_WIDTH_MM / 2.0f;
-    const float error_l = LANE_WIDTH_MM / 2.0f - sl;
-    uint8_t right = sr < SIDE_WALL_TRACK_MM;
-    const uint8_t left = sl < SIDE_WALL_TRACK_MM;
-    // The right wall first, as calibrated, unless its reading is implausible
-    // (the angled beam catching a post or a wall ahead) and the left one
-    // agrees better with where the robot can be.
-    const float abs_r = error_r < 0.0f ? -error_r : error_r;
-    const float abs_l = error_l < 0.0f ? -error_l : error_l;
-    if(right && left && abs_r > STEER_ERROR_MAX_MM && abs_l < abs_r) right = 0;
-    if(right){
-        ref = REF_RIGHT;
-        error = error_r;
-        leds = 0x07;
-    }
-    else if(left){
-        ref = REF_LEFT;
-        error = error_l;
-        leds = 0x38;
-    }
-
-    float out;
-    if(ref != REF_NONE){
-        if(error > STEER_ERROR_MAX_MM) error = STEER_ERROR_MAX_MM;
-        else if(error < -STEER_ERROR_MAX_MM) error = -STEER_ERROR_MAX_MM;
-        // A new reference (start of a move, or the other wall), or a jump no
-        // real motion causes in 10 ms (a wall edge or a post seen by the
-        // angled beam), must not produce a derivative kick.
-        float change = error - steer_prev_error;
-        if(ref != steer_prev_ref || change > STEER_JUMP_MM || change < -STEER_JUMP_MM) steer_prev_error = error;
-        float trim = steer_trim;
-        if(params.ki <= 0.0f) trim = 0.0f;
-        else if(encoder_idle_ms() < STEER_TRIM_MOVING_MS
-                && error < STEER_TRIM_ERROR_MM && error > -STEER_TRIM_ERROR_MM){
-            trim += params.ki * error * (STEER_PERIOD_MS / 1000.0f);
-            if(trim > STEER_TRIM_MAX) trim = STEER_TRIM_MAX;
-            else if(trim < -STEER_TRIM_MAX) trim = -STEER_TRIM_MAX;
-        }
-        steer_trim = trim;
-        out = params.kp * error + params.kd * (error - steer_prev_error) + trim;
-        steer_prev_error = error;
-    }
-    else{
-        int32_t twist = encoder_total(ENCODER_L) - encoder_total(ENCODER_R);
-        if(steer_prev_ref != REF_NONE) steer_heading_ref = twist;  // walls just lost: hold this heading
-        out = -params.ke * (float)(twist - steer_heading_ref) + (params.ki > 0.0f ? steer_trim : 0.0f);
-    }
-    steer_prev_ref = ref;
-
-    if(out > PD_STRAIGHT_MAX) out = PD_STRAIGHT_MAX;
-    else if(out < -PD_STRAIGHT_MAX) out = -PD_STRAIGHT_MAX;
-    steer_out = out;
-    leds_set_mask(leds);
-}
+// Owned by SysTick while control_on; the main context only reads them, and
+// writes fwd.target (one aligned float store) to move the end of a straight.
+static profile_t fwd, rot;
+static control_t ctl;
+static steer_t steer;
+static volatile uint8_t control_on, steer_on;
+static volatile float steer_gain;
+static int32_t tick_l, tick_r;      // encoder totals at the last SysTick
+// Where the robot was each of the last TRAIL_LEN ms (forward axis): the IR
+// report the past (IR_DELAY_MS), and must be added to the position then.
+#define TRAIL_LEN 64
+#define IR_DELAY_MAX 60     // TUNE limit
+_Static_assert(IR_DELAY_MAX < TRAIL_LEN && IR_DELAY_MAX + STEER_AVERAGE_MAX / 2 < STEER_DELAY_MAX, "IR delay too long");
+static float trail[TRAIL_LEN];
+static volatile uint8_t trail_slot;
 
 void motion_tick_1ms(void){
-    if(++steer_divider >= STEER_PERIOD_MS){
-        steer_divider = 0;
-        steer_update();
+    const int32_t l = encoder_total(ENCODER_L), r = encoder_total(ENCODER_R);
+    const int32_t dl = l - tick_l, dr = r - tick_r;
+    tick_l = l;
+    tick_r = r;
+    if(!control_on) return;
+    profile_step(&fwd, CONTROL_DT_S);
+    profile_step(&rot, CONTROL_DT_S);
+    float heading = 0.0f;
+    if(steer_on){
+        const float ds = 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM;
+        const float rot_now = rot.pos + ctl.steer_prev - ctl.rot_error;     // heading since the move started
+        heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), ds, rot_now, steer_gain);
+        static const uint8_t WALL_LEDS[4] = {0x00, 0x07, 0x38, 0x3F};   // none, right, left, both
+        leds_set_mask(WALL_LEDS[steer.wall & 3u]);
     }
+    control_step(&ctl, &control_cfg, &fwd, &rot, heading, dl, dr, CONTROL_DT_S);
+    motor_set(MOTOR_L, ctl.pwm_l);
+    motor_set(MOTOR_R, ctl.pwm_r);
+    trail[trail_slot] = fwd.pos - ctl.fwd_error;
+    trail_slot = (uint8_t)((trail_slot + 1u) % TRAIL_LEN);
+}
+
+// Where the robot was when the IR readings now in were taken (this move).
+static float fwd_at_ir(void){
+    const uint8_t ms = (uint8_t)ir_delay;
+    return trail[(trail_slot + TRAIL_LEN - 1u - ms) % TRAIL_LEN];
+}
+
+static uint8_t move_id;     // changes with every move (CAL recordings rebase their reference)
+
+void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *id){
+    *fwd_mm = fwd.pos;
+    *rot_deg = rot.pos + ctl.steer_prev;
+    *id = move_id;
+}
+
+// A move from rest. Nothing drives until control_go(); SysTick leaves the
+// state alone meanwhile.
+static void control_begin(uint8_t steering){
+    control_on = 0;
+    move_id++;
+    steer_cfg.average_steps = (uint8_t)steer_average;
+    steer_cfg.delay_steps = (uint8_t)(ir_delay + steer_average / 2);  // the averaging delays by half its window
+    control_cfg.mm_per_deg = (float)params.turn_ticks / 90.0f / WHEEL_TICKS_PER_MM;
+    steer_cfg.kp = params.kp;
+    steer_cfg.ki = params.ki * 0.001f;     // per m travelled -> per mm
+    profile_reset(&fwd);
+    profile_reset(&rot);
+    control_reset(&ctl);
+    steer_reset(&steer);
+    steer_gain = 1.0f;
+    steer_on = steering;
+    for(uint8_t i = 0; i < TRAIL_LEN; i++) trail[i] = 0.0f;
+}
+
+static void control_go(void){
+    control_on = 1;
+}
+
+// Short brake: the move is over (or cut short).
+static void control_end(void){
+    control_on = 0;
+    motors_off();
+    if(steer_on){
+        steer_on = 0;
+        leds_set_mask(0);
+    }
+}
+
+// Where the robot really is on each axis: the reference minus the error.
+static float fwd_actual(void){
+    return fwd.pos - ctl.fwd_error;
 }
 
 // ---- Move supervision ----------------------------------------------------------------------
@@ -232,125 +230,104 @@ static void side_pass_clear(void){
 }
 
 typedef struct {
-    int32_t l0, r0;     // encoder totals at the start
-    int32_t dl, dr;     // travel since then
-} odo_t;
-
-static void odo_start(odo_t *o){
-    o->l0 = encoder_total(ENCODER_L);
-    o->r0 = encoder_total(ENCODER_R);
-    o->dl = 0;
-    o->dr = 0;
-}
-
-static void odo_update(odo_t *o){
-    o->dl = encoder_total(ENCODER_L) - o->l0;
-    o->dr = encoder_total(ENCODER_R) - o->r0;
-}
-
-static int32_t odo_travel(const odo_t *o){
-    return abs32(o->dl) + abs32(o->dr);
-}
-
-typedef struct {
-    uint32_t timeout_ms, deadline, progress_ms;
-    int32_t progress;
+    uint32_t start, deadline, done_at;
+    uint8_t done;               // the profiles finished at done_at
+    int32_t l0, r0;             // encoder totals at the start
+    float fwd_err_max, rot_err_max;
 } guard_t;
 
-static void guard_arm(guard_t *g, int32_t travel){
-    uint32_t now = HAL_GetTick();
-    g->deadline = now + g->timeout_ms;
-    g->progress_ms = now;
-    g->progress = travel;
-}
-
 static void guard_start(guard_t *g, uint32_t timeout_ms){
-    g->timeout_ms = timeout_ms;
-    guard_arm(g, 0);
+    g->start = HAL_GetTick();
+    g->l0 = encoder_total(ENCODER_L);
+    g->r0 = encoder_total(ENCODER_R);
+    g->deadline = g->start + timeout_ms;
+    g->done = 0;
+    g->done_at = 0;
+    g->fwd_err_max = g->rot_err_max = 0.0f;
 }
 
-// Once per control step: commands, pause, abort, stall and timeout.
-static move_result_t guard_check(guard_t *g, int32_t travel){
+// PAUSE mid-move: brake and wait; on RESUME, carry on from where the robot
+// actually is, from standstill, to the same target.
+static void hold_while_paused(guard_t *g){
+    const uint32_t since = HAL_GetTick();
+    control_on = 0;
+    motors_off();
+    while(paused && !abort_flag) poll_inputs();
+    if(abort_flag) return;
+    profile_resume(&fwd, fwd_actual());
+    profile_resume(&rot, rot.pos - ctl.rot_error);
+    control_clear_errors(&ctl);
+    g->deadline += HAL_GetTick() - since;
+    control_on = 1;
+}
+
+// Once per ms of every move: commands, pause, abort, timeout, and the
+// following error. Far behind the reference means something holds the robot
+// (a wall, a post) or the wheels slip: pushing on would only make it worse.
+static move_result_t guard_check(guard_t *g){
     poll_inputs();
-    if(paused && !abort_flag){
-        motors_off();
-        while(paused && !abort_flag) poll_inputs();
-        ramp_reset();           // resume smoothly from standstill
-        guard_arm(g, travel);
-    }
+    if(paused && !abort_flag) hold_while_paused(g);
     if(abort_flag) return MOVE_ABORTED;
-    uint32_t now = HAL_GetTick();
-    if(travel - g->progress >= STALL_MIN_TICKS){
-        g->progress = travel;
-        g->progress_ms = now;
-    }
-    else if(now - g->progress_ms > STALL_TIMEOUT_MS){
-        return MOVE_STALLED;
-    }
-    if((int32_t)(now - g->deadline) >= 0) return MOVE_TIMEOUT;
+    const float fe = fabsf(ctl.fwd_error), re = fabsf(ctl.rot_error);
+    if(fe > g->fwd_err_max) g->fwd_err_max = fe;
+    if(re > g->rot_err_max) g->rot_err_max = re;
+    if(fe > FWD_ERROR_MAX_MM) return MOVE_STALLED;
+    if(re > ROT_ERROR_MAX_DEG) return MOVE_SLIPPED;
+    if((int32_t)(HAL_GetTick() - g->deadline) >= 0) return MOVE_TIMEOUT;
     return MOVE_OK;
 }
 
-// Extra duty while the wheels have not started moving (static friction).
-static int16_t breakaway(const guard_t *g, int16_t *max_used){
-    uint32_t idle = HAL_GetTick() - g->progress_ms;
-    int32_t boost = idle > BREAKAWAY_DELAY_MS ? (int32_t)(idle - BREAKAWAY_DELAY_MS) / BREAKAWAY_MS_PER_PWM : 0;
-    if(boost > BREAKAWAY_MAX_PWM) boost = BREAKAWAY_MAX_PWM;
-    if(boost > *max_used) *max_used = (int16_t)boost;
-    return (int16_t)boost;
+// 1 once the profiles are done and the robot has caught up with them (or
+// SETTLE_MAX_MS later: a few tenths of a mm of friction are not worth more).
+static uint8_t guard_settled(guard_t *g){
+    if(fwd.active || rot.active) return 0;
+    const uint32_t now = HAL_GetTick();
+    if(!g->done){
+        g->done = 1;
+        g->done_at = now;
+    }
+    if(fabsf(ctl.fwd_error) < settle_mm && fabsf(ctl.rot_error) < settle_deg && encoder_idle_ms() >= 5) return 1;
+    return now - g->done_at >= SETTLE_MAX_MS;
 }
 
-static void print_boost(int16_t boost){
-    if(boost > 0) print("  arranque dificil: hizo falta +%d PWM\n", boost);
+// Runs the move set up in fwd/rot until it settles or fails.
+static move_result_t run_to_end(guard_t *g){
+    move_result_t r;
+    control_go();
+    for(;;){
+        wait_next_ms();
+        r = guard_check(g);
+        if(r != MOVE_OK || guard_settled(g)) break;
+    }
+    control_end();
+    return r;
+}
+
+static void print_errors(const guard_t *g){
+    char fe[12], re[12];
+    print(" t=%lums err=%smm/%sdeg\n", (unsigned long)(HAL_GetTick() - g->start),
+          format_fixed2(fe, sizeof(fe), g->fwd_err_max), format_fixed2(re, sizeof(re), g->rot_err_max));
 }
 
 // ---- Straight moves ---------------------------------------------------------------------------
 
-// Cruise, then slow down linearly (DECEL_TICKS_PER_PWM) so that the last
-// APPROACH_TICKS run at STOP_SPEED, where every stop was calibrated.
-static int16_t profile_speed(int32_t remaining, int16_t cruise){
-    if(cruise <= STOP_SPEED) return cruise;
-    if(remaining <= APPROACH_TICKS) return STOP_SPEED;
-    int32_t limit = STOP_SPEED + (remaining - APPROACH_TICKS) / DECEL_TICKS_PER_PWM;
-    return (int16_t)(limit < cruise ? limit : cruise);
-}
-
-// Extra coasting, in ticks, of braking at v ticks/ms instead of at the
-// calibrated approach speed.
-static int32_t extra_coast(float v){
-    float extra = BRAKE_TICKS_PER_V2 * (v * v - STOP_SPEED_TPMS * STOP_SPEED_TPMS);
-    if(extra <= 0.0f) return 0;
-    return extra > BRAKE_EXTRA_MAX_TICKS ? BRAKE_EXTRA_MAX_TICKS : (int32_t)extra;
+// Straight without walls: alignment nudges, backing up, the IR calibration.
+static move_result_t drive(float mm, float speed, guard_t *g){
+    control_begin(0);
+    profile_start(&fwd, mm, speed, 0.0f, (float)params.accel);
+    guard_start(g, MOVE_TIMEOUT_BASE_MS);
+    return run_to_end(g);
 }
 
 // After an early obstacle stop: reverse to where the move started, which is
 // the center of the cell the robot never left.
-static move_result_t back_up(odo_t *move){
-    odo_t own;
+static move_result_t back_up(float traveled){
     guard_t g;
-    move_result_t result = MOVE_BLOCKED;
-    int16_t max_boost = 0;
-    odo_start(&own);
-    guard_start(&g, 2 * DRIFT_CORRECT_TIMEOUT_MS);
-    ramp_reset();
-    for(;;){
-        wait_next_ms();
-        odo_update(move);
-        odo_update(&own);
-        if(move->dl + move->dr <= 0) break;
-        move_result_t check = guard_check(&g, odo_travel(&own));
-        if(check != MOVE_OK){
-            result = check == MOVE_ABORTED ? MOVE_ABORTED : MOVE_LOST;
-            break;
-        }
-        int16_t duty = (int16_t)(DRIFT_CORRECT_SPEED + breakaway(&g, &max_boost));
-        drive_ramped(MOTOR_L, (int16_t)-duty);
-        drive_ramped(MOTOR_R, (int16_t)-duty);
-    }
-    motors_off();
-    print("obstaculo delante: marcha atras %s (L=%ld R=%ld)\n",
-          result == MOVE_BLOCKED ? "OK" : move_result_name(result), (long)move->dl, (long)move->dr);
-    print_boost(max_boost);
+    move_result_t r = drive(-traveled, ALIGN_SPEED, &g);
+    move_result_t result = r == MOVE_OK ? MOVE_BLOCKED : r == MOVE_ABORTED ? MOVE_ABORTED : MOVE_LOST;
+    char mm[12];
+    print("obstaculo delante: marcha atras %s (%smm)\n", result == MOVE_BLOCKED ? "OK" : move_result_name(result),
+          format_fixed2(mm, sizeof(mm), traveled));
     return result;
 }
 
@@ -358,177 +335,153 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     side_pass_clear();
     if(!cells) return MOVE_OK;
     moved = 1;
-    const int32_t target = TICKS_FOR_CELLS(cells);
-    const int32_t max_wheel_diff = ENCODER_MAX_DIFF_TICKS + (int32_t)(cells - 1) * ENCODER_MAX_DIFF_PER_CELL;
-
-    odo_t o;
+    const float planned = (float)cells * CELL_MM;
     guard_t g;
-    uint8_t ir_close = 0, ir_emergency = 0;
-    int16_t max_boost = 0;
+    uint8_t ir_seen = 0, ir_emergency = 0;
     const char *stop = "ENC";
     move_result_t result;
-    // Speed from the travel 8 ms ago (ring buffer), for the braking margin.
-    int32_t history[8] = {0};
-    uint8_t slot = 0;
-    float v = 0.0f;
-    int32_t traveled = 0;
-    odo_start(&o);
+    float vmax = 0.0f, at = 0.0f;
+    control_begin(1);
+    profile_start(&fwd, planned, (float)cruise_speed, 0.0f, (float)params.accel);
     guard_start(&g, MOVE_TIMEOUT_BASE_MS + (uint32_t)cells * MOVE_TIMEOUT_PER_CELL_MS);
-    ramp_reset();
-    steer_start();
+    control_go();
     for(;;){
         wait_next_ms();
-        odo_update(&o);
-        result = guard_check(&g, odo_travel(&o));
+        result = guard_check(&g);
         if(result != MOVE_OK){
             stop = move_result_name(result);
             break;
         }
-
-        // Robot center = average of both wheels: under steering one wheel
-        // runs ahead, and stopping on it left the robot short.
-        traveled = (o.dl + o.dr) / 2;
-        v = (float)(traveled - history[slot]) / 8.0f;
-        history[slot] = traveled;
-        slot = (uint8_t)((slot + 1u) & 7u);
-        const int32_t extra = extra_coast(v);
-        int32_t remaining = target - traveled;
-        if(remaining <= extra){
-            result = abs32(o.dl - o.dr) <= max_wheel_diff ? MOVE_OK : MOVE_SLIPPED;
-            if(result != MOVE_OK) stop = move_result_name(result);
-            break;
-        }
+        at = fwd_actual();
+        const float remaining = fwd.target - at;
+        // Centring gain: KP up to steer_vref, then as 1/speed (see
+        // STEER_VREF_MM_S), fading out over the last STEER_FADE_MM.
+        const float fade = remaining < STEER_FADE_MM ? fmaxf(remaining, 0.0f) / STEER_FADE_MM : 1.0f;
+        steer_gain = fade * (fwd.speed > steer_vref ? steer_vref / fwd.speed : 1.0f);
+        if(fwd.speed > vmax) vmax = fwd.speed;
 
         // Side walls of the destination cell, read on the way in: here the
         // angled beams hit the middle of its walls. At the stop they aim a
         // couple of cm from the next post, and caught it as phantom walls.
-        if(remaining <= SIDE_PASS_TICKS && side_pass.n < WALL_SAMPLES){
+        // The readings are IR_DELAY_MS old: count from where they were taken.
+        if(fwd.target - fwd_at_ir() <= SIDE_PASS_MM && side_pass.n < WALL_SAMPLES){
             side_pass.n++;
             if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
             if(ir_mm(IR_SR) < WALL_DETECT_MM) side_pass.votes_r++;
         }
 
-        float fl = ir_mm(IR_FL);
-        float fr = ir_mm(IR_FR);
-        if(remaining <= FRONT_STOP_ZONE_TICKS){
-            // Final approach: a front wall is the best position reference.
-            // Both sensors must see it; their average is the distance, as in
-            // motion_align_front() (FR reads ~15 mm more than FL, so "both
-            // closer than X" really stopped on FR alone). Brake a little
-            // early: the robot coasts the rest of the way, more if it is
-            // still faster than the approach speed.
-            const float stop_mm = FRONT_WALL_REF_MM + FRONT_STOP_LEAD_MM + (float)extra / TICKS_PER_MM;
-            const uint8_t at_wall = fl < WALL_DETECT_MM && fr < WALL_DETECT_MM && (fl + fr) * 0.5f < stop_mm;
-            ir_close = at_wall ? (uint8_t)(ir_close + 1) : 0;
-            if(ir_close >= FRONT_STOP_CONFIRM_MS){
+        const float fl = ir_mm(IR_FL), fr = ir_mm(IR_FR);
+        if(remaining <= FRONT_ZONE_MM){
+            // A wall at the end of the move is the best position reference:
+            // aim the end at FRONT_WALL_REF_MM from it (FL/FR average, as in
+            // motion_align_front()). The profile brakes into the new target,
+            // so the robot stops there instead of coasting past a trigger.
+            const uint8_t wall = fl < front_track && fr < front_track
+                && fabsf(fl - fr - (float)FRONT_SQUARE_OFFSET_MM) < FRONT_IR_MAX_DIFF_MM;
+            ir_seen = wall ? (uint8_t)(ir_seen < 255u ? ir_seen + 1u : ir_seen) : 0u;
+            if(ir_seen >= FRONT_CONFIRM_MS && fwd.active){
+                // The reading is IR_DELAY_MS old: the wall is that far from
+                // where the robot was then (within 0.6 mm on the robot; the
+                // plain reading put it 18 mm too far at 400 mm/s).
+                float end = fwd_at_ir() + 0.5f * (fl + fr) - front_ref;
+                end = fminf(fmaxf(end, planned - FRONT_EARLY_MAX_MM), planned + FRONT_LATE_MAX_MM);
+                const float v = fwd.speed;
+                end = fmaxf(end, fwd.pos + v * v / (4.0f * fwd.rate));     // what braking twice as hard allows
+                fwd.target = end;
                 stop = "IR";
-                break;
             }
         }
         else{
             // Something this close before the final approach was not in the
             // plan: stop before touching it (farther out when going faster).
-            const float near_mm = FRONT_EMERGENCY_MM + (float)extra / TICKS_PER_MM;
-            ir_emergency = (fl < near_mm && fr < near_mm) ? (uint8_t)(ir_emergency + 1) : 0;
-            if(ir_emergency >= FRONT_STOP_CONFIRM_MS){
-                result = traveled < CELL_TICKS / 2 ? MOVE_BLOCKED : MOVE_LOST;
+            // The readings are IR_DELAY_MS old: count the way since.
+            const float v = fwd.speed;
+            const float near_mm = FRONT_EMERGENCY_MM + (at - fwd_at_ir()) + v * v / (2.0f * EMERGENCY_DECEL);
+            ir_emergency = (fl < near_mm && fr < near_mm) ? (uint8_t)(ir_emergency + 1u) : 0u;
+            if(ir_emergency >= FRONT_CONFIRM_MS){
+                result = at < CELL_MM / 2 ? MOVE_BLOCKED : MOVE_LOST;
                 stop = "OBSTACULO";
                 break;
             }
         }
-
-        float speed = (float)(profile_speed(remaining, cruise_speed) + breakaway(&g, &max_boost));
-        float steer = steer_out;
-        drive_ramped(MOTOR_L, (int16_t)(speed + steer));
-        drive_ramped(MOTOR_R, (int16_t)(speed - steer));
+        if(guard_settled(&g)) break;
     }
-    motors_off();
-    steer_stop();
-    // Nothing else (sensing, a turn) may start while the robot still slides.
-    const int32_t braked_at = traveled;
-    if(result == MOVE_OK && !wait_still(TURN_STILL_MS, FORWARD_SETTLE_MAX_MS)) result = MOVE_ABORTED;
-    odo_update(&o);
+    control_end();
+    at = fwd_actual();
     side_pass.valid = result == MOVE_OK && side_pass.n >= WALL_SAMPLES;
 
     if(params.log_level >= 2){
-        print("avance %u: L=%ld R=%ld obj=%ld fin=%s v=%dmm/s inercia=%ld IR(FL=%d FR=%d SL=%d SR=%d) lados=%c%c trim=%d\n",
-              cells, (long)o.dl, (long)o.dr, (long)target, stop, (int)(v * 1000.0f / TICKS_PER_MM),
-              (long)((o.dl + o.dr) / 2 - braked_at), (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
-              (int)ir_mm(IR_SR), side_pass.valid ? (side_pass.votes_l >= WALL_VOTES ? '1' : '0') : '-',
-              side_pass.valid ? (side_pass.votes_r >= WALL_VOTES ? '1' : '0') : '-', (int)steer_trim);
+        char dist[12], target[12];
+        print("avance %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%c%c",
+              cells, stop, format_fixed2(dist, sizeof(dist), at), format_fixed2(target, sizeof(target), fwd.target),
+              (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR),
+              side_pass.valid ? (side_pass.votes_l >= WALL_VOTES ? '1' : '0') : '-',
+              side_pass.valid ? (side_pass.votes_r >= WALL_VOTES ? '1' : '0') : '-');
+        print_errors(&g);
     }
-    print_boost(max_boost);
     if(result == MOVE_BLOCKED){
         side_pass_clear();
-        result = back_up(&o);
+        result = back_up(at);
     }
     return result;
 }
 
-move_result_t motion_drive_straight(int16_t pwm, int32_t ticks){
-    odo_t o;
+move_result_t motion_drive_straight(int16_t speed, int32_t mm){
     guard_t g;
-    move_result_t result = MOVE_OK;
-    int16_t max_boost = 0;
     moved = 1;
     side_pass_clear();
-    odo_start(&o);
-    guard_start(&g, MOVE_TIMEOUT_BASE_MS);
-    ramp_reset();
-    for(;;){
-        wait_next_ms();
-        odo_update(&o);
-        if(abs32((o.dl + o.dr) / 2) >= ticks) break;
-        result = guard_check(&g, odo_travel(&o));
-        if(result != MOVE_OK) break;
-        int16_t boost = breakaway(&g, &max_boost);
-        int16_t duty = (int16_t)(pwm >= 0 ? pwm + boost : pwm - boost);
-        drive_ramped(MOTOR_L, duty);
-        drive_ramped(MOTOR_R, duty);
-    }
-    motors_off();
-    print_boost(max_boost);
-    return result;
+    return drive(speed < 0 ? -(float)mm : (float)mm, (float)(speed < 0 ? -speed : speed), &g);
 }
+
+// ---- Turns -------------------------------------------------------------------------------------
+
+// In place, `deg` clockwise (negative = left). The forward loop holds the
+// robot on its spot meanwhile.
+static move_result_t rotate(float deg, float speed, guard_t *g){
+    control_begin(0);
+    profile_start(&rot, deg, speed, 0.0f, (float)params.turn_accel);
+    guard_start(g, MOVE_TIMEOUT_BASE_MS);
+    return run_to_end(g);
+}
+
+move_result_t motion_turn(int8_t quarter_turns){
+    if(!quarter_turns) return MOVE_OK;
+    guard_t g;
+    moved = 1;
+    side_pass_clear();     // the sides are other walls now
+    const float deg = 90.0f * (float)quarter_turns;
+    move_result_t r = rotate(deg, (float)params.turn_speed, &g);
+    if(params.log_level >= 2){
+        // Angle the encoders saw: exactly the target unless it failed.
+        const float dl = (float)(encoder_total(ENCODER_L) - g.l0), dr = (float)(encoder_total(ENCODER_R) - g.r0);
+        char turned[12];
+        print("giro %s: %sdeg de %d fin=%s TURNTICKS=%d", quarter_turns > 0 ? "der" : "izq",
+              format_fixed2(turned, sizeof(turned), 0.5f * (dl - dr) / WHEEL_TICKS_PER_MM / control_cfg.mm_per_deg),
+              (int)deg, r == MOVE_OK ? "OK" : move_result_name(r), params.turn_ticks);
+        print_errors(&g);
+    }
+    return r;
+}
+
+// ---- Front alignment -------------------------------------------------------------------------
 
 static float front_skew(void){
     return ir_mm(IR_FL) - ir_mm(IR_FR) - (float)FRONT_SQUARE_OFFSET_MM;
 }
 
-// Rotates in place until the front sensors read square to the wall again.
-// Closed loop on the IR itself, so no degrees-to-ticks conversion is needed.
-// Every move leaves some heading error (+-10 deg per cell was common); without
-// this it carried over, through the turns, into the next moves.
+// Rotates in place by the yaw the front sensors see, so each stop facing a
+// wall resets the heading error the moves leave behind.
 static void square_to_front(void){
-    float skew = front_skew();
-    if(skew <= SQUARE_TOL_MM && skew >= -SQUARE_TOL_MM) return;
-    if(skew > SQUARE_MAX_SKEW_MM || skew < -SQUARE_MAX_SKEW_MM) return;
-    const int8_t dir = skew > 0.0f ? 1 : -1;     // FL farther: yawed left, rotate right
-    odo_t o;
+    const float skew = front_skew();
+    if(fabsf(skew) <= SQUARE_TOL_MM || fabsf(skew) > SQUARE_MAX_SKEW_MM) return;
     guard_t g;
-    move_result_t result = MOVE_OK;
-    int16_t max_boost = 0;
-    odo_start(&o);
-    guard_start(&g, SQUARE_TIMEOUT_MS);
-    ramp_reset();
-    for(;;){
-        wait_next_ms();
-        odo_update(&o);
-        if((float)dir * front_skew() <= SQUARE_STOP_LEAD_MM) break;      // nearly square: it coasts the rest
-        if(dir * (o.dl - o.dr) / 2 >= SQUARE_MAX_TICKS) break;
-        result = guard_check(&g, odo_travel(&o));
-        if(result != MOVE_OK) break;
-        int16_t duty = (int16_t)(params.turn_speed + breakaway(&g, &max_boost));
-        drive_ramped(MOTOR_L, (int16_t)(dir * duty));
-        drive_ramped(MOTOR_R, (int16_t)(-dir * duty));
-    }
-    motors_off();
-    if(result == MOVE_OK) wait_still(TURN_STILL_MS, TURN_SETTLE_MS);
-    odo_update(&o);
+    const float deg = skew / SQUARE_MM_PER_DEG;     // FL farther: yawed left, rotate right
+    move_result_t r = rotate(deg, (float)params.turn_speed / SQUARE_SPEED_DIV, &g);
     if(params.log_level >= 2){
-        print("escuadrado: sesgo=%dmm L=%ld R=%ld -> %dmm%s%s\n", (int)skew, (long)o.dl, (long)o.dr,
-              (int)front_skew(), result == MOVE_OK ? "" : " ", result == MOVE_OK ? "" : move_result_name(result));
-        print_boost(max_boost);
+        char a[12];
+        print("escuadrado: sesgo=%dmm giro=%sdeg -> %dmm%s%s", (int)skew, format_fixed2(a, sizeof(a), deg),
+              (int)front_skew(), r == MOVE_OK ? "" : " ", r == MOVE_OK ? "" : move_result_name(r));
+        print_errors(&g);
     }
 }
 
@@ -536,93 +489,21 @@ void motion_align_front(void){
     float fl = ir_mm(IR_FL);
     float fr = ir_mm(IR_FR);
     if(fl >= WALL_DETECT_MM || fr >= WALL_DETECT_MM) return;
-    // Heading first (with the robot still), then distance with fresh readings.
-    wait_still(TURN_STILL_MS, TURN_SETTLE_MS);
     square_to_front();
     fl = ir_mm(IR_FL);
     fr = ir_mm(IR_FR);
     if(fl >= WALL_DETECT_MM || fr >= WALL_DETECT_MM) return;
-    if(abs32((int32_t)(fl - fr) - FRONT_SQUARE_OFFSET_MM) > FRONT_IR_MAX_DIFF_MM) return;
-    int32_t error_mm = (int32_t)((fl + fr) / 2.0f) - FRONT_WALL_REF_MM;
-    if(abs32(error_mm) <= ALIGN_DEADBAND_MM || abs32(error_mm) > DRIFT_CORRECT_MAX_MM) return;
-
-    // Farther than expected: forward. Closer: back.
-    const int32_t target = abs32(error_mm) * TICKS_PER_MM;
-    const int16_t sign = error_mm > 0 ? 1 : -1;
-    odo_t o;
+    if(fabsf(fl - fr - (float)FRONT_SQUARE_OFFSET_MM) > FRONT_IR_MAX_DIFF_MM) return;
+    const float error_mm = 0.5f * (fl + fr) - (float)FRONT_WALL_REF_MM;
+    if(fabsf(error_mm) <= ALIGN_DEADBAND_MM || fabsf(error_mm) > ALIGN_MAX_MM) return;
     guard_t g;
-    move_result_t result = MOVE_OK;
-    int16_t max_boost = 0;
-    odo_start(&o);
-    guard_start(&g, DRIFT_CORRECT_TIMEOUT_MS);
-    ramp_reset();
-    for(;;){
-        wait_next_ms();
-        odo_update(&o);
-        // Each wheel stops at its own target: stopping both on the first one
-        // left the robot rotated a few degrees (the right wheel runs faster).
-        const uint8_t l_done = abs32(o.dl) >= target, r_done = abs32(o.dr) >= target;
-        if(l_done && r_done) break;
-        result = guard_check(&g, odo_travel(&o));
-        if(result != MOVE_OK) break;
-        int16_t duty = (int16_t)(sign * (DRIFT_CORRECT_SPEED + breakaway(&g, &max_boost)));
-        if(l_done) wheel_stop(MOTOR_L);
-        else drive_ramped(MOTOR_L, duty);
-        if(r_done) wheel_stop(MOTOR_R);
-        else drive_ramped(MOTOR_R, duty);
-    }
-    motors_off();
+    move_result_t r = drive(error_mm, ALIGN_SPEED, &g);     // farther than expected: forward
     if(params.log_level >= 2){
-        print("alineado frontal: err=%ldmm L=%ld R=%ld%s%s\n", (long)error_mm, (long)o.dl, (long)o.dr,
-              result == MOVE_OK ? "" : " ", result == MOVE_OK ? "" : move_result_name(result));
-        print_boost(max_boost);
+        char e[12];
+        print("alineado frontal: err=%smm%s%s", format_fixed2(e, sizeof(e), error_mm),
+              r == MOVE_OK ? "" : " ", r == MOVE_OK ? "" : move_result_name(r));
+        print_errors(&g);
     }
-}
-
-// ---- Turns -------------------------------------------------------------------------------------
-
-static move_result_t turn_quarter(int8_t dir){
-    odo_t o;
-    guard_t g;
-    move_result_t result;
-    int16_t max_boost = 0;
-    const int16_t speed = params.turn_speed;
-    side_pass_clear();     // the sides are other walls now
-    odo_start(&o);
-    guard_start(&g, MOVE_TIMEOUT_BASE_MS);
-    ramp_reset();
-    for(;;){
-        wait_next_ms();
-        odo_update(&o);
-        result = guard_check(&g, odo_travel(&o));
-        if(result != MOVE_OK) break;
-        // Half the wheel difference, exactly as TICKS_PER_TURN was calibrated.
-        if(dir * (o.dl - o.dr) / 2 >= params.turn_ticks) break;
-        int16_t duty = (int16_t)(speed + breakaway(&g, &max_boost));
-        drive_ramped(MOTOR_L, (int16_t)(dir * duty));
-        drive_ramped(MOTOR_R, (int16_t)(-dir * duty));
-    }
-    motors_off();
-    // Let the rotation die out before anything else is measured or started.
-    if(result == MOVE_OK && !wait_still(TURN_STILL_MS, TURN_SETTLE_MS)) result = MOVE_ABORTED;
-    odo_update(&o);
-    if(params.log_level >= 2){
-        print("giro %s: L=%ld R=%ld obj=%d fin=%s\n", dir > 0 ? "der" : "izq",
-              (long)o.dl, (long)o.dr, params.turn_ticks, result == MOVE_OK ? "ENC" : move_result_name(result));
-    }
-    print_boost(max_boost);
-    return result;
-}
-
-move_result_t motion_turn(int8_t quarter_turns){
-    int8_t dir = quarter_turns > 0 ? 1 : -1;
-    uint8_t count = (uint8_t)(quarter_turns > 0 ? quarter_turns : -quarter_turns);
-    moved = 1;
-    for(uint8_t i = 0; i < count; i++){
-        move_result_t r = turn_quarter(dir);
-        if(r != MOVE_OK) return r;
-    }
-    return MOVE_OK;
 }
 
 // ---- Sensing and signalling ----------------------------------------------------------------------
@@ -630,7 +511,7 @@ move_result_t motion_turn(int8_t quarter_turns){
 move_result_t motion_sense_walls(wall_sense_t *out){
     // Let the chassis stop rocking first: sampling right at the stop was a
     // source of phantom walls.
-    if(!motion_wait(SENSE_SETTLE_MS)) return MOVE_ABORTED;
+    if(!motion_wait((uint32_t)sense_settle)) return MOVE_ABORTED;
     uint8_t votes[IR_COUNT] = {0};
     float sum[IR_COUNT] = {0.0f};
     for(uint8_t i = 0; i < WALL_SAMPLES; i++){
@@ -648,7 +529,7 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     motion_doubt_sides(out, fl_seen, fr_seen, sum[IR_FL] / WALL_SAMPLES, sum[IR_FR] / WALL_SAMPLES,
                        FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM);
     // Just arrived from a straight: the sides read on the way in are better
-    // than any reading from here (see SIDE_PASS_TICKS).
+    // than any reading from here (see SIDE_PASS_MM).
     out->moving = side_pass.valid;
     if(side_pass.valid){
         out->left = side_pass.votes_l >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
@@ -675,7 +556,72 @@ void motion_indicate(indication_t what){
 }
 
 void motion_stop(void){
-    steer_stop();
-    motors_off();
+    control_end();
     side_pass_clear();
+}
+
+// ---- Live tuning (TUNE) ----------------------------------------------------------------
+
+typedef struct {
+    const char *name;
+    float *value;
+    float min, max;
+    uint8_t decimals;
+} tunable_t;
+
+static const tunable_t TUNABLES[] = {
+    {"FWD_KP", &control_cfg.fwd_kp, 0.0f, 300.0f, 1},
+    {"FWD_KD", &control_cfg.fwd_kd, 0.0f, 10.0f, 2},
+    {"ROT_KP", &control_cfg.rot_kp, 0.0f, 200.0f, 1},
+    {"ROT_KD", &control_cfg.rot_kd, 0.0f, 10.0f, 2},
+    {"ROT_KI", &control_cfg.rot_ki, 0.0f, 2000.0f, 0},
+    {"KV_L", &control_cfg.kv_l, 0.3f, 3.0f, 3},
+    {"KV_R", &control_cfg.kv_r, 0.3f, 3.0f, 3},
+    {"TAU", &control_cfg.tau, 0.0f, 0.3f, 3},
+    {"KS", &control_cfg.ks, 0.0f, 200.0f, 1},
+    {"SETTLE_KI_FWD", &control_cfg.settle_ki_fwd, 0.0f, 20000.0f, 0},
+    {"SETTLE_KI_ROT", &control_cfg.settle_ki_rot, 0.0f, 20000.0f, 0},
+    {"SETTLE_I_MAX", &control_cfg.settle_i_max, 0.0f, 400.0f, 0},
+    {"STEER_MAX", &steer_cfg.max_deg, 0.0f, 30.0f, 1},
+    {"STEER_CURVE", &steer_cfg.curve_deg, 0.01f, 5.0f, 2},
+    {"STEER_AVG", &steer_average, 1.0f, STEER_AVERAGE_MAX, 0},
+    {"BIAS_WIN", &steer_cfg.bias_window_mm, 0.0f, 30.0f, 1},
+    {"STEER_VREF", &steer_vref, 100.0f, 3000.0f, 0},
+    {"SETTLE_MM", &settle_mm, 0.1f, 5.0f, 2},
+    {"SETTLE_DEG", &settle_deg, 0.1f, 5.0f, 2},
+    {"CENTER_L", &steer_cfg.center_l_mm, 40.0f, 130.0f, 1},
+    {"CENTER_R", &steer_cfg.center_r_mm, 40.0f, 130.0f, 1},
+    {"IR_DELAY", &ir_delay, 0.0f, IR_DELAY_MAX, 0},
+    {"FRONT_TRACK", &front_track, 100.0f, 250.0f, 0},
+    {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
+    {"WHEEL_DIFF", &control_cfg.wheel_diff, -0.05f, 0.05f, 3},
+    {"SENSE_SETTLE", &sense_settle, 0.0f, 200.0f, 0},
+};
+
+#define TUNABLE_COUNT (sizeof(TUNABLES) / sizeof(TUNABLES[0]))
+
+void motion_tune_list(void){
+    char v[16];
+    for(uint8_t i = 0; i < TUNABLE_COUNT; i++){
+        uart_wait_space(200);
+        print("%s=%s\n", TUNABLES[i].name, format_fixed(v, sizeof(v), *TUNABLES[i].value, TUNABLES[i].decimals));
+    }
+}
+
+void motion_tune_set(const char *name, float value){
+    char v[16], lo[16], hi[16];
+    for(uint8_t i = 0; i < TUNABLE_COUNT; i++){
+        const tunable_t *t = &TUNABLES[i];
+        if(strcmp(t->name, name) != 0) continue;
+        if(value < t->min || value > t->max){
+            print("%s %s-%s\n", t->name, format_fixed(lo, sizeof(lo), t->min, t->decimals),
+                  format_fixed(hi, sizeof(hi), t->max, t->decimals));
+            return;
+        }
+        *t->value = value;      // one aligned store: SysTick sees the old or the new value
+        print("%s=%s (hasta reiniciar; en robot_config.h para siempre)\n", t->name,
+              format_fixed(v, sizeof(v), value, t->decimals));
+        return;
+    }
+    print("TUNE: %s no existe (TUNE solo: lista)\n", name);
 }

@@ -27,9 +27,9 @@ typedef struct {
 
 typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
 
-// Drives `cells` cells straight. Cruises at `cruise_speed` and slows down to
-// STOP_SPEED before the end, so every stop happens at the speed the cell
-// length was calibrated at. Stops early on a front wall.
+// Drives `cells` cells straight, cruising at `cruise_speed` mm/s (speed
+// control: speeds up and brakes at ACCEL and stops exactly at the end, or at
+// the calibrated distance from a wall seen in front).
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);
 // Turns in place: -1 = 90 deg left, +1 = 90 deg right, 2 = 180 deg.
 move_result_t motion_turn(int8_t quarter_turns);
@@ -78,11 +78,15 @@ static inline const char *move_result_name(move_result_t r){
 }
 
 // ---- Robot only (not used by search.c) ---------------------------------------
-void motion_tick_1ms(void);             // from SysTick: steering controller at 100 Hz
+void motion_tick_1ms(void);             // from SysTick: speed control and centring
+// Where the profiles are now and which move they belong to (SysTick: CAL recordings).
+void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id);
+void motion_tune_list(void);                        // TUNE: control constants that can change live
+void motion_tune_set(const char *name, float value);
 void motion_stop(void);
 uint8_t motion_wait(uint32_t ms);       // keeps polling inputs; 0 if aborted meanwhile
-// Both wheels at `pwm` (ramped, no steering) until the robot moved `ticks`.
-move_result_t motion_drive_straight(int16_t pwm, int32_t ticks);
+// Straight `mm` at `speed` mm/s (negative = backwards), without centring.
+move_result_t motion_drive_straight(int16_t speed, int32_t mm);
 void motion_request_abort(void);
 void motion_clear_abort(void);
 uint8_t motion_abort_requested(void);

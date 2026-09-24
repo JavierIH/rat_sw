@@ -7,7 +7,7 @@
 #include "params.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-#define STORE_VERSION   3u
+#define STORE_VERSION   4u      // 4: speeds in mm/s and deg/s
 
 typedef struct {
     uint32_t magic;
@@ -32,11 +32,12 @@ static uint32_t record_crc(const record_t *r){
 static uint8_t params_sane(const params_t *p){
     // Written by us with range-checked values; this only guards against a
     // layout mix-up that the CRC could not catch.
-    return p->kp >= 0.0f && p->kp <= 100.0f && p->kd >= 0.0f && p->kd <= 1000.0f
-        && p->ke >= 0.0f && p->ke <= 100.0f && p->ki >= 0.0f && p->ki <= 100.0f
-        && p->search_speed >= 0 && p->search_speed <= 1000
-        && p->fast_speed >= 0 && p->fast_speed <= 1000
-        && p->turn_speed >= 0 && p->turn_speed <= 1000
+    return p->kp >= 0.0f && p->kp <= 10.0f && p->ki >= 0.0f && p->ki <= 100.0f
+        && p->search_speed >= SPEED_MIN && p->search_speed <= SPEED_MAX
+        && p->fast_speed >= SPEED_MIN && p->fast_speed <= SPEED_MAX
+        && p->accel >= ACCEL_MIN && p->accel <= ACCEL_MAX
+        && p->turn_speed >= TURN_SPEED_MIN && p->turn_speed <= TURN_SPEED_MAX
+        && p->turn_accel >= TURN_ACCEL_MIN && p->turn_accel <= TURN_ACCEL_MAX
         && p->turn_ticks >= 300 && p->turn_ticks <= 600
         && p->log_level <= 2 && p->telemetry <= 1;
 }

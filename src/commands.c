@@ -117,17 +117,17 @@ static void cmd_help(const char *args);
 
 static void cmd_status(const char *args){
     (void)args;
-    char kp[12], ki[12], kd[12], ke[12];
+    char kp[12], ki[12];
     uint8_t x, y;
     heading_t h;
     search_pose(&x, &y, &h);
     print("modo %u %s | %s | robot (%u,%u)%c %s\n", app_mode(), app_mode_name(app_mode()),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
-    print("SPD %d FAST %d TURN %d TURNTICKS %d KP %s KI %s KD %s KE %s LOG %u%s\n", params.search_speed,
-          params.fast_speed, params.turn_speed, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
-          format_fixed2(ki, sizeof(ki), params.ki), format_fixed2(kd, sizeof(kd), params.kd),
-          format_fixed2(ke, sizeof(ke), params.ke), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
+    print("SPD %d FAST %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KI %s LOG %u%s\n", params.search_speed,
+          params.fast_speed, params.accel, params.turn_speed, params.turn_accel, params.turn_ticks,
+          format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki), params.log_level,
+          motion_step_mode() ? " | PASO A PASO" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
@@ -198,14 +198,14 @@ static void cmd_step(const char *args){
     print(on ? "paso a paso ON: pausa tras cada accion, RESUME para seguir\n" : "paso a paso OFF\n");
 }
 
-static void set_speed(const char *args, int16_t *dst, const char *name){
+static void set_value(const char *args, int16_t *dst, int32_t min, int32_t max, const char *name, const char *unit){
     uint32_t v;
-    if(!parse_uint(&args, &v) || !at_end(args) || v > 1000u){
-        print("%s 0-1000\n", name);
+    if(!parse_uint(&args, &v) || !at_end(args) || v < (uint32_t)min || v > (uint32_t)max){
+        print("%s %ld-%ld %s (ahora %d)\n", name, (long)min, (long)max, unit, *dst);
         return;
     }
-    *dst = (int16_t)v;
-    print("%s=%d\n", name, *dst);
+    *dst = (int16_t)v;      // single aligned store: a move reads it once, at its start
+    print("%s=%d %s\n", name, *dst, unit);
 }
 
 static void set_gain(const char *args, float *dst, float max, const char *name){
@@ -219,23 +219,48 @@ static void set_gain(const char *args, float *dst, float max, const char *name){
     print("%s=%s\n", name, format_fixed2(buf, sizeof(buf), v));
 }
 
-static void cmd_spd(const char *args){ set_speed(args, &params.search_speed, "SPD"); }
-static void cmd_fast(const char *args){ set_speed(args, &params.fast_speed, "FAST"); }
-static void cmd_turn(const char *args){ set_speed(args, &params.turn_speed, "TURN"); }
+static void cmd_spd(const char *args){ set_value(args, &params.search_speed, SPEED_MIN, SPEED_MAX, "SPD", "mm/s"); }
+static void cmd_fast(const char *args){ set_value(args, &params.fast_speed, SPEED_MIN, SPEED_MAX, "FAST", "mm/s"); }
+static void cmd_accel(const char *args){ set_value(args, &params.accel, ACCEL_MIN, ACCEL_MAX, "ACCEL", "mm/s2"); }
+static void cmd_turn(const char *args){
+    set_value(args, &params.turn_speed, TURN_SPEED_MIN, TURN_SPEED_MAX, "TURN", "grados/s");
+}
+static void cmd_taccel(const char *args){
+    set_value(args, &params.turn_accel, TURN_ACCEL_MIN, TURN_ACCEL_MAX, "TACCEL", "grados/s2");
+}
 static void cmd_turnticks(const char *args){
-    uint32_t v;
-    if(!parse_uint(&args, &v) || !at_end(args) || v < 300u || v > 600u){
-        print("TURNTICKS 300-600 (ticks de un giro de 90; ahora %d)\n", params.turn_ticks);
-        return;
-    }
-    params.turn_ticks = (int16_t)v;
-    print("TURNTICKS=%d (SAVE para guardarlo)\n", params.turn_ticks);
+    set_value(args, &params.turn_ticks, 300, 600, "TURNTICKS", "ticks por 90 grados (SAVE para guardarlo)");
 }
 
-static void cmd_kp(const char *args){ set_gain(args, &params.kp, 100.0f, "KP"); }
+static void cmd_kp(const char *args){ set_gain(args, &params.kp, 10.0f, "KP"); }
 static void cmd_ki(const char *args){ set_gain(args, &params.ki, 100.0f, "KI"); }
-static void cmd_kd(const char *args){ set_gain(args, &params.kd, 1000.0f, "KD"); }
-static void cmd_ke(const char *args){ set_gain(args, &params.ke, 100.0f, "KE"); }
+
+// TUNE [name value]: live experiments with the control constants (not saved).
+static void cmd_tune(const char *args){
+    const char *p = skip_spaces(args);
+    if(!*p){
+        motion_tune_list();
+        return;
+    }
+    char name[16];
+    size_t len = strcspn(p, " ");
+    float v;
+    if(len >= sizeof(name)){
+        print("TUNE: nombre desconocido\n");
+        return;
+    }
+    memcpy(name, p, len);
+    name[len] = '\0';
+    for(size_t i = 0; i < len; i++) if(name[i] >= 'a' && name[i] <= 'z') name[i] = (char)(name[i] - 'a' + 'A');
+    p = skip_spaces(p + len);
+    const uint8_t negative = *p == '-';
+    if(negative) p++;
+    if(!parse_decimal(&p, &v) || !at_end(p)){
+        print("TUNE nombre valor (TUNE solo: lista)\n");
+        return;
+    }
+    motion_tune_set(name, negative ? -v : v);
+}
 
 static void cmd_log(const char *args){
     uint32_t v;
@@ -352,18 +377,18 @@ static void cmd_cal(const char *args){
                 a = 2000;
                 if(parse_int(&p, &a)) ok = a >= 100 && a <= 3000;
                 break;
-            case CAL_STRAIGHT:  // [cells] [pwm]
+            case CAL_STRAIGHT:  // [cells] [mm/s]
                 a = 1;
                 b = params.search_speed;
-                if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= 0 && b <= 1000;
+                if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= SPEED_MIN && b <= SPEED_MAX;
                 ok = ok && a >= 1 && a <= MAZE_SIZE - 1;
                 break;
             case CAL_TURN:      // [quarter turns, negative = left]
                 a = 4;
                 if(parse_int(&p, &a)) ok = a != 0 && a >= -8 && a <= 8;
                 break;
-            case CAL_STEP:      // [pwm] [ms]
-                a = params.search_speed;
+            case CAL_STEP:      // [pwm] [ms]: open loop, no speed control
+                a = 400;
                 b = 500;
                 if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= 50 && b <= 2000;
                 ok = ok && a >= 0 && a <= 1000;
@@ -377,7 +402,7 @@ static void cmd_cal(const char *args){
         }
     }
     if(!ok || !at_end(p)){
-        print("CAL NOISE [ms] | STRAIGHT [celdas] [pwm] | TURN [+-cuartos] | STEP [pwm] [ms] | IR [mm] | DUMP\n");
+        print("CAL NOISE [ms] | STRAIGHT [celdas] [mm/s] | TURN [+-cuartos] | STEP [pwm] [ms] | IR [mm] | DUMP\n");
         return;
     }
     app_request_cal(TESTS[found].test, a, b);
@@ -401,14 +426,15 @@ static const command_t COMMANDS[] = {
     {"RESUME",   cmd_resume,   0, "continua tras PAUSE o un paso"},
     {"STEP",     cmd_step,     0, "ON|OFF: pausa tras cada accion"},
     {"DEBUG",    cmd_step,     0, NULL},
-    {"SPD",      cmd_spd,      0, "n: PWM de busqueda y de final de recta"},
-    {"FAST",     cmd_fast,     0, "n: PWM de crucero en carrera rapida"},
-    {"TURN",     cmd_turn,     0, "n: PWM de giro"},
+    {"SPD",      cmd_spd,      0, "n: mm/s de crucero en busqueda y vuelta"},
+    {"FAST",     cmd_fast,     0, "n: mm/s de crucero en carrera rapida"},
+    {"ACCEL",    cmd_accel,    0, "n: mm/s2 de aceleracion y frenada en recta"},
+    {"TURN",     cmd_turn,     0, "n: grados/s maximos de giro"},
+    {"TACCEL",   cmd_taccel,   0, "n: grados/s2 de giro"},
     {"TURNTICKS", cmd_turnticks, 0, "n: ticks de un giro de 90 (menos = gira menos)"},
-    {"KP",       cmd_kp,       0, "f: ganancia P de centrado"},
-    {"KI",       cmd_ki,       0, "f: ganancia I de centrado (corrige el desvio; 0 = off)"},
-    {"KD",       cmd_kd,       0, "f: ganancia D de centrado"},
-    {"KE",       cmd_ke,       0, "f: mantener rumbo sin paredes (0 = off)"},
+    {"KP",       cmd_kp,       0, "f: centrado, grados de rumbo por mm descentrado"},
+    {"KI",       cmd_ki,       0, "f: centrado, corrige el rumbo torcido (grados por mm y metro; 0 = off)"},
+    {"TUNE",     cmd_tune,     0, "[nombre valor]: ajusta en vivo el control (no se guarda)"},
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},
     {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
     {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},

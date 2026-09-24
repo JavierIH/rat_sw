@@ -1,4 +1,5 @@
 #include "calib.h"
+#include <math.h>
 #include <stdio.h>
 #include "stm32f1xx_hal.h"
 #include "commands.h"
@@ -10,23 +11,29 @@
 #include "robot_config.h"
 #include "uart.h"
 
-#define CAL_CAPACITY    384     // 6 KB of RAM
+#define CAL_CAPACITY    320     // 6.4 KB of RAM
 #define CAL_MAX_PERIOD_MS 50    // coarsest resolution before a recording gives up
 #define CAL_COAST_MS    300     // keep recording after the motion ends
+#define CAL_IR_SPEED    100     // mm/s backing away from the wall
+#define CAL_TURN_GAP_MS 100     // pause between the quarter turns of CAL TURN
 
 typedef struct {
     int16_t enc_l, enc_r;       // ticks since the recording started
     int16_t pwm_l, pwm_r;       // duty requested
     uint16_t ir[IR_COUNT];      // raw ADC (averaged)
+    int16_t ref_fwd;            // forward reference, 0.1 mm since the recording started
+    int16_t ref_rot;            // rotation reference incl. centring, 0.01 deg
 } sample_t;
 
-_Static_assert(sizeof(sample_t) == 16, "sample layout");
+_Static_assert(sizeof(sample_t) == 20, "sample layout");
 
 static sample_t samples[CAL_CAPACITY];
 static volatile uint16_t count;
 static volatile uint8_t recording, full;
 static uint8_t period_ms, divider;
 static int32_t enc_l0, enc_r0;
+static float ref_fwd0, ref_rot0, ref_fwd_last, ref_rot_last;
+static uint8_t ref_id;
 static char description[32];
 static const char *outcome = "sin datos";
 
@@ -52,6 +59,20 @@ void calib_tick_1ms(void){
         s->pwm_l = motor_get(MOTOR_L);
         s->pwm_r = motor_get(MOTOR_R);
         for(uint8_t i = 0; i < IR_COUNT; i++) s->ir[i] = ir_raw((ir_sensor_t)i);
+        // Every move restarts its profiles at 0: carry on from where the
+        // last one ended, so the recorded reference is continuous.
+        float f, r;
+        uint8_t id;
+        motion_reference(&f, &r, &id);
+        if(id != ref_id){
+            ref_fwd0 += ref_fwd_last;
+            ref_rot0 += ref_rot_last;
+            ref_id = id;
+        }
+        ref_fwd_last = f;
+        ref_rot_last = r;
+        s->ref_fwd = (int16_t)lroundf((ref_fwd0 + f) * 10.0f);
+        s->ref_rot = (int16_t)lroundf((ref_rot0 + r) * 100.0f);
         count++;
     }
     if(++divider >= period_ms) divider = 0;
@@ -65,6 +86,12 @@ static void record_start(uint32_t period){
     period_ms = (uint8_t)(period < 1 ? 1 : period > CAL_MAX_PERIOD_MS ? CAL_MAX_PERIOD_MS : period);
     enc_l0 = encoder_total(ENCODER_L);
     enc_r0 = encoder_total(ENCODER_R);
+    float f, r;
+    motion_reference(&f, &r, &ref_id);
+    ref_fwd0 = -f;      // the recording starts at 0 whatever the profiles hold
+    ref_rot0 = -r;
+    ref_fwd_last = f;
+    ref_rot_last = r;
     recording = 1;
 }
 
@@ -88,7 +115,7 @@ static uint8_t wait_slot(void){
 }
 
 static void dump(void){
-    char kp[12], ki[12], kd[12], ke[12];
+    char kp[12], ki[12];
     if(!count){
         print("CAL: no hay datos grabados\n");
         return;
@@ -100,17 +127,25 @@ static void dump(void){
     print("@D INFO period_ms=%u samples=%u capacity=%u result=%s build=\"%s %s\"\n",
           period_ms, count, CAL_CAPACITY, outcome, __DATE__, __TIME__);
     if(!wait_slot()) goto interrupted;
-    print("@D INFO ticks_per_mm=%u cell_ticks=%u move_extra_ticks=%u ticks_per_turn=%d turn_still_ms=%u\n",
-          TICKS_PER_MM, CELL_TICKS, MOVE_EXTRA_TICKS, params.turn_ticks, TURN_STILL_MS);
+    {
+        char tpm[12], kv_l[12], kv_r[12], tau[12];
+        print("@D INFO ticks_per_mm=%s cell_mm=%u turn_ticks=%d kv_l=%s kv_r=%s tau_ms=%s ks=%u\n",
+              format_fixed2(tpm, sizeof(tpm), WHEEL_TICKS_PER_MM), CELL_MM, params.turn_ticks,
+              format_fixed2(kv_l, sizeof(kv_l), MOTOR_KV_L), format_fixed2(kv_r, sizeof(kv_r), MOTOR_KV_R),
+              format_fixed2(tau, sizeof(tau), MOTOR_TAU_S * 1000.0f), (unsigned)MOTOR_KS_PWM);
+    }
     if(!wait_slot()) goto interrupted;
-    print("@D INFO spd=%d fast=%d turn=%d kp=%s ki=%s kd=%s ke=%s pd_max=%u accel_step_per_ms=%u\n",
-          params.search_speed, params.fast_speed, params.turn_speed, format_fixed2(kp, sizeof(kp), params.kp),
-          format_fixed2(ki, sizeof(ki), params.ki), format_fixed2(kd, sizeof(kd), params.kd),
-          format_fixed2(ke, sizeof(ke), params.ke),
-          PD_STRAIGHT_MAX, ACCEL_STEP_PER_MS);
+    print("@D INFO spd=%d fast=%d accel=%d turn=%d turn_accel=%d kp=%s ki=%s\n",
+          params.search_speed, params.fast_speed, params.accel, params.turn_speed, params.turn_accel,
+          format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki));
     if(!wait_slot()) goto interrupted;
-    print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u lane_mm=%u\n",
-          WALL_DETECT_MM, FRONT_WALL_REF_MM, FRONT_EMERGENCY_MM, SIDE_WALL_TRACK_MM, (unsigned)LANE_WIDTH_MM);
+    {
+        char cl[12], cr[12];
+        print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u lane_mm=%u"
+              " center_l=%s center_r=%s\n", WALL_DETECT_MM, FRONT_WALL_REF_MM, FRONT_EMERGENCY_MM,
+              SIDE_WALL_TRACK_MM, (unsigned)LANE_WIDTH_MM, format_fixed(cl, sizeof(cl), SIDE_CENTER_L_MM, 1),
+              format_fixed(cr, sizeof(cr), SIDE_CENTER_R_MM, 1));
+    }
     if(!wait_slot()) goto interrupted;
     print("@D INFO front_square_offset_mm=%d side_yaw_doubt_mm=%u side_close_doubt_mm=%u wall_samples=%u wall_votes=%u\n",
           FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, SIDE_CLOSE_DOUBT_MM, WALL_SAMPLES, WALL_VOTES);
@@ -120,12 +155,12 @@ static void dump(void){
         print("@D INFO ir_cal_%s=\"%s\"\n", NAME[i], ir_calibration_text((ir_sensor_t)i));
     }
     if(!wait_slot()) goto interrupted;
-    print("@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr\n");
+    print("@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot\n");
     for(uint16_t i = 0; i < count; i++){
         const sample_t *s = &samples[i];
         if(!wait_slot()) goto interrupted;
-        print("@D %lu,%d,%d,%d,%d,%u,%u,%u,%u\n", (unsigned long)i * period_ms, s->enc_l, s->enc_r,
-              s->pwm_l, s->pwm_r, s->ir[IR_FL], s->ir[IR_FR], s->ir[IR_SL], s->ir[IR_SR]);
+        print("@D %lu,%d,%d,%d,%d,%u,%u,%u,%u,%d,%d\n", (unsigned long)i * period_ms, s->enc_l, s->enc_r,
+              s->pwm_l, s->pwm_r, s->ir[IR_FL], s->ir[IR_FR], s->ir[IR_SL], s->ir[IR_SR], s->ref_fwd, s->ref_rot);
     }
     if(!wait_slot()) goto interrupted;
     print("@D END result=%s samples=%u\n", outcome, count);
@@ -160,13 +195,17 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
             break;
         case CAL_STRAIGHT:
             snprintf(description, sizeof(description), "straight %ld %ld", (long)a, (long)b);
-            record_start(a > 1 ? 10 : 5);
+            record_start(2);    // halves by itself if the move runs longer
             r = motion_forward((uint8_t)a, (int16_t)b);
             break;
         case CAL_TURN:
             snprintf(description, sizeof(description), "turn %ld", (long)a);
-            record_start(5);
-            r = motion_turn((int8_t)a);
+            record_start(2);
+            // One quarter at a time, like the turns in the maze.
+            for(int32_t i = 0; i < (a < 0 ? -a : a) && r == MOVE_OK; i++){
+                r = motion_turn(a < 0 ? -1 : 1);
+                if(r == MOVE_OK && !motion_wait(CAL_TURN_GAP_MS)) r = MOVE_ABORTED;
+            }
             break;
         case CAL_STEP:
             snprintf(description, sizeof(description), "step %ld %ld", (long)a, (long)b);
@@ -176,7 +215,7 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
         case CAL_IR:
             snprintf(description, sizeof(description), "ir %ld", (long)a);
             record_start(10);
-            r = motion_drive_straight(-DRIFT_CORRECT_SPEED, a * TICKS_PER_MM);
+            r = motion_drive_straight(-CAL_IR_SPEED, a);
             break;
         case CAL_DUMP:
             dump();
