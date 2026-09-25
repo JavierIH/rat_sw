@@ -353,14 +353,15 @@ static void cmd_sync(const char *args){
 static void cmd_clock(const char *args){
     static const char *const NAME[] = {"cristal", "interno (el cristal no arranco)", "interno (el cristal fallo)",
                                        "interno (CLOCK HSI)"};
-    if(args[0] == 'H' || args[0] == 'h'){
+    const char *p = skip_spaces(args);
+    if(p[0] == 'H' || p[0] == 'h'){
         if(!sysclock_use_hsi()){
             print("CLOCK HSI: no se pudo (ya en el reloj interno?)\n");
             return;
         }
         uart_retime();
     }
-    else if(args[0]){
+    else if(p[0]){
         print("CLOCK [HSI]\n");
         return;
     }
@@ -370,7 +371,7 @@ static void cmd_clock(const char *args){
 static void cmd_cont(const char *args){
     uint8_t on;
     if(parse_on_off(args, &on)) search_set_mode(on ? SEARCH_STRAIGHTS : SEARCH_STOP_EACH);
-    else if(args[0]){
+    else if(skip_spaces(args)[0]){
         print("CONT ON|OFF\n");
         return;
     }
