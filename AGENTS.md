@@ -6,7 +6,10 @@ unknown maze, maps it, finds the fastest route and runs it:
 
 1. **Search** (mode 1): explore to the goal, keep exploring the cells that
    could still shorten the speed-run path until the best path is verified,
-   return to the start exploring on the way, face north, save the map.
+   return to the start exploring on the way, face north, save the map. It
+   drives through the cells without stopping, deciding each one on the way
+   (smooth curves into openings it has just seen), and stops only to turn in
+   place, at walls it finds in front, at the goal and at the end.
 2. **Speed run** (mode 2): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
    no turning in place). Then return to the start the same way at `SPD` and
@@ -94,7 +97,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   - `maze_route()`: the optimal path as the speed run drives it, an in-place
     turn first and then every cell with the turn made inside it.
 - `search.c/.h` (pure): strategies. `search_explore()` (phases META ->
-  OPTIM -> VUELTA), `search_fast_run()` (the whole verified route in one
+  OPTIM -> VUELTA; at rest it senses, plans and turns in place, and every
+  move forward is a leg decided cell by cell in `explore_next()`), `search_fast_run()` (the whole verified route in one
   move, replanned at every stop, falls back to exploring if the map proves
   wrong), `search_wall_follow()`. Also `search_print_map()` (ASCII map).
 - `control.c/.h` (pure): the speed control. Trapezoidal motion profiles, two
@@ -111,7 +115,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   loops every millisecond and drives the motors; the move functions (main
   context) watch the sensors and decide when a move is over. Every forward
   move is a path (`motion_run_path()`; `motion_forward()` is one without
-  curves); also turns in place, front-wall alignment, back-up, wall sensing
+  curves; `motion_explore()`, the search's legs, is one that grows as the
+  search decides each next cell); also turns in place, front-wall alignment, back-up, wall sensing
   (5 samples, 4 votes), run control (abort/pause/step) and `TUNE`.
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
   goal, parameters) in the last flash page.
@@ -162,7 +167,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
 `KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
-`SYNC`, `TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
+`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search without stopping, until reset),
+`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -287,6 +293,26 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   run. `TUNE CURVE_R|CURVE_RAMP` change the
   shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
   as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
+- Search without stopping (`motion_explore()`, `explore_next()`): each leg
+  starts from rest and grows cell by cell (`path_grow()`, SysTick masked).
+  With the slow IR the robot decides a cell with what it can have read by
+  then: after a straight, the side walls read from `SEARCH_SIDE_FROM_MM`
+  before it (the angled beams hit its walls), decided just in time to start
+  a curve there (`SEARCH_DECIDE_S`); after a curve those sides cannot be read
+  in time, so it decides halfway in (`SEARCH_LATE_*`, straight on or stop
+  only). The cell's front wall is unknown when deciding before it: going
+  straight on, the existing wall stop ("PARED") halts it at the cell's
+  centre; curving, it reads that wall at the start of the curve, still
+  facing it (`SEARCH_FRONT_WALL_MM`); without that, every corner left an
+  unknown wall the search had to come back for, and perfect mazes took 37 %
+  longer than stopping. A curve needs the side read open by every reading
+  (`SEARCH_MIN_READINGS`) and the map agreeing: a false "open" would curve
+  into a wall with no way to stop. Legs run at min(`SPD`, `CURVE`), constant
+  speed. Turning in place, the goal (writing flash stalls the CPU) and the
+  end happen at rest. In the simulator (`sim.c` has a time model from the
+  robot's logs) it drives the same cells as stopping in every cell, finds
+  the same verified optimum and takes ~30 % less time; with sensor noise
+  its maps are right more often. `CONT OFF` goes back to stopping.
 - Speed-run planner costs: with smooth curves a turn costs half a cell
   (`FAST_COST_TURN` 1): fastest in `host_tests --costs` at every speed tried,
   0.2-2% faster than pricing it as a stop-and-turn. The cheap turns make
@@ -343,3 +369,10 @@ robot at FAST 900 with `TUNE MOTOR_SCALE 0.8` (the motors get 80 % of the
 PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
 stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
 the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
+
+Search without stopping: verified in the simulator only (same cells and
+optimum, ~30 % faster, robust to noise). Still to validate on the robot: the
+side-reading windows, the curve's front-wall reading (`SEARCH_FRONT_*`,
+thresholds from CAL CURVE recordings that all had a wall), the decision
+timing, and the time gained on the practice maze (21 s stopping in every
+cell).
