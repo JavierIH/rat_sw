@@ -1241,11 +1241,50 @@ static void test_path_tracking(void){
             }
             CHECK(ok);
         }
-        // At the most the motors are asked for (the firmware caps curves at
-        // ~480 mm/s): still on the path.
-        const path_result_t r = sim_path(&base, &paths[i], &c, PARAM_FAST_SPEED, 480.0f, PARAM_ACCEL);
-        CHECK(r.end_err < 2.0f && r.cross_err_max < 3.0f && r.pwm_max < CONTROL_PWM_LIMIT);
+        // Curves at the most the motors are asked for (the firmware caps
+        // them at ~480 mm/s), between straights slow enough not to run out
+        // of PWM themselves: on the path, and never out of PWM.
+        const path_result_t r = sim_path(&base, &paths[i], &c, 700.0f, 480.0f, PARAM_ACCEL);
+        CHECK(r.end_err < 2.0f && r.cross_err_max < 3.5f && r.pwm_max < CONTROL_PWM_LIMIT);
     }
+}
+
+// Motors that cannot keep up (a low battery: 70-80 % of the model) at 900
+// / 480 mm/s: the reference slows down instead of running away, so the
+// robot never falls far behind it and the curves start where they should.
+// Without that, at 80 % the robot fell 24 mm behind and ended a 14-cell tour
+// 47 mm off. A blocked robot must still be caught.
+static void test_path_governor(void){
+    const curve_t c = default_curve();
+    static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
+    static const int8_t tour[14] = {0, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 1, 0};
+    const run_path_t paths[] = {{corner, 3}, {stairs, 7}, {u_turn, 4}, {tour, 14}, {NULL, 6}};
+    const plant_t base = plant_nominal();
+    for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
+        const uint8_t long_tour = i == 3;
+        // A robot that keeps up never makes the reference wait.
+        path_result_t r = sim_path(&base, &paths[i], &c, 900.0f, 480.0f, PARAM_ACCEL);
+        CHECK(r.scale_min == 1.0f);
+        const float gains[] = {0.8f, 0.7f};
+        for(size_t g = 0; g < 2; g++){
+            plant_t weak = base;
+            weak.gain_l = weak.gain_r = gains[g];
+            r = sim_path(&weak, &paths[i], &c, 900.0f, 480.0f, PARAM_ACCEL);
+            const float tol = long_tour ? 18.0f : 9.0f;
+            const int ok = r.ms > 0 && r.fwd_err_max < 6.0f && r.scale_min < 0.9f && r.end_err < tol
+                        && r.cross_err_max < tol && r.stall_ms == 0;
+            if(!ok){
+                printf("  governor path %zu motors x%.1f: behind %.2f mm, pace %.2f, end %.2f mm, off the path %.2f mm\n",
+                       i, (double)gains[g], (double)r.fwd_err_max, (double)r.scale_min, (double)r.end_err,
+                       (double)r.cross_err_max);
+            }
+            CHECK(ok);
+        }
+    }
+    plant_t blocked = base;
+    blocked.gain_l = blocked.gain_r = 0.001f;
+    const path_result_t r = sim_path(&blocked, &paths[4], &c, 900.0f, 480.0f, PARAM_ACCEL);
+    CHECK(r.stall_ms > 0 && r.stall_ms < 500);
 }
 
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
@@ -1376,6 +1415,7 @@ int main(int argc, char **argv){
     test_path_reference();
     test_path_control();
     test_path_tracking();
+    test_path_governor();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;

@@ -73,6 +73,13 @@ typedef struct {
     uint8_t curves;         // curves finished
     uint8_t hold;           // brake to a stop on the path and wait there (PAUSE)
     uint8_t done;
+    // Input before every step: mm the robot is behind the reference. Past
+    // PATH_LAG_FREE_MM the reference runs slower (time scale < 1) so it never
+    // runs away from a robot that cannot keep up: a curve's heading follows
+    // the reference's distance, and a robot far behind would turn early.
+    float lag;
+    float scale, scale_min; // time scale of the last step, and the lowest one of the run
+    float w;                // reference angular speed before the time scale, deg/s
 } path_run_t;
 
 // v_curve is lowered if the shortest straight after a curve (to the centre

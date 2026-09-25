@@ -42,10 +42,12 @@ typedef struct {
 typedef struct {
     float end_err;              // mm from where the robot stops to where the reference ends
     float heading_err;          // deg, true heading at the end minus the reference's
-    float cross_err_max;        // mm, largest sideways distance from the reference's path
+    float cross_err_max;        // mm, largest distance from the robot to the reference's path (not to where the reference is)
     float fwd_err_max, rot_err_max;
     int pwm_max;
     uint32_t ms;                // until it settled
+    float scale_min;            // lowest time scale of the reference (1: it never waited for the robot)
+    uint32_t stall_ms;          // when the robot fell FWD_ERROR_MAX_MM behind (MOVE_STALLED), 0 if never
 } path_result_t;
 
 extern float sim_average;       // side IR averaging, ms (default STEER_AVERAGE_MS)

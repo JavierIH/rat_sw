@@ -134,6 +134,13 @@
 // Following error: far behind the reference means blocked (a wall, a post)
 // or slipping. The move fails instead of pushing on.
 #define FWD_ERROR_MAX_MM        25.0f   // -> MOVE_STALLED
+// A path's reference slows down (path.c) while the robot is more than
+// PATH_LAG_FREE_MM behind it (normal tracking: <= 2.7 mm at 900 mm/s),
+// reaching PATH_SCALE_MIN of its pace PATH_LAG_SPAN_MM further on: never
+// stopped, so a blocked robot still reaches FWD_ERROR_MAX_MM.
+#define PATH_LAG_FREE_MM        3.0f
+#define PATH_LAG_SPAN_MM        6.0f
+#define PATH_SCALE_MIN          0.2f
 #define ROT_ERROR_MAX_DEG       15.0f   // -> MOVE_SLIPPED
 #define SETTLE_MM               0.5f    // a move ends once the errors are this small...
 #define SETTLE_DEG              0.8f    // turns stall ~0.45-0.7 deg short (TURNTICKS absorbs it); 0.5 waited 200 ms more

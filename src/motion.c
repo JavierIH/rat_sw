@@ -161,6 +161,7 @@ void motion_tick_1ms(void){
     tick_r = r;
     if(!control_on) return;
     if(path_on){
+        run.lag = ctl.fwd_error;
         path_step(&run, &fwd, &rot, CONTROL_DT_S);
     }
     else{
@@ -516,6 +517,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
             print("ruta %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s", path->cells,
                   run.curves, stop, dist, end, (int)vmax, (int)run.v_curve, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), sides);
         }
+        if(run.scale_min < 0.995f) print(" ritmo=%d%%", (int)(100.0f * run.scale_min + 0.5f));
         else{
             print("avance %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%s", path->cells,
                   stop, dist, end, (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),

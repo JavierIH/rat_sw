@@ -231,13 +231,23 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
     int32_t cl = 0, cr = 0;
     double x = 0.0, y = 0.0, yaw = p->yaw0;        // true pose: mm, deg (> 0 right of the start heading)
     double rx = 0.0, ry = 0.0;                      // the reference's point
+    // The reference's path, one point per step (<= 1 mm apart), with its distance.
+    enum { STEPS = 30000 };
+    static double path_x[STEPS], path_y[STEPS];
+    static float path_s[STEPS];
+    uint32_t points = 0;
+    double travelled = 0.0;
     uint32_t done_at = 0;
-    for(uint32_t t = 1; t < 30000; t++){
+    for(uint32_t t = 1; t < STEPS; t++){
         const float ref_before = rot.pos;
+        pr.lag = c.fwd_error;
         path_step(&pr, &fwd, &rot, dt);
         const double ref_mid = 0.5 * (ref_before + rot.pos) * 90.0 / curve->angle * rad;
         rx += fwd.delta * sin(ref_mid);
         ry += fwd.delta * cos(ref_mid);
+        path_x[points] = rx;
+        path_y[points] = ry;
+        path_s[points++] = pr.s;
         const int32_t nl = (int32_t)floorf(xl * WHEEL_TICKS_PER_MM), nr = (int32_t)floorf(xr * WHEEL_TICKS_PER_MM);
         const int32_t dl = nl - cl, dr = nr - cr;
         cl = nl;
@@ -253,10 +263,16 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         x += v * sin(mid) * dt;
         y += v * cos(mid) * dt;
         yaw += w * dt;
-        // Sideways from the reference path: the offset across the reference heading.
-        const double h = rot.pos * 90.0 / curve->angle * rad;
-        const float cross = (float)fabs((x - rx) * cos(h) - (y - ry) * sin(h));
-        if(cross > r.cross_err_max) r.cross_err_max = cross;
+        travelled += v * dt;
+        // Distance to the reference's path near where the robot has got to
+        // (behind the reference is not off the path).
+        double nearest = 1e9;
+        for(uint32_t i = points; i-- > 0 && path_s[i] > travelled - 40.0;){
+            if(path_s[i] > travelled + 40.0) continue;
+            nearest = fmin(nearest, hypot(x - path_x[i], y - path_y[i]));
+        }
+        if(nearest < 1e9 && nearest > r.cross_err_max) r.cross_err_max = (float)nearest;
+        if(!r.stall_ms && c.fwd_error > FWD_ERROR_MAX_MM) r.stall_ms = t;
         if(fabsf(c.fwd_error) > r.fwd_err_max) r.fwd_err_max = fabsf(c.fwd_error);
         if(fabsf(c.rot_error) > r.rot_err_max) r.rot_err_max = fabsf(c.rot_error);
         if(!fwd.active){        // as guard_settled() in motion.c
@@ -269,6 +285,7 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
             }
         }
     }
+    r.scale_min = pr.scale_min;
     r.end_err = (float)hypot(x - rx, y - ry);
     r.heading_err = (float)(yaw - pr.heading * 90.0 / curve->angle);
     return r;

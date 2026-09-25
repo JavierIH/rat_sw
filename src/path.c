@@ -1,5 +1,6 @@
 #include "path.h"
 #include <math.h>
+#include "robot_config.h"
 
 #define HALF_PI         1.57079633f
 #define PATH_NONE       1.0e9f      // curve_start when no curve is left
@@ -134,12 +135,27 @@ uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, 
     r->curves = 0;
     r->hold = 0;
     r->done = 0;
+    r->lag = r->w = 0.0f;
+    r->scale = r->scale_min = 1.0f;
     find_next(r);
     return 1;
 }
 
-void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt){
-    const float s0 = r->s, v0 = r->v, h0 = r->heading, w0 = rot->speed;
+// 1 while the robot keeps up, down to PATH_SCALE_MIN as it falls behind.
+// Never 0: a blocked robot must still fall FWD_ERROR_MAX_MM behind.
+static float time_scale(float lag){
+    const float x = (lag - PATH_LAG_FREE_MM) * (1.0f / PATH_LAG_SPAN_MM);
+    return x <= 0.0f ? 1.0f : fmaxf(1.0f - x, PATH_SCALE_MIN);
+}
+
+void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt_real){
+    const float s0 = r->s, v0 = r->v, h0 = r->heading;
+    // The reference lives in its own time, which runs slower than the real
+    // one while the robot lags: distance, speed and heading all follow it.
+    const float scale = time_scale(r->lag);
+    const float dt = scale * dt_real;
+    r->scale = scale;
+    if(scale < r->scale_min) r->scale_min = scale;
     if(!r->done){
         const float a_dt = r->accel * dt;
         // Speed limit where the reference is, and braking in time for the
@@ -176,10 +192,13 @@ void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt){
             r->heading += (float)r->dir * r->curve.angle * curve_progress(&r->curve, r->s - r->curve_start);
         }
     }
+    // What the loops see, in real time. The accelerations leave out the
+    // change of the time scale itself: it only happens while the motors are
+    // out of PWM, and feeding it forward would just kick them.
     fwd->pos = r->s;
     fwd->delta = r->s - s0;
-    fwd->speed = r->v;
-    fwd->accel = (r->v - v0) / dt;
+    fwd->speed = scale * r->v;
+    fwd->accel = scale * (r->v - v0) / dt_real;
     fwd->target = r->stop_at;
     fwd->top = r->v_straight;
     fwd->final = 0.0f;
@@ -189,10 +208,12 @@ void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt){
     // Angular speed = curvature times forward speed.
     const float rate = r->s > r->curve_start
                      ? (float)r->dir * r->curve.angle * curve_rate(&r->curve, r->s - r->curve_start) : 0.0f;
+    const float w = rate * r->v;
     rot->pos = rot->target = r->heading;
     rot->delta = r->heading - h0;
-    rot->speed = rate * r->v;
-    rot->accel = (rot->speed - w0) / dt;
+    rot->speed = scale * w;
+    rot->accel = scale * (w - r->w) / dt_real;
+    r->w = w;
     rot->top = rot->final = 0.0f;
     rot->rate = 1.0f;
     rot->dir = 1;
