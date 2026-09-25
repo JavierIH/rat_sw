@@ -125,6 +125,9 @@ static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
 static float steer_vref = STEER_VREF_MM_S;      // mm/s
 static float curve_radius = CURVE_RADIUS_MM, curve_ramp = CURVE_RAMP_MM, curve_angle = CURVE_ANGLE_DEG;
 static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
+// Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM
+// the control asks, behind its back, as with a low battery.
+static float motor_scale = 1.0f;
 
 // Owned by SysTick while control_on; the main context only reads them, and
 // writes fwd.target (one aligned float store) to move the end of a straight.
@@ -192,8 +195,8 @@ void motion_tick_1ms(void){
         }
     }
     control_step(&ctl, &control_cfg, &fwd, &rot, heading, dl, dr, CONTROL_DT_S);
-    motor_set(MOTOR_L, ctl.pwm_l);
-    motor_set(MOTOR_R, ctl.pwm_r);
+    motor_set(MOTOR_L, (int16_t)((float)ctl.pwm_l * motor_scale));
+    motor_set(MOTOR_R, (int16_t)((float)ctl.pwm_r * motor_scale));
     trail[trail_slot] = fwd.pos - ctl.fwd_error;
     trail_slot = (uint8_t)((trail_slot + 1u) % TRAIL_LEN);
 }
@@ -722,6 +725,7 @@ static const tunable_t TUNABLES[] = {
     {"CURVE_ANGLE", &curve_angle, 80.0f, 100.0f, 2},
     {"CURVE_PRE", &curve_pre, -40.0f, 40.0f, 1},
     {"CURVE_POST", &curve_post, -40.0f, 40.0f, 1},
+    {"MOTOR_SCALE", &motor_scale, 0.5f, 1.0f, 2},
 };
 
 #define TUNABLE_COUNT (sizeof(TUNABLES) / sizeof(TUNABLES[0]))
