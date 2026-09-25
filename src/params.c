@@ -38,7 +38,5 @@ void params_reset(void){
 }
 
 uint32_t params_defaults_signature(void){
-    static const uint8_t goal[4] = {GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1};
-    uint32_t crc = crc32_update(0, &DEFAULTS, sizeof(DEFAULTS));
-    return crc32_update(crc, goal, sizeof(goal));
+    return crc32_update(0, &DEFAULTS, sizeof(DEFAULTS));
 }

@@ -200,7 +200,7 @@ static void print_banner(storage_status_t stored){
     uint8_t g[4];
     maze_get_goal(g);
     print("\nrat_sw %s %s | modo %u %s\n", __DATE__, __TIME__, mode, MODE_NAME[mode]);
-    if(stored == STORAGE_LOADED){
+    if(stored == STORAGE_LOADED || stored == STORAGE_NEW_DEFAULTS){
         uint16_t cost = search_fast_path_cost();
         if(cost == PLAN_INF){
             print("Mapa en flash: %u celdas, sin camino rapido (ERASE si es otro laberinto)\n", maze_visited_count());
@@ -209,6 +209,7 @@ static void print_banner(storage_status_t stored){
             print("Mapa en flash: %u celdas, camino rapido coste %u (ERASE si es otro laberinto)\n",
                   maze_visited_count(), cost);
         }
+        if(stored == STORAGE_NEW_DEFAULTS) print("Parametros: los nuevos por defecto del firmware (los guardados, no)\n");
     }
     else{
         print("Flash: %s\n", storage_status_name(stored));

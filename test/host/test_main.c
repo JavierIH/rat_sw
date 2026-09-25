@@ -456,19 +456,36 @@ static void test_storage(void){
     fake_flash[40] ^= 0x55;
     CHECK_EQ(storage_load(), STORAGE_LOADED);
 
-    // Saved by firmware with other defaults: ignored even with a valid CRC.
+    // Saved by firmware with other parameter defaults (tuned values written
+    // into the code): the map and goal load, the parameters stay the new
+    // defaults.
     uint16_t size;
     memcpy(&size, fake_flash + 6, sizeof(size));
-    CHECK(size > 8 && size <= FLASH_STORE_SIZE);
-    fake_flash[8] ^= 0xFF;          // signature
+    CHECK(size > 16 && size <= FLASH_STORE_SIZE);
+    fake_flash[12] ^= 0xFF;         // parameter signature
     uint32_t crc = crc32_update(0, fake_flash, (size_t)size - 4u);
+    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    maze_init();
+    maze_set_goal(7, 7, 8, 8);
+    params_reset();
+    CHECK_EQ(storage_load(), STORAGE_NEW_DEFAULTS);
+    CHECK_EQ(maze_wall(4, 4, EAST), WALL_PRESENT);
+    CHECK(maze_is_goal(3, 2));
+    CHECK_EQ(params.search_speed, PARAM_SEARCH_SPEED);
+    CHECK_EQ(params.accel, PARAM_ACCEL);
+    CHECK(params_defaults_signature() == params_defaults_signature());
+    fake_flash[12] ^= 0xFF;
+
+    // Saved by firmware for another maze (another default goal): ignored
+    // even with a valid CRC, map and parameters alike.
+    fake_flash[8] ^= 0xFF;          // maze signature
+    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
     memcpy(fake_flash + size - 4, &crc, sizeof(crc));
     maze_init();
     params_reset();
     CHECK_EQ(storage_load(), STORAGE_STALE);
     CHECK_EQ(maze_wall(4, 4, EAST), WALL_UNKNOWN);
     CHECK_EQ(params.search_speed, PARAM_SEARCH_SPEED);
-    CHECK(params_defaults_signature() == params_defaults_signature());
 
     // Older record layout (another STORE_VERSION): stale, not corrupt.
     fake_flash[8] ^= 0xFF;

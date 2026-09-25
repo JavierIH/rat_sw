@@ -35,9 +35,9 @@ extern params_t params;
 
 void params_reset(void);
 
-// Fingerprint of the compiled-in parameter and goal defaults. Data saved in
-// flash is only reused by firmware built with the same defaults, so
-// reflashing with new defaults (or a new goal) never runs on stale settings.
+// Fingerprint of the compiled-in parameter defaults. Parameters saved in
+// flash are only reused by firmware built with the same defaults, so
+// reflashing with new defaults never runs on stale settings.
 uint32_t params_defaults_signature(void);
 
 #endif // PARAMS_H

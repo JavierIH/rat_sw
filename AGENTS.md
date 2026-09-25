@@ -149,8 +149,12 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).
-- The map survives resets. Boot prints whether one was loaded: send `ERASE`
-  (or run mode 6) when moving to a different maze.
+- The map survives resets and reflashes. Boot prints whether one was loaded:
+  send `ERASE` (or run mode 6) when moving to a different maze. A firmware
+  with new parameter defaults keeps the map and goal but starts from its own
+  defaults; one built for another maze (default goal) or with another record
+  layout (`STORE_VERSION`) ignores the saved record: tell the user before
+  such a flash, the robot will need a new search.
 
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,

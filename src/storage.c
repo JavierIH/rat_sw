@@ -5,15 +5,17 @@
 #include "flash_store.h"
 #include "maze.h"
 #include "params.h"
+#include "robot_config.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-#define STORE_VERSION   5u      // 4: speeds in mm/s and deg/s; 5: curve speed
+#define STORE_VERSION   6u      // 4: speeds in mm/s and deg/s; 5: curve speed; 6: two signatures
 
 typedef struct {
     uint32_t magic;
     uint16_t version;
     uint16_t size;
-    uint32_t signature;     // params_defaults_signature() of the firmware that saved it
+    uint32_t maze_signature;    // maze_defaults_signature() of the firmware that saved it
+    uint32_t params_signature;  // params_defaults_signature() of the firmware that saved it
     maze_snapshot_t maze;
     params_t params;
     uint32_t crc;           // CRC-32 of every byte before this field
@@ -24,6 +26,13 @@ _Static_assert(sizeof(record_t) <= FLASH_STORE_SIZE, "record does not fit in the
 _Static_assert(offsetof(record_t, crc) == sizeof(record_t) - 4, "crc must be the last field");
 
 static record_t record;     // static: too big for the 1 KB stack budget
+
+// A firmware built for another maze (its default goal) must not load this
+// map: it would be another maze's.
+static uint32_t maze_defaults_signature(void){
+    static const uint8_t maze[5] = {MAZE_SIZE, GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1};
+    return crc32_update(0, maze, sizeof(maze));
+}
 
 static uint32_t record_crc(const record_t *r){
     return crc32_update(0, r, offsetof(record_t, crc));
@@ -48,7 +57,8 @@ uint8_t storage_save(void){
     record.magic = STORE_MAGIC;
     record.version = STORE_VERSION;
     record.size = sizeof(record_t);
-    record.signature = params_defaults_signature();
+    record.maze_signature = maze_defaults_signature();
+    record.params_signature = params_defaults_signature();
     maze_export(&record.maze);
     record.params = params;
     record.crc = record_crc(&record);
@@ -60,8 +70,11 @@ storage_status_t storage_load(void){
     if(record.magic != STORE_MAGIC) return STORAGE_EMPTY;
     if(record.version != STORE_VERSION || record.size != sizeof(record_t)) return STORAGE_STALE;
     if(record.crc != record_crc(&record) || !params_sane(&record.params)) return STORAGE_CORRUPT;
-    if(record.signature != params_defaults_signature()) return STORAGE_STALE;
+    if(record.maze_signature != maze_defaults_signature()) return STORAGE_STALE;
     if(!maze_import(&record.maze)) return STORAGE_CORRUPT;
+    // New defaults in the firmware (tuned values written into the code):
+    // they replace the saved parameters, the map stays.
+    if(record.params_signature != params_defaults_signature()) return STORAGE_NEW_DEFAULTS;
     params = record.params;
     return STORAGE_LOADED;
 }
@@ -69,6 +82,7 @@ storage_status_t storage_load(void){
 const char *storage_status_name(storage_status_t status){
     switch(status){
         case STORAGE_LOADED:  return "cargado";
+        case STORAGE_NEW_DEFAULTS: return "mapa cargado, parametros por defecto nuevos";
         case STORAGE_EMPTY:   return "vacio";
         case STORAGE_CORRUPT: return "corrupto (ignorado)";
         case STORAGE_STALE:   return "de otro firmware (ignorado)";
