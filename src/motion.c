@@ -118,7 +118,7 @@ static steer_config_t steer_cfg = {
 // Live-tunable (TUNE) values that are not in the two configs above.
 static float ir_delay = IR_DELAY_MS;            // ms
 static float front_track = FRONT_TRACK_MM;      // mm
-static float front_ref = FRONT_WALL_REF_MM;     // mm
+static float front_ref = FRONT_TRACK_REF_MM;    // mm
 static float sense_settle = SENSE_SETTLE_MS;    // ms
 static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;

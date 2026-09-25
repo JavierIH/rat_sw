@@ -53,6 +53,10 @@
 // the readings err short (the wall looks closer): it brakes a bit early and
 // the target recedes as the readings improve.
 #define FRONT_TRACK_MM          170
+// Where the tracking aims: the readings keep settling for a while after the
+// stop, and aiming at FRONT_WALL_REF_MM itself ended 2-4 mm long (a front
+// realignment in 5 of the stops of a search). At 92 the stops read 93-94.
+#define FRONT_TRACK_REF_MM      92.0f
 #define SIDE_WALL_TRACK_MM      130     // a side wall is used as steering reference only below this
 // Side readings with the robot on the centre line. A 180 deg turn in place
 // mirrors the robot across it, so the readings before and after give it
