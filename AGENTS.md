@@ -7,8 +7,10 @@ unknown maze, maps it, finds the fastest route and runs it:
 1. **Search** (mode 1): explore to the goal, keep exploring the cells that
    could still shorten the speed-run path until the best path is verified,
    return to the start exploring on the way, face north, save the map.
-2. **Speed run** (mode 2): follow the verified fastest path with merged
-   straights at `FAST` speed, then return to the start and save again.
+2. **Speed run** (mode 2): drive the verified fastest path in one continuous
+   move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
+   no turning in place). Then return to the start the same way at `SPD` and
+   save again.
 
 Goal configuration:
 - Competition 16x16: goal = center 2x2 block (default without PRACTICE_MAZE).
@@ -54,7 +56,9 @@ Commands:
   <openings> [practice] [phantom]` prints everything the robot would send
   over Bluetooth (telemetry included) during a search + speed run;
   `--control` prints the speed control's numbers on the simulated robot
-  (straights and turns at several speeds), for tuning gains away from it.
+  (straights, turns and curves at several speeds), for tuning gains away
+  from it; `--costs [FAST CURVE]` times the speed run's routes for several
+  planner costs over random mazes (how `FAST_COST_*` were chosen).
 - `python3 -m unittest discover -s tools -p 'test_*.py'`: monitor and
   calibration analysis tests. They replay `--transcript` output, so they also
   check that the monitor's planner makes the same decisions as the firmware.
@@ -75,9 +79,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `robot_config.h`: every compile-time constant with its unit (geometry,
   calibration, thresholds, planner costs) and the defaults of the runtime
   parameters.
-- `params.c/.h`: runtime parameters in physical units (`SPD`, `FAST`, `ACCEL`,
-  `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KI`, `LOG`, `TELEM`), persisted with
-  the map.
+- `params.c/.h`: runtime parameters in physical units (`SPD`, `FAST`,
+  `CURVE`, `ACCEL`, `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KI`, `LOG`,
+  `TELEM`), persisted with the map.
 - `maze.c/.h` (pure): map + planner.
   - Walls carry signed evidence in [-3, 3], one slot per wall shared by both
     cells. > 0 wall, <= 0 passable for exploration, <= -2 (two consistent
@@ -85,21 +89,28 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
     always a wall.
   - Planner: shortest paths over (cell, heading) states with a cost per cell
     and per 90 deg turn (SPFA). Optimal in time, not only in cells.
+  - `maze_route()`: the optimal path as the speed run drives it, an in-place
+    turn first and then every cell with the turn made inside it.
 - `search.c/.h` (pure): strategies. `search_explore()` (phases META ->
-  OPTIM -> VUELTA), `search_fast_run()` (verified path, replanned at every
-  stop, falls back to exploring if the map proves wrong),
-  `search_wall_follow()`. Also `search_print_map()` (ASCII map).
+  OPTIM -> VUELTA), `search_fast_run()` (the whole verified route in one
+  move, replanned at every stop, falls back to exploring if the map proves
+  wrong), `search_wall_follow()`. Also `search_print_map()` (ASCII map).
 - `control.c/.h` (pure): the speed control. Trapezoidal motion profiles, two
   position loops (forward mm, rotation deg) with a motor-model feedforward,
   settling integrals against static friction, and the wall centring
   (`steer_step()`).
+- `path.c/.h` (pure): continuous runs through several cells. A reference
+  generator stepped in SysTick in place of the profiles: straights on the
+  cells' centre lines, a clothoid-arc-clothoid 90 deg curve inside every cell
+  where the route turns, speed limits and braking for the curves and the end.
 - `motion.h`: the robot actions the strategies use. `motion.c` implements
   them on the robot; `test/host/sim.c` implements them in a simulated maze.
-- `motion.c`: SysTick steps the profiles, the centring and the loops every
-  millisecond and drives the motors; the move functions (main context)
-  watch the sensors and decide when a move is over: forward N cells, turns
-  in place, front-wall alignment, back-up. Also wall sensing (5 samples, 4
-  votes), run control (abort/pause/step) and `TUNE`.
+- `motion.c`: SysTick steps the profiles (or the path), the centring and the
+  loops every millisecond and drives the motors; the move functions (main
+  context) watch the sensors and decide when a move is over. Every forward
+  move is a path (`motion_run_path()`; `motion_forward()` is one without
+  curves); also turns in place, front-wall alignment, back-up, wall sensing
+  (5 samples, 4 votes), run control (abort/pause/step) and `TUNE`.
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
   goal, parameters) in the last flash page.
 - `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
@@ -116,9 +127,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   `error.c`, `stm32f1xx_hal_conf.h`.
 - `test_uart.c`, `test_diag.c`: entry points of the smoke-test envs.
 - `test/host/`: `sim.c` implements `motion.h` in a simulated maze (strategy
-  tests); `control_sim.c` runs `control.c` against simulated motors (first
-  order, friction, stiction, dead time), quantised encoders, delayed side IR
-  and the chassis' stick-slip in yaw (speed-control tests).
+  tests); `control_sim.c` runs `control.c` (and `path.c`: `sim_path()`)
+  against simulated motors (first order, friction, stiction, dead time),
+  quantised encoders, delayed side IR and the chassis' stick-slip in yaw
+  (speed-control tests).
 - `tools/robot_monitor.py`: live maze monitor + console (curses). Rebuilds
   the map from the telemetry, recomputes the route with a Python port of the
   planner (costs read from `robot_config.h`), renders each frame into an
@@ -141,10 +153,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
-`SPD n`, `FAST n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`, `KP f`,
-`KI f`, `TUNE [name value]` (control constants live, not saved), `LOG 0-2`,
-`DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`,
-`TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
+`SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
+`KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
+`LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
+`SYNC`, `TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -162,8 +174,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   test/host` after touching it. Headers used by it (`motion.h`, `uart.h`,
   `flash_store.h`) must stay HAL-free too.
 - A move only updates the pose when it is confirmed (`MOVE_OK`). `MOVE_BLOCKED`
-  means the robot backed up to where it started, so the pose is still valid.
-  Anything else invalidates it and ends the run (`search_ready()` = 0).
+  means the robot stopped at a known cell centre facing a wall (backed up to
+  where it started, or, in a path, at the cell `entered` reports), so the
+  pose is still valid. Anything else invalidates it and ends the run
+  (`search_ready()` = 0).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
 - Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
@@ -202,8 +216,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   the stop aimed at `FRONT_TRACK_REF_MM` from it: stops within ~2 mm at
   400-700 mm/s (the plain reading stopped 12 mm short). Before the last half
   cell, both front sensors closer than `FRONT_EMERGENCY_MM` plus the braking
-  distance is an obstacle: brake, and within the first half cell back up to
-  where the move started (`MOVE_BLOCKED`); later the position is lost.
+  distance is an obstacle: brake and back up to the last cell centre passed
+  (`MOVE_BLOCKED`). A wall seen square from farther away, where the map had a
+  passage, stops the move at the centre of the cell before it (`fin=PARED`).
 - Centring (`steer_step()`): the heading offset is proportional to the
   lateral error (`KP` deg per mm), so it converges over the same distance at
   any speed; above `STEER_VREF_MM_S` KP scales as 1/speed (it weaved at 700).
@@ -238,6 +253,34 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   Calibrated facing a wall with `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
   `CAL TURN -4`, `CAL NOISE`, comparing FL - FR (~1.2 mm per degree): 0.2
   deg per turn, and the turns are truly in place.
+- Smooth curves (`path.c`, speed run only; search moves still stop in every
+  cell). A curve enters its cell on the centre line and leaves on the centre
+  line through the side edge: `pre` mm straight, the clothoid-arc-clothoid
+  (`CURVE_RADIUS_MM` 70, `CURVE_RAMP_MM` 30), `post` mm straight. It advances
+  85.5 mm along each axis, so 4.5 mm are left before and after it and curves
+  in consecutive cells (staircases, u-turns over two cells) join without
+  overlapping. The heading is a function of the distance travelled, not of
+  time, so the shape holds whatever the speed does (a PAUSE stops on the
+  curve and resumes it). The curve speed is capped by `FAST`, by the room to
+  brake after the last curve, and by the motors (`CURVE_PWM_SHARE`: ~480
+  mm/s; in the simulator 700 fell 15-57 mm behind and cut inside). The
+  centring holds its offset through a curve and restarts in the new
+  corridor once the delayed IR read it; its KI (the heading misalignment) is
+  kept across curves. The front sensors are only used with readings taken on
+  a straight.
+- Tuning the curves: `CAL CURVE [+-1] [mm/s]` from a cell centre (one cell, a
+  curve, one cell; best with side walls and a front wall in the last cell),
+  then `calib_analyze.py` suggests `TUNE CURVE_PRE` (from where the side
+  walls put the robot after the curve: wide = start earlier), `CURVE_POST`
+  (from where the front wall moved the stop) and `CURVE_ANGLE` (FL - FR at
+  the end; noisy, average several). `TUNE CURVE_R|CURVE_RAMP` change the
+  shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
+  as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
+- Speed-run planner costs: with smooth curves a turn costs half a cell
+  (`FAST_COST_TURN` 1): fastest in `host_tests --costs` at every speed tried,
+  0.2-2% faster than pricing it as a stop-and-turn. The cheap turns make
+  more routes tie, so the search's OPTIM phase needs a larger budget
+  (`OPTIMIZE_MAX_STEPS` 400).
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.
@@ -245,8 +288,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   change the per-cell `@C` lines do not cover must be followed by
   `telemetry_map()` (see the map repair in `plan_explore()`).
 - `tools/robot_monitor.py` ports `maze_plan_to/from`, `maze_best_action`
-  (same tie order) and the OPTIM candidates. Change both together; the
-  transcript tests fail if they diverge.
+  (same tie order), `maze_route()` with the route text of the log ("2D1I3":
+  cells, then a curve right/left in the last of them) and the OPTIM
+  candidates. Change both together; the transcript tests fail if they
+  diverge.
 - float, never double: the M3 has no FPU (`-Wdouble-promotion` is on).
 - Motors are stopped at register level in every fault handler and in
   `Error_Handler()`; fault = slow blink, `Error_Handler` = fast blink.
@@ -263,3 +308,10 @@ SPD 600 (22.3 s at 400), the same map every time and no doubtful wall;
 and centre (900 works but runs out of PWM at the end of the acceleration);
 turns within 0.2 deg each (TURNTICKS 405); FRONT_SQUARE_OFFSET_MM confirmed
 with CAL NOISE (-15.4).
+
+Smooth curves (speed run): verified on the simulated robot only (routes end
+on the cell centre within 1 mm and 0.5 deg at 400 mm/s; 3-6 mm with the motor
+model 20% off). Still to validate on the robot: start with `CAL CURVE 1 300`
+and `CAL CURVE -1 300`, apply the suggested `CURVE_PRE/POST/ANGLE`, then
+speed runs on the practice maze at `CURVE` 400, raising it while the curves
+end centred.
