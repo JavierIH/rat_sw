@@ -1220,6 +1220,60 @@ static void test_path_control(void){
     CHECK(!path_straight_centre(&r, r.first_edge, 0, &entered, &centre));   // no centre passed yet
 }
 
+// A path decided on the way, as the search drives it: each cell is added
+// before the reference gets there. It must never stop in between and end
+// exactly where the same path planned in one go ends.
+static void test_path_grow(void){
+    const curve_t c = default_curve();
+    static const int8_t plan[9] = {0, 1, 0, -1, 1, 0, 0, -1, 0};    // corners, an S, straights
+    int8_t turns[PATH_MAX_CELLS] = {0};
+    run_path_t path = {turns, 1};
+    path_run_t r;
+    profile_t f, o;
+    profile_reset(&f);
+    profile_reset(&o);
+    CHECK(path_start(&r, &path, &c, CELL_MM, 450.0f, 450.0f, PARAM_ACCEL));
+    uint8_t decided = 0;
+    float entry = 0.5f * CELL_MM;       // entry edge of the next cell to decide
+    float v_min = 1e9f;
+    int steps = 0;
+    while(!r.done && steps < 20000){
+        // Decide cell `decided` 10 mm before its entry edge (the robot's window).
+        if(decided < 8 && r.s >= entry - 10.0f){
+            turns[decided] = plan[decided];
+            turns[decided + 1u] = 0;
+            CHECK(path_grow(&r));
+            entry += plan[decided] ? c.pre + c.length + c.post : CELL_MM;
+            decided++;
+        }
+        path_step(&r, &f, &o, CONTROL_DT_S);
+        if(decided < 8 && r.s > 100.0f) v_min = fminf(v_min, r.v);
+        steps++;
+    }
+    CHECK(r.done && decided == 8);
+    CHECK(v_min > 449.0f);              // never braked for an end that then moved
+    path_run_t once;
+    const run_path_t whole = {plan, 9};
+    CHECK(path_start(&once, &whole, &c, CELL_MM, 450.0f, 450.0f, PARAM_ACCEL));
+    CHECK(fabsf(r.length - once.length) < 0.01f && fabsf(r.s - once.length) < 0.01f);
+    CHECK(fabsf(r.heading - 90.0f * (1 - 1 + 1 - 1)) < 0.001f && r.curves == 4);
+    ref_walk_t a = walk_reference(&once, 20000);
+    CHECK(a.done);
+    // Too late: a curve cannot be added once the reference is past its start.
+    int8_t late[3] = {0, 0, 0};
+    run_path_t p2 = {late, 1};
+    CHECK(path_start(&r, &p2, &c, CELL_MM, 450.0f, 450.0f, PARAM_ACCEL));
+    while(r.s < CELL_MM / 2 + c.pre + 1.0f) path_step(&r, &f, &o, CONTROL_DT_S);
+    late[0] = 1;
+    CHECK(!path_grow(&r));
+    CHECK_EQ(r.path.cells, 1);
+    late[0] = 0;
+    CHECK(path_grow(&r));               // straight on is still fine
+    // Nor once the end moved (a wall seen in front, a short stop).
+    r.stop_at -= 5.0f;
+    CHECK(!path_grow(&r));
+}
+
 // The simulated robot (motors, encoders, the chassis' yaw stick-slip)
 // through corners, staircases and u-turns at the default speeds: it must end
 // on the cell centre, square, and never stray from the path. There are no
@@ -1431,6 +1485,7 @@ int main(int argc, char **argv){
     test_curve_shape();
     test_path_reference();
     test_path_control();
+    test_path_grow();
     test_path_tracking();
     test_path_governor();
 

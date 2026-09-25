@@ -90,6 +90,13 @@ uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, 
 // One control period: advances the reference and writes it into the two
 // profiles control_step() follows (pos, delta, speed, accel, active).
 void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt);
+// Paths decided on the way (the search): the owner of the turn array has
+// written turn[cells - 1], the curve (or 0) in what was the last cell, and
+// turn[cells] = 0; the path now runs one cell further. Refused (0) once the
+// reference has arrived, when the end was moved (a wall, a short stop), when
+// full, or if the curve would already have started. Not to be interleaved
+// with path_step() (on the robot: with SysTick masked).
+uint8_t path_grow(path_run_t *r);
 
 // Queries for the supervision (main context, between steps).
 // 1 if `s` (at most the reference's position) lies on the current straight:

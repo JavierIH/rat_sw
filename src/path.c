@@ -220,6 +220,25 @@ void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt_real){
     rot->active = 0;
 }
 
+uint8_t path_grow(path_run_t *r){
+    run_path_t *p = &r->path;
+    if(r->done || !p->turn || p->cells >= PATH_MAX_CELLS || r->stop_at != r->length) return 0;
+    const uint8_t last = (uint8_t)(p->cells - 1u);
+    const int8_t turn = turn_at(p, last);
+    if(turn < -1 || turn > 1) return 0;
+    const uint8_t curve_ahead = r->next < p->cells;
+    if(turn && !curve_ahead){
+        // The new curve starts `pre` into the last cell: too late once past it.
+        const float entry = r->length - 0.5f * r->cell_mm;
+        if(r->s > entry + r->curve.pre) return 0;
+    }
+    r->length += turn ? r->curve.pre + r->curve.length + r->curve.post : r->cell_mm;
+    r->stop_at = r->length;
+    p->cells++;
+    if(!curve_ahead) find_next(r);
+    return 1;
+}
+
 uint8_t path_on_straight(const path_run_t *r, float s){
     return s >= r->last_curve_end && s < r->curve_start;
 }
