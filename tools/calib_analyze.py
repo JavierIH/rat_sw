@@ -311,8 +311,12 @@ def analyze_curve_controlled(rec, out):
         out.append("  forma: radio %s, rampas %s mm: %s mm de curva, recta antes %s y despues %s mm, hasta %s mm/s"
                    % tuple(rec.meta.get(k, "?") for k in ("curve_r", "curve_ramp", "curve_len", "curve_pre",
                                                           "curve_post", "curve_vmax")))
-    turning = [i for i in range(end) if 0.01 < abs(ref_r[i]) < angle - 0.01]
-    if not turning:
+    # The curve from the distance travelled: the rotation reference also
+    # carries the centring's heading offset.
+    s0 = CELL_MM / 2 + rec.number("curve_pre", 0.0)
+    s1 = s0 + rec.number("curve_len", 0.0)
+    turning = [i for i in range(end) if s0 < ref_f[i] < s1]
+    if not turning or "curve_len" not in rec.meta:
         out.append("  la referencia no llego a curvar")
         return
     a, b = turning[0], turning[-1] + 1
@@ -327,7 +331,8 @@ def analyze_curve_controlled(rec, out):
     saturated = sum(1 for p in pwm if p >= 1000)
     if saturated:
         out.append("  ! PWM al maximo en %d muestras de %d: baja CURVE" % (saturated, len(pwm)))
-    out.append("  giro de los encoders al final: %+.2f grados (pedido %+.2f)" % (rot[end - 1], direction * angle))
+    out.append("  encoders: %+.2f grados en la curva, %+.2f en todo el movimiento (pedido %+.2f); centrado"
+               " mantenido en la curva %+.2f" % (rot[b] - rot[a], rot[end - 1], direction * angle, ref_r[a]))
 
     # Sideways, as soon as the side readings come from the exit corridor
     # (IR_DELAY_MS after the curve), before the centring corrects much.
@@ -363,11 +368,19 @@ def analyze_curve_controlled(rec, out):
         out.append("  pared al final: parada a %+.1f mm del plan (%.1f mm)" % (stop - planned, planned))
         out.append("  -> TUNE CURVE_POST %.1f (ahora %.1f)" % (post_adj + stop - planned, post_adj))
         skew = fl - fr - rec.number("front_square_offset_mm", 0.0)
-        yaw_left = skew / SQUARE_MM_PER_DEG     # FL farther: turned left of square
-        out.append("  rumbo real al final (FL-FR): %.1f grados a la %s" % (abs(yaw_left),
-                                                                          "izquierda" if yaw_left > 0 else "derecha"))
-        out.append("  -> TUNE CURVE_ANGLE %.2f (ahora %.2f; FL-FR es ruidoso: promedia varias)"
-                   % (angle + yaw_left * direction, angle))
+        yaw_right = -skew / SQUARE_MM_PER_DEG   # FL closer: turned right of square
+        out.append("  rumbo real al final (FL-FR): %.1f grados a la %s" % (abs(yaw_right),
+                                                                          "derecha" if yaw_right > 0 else "izquierda"))
+        front = 0.5 * (fl + fr) - rec.number("front_ref_mm", 94)
+        if abs(front) > 6:
+            out.append("  (FL-FR a %+.0f mm de la distancia de referencia: el rumbo no es fiable)" % front)
+        elif abs(rot[end - 1]) > 45:
+            # Real rotation over the encoders' (curve and centring alike),
+            # assuming the robot started square to the maze.
+            k = (direction * 90.0 + yaw_right) / rot[end - 1]
+            out.append("  giro real / encoders: %.3f, suponiendo que salio recto" % k)
+            out.append("  -> TUNE CURVE_ANGLE %.2f (ahora %.2f; el rumbo de salida y FL-FR son ruidosos:"
+                       " promedia varias)" % (90.0 / k, angle))
     else:
         out.append("  (sin pared delante al final: con ella se calibran CURVE_POST y CURVE_ANGLE)")
 

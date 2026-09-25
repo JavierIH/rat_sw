@@ -240,7 +240,9 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report([capture.last_path])
         self.assertIn("Curva a la derecha a 400 mm/s", text)
         self.assertAlmostEqual(number(r"de rumbo en la curva max ([\d.]+)", text), 0.0, delta=0.2)   # one tick
-        self.assertAlmostEqual(number(r"giro de los encoders al final: ([-+\d.]+)", text), 90.0, delta=0.1)
+        self.assertAlmostEqual(number(r"curva en (\d+) ms", text), 1000 * length / v, delta=2 * period)
+        self.assertAlmostEqual(number(r"encoders: ([-+\d.]+) grados en la curva", text), 90.0, delta=0.2)
+        self.assertAlmostEqual(number(r"([-+\d.]+) en todo el movimiento", text), 90.0, delta=0.1)
         self.assertAlmostEqual(number(r"lateral al salir: ([-+\d.]+) mm", text), 5.0, delta=0.6)
         self.assertIn("por fuera", text)
         self.assertAlmostEqual(number(r"TUNE CURVE_PRE ([-\d.]+)", text), -5.0, delta=0.6)
