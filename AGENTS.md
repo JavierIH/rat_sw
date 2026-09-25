@@ -273,7 +273,12 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   then `calib_analyze.py` suggests `TUNE CURVE_PRE` (from where the side
   walls put the robot after the curve: wide = start earlier), `CURVE_POST`
   (from where the front wall moved the stop) and `CURVE_ANGLE` (FL - FR at
-  the end; noisy, average several). `TUNE CURVE_R|CURVE_RAMP` change the
+  the end; noisy, average several). The side readings of this maze carry a
+  per-cell bias of up to ~7 mm (a wall slightly off, SL/SR references), which
+  looks like a curve exiting wide or inside: judge `CURVE_PRE` from left and
+  right curves between cells with walls on both sides (the bias flips sign
+  between the two directions and cancels in the average), never from one
+  run. `TUNE CURVE_R|CURVE_RAMP` change the
   shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
   as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
 - Speed-run planner costs: with smooth curves a turn costs half a cell
@@ -309,9 +314,14 @@ and centre (900 works but runs out of PWM at the end of the acceleration);
 turns within 0.2 deg each (TURNTICKS 405); FRONT_SQUARE_OFFSET_MM confirmed
 with CAL NOISE (-15.4).
 
-Smooth curves (speed run): verified on the simulated robot only (routes end
-on the cell centre within 1 mm and 0.5 deg at 400 mm/s; 3-6 mm with the motor
-model 20% off). Still to validate on the robot: start with `CAL CURVE 1 300`
-and `CAL CURVE -1 300`, apply the suggested `CURVE_PRE/POST/ANGLE`, then
-speed runs on the practice maze at `CURVE` 400, raising it while the curves
-end centred.
+Smooth curves on the robot (practice maze): the first speed run at FAST 700
+/ CURVE 400 drove the 9-cell route with 4 curves (a U-turn included) in one
+move, 3.14 s to the goal, tracking within 2.7 mm / 2.6 deg, and the IR stop
+at the goal landed 0.5 mm from the encoders' plan after 1.49 m; the return
+at 600/400 took 3.27 s. Six CAL CURVE at 300 mm/s: the curve itself turns
+89-90 deg on the encoders and, with the maze's lateral bias taken out
+(two left and two right between (2,0) and (3,1)), ends 1.6 +- 3 mm early:
+CURVE_PRE/POST/ANGLE stay at 0/0/90. Known issue: the centring can carry up
+to 3 deg of heading offset into a curve (held through it by design), which
+rotates the whole curve by that much. Next: fix that, then raise CURVE
+towards the ~480 mm/s cap and FAST.
