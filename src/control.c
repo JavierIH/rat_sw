@@ -38,6 +38,16 @@ float profile_remaining(const profile_t *p){
     return rem > 0.0f ? rem : 0.0f;
 }
 
+// Fastest speed for the end of this step from which a point `rem` ahead can
+// still be reached at `final` braking at `rate`, counted from where the step
+// ends: next^2 = final^2 + 2 rate (rem - (v + next) dt / 2). Solved for
+// `next`, it brakes at exactly `rate` every step.
+float profile_brake_speed(float v, float rem, float final, float rate, float dt){
+    const float a_dt = rate * dt;
+    const float disc = a_dt * a_dt + 4.0f * (final * final + 2.0f * rate * (rem - 0.5f * v * dt));
+    return disc > 0.0f ? 0.5f * (sqrtf(disc) - a_dt) : 0.0f;
+}
+
 void profile_resume(profile_t *p, float pos){
     p->pos = pos;
     p->speed = p->accel = p->delta = 0.0f;
@@ -57,15 +67,9 @@ void profile_step(profile_t *p, float dt){
         }
         else{
             float next = v < p->top ? fminf(v + p->rate * dt, p->top) : fmaxf(v - p->rate * dt, p->top);
-            // Fastest speed from which the target can still be reached at
-            // `final` braking at `rate`, counted from where this step ends:
-            // next^2 = final^2 + 2 rate (rem - (v + next) dt / 2). Solved for
-            // `next`, it brakes at exactly `rate` every step. If the target
-            // moved closer, brake up to twice as hard; never reverse.
-            const float a_dt = p->rate * dt;
-            const float disc = a_dt * a_dt + 4.0f * (p->final * p->final + 2.0f * p->rate * (rem - 0.5f * v * dt));
-            next = fminf(next, disc > 0.0f ? 0.5f * (sqrtf(disc) - a_dt) : 0.0f);
-            next = fmaxf(next, fmaxf(v - 2.0f * a_dt, 0.0f));
+            // If the target moved closer, brake up to twice as hard; never reverse.
+            next = fminf(next, profile_brake_speed(v, rem, p->final, p->rate, dt));
+            next = fmaxf(next, fmaxf(v - 2.0f * p->rate * dt, 0.0f));
             float step = 0.5f * (v + next) * dt;
             if(step >= rem){
                 p->pos = p->target;
@@ -178,7 +182,12 @@ void control_step(control_t *c, const control_config_t *k, const profile_t *fwd,
 // ---- Wall centring ---------------------------------------------------------------------
 
 void steer_reset(steer_t *s){
-    s->lateral = s->bias = s->heading = s->drift = 0.0f;
+    s->bias = s->heading = 0.0f;
+    steer_restart(s);
+}
+
+void steer_restart(steer_t *s){
+    s->lateral = s->drift = 0.0f;
     for(uint8_t i = 0; i < STEER_DELAY_MAX; i++) s->drift_hist[i] = 0.0f;
     s->reading = s->reading_sum = 0.0f;
     for(uint8_t i = 0; i < STEER_AVERAGE_MAX; i++) s->reading_hist[i] = 0.0f;

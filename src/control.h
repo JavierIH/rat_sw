@@ -42,6 +42,9 @@ void profile_step(profile_t *p, float dt);
 float profile_remaining(const profile_t *p);    // distance left, >= 0
 // Continue from standstill at `pos` towards the same target (after a pause).
 void profile_resume(profile_t *p, float pos);
+// Highest speed `v` may reach at the end of a step of `dt` and still arrive
+// `rem` ahead at `final`, braking at `rate` (the profiles' braking curve).
+float profile_brake_speed(float v, float rem, float final, float rate, float dt);
 
 // ---- Wheel controllers ---------------------------------------------------------------
 
@@ -126,6 +129,9 @@ typedef struct {
 } steer_t;
 
 void steer_reset(steer_t *s);
+// A new corridor (after a curve): forget the readings and the motion since,
+// keep the heading offset and what the walls taught about the heading.
+void steer_restart(steer_t *s);
 // One control period: side readings (mm), distance travelled this step (mm,
 // >= 0), heading now (deg since the move started, from the encoders) and
 // how much of the centring to apply (1 cruising, fading to 0 at the end of a
