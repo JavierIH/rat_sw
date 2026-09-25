@@ -184,9 +184,11 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   (`PD_STRAIGHT_MAX` 80), skips the derivative on jumps no motion can cause
   (`STEER_JUMP_MM` in 10 ms), and uses the left wall when the right reading is
   implausible and the left one agrees better.
-- Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`,
-  assuming the +140-tick correction found on single-cell moves is per move.
-  Verify on hardware: if long straights end long/short, tune the split.
+- Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`.
+  `MOVE_EXTRA_TICKS` was +140 (from front-alignment errors in the maze) until
+  a ruler showed every encoder stop ended ~16 mm long; it is now -5 from one
+  measured `CAL STRAIGHT 1`. Measure a 3-cell straight too (`/nota medido`)
+  and let `calib_analyze.py` split it from `CELL_TICKS`.
 - Every straight (search at `SPD`, speed run at `FAST`) slows down to
   `STOP_SPEED` (150) over `DECEL_TICKS_PER_PWM` per PWM of difference and runs
   the last `APPROACH_TICKS` at it, then hard-brakes: `CELL_TICKS`,
