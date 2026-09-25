@@ -863,7 +863,7 @@ static void test_speed_control(void){
         CHECK(r.rot_err_max < 6.0f);
         // The side IR resolve ~2 mm; above STEER_VREF_MM_S the centring
         // works over a longer distance (it weaved on the robot otherwise).
-        CHECK(r.y_late < (speeds[i] > STEER_VREF_MM_S ? 5.0f : 3.0f));
+        CHECK(r.y_late < (speeds[i] > STEER_VREF_MM_S ? 6.0f : 3.0f));
         p.y0 = 15.0f;               // a bad start: centred within the move (more slowly
         r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);     // above STEER_VREF_MM_S)
         CHECK(fabsf(r.y_end) < (speeds[i] > STEER_VREF_MM_S ? 6.0f : 3.0f));

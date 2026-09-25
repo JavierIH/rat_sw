@@ -117,9 +117,10 @@
 // The chassis resists changes of heading (static friction in yaw, likely
 // the skids): at ROT_KP 20 the heading stuck until 2-4 deg of error, then
 // jumped (stick-slip, S-curves). 40/0.6 on the robot: heading oscillation
-// 0.83 -> 0.35 deg rms, tracking error 3.9 -> 1.5 deg max.
+// 0.83 -> 0.35 deg rms, tracking error 3.9 -> 1.5 deg max. At 700 mm/s KD
+// 0.6 rang at ~7 Hz; 0.8 did not (lateral noise +-2.0 -> +-0.8 mm).
 #define ROT_KP                  40.0f   // PWM per deg of heading error (~0.5 mm of wheel travel)
-#define ROT_KD                  0.6f    // PWM per deg/s
+#define ROT_KD                  0.8f    // PWM per deg/s
 #define ROT_KI                  150.0f  // PWM per deg*s
 #define ROT_I_MAX               100.0f  // PWM
 // Once the profile has arrived the wheels stall ~1 deg / ~1 mm short: static
