@@ -16,6 +16,10 @@ run_result_t search_explore(void);
 // Speed run over verified passages with merged straights, then back to the
 // start and save. Refuses without moving if no verified path exists yet.
 run_result_t search_fast_run(void);
+// 1 (default): the search drives through the cells without stopping, deciding
+// each one on the way (motion_explore); 0: it stops in every cell (CONT OFF).
+void search_set_continuous(uint8_t on);
+uint8_t search_continuous(void);
 // Left- or right-hand wall follower until the goal.
 run_result_t search_wall_follow(uint8_t left_hand);
 

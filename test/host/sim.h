@@ -13,6 +13,9 @@ typedef struct {
     uint32_t blocked;       // drove at a wall on the first cell: robot backed up (safety net)
     uint32_t crashes;       // drove through a wall past the first cell: position lost
     uint32_t actions;
+    uint32_t legs, stops;   // motion_explore() calls; moves that ended at rest (any kind)
+    uint32_t wall_stops;    // search legs that stopped at a front wall seen on the way (expected)
+    double seconds;         // estimated robot time of every move and stop (see sim.c)
 } sim_stats_t;
 
 extern sim_stats_t sim_stats;

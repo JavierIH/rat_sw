@@ -1,5 +1,8 @@
 #include "sim.h"
+#include <math.h>
 #include <string.h>
+#include "params.h"
+#include "robot_config.h"
 
 sim_stats_t sim_stats;
 uint8_t sim_x, sim_y;
@@ -129,6 +132,27 @@ void sim_abort_after(uint32_t actions){
     abort_after = actions;
 }
 
+// ---- Time model ----------------------------------------------------------------
+// Seconds as the robot takes them, from the practice maze: straights on the
+// speed-control profile, 0.30 s per quarter turn in place (0.28-0.34
+// measured, 0.46-0.66 for a half turn), and 0.08 s at every stop to sense,
+// plan and log (the gaps between moves in the search logs).
+#define SIM_STOP_S          0.08
+#define SIM_QUARTER_TURN_S  0.30
+
+// From rest to rest over `mm`, cruising at `v` with the accel parameter.
+static double drive_seconds(double mm, double v){
+    const double a = params.accel;
+    if(mm <= 0.0) return 0.0;
+    if(v * v / a >= mm) return 2.0 * sqrt(mm / a);
+    return mm / v + v / a;
+}
+
+static void stopped(double drive_s){
+    sim_stats.seconds += drive_s + SIM_STOP_S;
+    sim_stats.stops++;
+}
+
 // ---- motion.h ------------------------------------------------------------------
 
 static uint8_t noisy(uint8_t v){
@@ -148,12 +172,12 @@ move_result_t motion_sense_walls(wall_sense_t *out){
 }
 
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
-    (void)cruise_speed;
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.forward_moves++;
     for(uint8_t i = 0; i < cells; i++){
         if(truth_wall(sim_x, sim_y, sim_h)){
+            stopped(drive_seconds(i * CELL_MM, cruise_speed));
             if(i == 0){
                 sim_stats.blocked++;    // the robot's emergency stop + back up
                 return MOVE_BLOCKED;
@@ -165,8 +189,74 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
     }
+    stopped(drive_seconds(cells * CELL_MM, cruise_speed));
     sides_fresh = cells > 0;
     return MOVE_OK;
+}
+
+// Side walls read on the way into a cell: three sensor periods in the window.
+// Unanimous or doubtful (a false "open" would curve into a wall).
+static uint8_t side_on_the_way(uint8_t wall){
+    const uint8_t seen = (uint8_t)(noisy(wall) + noisy(wall) + noisy(wall));
+    return seen == 3 ? SEEN_PRESENT : seen == 0 ? SEEN_ABSENT : SEEN_DOUBTFUL;
+}
+
+move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, next_cell_fn decide, void *ctx,
+                             uint8_t *entered){
+    sides_fresh = 0;
+    sim_stats.actions++;
+    sim_stats.legs++;
+    *entered = 0;
+    // Distance along the leg to the entry edge of the next cell: half a cell
+    // from the start, a cell per straight cell, 149 mm per curve cell (4.5
+    // straight, 140 of curve, 4.5 straight).
+    double entry = 0.5 * CELL_MM;
+    uint8_t can_curve = 1, curved_front = SEEN_DOUBTFUL;
+    for(;;){
+        // Leaving the current cell through its front, which the robot checks
+        // on the way: a wall there, and it stops at the cell's centre.
+        if(truth_wall(sim_x, sim_y, sim_h)){
+            stopped(drive_seconds(*entered ? entry - 0.5 * CELL_MM : 0.0, speed));
+            sim_stats.wall_stops++;
+            sides_fresh = *entered > 0;
+            return MOVE_BLOCKED;
+        }
+        sim_x = (uint8_t)(sim_x + heading_dx(sim_h));
+        sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
+        sim_stats.forward_cells++;
+        wall_sense_t w;
+        w.front = SEEN_DOUBTFUL;
+        w.left = side_on_the_way(truth_wall(sim_x, sim_y, heading_left(sim_h)));
+        w.right = side_on_the_way(truth_wall(sim_x, sim_y, heading_right(sim_h)));
+        w.moving = 1;
+        next_move_t next = decide(&w, can_curve, curved_front, ctx);
+        curved_front = SEEN_DOUBTFUL;
+        if(*entered + 2u > max_cells) next = NEXT_STOP;
+        turns[*entered] = next == NEXT_LEFT ? -1 : next == NEXT_RIGHT ? 1 : 0;
+        (*entered)++;
+        if(next == NEXT_STOP){
+            stopped(drive_seconds(entry + 0.5 * CELL_MM, speed));
+            sides_fresh = 1;
+            return MOVE_OK;
+        }
+        if(next == NEXT_STRAIGHT){
+            entry += CELL_MM;
+            can_curve = 1;
+            continue;
+        }
+        const heading_t out = next == NEXT_LEFT ? heading_left(sim_h) : heading_right(sim_h);
+        if(!can_curve || truth_wall(sim_x, sim_y, out)){
+            sim_stats.crashes++;    // curved into a wall
+            return MOVE_LOST;
+        }
+        // The curve leaves through that side, into the next cell; its start
+        // still faces this cell's front wall, 165 mm away: one reading.
+        curved_front = noisy(truth_wall(sim_x, sim_y, sim_h));
+        sim_h = out;
+        sim_stats.curves++;
+        entry += 149.0;
+        can_curve = 0;
+    }
 }
 
 move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
@@ -176,6 +266,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     sim_stats.actions++;
     sim_stats.paths++;
     *entered = 0;
+    double mm = 0.0;
     for(uint8_t i = 0; i < path->cells; i++){
         if(truth_wall(sim_x, sim_y, sim_h)){
             // Seen from a straight: the robot stops at the centre of the cell
@@ -190,12 +281,14 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         sim_x = (uint8_t)(sim_x + heading_dx(sim_h));
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
+        mm += path->turn[i] ? 149.0 : CELL_MM;
         if(path->turn[i]){
             sim_h = (heading_t)((sim_h + path->turn[i] + 4) & 3);
             sim_stats.curves++;
         }
         *entered = (uint8_t)(i + 1u);
     }
+    stopped(drive_seconds(mm, cruise_speed));
     sides_fresh = 1;
     return MOVE_OK;
 }
@@ -204,6 +297,7 @@ move_result_t motion_turn(int8_t quarter_turns){
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.quarter_turns += (uint32_t)(quarter_turns < 0 ? -quarter_turns : quarter_turns);
+    sim_stats.seconds += SIM_QUARTER_TURN_S * (quarter_turns < 0 ? -quarter_turns : quarter_turns);
     sim_h = (heading_t)((sim_h + quarter_turns + 4) & 3);
     return MOVE_OK;
 }

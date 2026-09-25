@@ -506,13 +506,15 @@ static void test_storage(void){
 typedef struct {
     int runs, search_ok, fast_ok, optimal, consistent, back_home;
     long blocked, crashes, search_actions, search_cells, search_senses, fast_cells, fast_curves, fast_turns;
+    long search_stops;
+    double search_seconds;
 } summary_t;
 
 static void print_summary(const char *name, const summary_t *s){
     printf("  %-34s runs %3d | search ok %3d, optimal %3d, map ok %3d | fast ok %3d, home %3d | "
-           "blocked %ld crashes %ld | avg search %ld actions %ld cells | avg fast %ld cells %ld curves %ld turns\n",
+           "blocked %ld crashes %ld | avg search %.1f s %ld stops %ld cells | avg fast %ld cells %ld curves %ld turns\n",
            name, s->runs, s->search_ok, s->optimal, s->consistent, s->fast_ok, s->back_home,
-           s->blocked, s->crashes, s->search_actions / s->runs, s->search_cells / s->runs,
+           s->blocked, s->crashes, s->search_seconds / s->runs, s->search_stops / s->runs, s->search_cells / s->runs,
            s->fast_cells / (s->runs ? s->runs : 1), s->fast_curves / (s->runs ? s->runs : 1),
            s->fast_turns / (s->runs ? s->runs : 1));
 }
@@ -537,6 +539,8 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->search_actions += sim_stats.actions;
     s->search_cells += sim_stats.forward_cells;
     s->search_senses += sim_stats.senses;
+    s->search_stops += sim_stats.stops;
+    s->search_seconds += sim_stats.seconds;
     if(r != RUN_OK || !home) return;
 
     CHECK_EQ(storage_load(), STORAGE_LOADED);   // the search saved its map
@@ -598,6 +602,44 @@ static void test_competition_mazes(void){
             CHECK_EQ(s.crashes, 0);
         }
     }
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
+// The search without stopping in every cell against the one that does, on
+// the same mazes: same cells explored (reading the front wall of every curve
+// cell, it learns as much), the same verified optimum, and much faster.
+static void test_continuous_search(void){
+    maze_set_goal(7, 7, 8, 8);
+    const uint16_t openings[] = {0, 40, 150};
+    for(size_t o = 0; o < 3; o++){
+        double seconds[2] = {0};
+        long cells[2] = {0}, stops[2] = {0};
+        int ok[2] = {0};
+        for(uint8_t mode = 0; mode < 2; mode++){
+            for(uint32_t m = 1; m <= 30; m++){
+                truth_generate(m * 7919u + (uint32_t)o, openings[o]);
+                maze_init();
+                params_reset();
+                fake_flash_wipe();
+                sim_reset(0.0, m);
+                search_set_home();
+                search_set_continuous(mode);
+                ok[mode] += search_explore() == RUN_OK && search_fast_path_cost() == true_optimum();
+                seconds[mode] += sim_stats.seconds;
+                cells[mode] += sim_stats.forward_cells;
+                stops[mode] += sim_stats.stops;
+                if(mode) CHECK_EQ(sim_stats.blocked + sim_stats.crashes, 0);
+            }
+        }
+        printf("search, %3u openings: stopping in every cell %.1f s (%ld stops), continuous %.1f s (%ld stops),"
+               " %ld/%ld cells\n", openings[o], seconds[0] / 30, stops[0] / 30, seconds[1] / 30, stops[1] / 30,
+               cells[1] / 30, cells[0] / 30);
+        CHECK_EQ(ok[0], 30);
+        CHECK_EQ(ok[1], 30);
+        CHECK(cells[1] <= cells[0] + cells[0] / 20);
+        CHECK(seconds[1] < 0.8 * seconds[0]);
+    }
+    search_set_continuous(1);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
@@ -1476,6 +1518,7 @@ int main(int argc, char **argv){
     test_storage();
     test_run_control();
     test_fast_run_surprise_wall();
+    test_continuous_search();
     test_wall_followers();
     test_practice_maze();
     test_competition_mazes();

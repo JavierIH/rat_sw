@@ -30,7 +30,7 @@ HOST_DIR = os.path.join(ROOT, "test", "host")
 HOST_TESTS = os.path.join(HOST_DIR, "build", "host_tests")
 MONITOR = os.path.join(HERE, "robot_monitor.py")
 ACTION_NAME = {"F": "AVANZA", "L": "IZQ", "R": "DER", "U": "MEDIA VUELTA", None: "-"}
-DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F[01] I[01?] D[01?] coste=(\d+) -> (.+)$")
+DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F[01?] I[01?] D[01?] coste=(\d+) -> (.+)$")
 ROUTE = re.compile(r"^(RAPIDA|VUELTA) \((\d+),(\d+)\)([NESW]) giro (-?\d+) \+ ruta ([0-9DI]*\+?) \((\d+) celdas\)$")
 FAST_COST = re.compile(r"^Camino rapido verificado: coste (\d+)$")
 
@@ -48,7 +48,12 @@ def firmware_transcript(seed, openings, practice=False, phantom=False):
 
 
 def map_state(model):
-    return copy.deepcopy((model.north, model.east, model.visited))
+    # The border slots (north of the top row, east of the right column) are
+    # never read: the border is always a wall. Full rows fill them in, cell
+    # lines do not.
+    north = [col[:-1] for col in model.north]
+    east = copy.deepcopy(model.east[:-1])
+    return copy.deepcopy((north, east, model.visited))
 
 
 class TranscriptChecker:

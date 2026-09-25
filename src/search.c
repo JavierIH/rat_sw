@@ -23,8 +23,9 @@ static uint8_t ready = 1;               // pose is the start facing north, for r
 static uint8_t turned;                  // turned in place since the last straight
 static uint16_t cost_a[MAZE_STATES];    // planner buffers
 static uint16_t cost_b[MAZE_STATES];
-static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h)
+static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h); search legs too
 static run_path_t route = {route_turn, 0};
+static uint8_t continuous = 1;              // search legs without stopping in every cell
 
 static void pose_reset(void){
     pose.x = START_X;
@@ -69,9 +70,21 @@ static const char SIGHTING_CHAR[3] = {'0', '1', '?'};
 // Senses the three visible walls and feeds them to the map. Doubtful side
 // readings (possible phantom walls) are left out: the wall keeps whatever the
 // map knew, and is confirmed later from a better pose.
-static move_result_t sense_here(wall_sense_t *w){
+static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
     move_result_t r = motion_sense_walls(w);
     if(r != MOVE_OK) return r;
+    // Stopped at the end of a search leg: the sides were recorded when the
+    // robot got to this cell, from the same readings. Counting them again
+    // would make one sighting look like two.
+    if(sides_recorded){
+        w->left = w->left == SEEN_PRESENT ? SEEN_DOUBTFUL : w->left;
+        w->right = w->right == SEEN_PRESENT ? SEEN_DOUBTFUL : w->right;
+        maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
+        maze_mark_visited(pose.x, pose.y);
+        telemetry_cell(pose.x, pose.y, pose.h);
+        telemetry_background_row();
+        return MOVE_OK;
+    }
     // Sides read from the stop after a turn caught posts and the passage just
     // driven through: 5 phantom walls in 14 such readings on the practice
     // maze. After a turn only a "no wall" is recorded; the walls there were
@@ -258,11 +271,146 @@ static uint16_t optimize_candidates(cellset_t *out){
 
 // ---- Strategies ------------------------------------------------------------------------
 
-run_result_t search_explore(void){
-    phase_t phase = PH_TO_GOAL;
-    uint16_t steps = 0, optimize_steps = 0;
-    uint8_t repairs = 0;
+void search_set_continuous(uint8_t on){
+    continuous = on != 0;
+}
+
+uint8_t search_continuous(void){
+    return continuous;
+}
+
+typedef struct {
+    phase_t phase;
+    uint16_t steps, optimize_steps;
+    uint8_t repairs;
     cellset_t targets;
+    heading_t curved_from;  // heading into the cell the robot last curved in
+    uint8_t decided;        // cells decided in the current leg...
+    uint8_t reached;        // ...and those the robot got to (it stopped in the last one)
+    uint8_t failed;         // planning failed on the way: handled at rest
+} explore_t;
+
+typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
+
+// Phase changes at the robot's cell, and the targets of the phase. The goal
+// is announced and the map saved at rest (writing flash stalls the CPU), so
+// on the way (`stopped` = 0) getting to the goal or back to the start only
+// asks for a stop.
+static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
+    if(e->phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
+        if(!stopped) return PHASE_STOP;
+        print("Meta alcanzada en (%u,%u) tras %u acciones\n", pose.x, pose.y, e->steps);
+        motion_indicate(IND_GOAL);
+        save_map();
+        e->phase = PH_OPTIMIZE;
+        telemetry_activity(TM_OPTIMIZE);
+    }
+    if(e->phase == PH_OPTIMIZE){
+        uint8_t budget_left = e->optimize_steps < OPTIMIZE_MAX_STEPS;
+        if(!budget_left || !optimize_candidates(&e->targets)){
+            print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
+                              : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
+            e->phase = PH_TO_START;
+            telemetry_activity(TM_TO_START);
+        }
+    }
+    if(e->phase == PH_TO_START && pose.x == START_X && pose.y == START_Y) return stopped ? PHASE_DONE : PHASE_STOP;
+    if(e->phase == PH_TO_GOAL) maze_goal_cells(&e->targets);
+    else if(e->phase == PH_TO_START) start_cell(&e->targets);
+    return PHASE_GO;
+}
+
+// Best action from the pose, logged with what was seen. 0 if the targets
+// cannot be reached or the action budget ran out (e->failed says which).
+static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a){
+    if(plan_explore(&e->targets, &e->repairs) == REPLAN_UNREACHABLE){
+        e->failed = 1;
+        return 0;
+    }
+    *a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
+    if(params.log_level >= 1){
+        print("%s (%u,%u)%c F%c I%c D%c coste=%u -> %s\n", PHASE_TAG[e->phase], pose.x, pose.y,
+              HEADING_CHAR[pose.h], SIGHTING_CHAR[w->front], SIGHTING_CHAR[w->left], SIGHTING_CHAR[w->right],
+              cost_a[pose_state()], ACTION_NAME[*a]);
+    }
+    if(++e->steps > SEARCH_MAX_STEPS){
+        e->failed = 2;
+        return 0;
+    }
+    if(e->phase == PH_OPTIMIZE) e->optimize_steps++;
+    return 1;
+}
+
+// The robot is getting to the next cell of a leg: record what it saw, then
+// decide. A curve needs the side seen open now; anything the rest of the
+// search does at rest (turning in place, the goal, the end) is a stop.
+static next_move_t explore_next(const wall_sense_t *w, uint8_t can_curve, uint8_t curved_front, void *ctx){
+    explore_t *e = ctx;
+    // The front wall of the cell it curved in, read at the curve's start.
+    if(curved_front != SEEN_DOUBTFUL){
+        maze_observe(pose.x, pose.y, e->curved_from, curved_front == SEEN_PRESENT);
+        telemetry_cell(pose.x, pose.y, pose.h);
+    }
+    maze_mark_crossed(pose.x, pose.y, pose.h);
+    pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
+    pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
+    if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
+    if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
+    maze_mark_visited(pose.x, pose.y);
+    e->decided++;
+    telemetry_cell(pose.x, pose.y, pose.h);
+    telemetry_pose(pose.x, pose.y, pose.h);
+    telemetry_background_row();
+    if(explore_phase(e, 0) != PHASE_GO) return NEXT_STOP;
+    action_t a;
+    if(!explore_plan(e, w, &a)) return NEXT_STOP;
+    if(a == ACT_FORWARD) return NEXT_STRAIGHT;
+    const uint8_t left = a == ACT_TURN_LEFT;
+    // A curve commits the robot: the side must read open now, and the map
+    // (this reading and any before) must agree.
+    const heading_t side = left ? heading_left(pose.h) : heading_right(pose.h);
+    if(can_curve && (left || a == ACT_TURN_RIGHT) && (left ? w->left : w->right) == SEEN_ABSENT
+       && maze_evidence(pose.x, pose.y, side) < 0){
+        e->curved_from = pose.h;
+        pose.h = left ? heading_left(pose.h) : heading_right(pose.h);
+        return left ? NEXT_LEFT : NEXT_RIGHT;
+    }
+    return NEXT_STOP;
+}
+
+// Forward from rest, deciding every cell on the way until the search needs
+// a stop. The pose follows the cells the robot actually got to.
+static move_result_t explore_leg(explore_t *e){
+    const pose_t start = pose;
+    const int16_t speed = params.search_speed < params.curve_speed ? params.search_speed : params.curve_speed;
+    uint8_t entered = 0;
+    e->decided = 0;
+    move_result_t r = motion_explore(speed, route_turn, PATH_MAX_CELLS, explore_next, e, &entered);
+    turned = 0;
+    e->reached = entered;
+    if(entered < e->decided){
+        // Stopped short (an obstacle: backed up to a cell centre on a straight).
+        pose = start;
+        for(uint8_t i = 0; i < entered; i++){
+            pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
+            pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
+            pose.h = (heading_t)((pose.h + route_turn[i] + 4) & 3);
+        }
+    }
+    if(r == MOVE_OK || r == MOVE_BLOCKED) telemetry_pose(pose.x, pose.y, pose.h);
+    if(r == MOVE_OK){
+        motion_align_front();
+    }
+    else if(r == MOVE_BLOCKED){
+        maze_mark_blocked(pose.x, pose.y, pose.h);
+        telemetry_cell(pose.x, pose.y, pose.h);
+    }
+    return r;
+}
+
+run_result_t search_explore(void){
+    explore_t e = {.phase = PH_TO_GOAL};
+    uint8_t sides_recorded = 0;     // this cell's sides were read on the way in, at the end of a leg
 
     pose_reset();
     ready = 0;
@@ -271,46 +419,24 @@ run_result_t search_explore(void){
     for(;;){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "busqueda");
         wall_sense_t w;
-        move_result_t r = sense_here(&w);
+        move_result_t r = sense_here(&w, sides_recorded);
+        sides_recorded = 0;
         if(r != MOVE_OK) return fail_move(r, "sensado");
-
-        if(phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
-            print("Meta alcanzada en (%u,%u) tras %u acciones\n", pose.x, pose.y, steps);
-            motion_indicate(IND_GOAL);
-            save_map();
-            phase = PH_OPTIMIZE;
-            telemetry_activity(TM_OPTIMIZE);
+        if(explore_phase(&e, 1) == PHASE_DONE) return finish_at_start(e.steps);
+        action_t a;
+        if(!explore_plan(&e, &w, &a)){
+            return fail_plan(e.failed == 2 ? "presupuesto de acciones agotado" : "destino inalcanzable");
         }
-        if(phase == PH_OPTIMIZE){
-            uint8_t budget_left = optimize_steps < OPTIMIZE_MAX_STEPS;
-            if(!budget_left || !optimize_candidates(&targets)){
-                print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
-                                  : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
-                phase = PH_TO_START;
-                telemetry_activity(TM_TO_START);
-            }
-        }
-        if(phase == PH_TO_START && pose.x == START_X && pose.y == START_Y){
-            return finish_at_start(steps);
-        }
-        if(phase == PH_TO_GOAL) maze_goal_cells(&targets);
-        else if(phase == PH_TO_START) start_cell(&targets);
-
-        if(plan_explore(&targets, &repairs) == REPLAN_UNREACHABLE){
-            return fail_plan("destino inalcanzable");
-        }
-        action_t a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
-        if(params.log_level >= 1){
-            print("%s (%u,%u)%c F%c I%c D%c coste=%u -> %s\n", PHASE_TAG[phase], pose.x, pose.y,
-                  HEADING_CHAR[pose.h], SIGHTING_CHAR[w.front], SIGHTING_CHAR[w.left], SIGHTING_CHAR[w.right],
-                  cost_a[pose_state()], ACTION_NAME[a]);
-        }
-        if(++steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
-        if(phase == PH_OPTIMIZE) optimize_steps++;
         // The map may still believe in a passage the sensors now see closed:
         // never drive into it. The sighting already raised its evidence, so
         // sensing again converges to the truth.
         if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
+        if(a == ACT_FORWARD && continuous){
+            r = explore_leg(&e);
+            if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
+            sides_recorded = e.reached > 0;
+            continue;
+        }
         r = do_action(a);
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
     }
@@ -348,7 +474,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, tag);
         if(++*steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
         wall_sense_t w;
-        move_result_t r = sense_here(&w);
+        move_result_t r = sense_here(&w, 0);
         if(r != MOVE_OK) return fail_move(r, "sensado");
 
         maze_plan_to(targets, PLAN_VERIFIED, FAST_COSTS, cost_a);
@@ -416,7 +542,7 @@ run_result_t search_wall_follow(uint8_t left_hand){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");
         if(++steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
         wall_sense_t w;
-        move_result_t r = sense_here(&w);
+        move_result_t r = sense_here(&w, 0);
         if(r != MOVE_OK) return fail_move(r, "sensado");
 
         // Decide on the map, which now holds this sighting plus the border.

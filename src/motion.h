@@ -40,6 +40,30 @@ move_result_t motion_turn(int8_t quarter_turns);
 // with MOVE_OK; with MOVE_BLOCKED it stopped at the centre of an earlier one,
 // on a straight, facing a wall the map had as open.
 move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered);
+// ---- Continuous search -------------------------------------------------------------
+// The search drives on through the cells and decides each one on the way.
+// motion_explore() starts from rest at a cell centre, heading into the next
+// cell, and calls `decide` once for every cell it gets to: before entering
+// it after a straight (its side walls were read on the way in: it can curve
+// there), or halfway into it after a curve (the sides could not be read in
+// time: `can_curve` = 0, only straight on or stop). The front wall of that
+// cell is unknown then (`sides->front` = SEEN_DOUBTFUL): going straight on,
+// the robot stops at the cell's centre if one shows up. Curving, it reads
+// that front wall at the start of the curve, still facing it, and passes it
+// with the next cell as `curved_front` (SEEN_DOUBTFUL when there was no
+// curve or no clear reading).
+typedef enum { NEXT_STRAIGHT, NEXT_LEFT, NEXT_RIGHT, NEXT_STOP } next_move_t;
+typedef next_move_t (*next_cell_fn)(const wall_sense_t *sides, uint8_t can_curve, uint8_t curved_front, void *ctx);
+// `turns` (at least `max_cells`, lent for the leg) gets the move made in each
+// cell decided: -1 curve left, +1 right, 0 straight or stop; at most
+// `max_cells` - 1 cells are decided, the robot stops at the last. `entered` =
+// cells decided that the robot got to. MOVE_OK: stopped at the centre of the
+// one `decide` said NEXT_STOP for. MOVE_BLOCKED: stopped at the centre of cell
+// `entered` (0 = where it started), on a straight, facing a wall where the
+// map had a passage.
+move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, next_cell_fn decide, void *ctx,
+                             uint8_t *entered);
+
 // Majority-voted wall readings: the front with the robot stopped, the sides
 // from the straight that just ended if there was one (see `moving`).
 move_result_t motion_sense_walls(wall_sense_t *out);
