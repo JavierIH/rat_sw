@@ -7,6 +7,7 @@
 #include "encoder.h"
 #include "gpio.h"
 #include "infrared.h"
+#include "health.h"
 #include "motor.h"
 #include "params.h"
 #include "robot_config.h"
@@ -30,6 +31,7 @@ static void motors_off(void){
 }
 
 static void wait_next_ms(void){
+    health_alive();
     uint32_t now = HAL_GetTick();
     while(HAL_GetTick() == now){}
 }
@@ -60,6 +62,7 @@ void motion_set_step_mode(uint8_t on){
 // Commands and the START button (= stop the run) are serviced from every
 // wait and control loop, so the robot reacts within a millisecond.
 static void poll_inputs(void){
+    health_alive();
     commands_poll();
     if(button_take_press(BUTTON_START)) abort_flag = 1;
 }

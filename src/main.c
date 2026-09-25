@@ -4,6 +4,7 @@
 #include "commands.h"
 #include "encoder.h"
 #include "gpio.h"
+#include "health.h"
 #include "infrared.h"
 #include "maze.h"
 #include "motion.h"
@@ -79,6 +80,12 @@ static void sensor_monitor(void){
     print("Monitor de sensores: cualquier boton o STOP para salir\n");
     uint32_t next_print = HAL_GetTick();
     for(;;){
+        health_alive();
+        uint32_t stall_ms, stall_pc, stall_lr;
+        if(health_take_stall(&stall_ms, &stall_pc, &stall_lr)){
+            print("!! el programa estuvo parado %lu ms en PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
+                  (unsigned long)stall_pc, (unsigned long)stall_lr);
+        }
         if(sysclock_recover()){
             uart_retime();
             print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
@@ -219,11 +226,13 @@ static void print_banner(storage_status_t stored){
         print("Flash: %s\n", storage_status_name(stored));
     }
     if(sysclock_source() == CLOCK_HSI_BOOT) print("!! el cristal no arranco: reloj interno a 64 MHz\n");
+    print("Reinicio: %s\n", health_reset_cause());
     print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza, HELP lista comandos\n",
           g[0], g[1], g[2], g[3]);
 }
 
 int main(void){
+    health_init();
     HAL_Init();
     SystemClock_Config();
     LED_Init();

@@ -63,9 +63,23 @@ void SVC_Handler(void){}
 void DebugMon_Handler(void){}
 void PendSV_Handler(void){}
 
-void SysTick_Handler(void){
+// SysTick with the frame the interrupt stacked (health.c looks at where the
+// main program was). The robot firmware overrides the check.
+__weak void app_stall_check(const uint32_t *frame){ (void)frame; }
+
+__attribute__((used)) void systick_with_frame(const uint32_t *frame){
     HAL_IncTick();
+    app_stall_check(frame);
     app_systick();
+}
+
+__attribute__((naked)) void SysTick_Handler(void){
+    __asm volatile(
+        "tst lr, #4         \n"
+        "ite eq             \n"
+        "mrseq r0, msp      \n"
+        "mrsne r0, psp      \n"
+        "b systick_with_frame \n");
 }
 
 // USART3 TX DMA.

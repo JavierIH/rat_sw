@@ -4,6 +4,7 @@
 #include "stm32f1xx_hal.h"
 #include "app.h"
 #include "encoder.h"
+#include "health.h"
 #include "infrared.h"
 #include "maze.h"
 #include "motion.h"
@@ -129,6 +130,7 @@ static void cmd_status(const char *args){
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(ki, sizeof(ki), params.ki), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
+    print("pila: %lu bytes sin usar nunca | reinicio: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);

@@ -1,4 +1,5 @@
 #include "calib.h"
+#include "health.h"
 #include <math.h>
 #include <stdio.h>
 #include "stm32f1xx_hal.h"
@@ -108,6 +109,7 @@ uint8_t calib_moves(cal_test_t test){
 // Waits for a free UART slot while the console keeps working. 0 on STOP.
 static uint8_t wait_slot(void){
     while(uart_tx_full()){
+        health_alive();
         commands_poll();
         if(motion_abort_requested()) return 0;
     }
