@@ -248,6 +248,24 @@ static curve_t default_curve(void){
     return c;
 }
 
+// Seconds the reference of a speed run takes along a route (the simulated
+// robot tracks it within a few ms).
+static float route_seconds(const int8_t *turns, uint8_t cells, float v_fast, float v_curve){
+    const curve_t c = default_curve();
+    const run_path_t path = {turns, cells};
+    path_run_t r;
+    profile_t f, o;
+    profile_reset(&f);
+    profile_reset(&o);
+    if(!path_start(&r, &path, &c, CELL_MM, v_fast, v_curve, PARAM_ACCEL)) return 0.0f;
+    uint32_t steps = 0;
+    while(!r.done && steps < 1000000u){
+        path_step(&r, &f, &o, CONTROL_DT_S);
+        steps++;
+    }
+    return (float)steps * CONTROL_DT_S;
+}
+
 static void test_planner_basics(void){
     cellset_t goal;
     maze_init();
@@ -306,8 +324,10 @@ static void test_planner_basics(void){
     CHECK_EQ(cells, 5);
     CHECK_EQ(turns[4], 0);
 
-    // Fewer turns beat fewer cells: to reach (3,3), a staircase of 6 cells and
-    // 5 turns loses to a detour of 8 cells and 2 turns.
+    // Optimal in time: to reach (3,3), a staircase of 6 cells and 5 turns
+    // against a detour of 8 cells and 2 turns. With smooth curves the
+    // staircase is faster (curves at 400 mm/s all the way, against
+    // accelerating to FAST and braking twice), and so is its cost.
     truth_reset(1);
     truth_set_wall(0, 0, NORTH, 0);     // staircase N E N E N E
     truth_set_wall(0, 1, EAST, 0);
@@ -326,12 +346,14 @@ static void test_planner_basics(void){
     maze_set_goal(3, 3, 3, 3);
     maze_goal_cells(&goal);
     maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
-    CHECK_EQ(cost[maze_state(0, 0, NORTH)], 8 * FAST_COST_CELL + 2 * FAST_COST_TURN);
+    CHECK_EQ(cost[maze_state(0, 0, NORTH)], 6 * FAST_COST_CELL + 5 * FAST_COST_TURN);
     CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     CHECK_EQ(turn, 0);
-    CHECK_EQ(cells, 8);
-    CHECK_EQ(turns[3], 1);  // straight up the detour, not into the staircase
-    CHECK_EQ(turns[6], 1);
+    CHECK_EQ(cells, 6);
+    static const int8_t staircase[6] = {1, -1, 1, -1, 1, 0}, detour[8] = {0, 0, 0, 1, 0, 0, 1, 0};
+    for(uint8_t i = 0; i < cells; i++) CHECK_EQ(turns[i], staircase[i]);
+    CHECK(route_seconds(staircase, 6, PARAM_FAST_SPEED, PARAM_CURVE_SPEED) < route_seconds(detour, 8, PARAM_FAST_SPEED,
+                                                                                            PARAM_CURVE_SPEED));
 }
 
 // SPFA (maze.c) against the independent Dijkstra on random evidence maps, for
@@ -1264,6 +1286,51 @@ static void control_report(void){
     }
 }
 
+// host_tests --costs [fast curve]: speed-run time of the planner's route
+// start -> goal for several (cell, turn) cost pairs, on fully known random
+// mazes, to choose FAST_COST_CELL / FAST_COST_TURN.
+static void costs_report(float v_fast, float v_curve){
+    static const plan_costs_t pairs[] = {
+        {2, 4}, {2, 3}, {2, 2}, {2, 1}, {3, 4}, {3, 2}, {3, 1}, {4, 3}, {4, 1}, {5, 2}, {5, 3},
+    };
+    const size_t n_pairs = sizeof(pairs) / sizeof(pairs[0]);
+    const uint16_t openings[] = {0, 40, 150};
+    int8_t turns[PATH_MAX_CELLS];
+    printf("carrera rapida FAST %.0f, curvas %.0f mm/s, ACCEL %d: segundos medios salida->meta (celdas, curvas)\n",
+           (double)v_fast, (double)v_curve, PARAM_ACCEL);
+    maze_set_goal(7, 7, 8, 8);
+    cellset_t goal;
+    maze_goal_cells(&goal);
+    for(size_t o = 0; o < sizeof(openings) / sizeof(openings[0]); o++){
+        double seconds[16] = {0}, cells_sum[16] = {0}, curves_sum[16] = {0};
+        int best_count[16] = {0};
+        const int mazes = 200;
+        for(int m = 1; m <= mazes; m++){
+            truth_generate((uint32_t)m * 2654435761u + o, openings[o]);
+            truth_load_into_map();
+            float t[16], best = 1e9f;
+            for(size_t k = 0; k < n_pairs; k++){
+                int8_t turn;
+                uint8_t cells = 0;
+                maze_plan_to(&goal, PLAN_VERIFIED, pairs[k], cost);
+                maze_route(cost, START_X, START_Y, NORTH, PLAN_VERIFIED, pairs[k], &turn, turns, PATH_MAX_CELLS, &cells);
+                t[k] = route_seconds(turns, cells, v_fast, v_curve) + (turn ? 0.3f * (float)(turn < 0 ? -turn : turn) : 0.0f);
+                seconds[k] += t[k];
+                cells_sum[k] += cells;
+                for(uint8_t i = 0; i < cells; i++) curves_sum[k] += turns[i] != 0;
+                best = fminf(best, t[k]);
+            }
+            for(size_t k = 0; k < n_pairs; k++) best_count[k] += t[k] <= best + 0.001f;
+        }
+        printf("  %3u aberturas extra:\n", openings[o]);
+        for(size_t k = 0; k < n_pairs; k++){
+            printf("    celda %u giro %u: %.3f s (%.1f celdas, %.1f curvas), el mejor en %d de %d\n", pairs[k].cell,
+                   pairs[k].turn, seconds[k] / mazes, cells_sum[k] / mazes, curves_sum[k] / mazes, best_count[k], mazes);
+        }
+    }
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 int main(int argc, char **argv){
     host_verbose = argc > 1 && strcmp(argv[1], "-v") == 0;
     fake_flash_wipe();
@@ -1273,6 +1340,10 @@ int main(int argc, char **argv){
     }
     if(argc > 1 && strcmp(argv[1], "--control") == 0){
         control_report();
+        return 0;
+    }
+    if(argc > 1 && strcmp(argv[1], "--costs") == 0){
+        costs_report(argc > 3 ? (float)atof(argv[2]) : PARAM_FAST_SPEED, argc > 3 ? (float)atof(argv[3]) : PARAM_CURVE_SPEED);
         return 0;
     }
     if(argc > 3 && strcmp(argv[1], "--transcript") == 0){

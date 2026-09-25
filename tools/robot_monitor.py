@@ -64,7 +64,7 @@ MIN_LOG_COLS = 34
 def read_config(path=CONFIG_H):
     """Planner costs and start cell from the firmware's robot_config.h."""
     values = {"SEARCH_COST_CELL": 2, "SEARCH_COST_TURN": 1, "FAST_COST_CELL": 2,
-              "FAST_COST_TURN": 4, "START_X": 0, "START_Y": 0}
+              "FAST_COST_TURN": 1, "START_X": 0, "START_Y": 0}
     try:
         with open(path, encoding="utf-8") as f:
             for line in f:

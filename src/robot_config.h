@@ -204,13 +204,19 @@
 
 // ---- Planner / strategy ------------------------------------------------------------
 // Costs in arbitrary units per cell and per 90 deg turn. Search moves stop at
-// every cell, so a turn costs about half a cell; speed runs merge straights,
-// so there a turn (brake, turn, settle, accelerate) costs about two cells.
+// every cell, so a turn costs about half a cell. Speed runs take every turn
+// as a smooth curve without stopping: with a turn at half a cell the routes
+// are the fastest at FAST 500-1000 and curves at 400-480 mm/s, 0.2-2 % faster
+// than at two cells (the cost of braking to turn in place). Measured on the
+// path reference over 600 random mazes: host_tests --costs [FAST CURVE].
 #define SEARCH_COST_CELL        2
 #define SEARCH_COST_TURN        1
 #define FAST_COST_CELL          2
-#define FAST_COST_TURN          4
-#define OPTIMIZE_MAX_STEPS      300     // extra exploration after the goal, looking for a better path
+#define FAST_COST_TURN          1
+// Extra exploration after the goal, looking for a better path. The cheap
+// speed-run turns make more routes tie, and one simulated 16x16 maze in 100
+// needed more than 300 (on average the search got shorter).
+#define OPTIMIZE_MAX_STEPS      400
 #define SEARCH_MAX_STEPS        2000    // hard budget of actions per run
 #define MAP_MAX_RECOVERIES      3       // "goal unreachable" map repairs allowed per run
 
