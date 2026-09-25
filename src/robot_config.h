@@ -77,7 +77,10 @@
 // they aim a couple of cm from the next post and caught it as phantom walls
 // (9 in the first test logs, some at 82-98 mm, as close as real walls).
 #define SIDE_PASS_MM            (CELL_MM / 2)
-#define SENSE_SETTLE_MS         30      // let the chassis stop rocking before sensing
+// Pause before sensing at a stop. The old stop-and-coast rocked the chassis
+// (30 ms); the controlled stops do not: searches at 10 and 0 ms mapped the
+// practice maze exactly, with no doubtful wall.
+#define SENSE_SETTLE_MS         0
 // The side sensors sit at the nose, angled 15 deg forward. Stopped too far
 // forward or yawed, their beam leaves the cell next to the post and hits the
 // post or the front wall: a phantom side wall. With something in front, the
