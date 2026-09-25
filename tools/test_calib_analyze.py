@@ -180,6 +180,73 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertEqual(len(re.findall(r"\+90\.00 grados de encoder", text)), 4, text)
         self.assertAlmostEqual(number(r"TURNTICKS (\d+)", text), 400 * 352 / 360, delta=2)
 
+    def test_controlled_curve(self):
+        # CAL CURVE 1 400: right curve, encoders on the reference. The robot
+        # leaves the curve 5 mm left of centre (out wide), the wall at the end
+        # stops it 3 mm before the plan, and it is 2 deg short of square.
+        period, v, tpm, mpd = 2, 400.0, 9.05, 400 / 90 / 9.05
+        radius, ramp, pre, post = 70.0, 30.0, 4.5, 4.5
+        length = radius * math.pi / 2 + ramp
+        start = 90 + pre
+        planned = 180 + pre + length + post
+        stop = planned - 3.0
+
+        def progress(u):       # the clothoid-arc-clothoid of path.c, 0..1
+            k = 1 / radius
+            if u <= 0:
+                return 0.0
+            if u >= length:
+                return 1.0
+            if u < ramp:
+                h = 0.5 * k * u * u / ramp
+            elif u < length - ramp:
+                h = k * (u - 0.5 * ramp)
+            else:
+                h = math.pi / 2 - 0.5 * k * (length - u) ** 2 / ramp
+            return h / (math.pi / 2)
+
+        rows, s, t = [], 0.0, 0
+        while True:
+            s = min(stop, v * t / 1000.0)
+            heading = 90.0 * progress(s - start)
+            half_rot = heading * mpd * tpm
+            lateral = 0.0 if s < start + length else 5.0
+            sr = fl_raw_for(84 + lateral)
+            done = s >= stop
+            front = (fl_raw_for(96.4), fl_raw_for(94.0)) if done else (fl_raw_for(300), fl_raw_for(300))
+            p = 0 if done else 400
+            rows.append((s * tpm + half_rot, s * tpm - half_rot, p, p) + front + (0, sr, s * 10, heading * 100))
+            if done:
+                break
+            t += period
+        rows += [rows[-1]] * 20
+        info = ["@D INFO curve_r=70.0 curve_ramp=30.0 curve_angle=90.00 curve_len=%.1f curve_vmax=478" % length,
+                "@D INFO curve_pre=4.5 curve_post=4.5 curve_pre_adj=0.0 curve_post_adj=0.0"]
+        capture = rm.CalibrationCapture(self.tmp.name)
+        lines = ["@D BEGIN curve 1 400", '@D INFO period_ms=2 samples=%d capacity=320 result=OK build="t"' % len(rows)]
+        lines += NEW_INFO + info
+        lines += ["@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot"]
+        lines += ["@D %d,%s" % (i * period, ",".join(str(int(round(x))) for x in row)) for i, row in enumerate(rows)]
+        lines += ["@D END result=OK samples=%d" % len(rows)]
+        for line in lines:
+            capture.feed(line)
+        with open(capture.last_path) as f:
+            text = f.read()
+        for sensor in ("fr", "sr"):     # the FL curve stands in for them: only mm matter here
+            text = re.sub(r'ir_cal_%s="[^"]*"' % sensor, 'ir_cal_%s="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"'
+                          % sensor, text)
+        with open(capture.last_path, "w") as f:
+            f.write(text)
+        text = ca.report([capture.last_path])
+        self.assertIn("Curva a la derecha a 400 mm/s", text)
+        self.assertAlmostEqual(number(r"de rumbo en la curva max ([\d.]+)", text), 0.0, delta=0.2)   # one tick
+        self.assertAlmostEqual(number(r"giro de los encoders al final: ([-+\d.]+)", text), 90.0, delta=0.1)
+        self.assertAlmostEqual(number(r"lateral al salir: ([-+\d.]+) mm", text), 5.0, delta=0.6)
+        self.assertIn("por fuera", text)
+        self.assertAlmostEqual(number(r"TUNE CURVE_PRE ([-\d.]+)", text), -5.0, delta=0.6)
+        self.assertAlmostEqual(number(r"TUNE CURVE_POST ([-\d.]+)", text), -3.0, delta=0.2)
+        self.assertAlmostEqual(number(r"TUNE CURVE_ANGLE ([\d.]+)", text), 92.0, delta=0.4)
+
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140
         rows, pos = [], 0.0

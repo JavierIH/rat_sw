@@ -362,7 +362,7 @@ static void cmd_telem(const char *args){
 // working during the test), recorded and dumped by calib.c.
 static void cmd_cal(const char *args){
     static const struct { const char *name; cal_test_t test; } TESTS[] = {
-        {"NOISE", CAL_NOISE}, {"STRAIGHT", CAL_STRAIGHT}, {"TURN", CAL_TURN},
+        {"NOISE", CAL_NOISE}, {"STRAIGHT", CAL_STRAIGHT}, {"TURN", CAL_TURN}, {"CURVE", CAL_CURVE},
         {"STEP", CAL_STEP}, {"IR", CAL_IR}, {"DUMP", CAL_DUMP},
     };
     const char *p = skip_spaces(args);
@@ -390,6 +390,12 @@ static void cmd_cal(const char *args){
                 a = 4;
                 if(parse_int(&p, &a)) ok = a != 0 && a >= -8 && a <= 8;
                 break;
+            case CAL_CURVE:     // [+-1: right/left] [mm/s]: a cell, a smooth curve, a cell
+                a = 1;
+                b = params.curve_speed;
+                if(parse_int(&p, &a) && parse_int(&p, &b)) ok = b >= SPEED_MIN && b <= SPEED_MAX;
+                ok = ok && (a == 1 || a == -1);
+                break;
             case CAL_STEP:      // [pwm] [ms]: open loop, no speed control
                 a = 400;
                 b = 500;
@@ -405,7 +411,8 @@ static void cmd_cal(const char *args){
         }
     }
     if(!ok || !at_end(p)){
-        print("CAL NOISE [ms] | STRAIGHT [celdas] [mm/s] | TURN [+-cuartos] | STEP [pwm] [ms] | IR [mm] | DUMP\n");
+        print("CAL NOISE [ms] | STRAIGHT [celdas] [mm/s] | TURN [+-cuartos] | CURVE [+-1] [mm/s] | STEP [pwm] [ms]"
+              " | IR [mm] | DUMP\n");
         return;
     }
     app_request_cal(TESTS[found].test, a, b);
@@ -442,7 +449,7 @@ static const command_t COMMANDS[] = {
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},
     {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
     {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},
-    {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|STEP|IR|DUMP: datos de calibracion"},
+    {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP: datos de calibracion"},
     {"DEFAULTS", cmd_defaults, 0, "parametros por defecto"},
     {"IR",       cmd_ir,       0, "lectura de sensores y encoders"},
     {"WALLS",    cmd_walls,    1, "detecta las paredes ahora"},

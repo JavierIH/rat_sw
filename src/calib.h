@@ -13,6 +13,7 @@ typedef enum {
     CAL_NOISE,      // robot still: sensor noise (no motion)
     CAL_STRAIGHT,   // a normal N-cell move: distance, stop, steering
     CAL_TURN,       // N quarter turns: overshoot and settling
+    CAL_CURVE,      // a cell, a smooth curve, a cell (speed run): tracking and where it ends
     CAL_STEP,       // open-loop PWM step then coast: motor model, braking
     CAL_IR,         // back away from a front wall: IR curve vs distance
     CAL_DUMP,       // send the last recording again

@@ -724,6 +724,23 @@ static const tunable_t TUNABLES[] = {
 
 #define TUNABLE_COUNT (sizeof(TUNABLES) / sizeof(TUNABLES[0]))
 
+void motion_curve_info(uint8_t line){
+    curve_t c;
+    if(!curve_from_tuning(&c)) return;
+    char a[12], b[12], d[12], e[12];
+    if(line == 0){
+        print("@D INFO curve_r=%s curve_ramp=%s curve_angle=%s curve_len=%s curve_vmax=%d\n",
+              format_fixed(a, sizeof(a), c.radius, 1), format_fixed(b, sizeof(b), c.ramp, 1),
+              format_fixed(d, sizeof(d), c.angle, 2), format_fixed(e, sizeof(e), c.length, 1),
+              (int)curve_speed_limit(&c));
+    }
+    else{
+        print("@D INFO curve_pre=%s curve_post=%s curve_pre_adj=%s curve_post_adj=%s\n",
+              format_fixed(a, sizeof(a), c.pre, 1), format_fixed(b, sizeof(b), c.post, 1),
+              format_fixed(d, sizeof(d), curve_pre, 1), format_fixed(e, sizeof(e), curve_post, 1));
+    }
+}
+
 void motion_tune_list(void){
     char v[16];
     for(uint8_t i = 0; i < TUNABLE_COUNT; i++){

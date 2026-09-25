@@ -89,6 +89,7 @@ void motion_tick_1ms(void);             // from SysTick: speed control and centr
 // Where the profiles are now and which move they belong to (SysTick: CAL recordings).
 void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id);
 void motion_tune_list(void);                        // TUNE: control constants that can change live
+void motion_curve_info(uint8_t line);               // CAL dumps: the curve geometry, '@D INFO' lines 0 and 1
 void motion_tune_set(const char *name, float value);
 void motion_stop(void);
 uint8_t motion_wait(uint32_t ms);       // keeps polling inputs; 0 if aborted meanwhile

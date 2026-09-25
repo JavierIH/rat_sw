@@ -11,6 +11,10 @@ firmware constant and the samples. Physical measurements added with
     turn:      /nota angulo 352           total angle actually turned (degrees)
     ir:        /nota inicio 40 mm         front sensors to wall when the sweep starts
 
+CAL CURVE (a cell, a smooth curve, a cell) needs no notes: the side walls
+after the curve, the front wall at the end and FL-FR there suggest
+CURVE_PRE, CURVE_POST and CURVE_ANGLE.
+
 Recordings from the speed-control firmware carry the profile reference
 (ref_fwd, ref_rot): straights and turns then report how closely the wheels
 followed it, the centring and the real distance/angle. Open-loop steps
@@ -25,6 +29,8 @@ import sys
 
 CELL_MM = 180
 SENSORS = ("fl", "fr", "sl", "sr")
+IR_DELAY_MS = 50            # as in robot_config.h: the IR report the robot's past
+SQUARE_MM_PER_DEG = 1.2     # as in robot_config.h: FL - FR per degree of yaw
 
 
 # ---- Loading ----------------------------------------------------------------------------
@@ -284,6 +290,88 @@ def analyze_turn_controlled(rec, out):
         out.append("  (anota el angulo real girado con: /nota angulo <grados>, o compara FL-FR con CAL NOISE)")
 
 
+def analyze_curve_controlled(rec, out):
+    """CAL CURVE: straight into the next cell, a smooth curve in it, stop at
+    the centre of the cell after it."""
+    direction = 1 if not rec.args or rec.args[0] >= 0 else -1
+    speed = rec.args[1] if len(rec.args) > 1 else rec.number("curve")
+    tpm = rec.number("ticks_per_mm", 9.05)
+    mpd = rec.number("turn_ticks", 400) / 90 / tpm
+    angle = rec.number("curve_angle", 90.0)
+    fwd = [t / tpm for t in average_ticks(rec)]
+    rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+    ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
+    ref_r = [v / 100.0 for v in rec.data["ref_rot"]]
+    on = [i for i in range(rec.n) if motor_on(rec, i)]
+    end = (on[-1] + 1) if on else rec.n
+    out.append("Curva a la %s a %s mm/s con control de velocidad (%s)"
+               % ("derecha" if direction > 0 else "izquierda", int(speed) if speed is not None else "?",
+                  rec.meta.get("result", "?")))
+    if "curve_len" in rec.meta:
+        out.append("  forma: radio %s, rampas %s mm: %s mm de curva, recta antes %s y despues %s mm, hasta %s mm/s"
+                   % tuple(rec.meta.get(k, "?") for k in ("curve_r", "curve_ramp", "curve_len", "curve_pre",
+                                                          "curve_post", "curve_vmax")))
+    turning = [i for i in range(end) if 0.01 < abs(ref_r[i]) < angle - 0.01]
+    if not turning:
+        out.append("  la referencia no llego a curvar")
+        return
+    a, b = turning[0], turning[-1] + 1
+    v = speed_mm_s(rec, average_ticks(rec), smooth=2)
+    out.append("  curva en %.0f ms a %.0f-%.0f mm/s" % ((b - a) * rec.period, min(v[a:b]), max(v[a:b])))
+    ef = [ref_f[i] - fwd[i] for i in on]
+    er = [ref_r[i] - rot[i] for i in range(a, b)]
+    if ef:
+        out.append("  seguimiento: error de avance max %.2f mm, de rumbo en la curva max %.2f grados"
+                   % (max(abs(e) for e in ef), max(abs(e) for e in er)))
+    pwm = [max(abs(rec.data["pwm_l"][i]), abs(rec.data["pwm_r"][i])) for i in on]
+    saturated = sum(1 for p in pwm if p >= 1000)
+    if saturated:
+        out.append("  ! PWM al maximo en %d muestras de %d: baja CURVE" % (saturated, len(pwm)))
+    out.append("  giro de los encoders al final: %+.2f grados (pedido %+.2f)" % (rot[end - 1], direction * angle))
+
+    # Sideways, as soon as the side readings come from the exit corridor
+    # (IR_DELAY_MS after the curve), before the centring corrects much.
+    errors = dict(side_errors(rec, end))
+    first = b + int(math.ceil(IR_DELAY_MS / rec.period))
+    before = [errors[i] for i in range(max(0, a - 10), a) if i in errors]
+    after = [errors[i] for i in range(first, min(end, first + max(3, int(40 / rec.period)))) if i in errors]
+    pre_adj = rec.number("curve_pre_adj", 0.0)
+    if before:
+        out.append("  lateral al entrar: %+.1f mm (> 0: a la izquierda del centro)" % mean(before))
+    if after:
+        lateral = mean(after)
+        outside = lateral * direction       # right curve: its outside is the left
+        out.append("  lateral al salir: %+.1f mm, %.1f mm por %s de la curva"
+                   % (lateral, abs(outside), "fuera" if outside > 0 else "dentro"))
+        # Out wide: the curve started late (or the robot turned late): start it earlier.
+        out.append("  -> TUNE CURVE_PRE %.1f (ahora %.1f)" % (pre_adj - outside, pre_adj))
+    else:
+        out.append("  (sin paredes laterales al salir: repitelo con paredes a los lados de la ultima celda)")
+
+    # The front wall at the end: where the IR put the stop against the plan.
+    planned = CELL_MM + sum(rec.number(k, 0.0) for k in ("curve_pre", "curve_len", "curve_post"))
+    stop = ref_f[-1]                                # the reference stays at the end once there
+    still = list(range(end, rec.n)) or [end - 1]    # recorded at rest after the stop
+    fl = [rec.ir_mm("fl", rec.data["raw_fl"][i]) for i in still]
+    fr = [rec.ir_mm("fr", rec.data["raw_fr"][i]) for i in still]
+    fl = mean(fl) if None not in fl else None
+    fr = mean(fr) if None not in fr else None
+    walled = fl is not None and fr is not None and fl < rec.number("wall_detect_mm", 140) \
+        and fr < rec.number("wall_detect_mm", 140)
+    if walled and "curve_len" in rec.meta:
+        post_adj = rec.number("curve_post_adj", 0.0)
+        out.append("  pared al final: parada a %+.1f mm del plan (%.1f mm)" % (stop - planned, planned))
+        out.append("  -> TUNE CURVE_POST %.1f (ahora %.1f)" % (post_adj + stop - planned, post_adj))
+        skew = fl - fr - rec.number("front_square_offset_mm", 0.0)
+        yaw_left = skew / SQUARE_MM_PER_DEG     # FL farther: turned left of square
+        out.append("  rumbo real al final (FL-FR): %.1f grados a la %s" % (abs(yaw_left),
+                                                                          "izquierda" if yaw_left > 0 else "derecha"))
+        out.append("  -> TUNE CURVE_ANGLE %.2f (ahora %.2f; FL-FR es ruidoso: promedia varias)"
+                   % (angle + yaw_left * direction, angle))
+    else:
+        out.append("  (sin pared delante al final: con ella se calibran CURVE_POST y CURVE_ANGLE)")
+
+
 def analyze_straight(rec, out, measured_pairs):
     cells = rec.args[0] if rec.args else 1
     pwm = rec.args[1] if len(rec.args) > 1 else rec.number("spd")
@@ -464,8 +552,8 @@ def report(paths):
         out.append("%s  [%s, %d muestras cada %.0f ms, firmware %s]"
                    % (path, rec.test, rec.n, rec.period, rec.meta.get("build", "?")))
         if "accel" in rec.meta:
-            out.append("  SPD %s FAST %s ACCEL %s TURN %s TACCEL %s KP %s KI %s" % tuple(
-                rec.meta.get(k, "?") for k in ("spd", "fast", "accel", "turn", "turn_accel", "kp", "ki")))
+            out.append("  SPD %s FAST %s CURVE %s ACCEL %s TURN %s TACCEL %s KP %s KI %s" % tuple(
+                rec.meta.get(k, "?") for k in ("spd", "fast", "curve", "accel", "turn", "turn_accel", "kp", "ki")))
         else:
             out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
                 rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))
@@ -479,6 +567,8 @@ def report(paths):
             analyze_straight(rec, out, measured_pairs)
         elif rec.kind == "turn" and controlled(rec):
             analyze_turn_controlled(rec, out)
+        elif rec.kind == "curve" and controlled(rec):
+            analyze_curve_controlled(rec, out)
         elif rec.kind == "step":
             analyze_step(rec, out, motor_points)
         elif rec.kind in ANALYSES:

@@ -135,9 +135,13 @@ static void dump(void){
               format_fixed2(tau, sizeof(tau), MOTOR_TAU_S * 1000.0f), (unsigned)MOTOR_KS_PWM);
     }
     if(!wait_slot()) goto interrupted;
-    print("@D INFO spd=%d fast=%d accel=%d turn=%d turn_accel=%d kp=%s ki=%s\n",
-          params.search_speed, params.fast_speed, params.accel, params.turn_speed, params.turn_accel,
-          format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki));
+    print("@D INFO spd=%d fast=%d curve=%d accel=%d turn=%d turn_accel=%d kp=%s ki=%s\n",
+          params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
+          params.turn_accel, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki));
+    for(uint8_t i = 0; i < 2; i++){
+        if(!wait_slot()) goto interrupted;
+        motion_curve_info(i);
+    }
     if(!wait_slot()) goto interrupted;
     {
         char cl[12], cr[12];
@@ -207,6 +211,18 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
                 if(r == MOVE_OK && !motion_wait(CAL_TURN_GAP_MS)) r = MOVE_ABORTED;
             }
             break;
+        case CAL_CURVE:{
+            // As in a speed run: straight into the next cell, curve inside
+            // it, stop at the centre of the cell after it.
+            static int8_t turns[2];
+            turns[0] = (int8_t)a;
+            const run_path_t path = {turns, 2};
+            uint8_t entered;
+            snprintf(description, sizeof(description), "curve %ld %ld", (long)a, (long)b);
+            record_start(2);
+            r = motion_run_path(&path, (int16_t)b, (int16_t)b, &entered);
+            break;
+        }
         case CAL_STEP:
             snprintf(description, sizeof(description), "step %ld %ld", (long)a, (long)b);
             record_start(((uint32_t)b + CAL_COAST_MS + CAL_CAPACITY - 1) / CAL_CAPACITY);
