@@ -145,10 +145,12 @@ static void dump(void){
     if(!wait_slot()) goto interrupted;
     {
         char cl[12], cr[12];
-        print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u lane_mm=%u"
-              " center_l=%s center_r=%s\n", WALL_DETECT_MM, FRONT_WALL_REF_MM, FRONT_EMERGENCY_MM,
-              SIDE_WALL_TRACK_MM, (unsigned)LANE_WIDTH_MM, format_fixed(cl, sizeof(cl), SIDE_CENTER_L_MM, 1),
-              format_fixed(cr, sizeof(cr), SIDE_CENTER_R_MM, 1));
+        // print() truncates at its buffer: keep every @D line well under it.
+        print("@D INFO wall_detect_mm=%u front_ref_mm=%u front_emergency_mm=%u side_track_mm=%u\n", WALL_DETECT_MM,
+              FRONT_WALL_REF_MM, FRONT_EMERGENCY_MM, SIDE_WALL_TRACK_MM);
+        if(!wait_slot()) goto interrupted;
+        print("@D INFO lane_mm=%u center_l=%s center_r=%s\n", (unsigned)LANE_WIDTH_MM,
+              format_fixed(cl, sizeof(cl), SIDE_CENTER_L_MM, 1), format_fixed(cr, sizeof(cr), SIDE_CENTER_R_MM, 1));
     }
     if(!wait_slot()) goto interrupted;
     print("@D INFO front_square_offset_mm=%d side_yaw_doubt_mm=%u side_close_doubt_mm=%u wall_samples=%u wall_votes=%u\n",
