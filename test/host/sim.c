@@ -225,7 +225,9 @@ move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, ne
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
         wall_sense_t w;
-        w.front = SEEN_DOUBTFUL;
+        // Deciding before the cell its front is too far to read; halfway
+        // into it (after a curve) it is in plain view.
+        w.front = can_curve ? SEEN_DOUBTFUL : noisy(truth_wall(sim_x, sim_y, sim_h));
         w.left = side_on_the_way(truth_wall(sim_x, sim_y, heading_left(sim_h)));
         w.right = side_on_the_way(truth_wall(sim_x, sim_y, heading_right(sim_h)));
         w.moving = 1;

@@ -354,6 +354,7 @@ static next_move_t explore_next(const wall_sense_t *w, uint8_t can_curve, uint8_
     maze_mark_crossed(pose.x, pose.y, pose.h);
     pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
     pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
+    if(w->front != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
     if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
     if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
     maze_mark_visited(pose.x, pose.y);

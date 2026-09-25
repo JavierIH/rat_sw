@@ -391,13 +391,119 @@ static float curve_speed_limit(const curve_t *c){
     return (sqrtf(b * b + 4.0f * a * room) - b) / (2.0f * a);
 }
 
+// ---- Search legs (motion_explore) ---------------------------------------------------------
+
+typedef struct {
+    next_cell_fn decide;
+    void *ctx;
+    int8_t *turns;                  // the path's turn array, lent by the search
+    uint8_t max_cells;
+    uint8_t decided;                // cells decided: the next one to decide
+    uint8_t stopping;               // a stop was decided (or forced): no more cells
+    uint8_t after_curve;            // the next cell comes right after a curve
+    float entry;                    // along the path: entry edge of the next cell to decide
+    uint32_t next_sample;           // HAL tick of the next reading
+    uint8_t samples, walls_l, walls_r;      // side readings of the next cell
+    float curve_at;                 // start of the curve whose front wall is being read (0: none)
+    uint8_t front_samples, front_walls;
+    uint8_t curved_front;           // sighting_t of that wall, for the next decision
+    uint8_t last_l, last_r;         // sighting_t of the sides of the last cell decided
+} explorer_t;
+
+// Unanimous readings, enough of them, or doubtful.
+static uint8_t sighting(uint8_t samples, uint8_t walls){
+    if(samples < SEARCH_MIN_READINGS) return SEEN_DOUBTFUL;
+    return walls == samples ? SEEN_PRESENT : walls == 0 ? SEEN_ABSENT : SEEN_DOUBTFUL;
+}
+
+// SysTick steps the path: grow it with SysTick masked (a few us).
+static uint8_t grow_path(void){
+    __disable_irq();
+    const uint8_t ok = path_grow(&run);
+    __enable_irq();
+    return ok;
+}
+
+// Every ms of a search leg: readings for the next cell, and its decision
+// when due. 0 if a curve was decided that the path could no longer take.
+static uint8_t explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8_t front_seen){
+    const uint32_t now = HAL_GetTick();
+    const uint8_t sample = (int32_t)(now - ex->next_sample) >= 0;
+    if(sample) ex->next_sample = now + WALL_SAMPLE_MS;
+    // The front wall of the cell curved in, from the start of the curve.
+    if(ex->curve_at > 0.0f){
+        if(ir_at > ex->curve_at + SEARCH_CURVE_FRONT_AFTER_MM){
+            ex->curved_front = sighting(ex->front_samples, ex->front_walls);
+            ex->curve_at = 0.0f;
+        }
+        else if(sample && ir_at >= ex->curve_at - SEARCH_CURVE_FRONT_BEFORE_MM){
+            ex->front_samples++;
+            if(0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR)) < SEARCH_FRONT_WALL_MM) ex->front_walls++;
+        }
+    }
+    if(ex->stopping) return 1;
+    // Sides of the next cell: before it after a straight, halfway into it after a curve.
+    const float from = ex->after_curve ? ex->entry + SEARCH_LATE_FROM_MM : ex->entry - SEARCH_SIDE_FROM_MM;
+    if(sample && ir_at >= from){
+        ex->samples++;
+        if(ir_mm(IR_SL) < WALL_DETECT_MM) ex->walls_l++;
+        if(ir_mm(IR_SR) < WALL_DETECT_MM) ex->walls_r++;
+    }
+    const uint8_t due = ex->after_curve
+        ? ir_at >= ex->entry + SEARCH_LATE_TO_MM
+        : run.s >= ex->entry + run.curve.pre - v * SEARCH_DECIDE_S - SEARCH_DECIDE_MARGIN_MM;
+    if(!due) return 1;
+
+    wall_sense_t w;
+    w.left = sighting(ex->samples, ex->walls_l);
+    w.right = sighting(ex->samples, ex->walls_r);
+    w.front = SEEN_DOUBTFUL;
+    if(ex->after_curve){
+        // Halfway into the cell its front wall is in plain view (~130 mm).
+        const float avg = 0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR));
+        w.front = front_seen ? SEEN_PRESENT : avg > SEARCH_FRONT_OPEN_MM ? SEEN_ABSENT : SEEN_DOUBTFUL;
+    }
+    w.moving = 1;
+    const uint8_t room = ex->decided + 2u <= ex->max_cells;
+    const next_move_t next = ex->decide(&w, room && !ex->after_curve, ex->curved_front, ex->ctx);
+    ex->curved_front = SEEN_DOUBTFUL;
+    ex->last_l = w.left;
+    ex->last_r = w.right;
+    ex->samples = ex->walls_l = ex->walls_r = 0;
+    const uint8_t k = ex->decided++;
+    ex->turns[k] = next == NEXT_LEFT ? -1 : next == NEXT_RIGHT ? 1 : 0;
+    if(next == NEXT_STOP || (next == NEXT_STRAIGHT && !room)){
+        ex->stopping = 1;
+        return 1;
+    }
+    ex->turns[k + 1u] = 0;
+    if(!grow_path()){
+        if(next != NEXT_STRAIGHT) return 0;
+        ex->stopping = 1;       // a wall in front moved the end: it stops in this cell
+        return 1;
+    }
+    g->deadline += MOVE_TIMEOUT_PER_CELL_MS;
+    if(next == NEXT_STRAIGHT){
+        ex->entry += CELL_MM;
+        ex->after_curve = 0;
+    }
+    else{
+        ex->curve_at = ex->entry + run.curve.pre;
+        ex->front_samples = ex->front_walls = 0;
+        ex->entry += run.curve.pre + run.curve.length + run.curve.post;
+        ex->after_curve = 1;
+    }
+    return 1;
+}
+
 // Every forward move: a whole path in one go (path.h), straights and smooth
 // curves, a plain straight being a path without curves. SysTick steps the
 // reference; this loop watches the sensors and decides when it is over. The
 // front sensors are used on straights only, with readings taken on them: to
 // stop at the right distance from a wall at the end, and to stop short, at a
 // cell centre, if a wall shows up where the (verified) map had a passage.
-move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
+static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered,
+                              explorer_t *ex){
     side_pass_clear();
     *entered = 0;
     if(!path->cells) return MOVE_OK;
@@ -435,6 +541,14 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         const float remaining = fminf(run.curve_start, run.stop_at) - at;
         const float fade = remaining < STEER_FADE_MM ? fmaxf(remaining, 0.0f) / STEER_FADE_MM : 1.0f;
         steer_gain = fade * (v > steer_vref ? steer_vref / v : 1.0f);
+        if(ex){
+            if(!short_stop) planned_end = run.length;     // it grows as the search decides
+            if(!explore_step(ex, &g, v, ir_at, ir_seen >= FRONT_CONFIRM_MS)){
+                result = MOVE_LOST;
+                stop = "CURVA TARDE";
+                break;
+            }
+        }
 
         if(run.s >= run.curve_start || !path_on_straight(&run, ir_at)){
             ir_seen = ir_emergency = 0;     // turning, or the readings are from the curve
@@ -443,7 +557,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         }
         // On the straight into the last cell (or into a short stop) the end
         // of the straight is the end of the move.
-        const uint8_t last_cell = run.next >= path->cells;
+        const uint8_t last_cell = run.next >= run.path.cells;
         const uint8_t ending = last_cell || short_stop;
         const float expected = short_stop ? planned_end : path_straight_end(&run);
 
@@ -476,6 +590,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
                     planned_end = run.stop_at = centre;
                     short_stop = 1;
                     stop = "PARED";
+                    if(ex) ex->stopping = 1;
                 }
             }
             else if(ending && run.stop_at - at <= FRONT_ZONE_MM){
@@ -505,9 +620,21 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     control_end();
     at = fwd_actual();
     if(result == MOVE_OK){
-        *entered = short_stop ? stop_cell : path->cells;
+        *entered = short_stop ? stop_cell : run.path.cells;
         if(short_stop) result = MOVE_BLOCKED;
         side_pass.valid = !short_stop && side_pass.n >= WALL_SAMPLES;
+    }
+    if(ex && (result == MOVE_OK || result == MOVE_BLOCKED)){
+        if(result == MOVE_OK && run.path.cells > ex->decided){
+            result = MOVE_LOST;     // stopped in a cell the search never decided: cannot happen in time
+            stop = "SIN DECIDIR";
+        }
+        // The sides of the cell it stopped in, as read on the way in.
+        side_pass.valid = *entered == ex->decided && *entered > 0
+                       && ex->last_l != SEEN_DOUBTFUL && ex->last_r != SEEN_DOUBTFUL;
+        side_pass.n = WALL_SAMPLES;
+        side_pass.votes_l = ex->last_l == SEEN_PRESENT ? WALL_SAMPLES : 0;
+        side_pass.votes_r = ex->last_r == SEEN_PRESENT ? WALL_SAMPLES : 0;
     }
 
     if(params.log_level >= 2){
@@ -517,7 +644,8 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         format_fixed2(dist, sizeof(dist), at);
         format_fixed2(end, sizeof(end), run.stop_at);
         if(path->turn){
-            print("ruta %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s", path->cells,
+            print("%s %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s",
+                  ex ? "exploracion" : "ruta", run.path.cells,
                   run.curves, stop, dist, end, (int)vmax, (int)run.v_curve, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), sides);
         }
         else{
@@ -539,6 +667,27 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         }
     }
     return result;
+}
+
+move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
+    return run_path(path, cruise_speed, curve_speed, entered, NULL);
+}
+
+// A search leg: a path that starts one cell long and grows as explore_step()
+// asks the search about each next cell.
+move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, next_cell_fn decide, void *ctx,
+                             uint8_t *entered){
+    explorer_t ex = {0};
+    ex.decide = decide;
+    ex.ctx = ctx;
+    ex.turns = turns;
+    ex.max_cells = max_cells;
+    ex.entry = 0.5f * CELL_MM;
+    ex.next_sample = HAL_GetTick();
+    ex.curved_front = ex.last_l = ex.last_r = SEEN_DOUBTFUL;
+    turns[0] = 0;
+    const run_path_t leg = {turns, 1};
+    return run_path(&leg, speed, speed, entered, &ex);
 }
 
 // A straight is a path without curves.
