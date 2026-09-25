@@ -227,13 +227,21 @@
 #define PARAM_SEARCH_SPEED      600     // mm/s
 // Validated on 3-cell straights in a corridor: 700 mm/s stops within ~2 mm
 // of the front-wall reference and centres (0.98 s); 900 works too (0.92 s)
-// but runs out of PWM at the end of the acceleration.
-#define PARAM_FAST_SPEED        700     // mm/s, never below SPD. The motors top out at ~1000 mm/s
+// but runs out of PWM at the end of the acceleration. The motor model holds
+// ~937 mm/s at most. Speed runs on the practice maze at 900 (with CURVE
+// 480): 3 of 3 clean, tracking within 2.4 mm / 3.1 deg. But with motors 20 %
+// weaker (a low battery) 900 saturates in the simulator, the robot falls up
+// to 24 mm behind the reference, and since a curve's heading follows the
+// reference the curves start early and cut inside (47 mm over a 14-cell
+// tour). 700 keeps that margin; go faster once the reference waits for the
+// robot.
+#define PARAM_FAST_SPEED        700     // mm/s, never below SPD
 // Speed through the smooth curves, capped by the straights' speed, by the
 // braking room after the last curve and by what the motors can follow
-// (CURVE_PWM_SHARE). Not yet tried on the robot: start here and raise it
-// while the curves end centred (see CURVE_* above).
-#define PARAM_CURVE_SPEED       400     // mm/s
+// (CURVE_PWM_SHARE, ~478 mm/s). Speed runs on the practice maze (9 cells, 4
+// curves, a U-turn): 400 in 3.28 s, 450 in 2.98 s, 480 (478) in 2.79 s, the
+// tracking within 2.5 mm and the heading within 1.9 / 2.7 / 3.1 deg.
+#define PARAM_CURVE_SPEED       480     // mm/s
 // 5000 made the wheels slip when braking (the encoders stopped on target,
 // the robot 6 mm further): 3000 is near the grip limit.
 #define PARAM_ACCEL             3000    // mm/s^2 of every straight, up and down
