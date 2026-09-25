@@ -222,7 +222,7 @@ void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt_real){
 
 uint8_t path_grow(path_run_t *r){
     run_path_t *p = &r->path;
-    if(r->done || !p->turn || p->cells >= PATH_MAX_CELLS || r->stop_at != r->length) return 0;
+    if(r->done || p->cells >= PATH_MAX_CELLS || r->stop_at != r->length) return 0;
     const uint8_t last = (uint8_t)(p->cells - 1u);
     const int8_t turn = turn_at(p, last);
     if(turn < -1 || turn > 1) return 0;

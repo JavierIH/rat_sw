@@ -369,12 +369,13 @@ static void cmd_clock(const char *args){
 
 static void cmd_cont(const char *args){
     uint8_t on;
-    if(!parse_on_off(args, &on)){
-        print("CONT ON|OFF (ahora %s)\n", search_continuous() ? "ON" : "OFF");
+    if(parse_on_off(args, &on)) search_set_mode(on ? SEARCH_STRAIGHTS : SEARCH_STOP_EACH);
+    else if(args[0]){
+        print("CONT ON|OFF\n");
         return;
     }
-    search_set_continuous(on);
-    print(on ? "busqueda sin paradas (CONT ON)\n" : "busqueda parando en cada celda (CONT OFF)\n");
+    print(search_mode() == SEARCH_STRAIGHTS ? "busqueda: rectas sin parar, giros parado (CONT ON)\n"
+                                            : "busqueda: parando en cada celda (CONT OFF)\n");
 }
 
 static void cmd_telem(const char *args){
@@ -478,7 +479,7 @@ static const command_t COMMANDS[] = {
     {"TUNE",     cmd_tune,     0, "[nombre valor]: ajusta en vivo el control (no se guarda)"},
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},
     {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
-    {"CONT",     cmd_cont,     1, "ON|OFF: busqueda sin parar en cada celda (hasta reiniciar)"},
+    {"CONT",     cmd_cont,     1, "ON|OFF: busqueda con rectas sin parar (ON) o parando en cada celda"},
     {"CLOCK",    cmd_clock,    1, "[HSI]: fuente de reloj; HSI pasa al oscilador interno (prueba)"},
     {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},
     {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP: datos de calibracion"},

@@ -605,10 +605,10 @@ static void test_competition_mazes(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// The search without stopping in every cell against the one that does, on
-// the same mazes: same cells explored (reading the front wall of every curve
-// cell, it learns as much), the same verified optimum, and much faster.
-static void test_continuous_search(void){
+// The two ways the search moves, on the same mazes. Straight legs decide
+// every cell with the walls the robot would see stopped there: the same
+// cells, the same verified optimum, fewer stops and less time.
+static void test_search_modes(void){
     maze_set_goal(7, 7, 8, 8);
     const uint16_t openings[] = {0, 40, 150};
     for(size_t o = 0; o < 3; o++){
@@ -623,36 +623,23 @@ static void test_continuous_search(void){
                 fake_flash_wipe();
                 sim_reset(0.0, m);
                 search_set_home();
-                search_set_continuous(mode);
+                search_set_mode((search_mode_t)mode);
                 ok[mode] += search_explore() == RUN_OK && search_fast_path_cost() == true_optimum();
                 seconds[mode] += sim_stats.seconds;
                 cells[mode] += sim_stats.forward_cells;
                 stops[mode] += sim_stats.stops;
-                if(mode) CHECK_EQ(sim_stats.blocked + sim_stats.crashes, 0);
+                CHECK_EQ(sim_stats.blocked + sim_stats.crashes + sim_stats.wall_stops, 0);
             }
         }
-        printf("search, %3u openings: stopping in every cell %.1f s (%ld stops), continuous %.1f s (%ld stops),"
+        printf("search, %3u openings: stopping in every cell %.1f s (%ld stops), straight legs %.1f s (%ld stops),"
                " %ld/%ld cells\n", openings[o], seconds[0] / 30, stops[0] / 30, seconds[1] / 30, stops[1] / 30,
                cells[1] / 30, cells[0] / 30);
         CHECK_EQ(ok[0], 30);
         CHECK_EQ(ok[1], 30);
-        CHECK(cells[1] <= cells[0] + cells[0] / 20);
-        CHECK(seconds[1] < 0.8 * seconds[0]);
+        CHECK_EQ(cells[1], cells[0]);
+        CHECK(seconds[1] < seconds[0] && stops[1] < 0.75 * stops[0]);
     }
-    // With noisy sensors it must still finish every time and never curve
-    // into a wall (a side counts only when every reading agrees).
-    for(uint32_t m = 1; m <= 40; m++){
-        truth_generate(m * 104729u, 40);
-        maze_init();
-        params_reset();
-        fake_flash_wipe();
-        sim_reset(m % 2 ? 0.01 : 0.03, m);
-        search_set_home();
-        search_set_continuous(1);
-        CHECK_EQ(search_explore(), RUN_OK);
-        CHECK_EQ(sim_stats.crashes, 0);
-    }
-    search_set_continuous(0);
+    search_set_mode(SEARCH_STRAIGHTS);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
@@ -1531,7 +1518,7 @@ int main(int argc, char **argv){
     test_storage();
     test_run_control();
     test_fast_run_surprise_wall();
-    test_continuous_search();
+    test_search_modes();
     test_wall_followers();
     test_practice_maze();
     test_competition_mazes();

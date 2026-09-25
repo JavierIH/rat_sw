@@ -77,31 +77,27 @@
 // they aim a couple of cm from the next post and caught it as phantom walls
 // (9 in the first test logs, some at 82-98 mm, as close as real walls).
 #define SIDE_PASS_MM            (CELL_MM / 2)
-// Search without stopping (motion_explore). The side walls of the next cell
-// are read from SEARCH_SIDE_FROM_MM before its entry edge (the angled beams
-// then hit ~30 mm into it, past the post) until the decision, due
-// SEARCH_DECIDE_S (planning, ~2 ms) + SEARCH_DECIDE_MARGIN_MM before the
-// curve there would have to start. Right after a curve they are read
-// SEARCH_LATE_FROM_MM to SEARCH_LATE_TO_MM into the cell instead (the robot
-// is square by then) and decided at the end of that. A side counts only if
-// every reading agrees and there were SEARCH_MIN_READINGS (one each
-// WALL_SAMPLE_MS: about two IR periods); a false "open" would curve into a
-// wall.
+// Search legs (motion_explore, CONT ON): straight on without stopping, each
+// cell decided inside it once its front wall is in plain view, so with the
+// same walls the robot would see stopped there. Sides read from
+// SEARCH_SIDE_FROM_MM before the cell's entry edge (the angled beams then hit
+// ~30 mm into it, past the post) to SEARCH_SIDE_TO_MM into it (~110 mm in,
+// short of the far post); a side counts only if SEARCH_MIN_READINGS or more
+// (one each WALL_SAMPLE_MS) all agree, else it is doubtful. The decision is
+// due SEARCH_LATE_MARGIN_MM before the reference would start braking (at
+// ACCEL) for the cell's centre, so a stop there is an ordinary one. The front
+// wall must be known by then: it reads reliably under ~170 mm, which with the
+// 50 ms IR delay happens ~14 mm + 50 ms of travel into the cell (a wall reads
+// ~135 at the decision, none over SEARCH_FRONT_OPEN_MM). Up to ~500 mm/s that
+// comes before the decision; SEARCH_LEG_SPEED_MAX leaves ~12 mm (25 ms) to
+// spare. Faster, the robot would decide blind and brake harder at walls (at
+// 600, ~4100 mm/s^2; the wheels slipped at 5000).
 #define SEARCH_SIDE_FROM_MM     60.0f
-#define SEARCH_DECIDE_S         0.02f
-#define SEARCH_DECIDE_MARGIN_MM 2.0f
-#define SEARCH_LATE_FROM_MM     5.0f
-#define SEARCH_LATE_TO_MM       40.0f
+#define SEARCH_SIDE_TO_MM       30.0f
+#define SEARCH_LATE_MARGIN_MM   8.0f
+#define SEARCH_LEG_SPEED_MAX    450
 #define SEARCH_MIN_READINGS     3
-// Curving, the robot still faces the cell's front wall for the first mm of
-// the curve, ~165 mm away: FL/FR average ~165 with the wall (CAL CURVE),
-// ~200-250 without (FL tops out ~190-210, FR ~230-270). Read from
-// SEARCH_CURVE_FRONT_BEFORE_MM before the curve's start to _AFTER_MM into it
-// (the readings then are from under 3 deg of turn).
-#define SEARCH_FRONT_WALL_MM    195.0f
-#define SEARCH_FRONT_OPEN_MM    205.0f   // halfway into a cell after a curve: no wall in front above this
-#define SEARCH_CURVE_FRONT_BEFORE_MM 10.0f
-#define SEARCH_CURVE_FRONT_AFTER_MM  15.0f
+#define SEARCH_FRONT_OPEN_MM    205.0f   // inside the cell at the decision: no wall in front above this
 // Pause before sensing at a stop. The old stop-and-coast rocked the chassis
 // (30 ms); the controlled stops do not: searches at 10 and 0 ms mapped the
 // practice maze exactly, with no doubtful wall.

@@ -16,11 +16,14 @@ run_result_t search_explore(void);
 // Speed run over verified passages with merged straights, then back to the
 // start and save. Refuses without moving if no verified path exists yet.
 run_result_t search_fast_run(void);
-// 1: the search drives through the cells without stopping, deciding each one
-// on the way (motion_explore, CONT ON); 0 (default, the robust one): it stops
-// in every cell.
-void search_set_continuous(uint8_t on);
-uint8_t search_continuous(void);
+// How the search moves forward (CONT OFF / ON, until reset). No curves in
+// the search: those are for the speed run.
+// - SEARCH_STOP_EACH: one cell at a time, stopping in every one;
+// - SEARCH_STRAIGHTS (default): straight on without stopping, each cell
+//   decided inside it with all its walls in view; stops to turn in place.
+typedef enum { SEARCH_STOP_EACH, SEARCH_STRAIGHTS } search_mode_t;
+void search_set_mode(search_mode_t mode);
+search_mode_t search_mode(void);
 // Left- or right-hand wall follower until the goal.
 run_result_t search_wall_follow(uint8_t left_hand);
 

@@ -409,17 +409,11 @@ static float curve_speed_limit(const curve_t *c){
 typedef struct {
     next_cell_fn decide;
     void *ctx;
-    int8_t *turns;                  // the path's turn array, lent by the search
-    uint8_t max_cells;
     uint8_t decided;                // cells decided: the next one to decide
     uint8_t stopping;               // a stop was decided (or forced): no more cells
-    uint8_t after_curve;            // the next cell comes right after a curve
     float entry;                    // along the path: entry edge of the next cell to decide
     uint32_t next_sample;           // HAL tick of the next reading
     uint8_t samples, walls_l, walls_r;      // side readings of the next cell
-    float curve_at;                 // start of the curve whose front wall is being read (0: none)
-    uint8_t front_samples, front_walls;
-    uint8_t curved_front;           // sighting_t of that wall, for the next decision
     uint8_t last_l, last_r;         // sighting_t of the sides of the last cell decided
 } explorer_t;
 
@@ -437,76 +431,42 @@ static uint8_t grow_path(void){
     return ok;
 }
 
-// Every ms of a search leg: readings for the next cell, and its decision
-// when due. 0 if a curve was decided that the path could no longer take.
-static uint8_t explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8_t front_seen){
+// Every ms of a search leg: side readings of the next cell, and its decision
+// when due, with its front wall in view.
+static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8_t front_seen){
+    if(ex->stopping) return;
     const uint32_t now = HAL_GetTick();
-    const uint8_t sample = (int32_t)(now - ex->next_sample) >= 0;
-    if(sample) ex->next_sample = now + WALL_SAMPLE_MS;
-    // The front wall of the cell curved in, from the start of the curve.
-    if(ex->curve_at > 0.0f){
-        if(ir_at > ex->curve_at + SEARCH_CURVE_FRONT_AFTER_MM){
-            ex->curved_front = sighting(ex->front_samples, ex->front_walls);
-            ex->curve_at = 0.0f;
-        }
-        else if(sample && ir_at >= ex->curve_at - SEARCH_CURVE_FRONT_BEFORE_MM){
-            ex->front_samples++;
-            if(0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR)) < SEARCH_FRONT_WALL_MM) ex->front_walls++;
+    if((int32_t)(now - ex->next_sample) >= 0){
+        ex->next_sample = now + WALL_SAMPLE_MS;
+        if(ir_at >= ex->entry - SEARCH_SIDE_FROM_MM && ir_at <= ex->entry + SEARCH_SIDE_TO_MM){
+            ex->samples++;
+            if(ir_mm(IR_SL) < WALL_DETECT_MM) ex->walls_l++;
+            if(ir_mm(IR_SR) < WALL_DETECT_MM) ex->walls_r++;
         }
     }
-    if(ex->stopping) return 1;
-    // Sides of the next cell: before it after a straight, halfway into it after a curve.
-    const float from = ex->after_curve ? ex->entry + SEARCH_LATE_FROM_MM : ex->entry - SEARCH_SIDE_FROM_MM;
-    if(sample && ir_at >= from){
-        ex->samples++;
-        if(ir_mm(IR_SL) < WALL_DETECT_MM) ex->walls_l++;
-        if(ir_mm(IR_SR) < WALL_DETECT_MM) ex->walls_r++;
-    }
-    const uint8_t due = ex->after_curve
-        ? ir_at >= ex->entry + SEARCH_LATE_TO_MM
-        : run.s >= ex->entry + run.curve.pre - v * SEARCH_DECIDE_S - SEARCH_DECIDE_MARGIN_MM;
-    if(!due) return 1;
+    // Due just before the reference must start braking for where it ends
+    // now: the cell's centre, or where a wall seen in front moved it.
+    if(!run.done && run.s < run.stop_at - v * v / (2.0f * run.accel) - SEARCH_LATE_MARGIN_MM) return;
 
     wall_sense_t w;
     w.left = sighting(ex->samples, ex->walls_l);
     w.right = sighting(ex->samples, ex->walls_r);
-    w.front = SEEN_DOUBTFUL;
-    if(ex->after_curve){
-        // Halfway into the cell its front wall is in plain view (~130 mm).
-        const float avg = 0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR));
-        w.front = front_seen ? SEEN_PRESENT : avg > SEARCH_FRONT_OPEN_MM ? SEEN_ABSENT : SEEN_DOUBTFUL;
-    }
+    const float avg = 0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR));
+    w.front = front_seen ? SEEN_PRESENT : avg > SEARCH_FRONT_OPEN_MM ? SEEN_ABSENT : SEEN_DOUBTFUL;
     w.moving = 1;
-    const uint8_t room = ex->decided + 2u <= ex->max_cells;
-    const next_move_t next = ex->decide(&w, room && !ex->after_curve, ex->curved_front, ex->ctx);
-    ex->curved_front = SEEN_DOUBTFUL;
+    next_move_t next = ex->decide(&w, ex->ctx);
     ex->last_l = w.left;
     ex->last_r = w.right;
     ex->samples = ex->walls_l = ex->walls_r = 0;
-    const uint8_t k = ex->decided++;
-    ex->turns[k] = next == NEXT_LEFT ? -1 : next == NEXT_RIGHT ? 1 : 0;
-    if(next == NEXT_STOP || (next == NEXT_STRAIGHT && !room)){
-        ex->stopping = 1;
-        return 1;
-    }
-    ex->turns[k + 1u] = 0;
-    if(!grow_path()){
-        if(next != NEXT_STRAIGHT) return 0;
-        ex->stopping = 1;       // a wall in front moved the end: it stops in this cell
-        return 1;
-    }
-    g->deadline += MOVE_TIMEOUT_PER_CELL_MS;
-    if(next == NEXT_STRAIGHT){
+    ex->decided++;
+    // Straight on: one cell more, unless a wall in front already moved the
+    // end (then it stops in this cell, as if told to).
+    if(next == NEXT_STRAIGHT && grow_path()){
+        g->deadline += MOVE_TIMEOUT_PER_CELL_MS;
         ex->entry += CELL_MM;
-        ex->after_curve = 0;
+        return;
     }
-    else{
-        ex->curve_at = ex->entry + run.curve.pre;
-        ex->front_samples = ex->front_walls = 0;
-        ex->entry += run.curve.pre + run.curve.length + run.curve.post;
-        ex->after_curve = 1;
-    }
-    return 1;
+    ex->stopping = 1;
 }
 
 // Every forward move: a whole path in one go (path.h), straights and smooth
@@ -556,11 +516,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         steer_gain = fade * (v > steer_vref ? steer_vref / v : 1.0f);
         if(ex){
             if(!short_stop) planned_end = run.length;     // it grows as the search decides
-            if(!explore_step(ex, &g, v, ir_at, ir_seen >= FRONT_CONFIRM_MS)){
-                result = MOVE_LOST;
-                stop = "CURVA TARDE";
-                break;
-            }
+            explore_step(ex, &g, v, ir_at, ir_seen >= FRONT_CONFIRM_MS);
         }
 
         if(run.s >= run.curve_start || !path_on_straight(&run, ir_at)){
@@ -657,12 +613,12 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         format_fixed2(dist, sizeof(dist), at);
         format_fixed2(end, sizeof(end), run.stop_at);
         if(path->turn){
-            print("%s %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s",
-                  ex ? "exploracion" : "ruta", run.path.cells,
+            print("ruta %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s", run.path.cells,
                   run.curves, stop, dist, end, (int)vmax, (int)run.v_curve, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), sides);
         }
         else{
-            print("avance %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%s", path->cells,
+            print("%s %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%s",
+                  ex ? "exploracion" : "avance", run.path.cells,
                   stop, dist, end, (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
                   (int)ir_mm(IR_SR), sides);
         }
@@ -686,20 +642,16 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     return run_path(path, cruise_speed, curve_speed, entered, NULL);
 }
 
-// A search leg: a path that starts one cell long and grows as explore_step()
-// asks the search about each next cell.
-move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, next_cell_fn decide, void *ctx,
-                             uint8_t *entered){
+// A search leg: a straight path that starts one cell long and grows as
+// explore_step() asks the search about each next cell.
+move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint8_t *entered){
     explorer_t ex = {0};
     ex.decide = decide;
     ex.ctx = ctx;
-    ex.turns = turns;
-    ex.max_cells = max_cells;
     ex.entry = 0.5f * CELL_MM;
     ex.next_sample = HAL_GetTick();
-    ex.curved_front = ex.last_l = ex.last_r = SEEN_DOUBTFUL;
-    turns[0] = 0;
-    const run_path_t leg = {turns, 1};
+    ex.last_l = ex.last_r = SEEN_DOUBTFUL;
+    const run_path_t leg = {NULL, 1};
     return run_path(&leg, speed, speed, entered, &ex);
 }
 

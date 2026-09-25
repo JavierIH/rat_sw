@@ -23,9 +23,9 @@ static uint8_t ready = 1;               // pose is the start facing north, for r
 static uint8_t turned;                  // turned in place since the last straight
 static uint16_t cost_a[MAZE_STATES];    // planner buffers
 static uint16_t cost_b[MAZE_STATES];
-static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h); search legs too
+static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h)
 static run_path_t route = {route_turn, 0};
-static uint8_t continuous;                  // search legs without stopping in every cell (CONT ON)
+static search_mode_t mode = SEARCH_STRAIGHTS;
 
 static void pose_reset(void){
     pose.x = START_X;
@@ -271,12 +271,12 @@ static uint16_t optimize_candidates(cellset_t *out){
 
 // ---- Strategies ------------------------------------------------------------------------
 
-void search_set_continuous(uint8_t on){
-    continuous = on != 0;
+void search_set_mode(search_mode_t m){
+    mode = m;
 }
 
-uint8_t search_continuous(void){
-    return continuous;
+search_mode_t search_mode(void){
+    return mode;
 }
 
 typedef struct {
@@ -284,7 +284,6 @@ typedef struct {
     uint16_t steps, optimize_steps;
     uint8_t repairs;
     cellset_t targets;
-    heading_t curved_from;  // heading into the cell the robot last curved in
     uint8_t decided;        // cells decided in the current leg...
     uint8_t reached;        // ...and those the robot got to (it stopped in the last one)
     uint8_t failed;         // planning failed on the way: handled at rest
@@ -341,16 +340,11 @@ static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a){
     return 1;
 }
 
-// The robot is getting to the next cell of a leg: record what it saw, then
-// decide. A curve needs the side seen open now; anything the rest of the
-// search does at rest (turning in place, the goal, the end) is a stop.
-static next_move_t explore_next(const wall_sense_t *w, uint8_t can_curve, uint8_t curved_front, void *ctx){
+// The robot is getting to the centre of the next cell of a leg, its walls
+// in view: record them, then decide. Anything the search does at rest
+// (turning in place, the goal, the end, an unclear front) is a stop there.
+static next_move_t explore_next(const wall_sense_t *w, void *ctx){
     explore_t *e = ctx;
-    // The front wall of the cell it curved in, read at the curve's start.
-    if(curved_front != SEEN_DOUBTFUL){
-        maze_observe(pose.x, pose.y, e->curved_from, curved_front == SEEN_PRESENT);
-        telemetry_cell(pose.x, pose.y, pose.h);
-    }
     maze_mark_crossed(pose.x, pose.y, pose.h);
     pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
     pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
@@ -365,17 +359,11 @@ static next_move_t explore_next(const wall_sense_t *w, uint8_t can_curve, uint8_
     if(explore_phase(e, 0) != PHASE_GO) return NEXT_STOP;
     action_t a;
     if(!explore_plan(e, w, &a)) return NEXT_STOP;
-    if(a == ACT_FORWARD) return NEXT_STRAIGHT;
-    const uint8_t left = a == ACT_TURN_LEFT;
-    // A curve commits the robot: the side must read open now, and the map
-    // (this reading and any before) must agree.
-    const heading_t side = left ? heading_left(pose.h) : heading_right(pose.h);
-    if(can_curve && (left || a == ACT_TURN_RIGHT) && (left ? w->left : w->right) == SEEN_ABSENT
-       && maze_evidence(pose.x, pose.y, side) < 0){
-        e->curved_from = pose.h;
-        pose.h = left ? heading_left(pose.h) : heading_right(pose.h);
-        return left ? NEXT_LEFT : NEXT_RIGHT;
-    }
+    if(a == ACT_FORWARD && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
+    // It stops here and decides again at rest: one action, not two (the
+    // optimisation budget counts them).
+    e->steps--;
+    if(e->phase == PH_OPTIMIZE) e->optimize_steps--;
     return NEXT_STOP;
 }
 
@@ -383,20 +371,17 @@ static next_move_t explore_next(const wall_sense_t *w, uint8_t can_curve, uint8_
 // a stop. The pose follows the cells the robot actually got to.
 static move_result_t explore_leg(explore_t *e){
     const pose_t start = pose;
-    const int16_t speed = params.search_speed < params.curve_speed ? params.search_speed : params.curve_speed;
+    const int16_t speed = params.search_speed < SEARCH_LEG_SPEED_MAX ? params.search_speed : SEARCH_LEG_SPEED_MAX;
     uint8_t entered = 0;
     e->decided = 0;
-    move_result_t r = motion_explore(speed, route_turn, PATH_MAX_CELLS, explore_next, e, &entered);
+    move_result_t r = motion_explore(speed, explore_next, e, &entered);
     turned = 0;
     e->reached = entered;
     if(entered < e->decided){
-        // Stopped short (an obstacle: backed up to a cell centre on a straight).
+        // Stopped short (an obstacle: backed up to a cell centre).
         pose = start;
-        for(uint8_t i = 0; i < entered; i++){
-            pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
-            pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
-            pose.h = (heading_t)((pose.h + route_turn[i] + 4) & 3);
-        }
+        pose.x = (uint8_t)(pose.x + entered * heading_dx(pose.h));
+        pose.y = (uint8_t)(pose.y + entered * heading_dy(pose.h));
     }
     if(r == MOVE_OK || r == MOVE_BLOCKED) telemetry_pose(pose.x, pose.y, pose.h);
     if(r == MOVE_OK){
@@ -432,7 +417,7 @@ run_result_t search_explore(void){
         // never drive into it. The sighting already raised its evidence, so
         // sensing again converges to the truth.
         if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
-        if(a == ACT_FORWARD && continuous){
+        if(a == ACT_FORWARD && mode != SEARCH_STOP_EACH){
             r = explore_leg(&e);
             if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
             sides_recorded = e.reached > 0;

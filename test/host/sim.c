@@ -195,28 +195,24 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
 }
 
 // Side walls read on the way into a cell: three sensor periods in the window.
-// Unanimous or doubtful (a false "open" would curve into a wall).
+// Unanimous or doubtful.
 static uint8_t side_on_the_way(uint8_t wall){
     const uint8_t seen = (uint8_t)(noisy(wall) + noisy(wall) + noisy(wall));
     return seen == 3 ? SEEN_PRESENT : seen == 0 ? SEEN_ABSENT : SEEN_DOUBTFUL;
 }
 
-move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, next_cell_fn decide, void *ctx,
-                             uint8_t *entered){
+// A search leg: straight on, each cell decided inside it with its walls in
+// view (the front read once, as the robot classifies it at the decision).
+move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint8_t *entered){
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.legs++;
     *entered = 0;
-    // Distance along the leg to the entry edge of the next cell: half a cell
-    // from the start, a cell per straight cell, 149 mm per curve cell (4.5
-    // straight, 140 of curve, 4.5 straight).
-    double entry = 0.5 * CELL_MM;
-    uint8_t can_curve = 1, curved_front = SEEN_DOUBTFUL;
     for(;;){
-        // Leaving the current cell through its front, which the robot checks
-        // on the way: a wall there, and it stops at the cell's centre.
+        // Leaving the current cell through its front: a wall there the robot
+        // did not expect (a front read open wrongly) stops it at the centre.
         if(truth_wall(sim_x, sim_y, sim_h)){
-            stopped(drive_seconds(*entered ? entry - 0.5 * CELL_MM : 0.0, speed));
+            stopped(drive_seconds(*entered * CELL_MM, speed));
             sim_stats.wall_stops++;
             sides_fresh = *entered > 0;
             return MOVE_BLOCKED;
@@ -225,39 +221,17 @@ move_result_t motion_explore(int16_t speed, int8_t *turns, uint8_t max_cells, ne
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
         wall_sense_t w;
-        // Deciding before the cell its front is too far to read; halfway
-        // into it (after a curve) it is in plain view.
-        w.front = can_curve ? SEEN_DOUBTFUL : noisy(truth_wall(sim_x, sim_y, sim_h));
+        w.front = noisy(truth_wall(sim_x, sim_y, sim_h));
         w.left = side_on_the_way(truth_wall(sim_x, sim_y, heading_left(sim_h)));
         w.right = side_on_the_way(truth_wall(sim_x, sim_y, heading_right(sim_h)));
         w.moving = 1;
-        next_move_t next = decide(&w, can_curve, curved_front, ctx);
-        curved_front = SEEN_DOUBTFUL;
-        if(*entered + 2u > max_cells) next = NEXT_STOP;
-        turns[*entered] = next == NEXT_LEFT ? -1 : next == NEXT_RIGHT ? 1 : 0;
+        const next_move_t next = decide(&w, ctx);
         (*entered)++;
         if(next == NEXT_STOP){
-            stopped(drive_seconds(entry + 0.5 * CELL_MM, speed));
+            stopped(drive_seconds(*entered * CELL_MM, speed));
             sides_fresh = 1;
             return MOVE_OK;
         }
-        if(next == NEXT_STRAIGHT){
-            entry += CELL_MM;
-            can_curve = 1;
-            continue;
-        }
-        const heading_t out = next == NEXT_LEFT ? heading_left(sim_h) : heading_right(sim_h);
-        if(!can_curve || truth_wall(sim_x, sim_y, out)){
-            sim_stats.crashes++;    // curved into a wall
-            return MOVE_LOST;
-        }
-        // The curve leaves through that side, into the next cell; its start
-        // still faces this cell's front wall, 165 mm away: one reading.
-        curved_front = noisy(truth_wall(sim_x, sim_y, sim_h));
-        sim_h = out;
-        sim_stats.curves++;
-        entry += 149.0;
-        can_curve = 0;
     }
 }
 
