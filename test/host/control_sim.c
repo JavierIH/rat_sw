@@ -90,17 +90,23 @@ plant_t plant_nominal(void){
     return p;
 }
 
-static sim_result_t run(const plant_t *p, float mm, float speed, float accel, float deg, float turn_speed,
-                        float turn_accel, float kp, float ki){
-    const float dt = CONTROL_DT_S;
-    const float mm_per_deg = TICKS_PER_TURN / 90.0f / WHEEL_TICKS_PER_MM;
+// The firmware's gains (robot_config.h), as motion.c sets them up.
+static control_config_t firmware_control(void){
     const control_config_t k = {
-        .ticks_per_mm = WHEEL_TICKS_PER_MM, .mm_per_deg = mm_per_deg,
+        .ticks_per_mm = WHEEL_TICKS_PER_MM, .mm_per_deg = TICKS_PER_TURN / 90.0f / WHEEL_TICKS_PER_MM,
         .kv_l = MOTOR_KV_L, .kv_r = MOTOR_KV_R, .tau = MOTOR_TAU_S, .ks = MOTOR_KS_PWM,
         .fwd_kp = FWD_KP, .fwd_kd = FWD_KD, .rot_kp = ROT_KP, .rot_kd = ROT_KD,
         .rot_ki = ROT_KI, .rot_i_max = ROT_I_MAX, .pwm_limit = CONTROL_PWM_LIMIT,
         .settle_ki_fwd = SETTLE_KI_FWD, .settle_ki_rot = SETTLE_KI_ROT, .settle_i_max = SETTLE_I_MAX,
     };
+    return k;
+}
+
+static sim_result_t run(const plant_t *p, float mm, float speed, float accel, float deg, float turn_speed,
+                        float turn_accel, float kp, float ki){
+    const float dt = CONTROL_DT_S;
+    const control_config_t k = firmware_control();
+    const float mm_per_deg = k.mm_per_deg;
     const steer_config_t sk = {
         .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
         .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
@@ -202,4 +208,68 @@ sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, 
 
 sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel){
     return run(p, 0.0f, 0.0f, 1.0f, deg, speed, accel, 0.0f, 0.0f);
+}
+
+path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                       float v_curve, float accel){
+    const float dt = CONTROL_DT_S;
+    const control_config_t k = firmware_control();
+    const double rad = 3.14159265358979 / 180.0;
+    path_run_t pr;
+    profile_t fwd, rot;
+    control_t c;
+    motor_t ml, mr;
+    path_result_t r;
+    memset(&r, 0, sizeof(r));
+    profile_reset(&fwd);
+    profile_reset(&rot);
+    control_reset(&c);
+    motor_init(&ml, p->gain_l / MOTOR_KV_L, p);
+    motor_init(&mr, p->gain_r / MOTOR_KV_R, p);
+    if(!path_start(&pr, path, curve, CELL_MM, v_straight, v_curve, accel)) return r;
+    float xl = 0.0f, xr = 0.0f;
+    int32_t cl = 0, cr = 0;
+    double x = 0.0, y = 0.0, yaw = p->yaw0;        // true pose: mm, deg (> 0 right of the start heading)
+    double rx = 0.0, ry = 0.0;                      // the reference's point
+    uint32_t done_at = 0;
+    for(uint32_t t = 1; t < 30000; t++){
+        const float ref_before = rot.pos;
+        path_step(&pr, &fwd, &rot, dt);
+        const double ref_mid = 0.5 * (ref_before + rot.pos) * 90.0 / curve->angle * rad;
+        rx += fwd.delta * sin(ref_mid);
+        ry += fwd.delta * cos(ref_mid);
+        const int32_t nl = (int32_t)floorf(xl * WHEEL_TICKS_PER_MM), nr = (int32_t)floorf(xr * WHEEL_TICKS_PER_MM);
+        const int32_t dl = nl - cl, dr = nr - cr;
+        cl = nl;
+        cr = nr;
+        control_step(&c, &k, &fwd, &rot, 0.0f, dl, dr, dt);
+        if(abs(c.pwm_l) > r.pwm_max) r.pwm_max = abs(c.pwm_l);
+        if(abs(c.pwm_r) > r.pwm_max) r.pwm_max = abs(c.pwm_r);
+        wheels_step(&ml, &mr, c.pwm_l, c.pwm_r, p->yaw_friction, p->yaw_stiction, dt);
+        xl += ml.v * dt;
+        xr += mr.v * dt;
+        const double v = 0.5 * (ml.v + mr.v), w = 0.5 * (ml.v - mr.v) / k.mm_per_deg;
+        const double mid = (yaw + 0.5 * w * dt) * rad;
+        x += v * sin(mid) * dt;
+        y += v * cos(mid) * dt;
+        yaw += w * dt;
+        // Sideways from the reference path: the offset across the reference heading.
+        const double h = rot.pos * 90.0 / curve->angle * rad;
+        const float cross = (float)fabs((x - rx) * cos(h) - (y - ry) * sin(h));
+        if(cross > r.cross_err_max) r.cross_err_max = cross;
+        if(fabsf(c.fwd_error) > r.fwd_err_max) r.fwd_err_max = fabsf(c.fwd_error);
+        if(fabsf(c.rot_error) > r.rot_err_max) r.rot_err_max = fabsf(c.rot_error);
+        if(!fwd.active){        // as guard_settled() in motion.c
+            if(!done_at) done_at = t;
+            const uint8_t still = fabsf(ml.v) < 1.0f && fabsf(mr.v) < 1.0f;
+            if((fabsf(c.fwd_error) < SETTLE_MM && fabsf(c.rot_error) < SETTLE_DEG && still)
+               || t - done_at >= SETTLE_MAX_MS){
+                r.ms = t;
+                break;
+            }
+        }
+    }
+    r.end_err = (float)hypot(x - rx, y - ry);
+    r.heading_err = (float)(yaw - pr.heading * 90.0 / curve->angle);
+    return r;
 }

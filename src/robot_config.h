@@ -163,6 +163,25 @@
 // off-centre for a whole straight (KP 0.5 alone: 10 mm per 5 deg).
 #define STEER_BIAS_WINDOW_MM    12.0f
 
+// ---- Smooth curves (speed run, path.h) ------------------------------------------------
+// The speed run turns without stopping: a 90 deg clothoid-arc-clothoid inside
+// the cell, entering and leaving on the centre lines. Radius 70 with 30 mm
+// ramps advances 85.5 mm along each axis, so 4.5 mm of the cell are
+// straight before and after it: curves in consecutive cells (staircases)
+// join without overlapping. At 400 mm/s: 2.3 m/s^2 sideways (braking at 5
+// slipped, 3 was near the grip limit), 4400 deg/s^2 at the ramps (in-place
+// turns use 5000), outer wheel at 560 mm/s. TUNE CURVE_* changes them live.
+#define CURVE_RADIUS_MM         70.0f
+#define CURVE_RAMP_MM           30.0f
+// Encoder degrees per curve: 90 unless the robot turns more or less than
+// the encoders say while moving (the wheels scrub less than in place).
+#define CURVE_ANGLE_DEG         90.0f
+// Straight before / after the curve beyond the geometric one: > 0 starts it
+// later / reaches the exit edge later. The robot follows the reference a few
+// ms late, so it may need to start earlier (exits displaced to the outside).
+#define CURVE_PRE_ADJUST_MM     0.0f
+#define CURVE_POST_ADJUST_MM    0.0f
+
 // ---- Other moves ------------------------------------------------------------------
 // Front alignment after a straight that ends facing a wall: square first
 // (rotate by the angle FL - FR says), then fix the distance.
@@ -198,6 +217,10 @@
 // of the front-wall reference and centres (0.98 s); 900 works too (0.92 s)
 // but runs out of PWM at the end of the acceleration.
 #define PARAM_FAST_SPEED        700     // mm/s, never below SPD. The motors top out at ~1000 mm/s
+// Speed through the smooth curves, capped by the straights' speed and by
+// the braking room after the last curve. Not yet tried on the robot: start
+// here and raise it while the curves end centred (see CURVE_* above).
+#define PARAM_CURVE_SPEED       400     // mm/s
 // 5000 made the wheels slip when braking (the encoders stopped on target,
 // the robot 6 mm further): 3000 is near the grip limit.
 #define PARAM_ACCEL             3000    // mm/s^2 of every straight, up and down

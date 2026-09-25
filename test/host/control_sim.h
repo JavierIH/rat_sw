@@ -2,6 +2,7 @@
 #define CONTROL_SIM_H
 
 #include <stdint.h>
+#include "path.h"
 
 // The firmware's speed control (control.c, robot_config.h constants) driving
 // a simulated robot in a corridor: first-order motors with friction and dead
@@ -36,6 +37,17 @@ typedef struct {
     uint32_t ms;                // until the move settled
 } sim_result_t;
 
+// A whole path (path.h) without walls, so without centring: how closely the
+// wheels follow the curves. Maze frame: start cell centre at the origin.
+typedef struct {
+    float end_err;              // mm from where the robot stops to where the reference ends
+    float heading_err;          // deg, true heading at the end minus the reference's
+    float cross_err_max;        // mm, largest sideways distance from the reference's path
+    float fwd_err_max, rot_err_max;
+    int pwm_max;
+    uint32_t ms;                // until it settled
+} path_result_t;
+
 extern float sim_average;       // side IR averaging, ms (default STEER_AVERAGE_MS)
 extern float sim_window;        // KI learning window, mm (default STEER_BIAS_WINDOW_MM)
 extern float sim_curve;         // centring curvature limit, deg/mm (default STEER_CURVE_DEG_PER_MM)
@@ -43,5 +55,7 @@ extern float sim_curve;         // centring curvature limit, deg/mm (default STE
 plant_t plant_nominal(void);
 sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki);
 sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel);
+path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                       float v_curve, float accel);
 
 #endif // CONTROL_SIM_H

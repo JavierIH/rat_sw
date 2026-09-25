@@ -9,6 +9,7 @@
 #include "flash_store.h"
 #include "maze.h"
 #include "params.h"
+#include "path.h"
 #include "robot_config.h"
 #include "search.h"
 #include "sim.h"
@@ -238,6 +239,13 @@ static void test_side_doubt(void){
     w = (wall_sense_t){SEEN_PRESENT, SEEN_ABSENT, SEEN_ABSENT, 0};
     motion_doubt_sides(&w, 1, 1, 50, 52, 0, SIDE_YAW_DOUBT_MM, close);
     CHECK(w.left == SEEN_ABSENT && w.right == SEEN_ABSENT);
+}
+
+static curve_t default_curve(void){
+    curve_t c;
+    CHECK(curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, CURVE_ANGLE_DEG, CURVE_PRE_ADJUST_MM,
+                      CURVE_POST_ADJUST_MM, CELL_MM));
+    return c;
 }
 
 static void test_planner_basics(void){
@@ -914,6 +922,221 @@ static void test_speed_control(void){
     }
 }
 
+// ---- Smooth paths --------------------------------------------------------------------
+
+typedef struct {
+    double x, y;            // mm, start cell centre = origin, +y = the start heading
+    double heading;         // deg, > 0 right
+    float v_max, v_curve_max, a_max, alpha_max;
+    int steps;
+    uint8_t done;
+} ref_walk_t;
+
+// Follows the reference of a path the way a perfect robot would: every
+// step moves `delta` along the reference heading.
+static ref_walk_t walk_reference(path_run_t *r, int max_steps){
+    ref_walk_t w = {0};
+    profile_t fwd, rot;
+    profile_reset(&fwd);
+    profile_reset(&rot);
+    const double deg = 3.14159265358979 / 180.0;
+    for(w.steps = 0; w.steps < max_steps && !r->done; w.steps++){
+        const double before = rot.pos;
+        path_step(r, &fwd, &rot, CONTROL_DT_S);
+        // Real heading: the encoder angle scaled back to a real quarter turn per curve.
+        const double mid = 0.5 * (before + rot.pos) * 90.0 / r->curve.angle * deg;
+        w.x += fwd.delta * sin(mid);
+        w.y += fwd.delta * cos(mid);
+        w.v_max = fmaxf(w.v_max, fwd.speed);
+        if(rot.speed != 0.0f) w.v_curve_max = fmaxf(w.v_curve_max, fwd.speed);
+        if(!r->done) w.a_max = fmaxf(w.a_max, fabsf(fwd.accel));     // the last step drops the last mm/s at once
+        w.alpha_max = fmaxf(w.alpha_max, fabsf(rot.accel));
+    }
+    w.heading = rot.pos * 90.0 / r->curve.angle;
+    w.done = r->done;
+    return w;
+}
+
+static void test_curve_shape(void){
+    curve_t c = default_curve();
+    // Clothoid-arc-clothoid: R pi/2 + ramp long; symmetric, so the same
+    // footprint along both axes (Fresnel integrals: 85.47 mm).
+    CHECK(fabsf(c.length - (CURVE_RADIUS_MM * 1.5707963f + CURVE_RAMP_MM)) < 0.01f);
+    CHECK(fabsf(c.footprint - 85.47f) < 0.05f);
+    CHECK(fabsf(c.pre - (CELL_MM / 2.0f - c.footprint)) < 0.05f);
+    CHECK(fabsf(c.pre - c.post) < 0.01f);
+    CHECK(curve_progress(&c, 0.0f) == 0.0f && curve_progress(&c, c.length) == 1.0f);
+    CHECK(fabsf(curve_progress(&c, 0.5f * c.length) - 0.5f) < 1e-5f);
+    // Nearly a pure arc: the ramps push it out by half their length, so
+    // radius 90 would overhang the cell; 89 with 1 mm ramps fills it.
+    CHECK(!curve_setup(&c, 90.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(curve_setup(&c, 89.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(fabsf(c.footprint - 89.5f) < 0.05f);
+    // Adjustments move the start and the exit edge.
+    CHECK(curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, 90.0f, 3.0f, -2.0f, CELL_MM));
+    CHECK(fabsf(c.pre - (CELL_MM / 2.0f - 85.47f + 3.0f)) < 0.05f);
+    CHECK(fabsf(c.post - (CELL_MM / 2.0f - 85.47f - 2.0f)) < 0.05f);
+    // Shapes that do not exist or do not fit: curves in consecutive cells would overlap.
+    CHECK(!curve_setup(&c, 70.0f, 120.0f, 90.0f, 0.0f, 0.0f, CELL_MM));     // ramps longer than the turn
+    CHECK(!curve_setup(&c, 80.0f, 60.0f, 90.0f, 0.0f, 0.0f, CELL_MM));      // footprint 111 mm
+    CHECK(!curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, 90.0f, -5.0f, -5.0f, CELL_MM));
+    CHECK(!curve_setup(&c, CURVE_RADIUS_MM, 0.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
+}
+
+static void test_path_reference(void){
+    const curve_t c = default_curve();
+    static const struct {
+        const char *name;
+        uint8_t cells;
+        int8_t turn[8];
+        double x, y, heading;       // where it must end: a cell centre
+    } paths[] = {
+        {"one cell", 1, {0}, 0, 180, 0},
+        {"five cells", 5, {0}, 0, 900, 0},
+        {"corner right", 2, {1, 0}, 180, 180, 90},
+        {"corner left after 3", 5, {0, 0, -1, 0, 0}, -360, 540, -90},
+        {"curve in the first cell", 2, {-1, 0}, -180, 180, -90},
+        {"staircase", 5, {1, -1, 1, -1, 0}, 360, 540, 0},
+        {"u-turn over two cells", 3, {1, 1, 0}, 180, 0, 180},
+    };
+    for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
+        const float speeds[][2] = {{700.0f, 400.0f}, {1500.0f, 700.0f}, {300.0f, 300.0f}};
+        for(size_t k = 0; k < 3; k++){
+            const run_path_t path = {paths[i].turn, paths[i].cells};
+            path_run_t r;
+            CHECK(path_start(&r, &path, &c, CELL_MM, speeds[k][0], speeds[k][1], 3000.0f));
+            ref_walk_t w = walk_reference(&r, 20000);
+            const int ok = w.done && fabs(w.x - paths[i].x) < 0.3 && fabs(w.y - paths[i].y) < 0.3
+                        && fabs(w.heading - paths[i].heading) < 0.01;
+            if(!ok){
+                printf("  path %s at %.0f/%.0f: end (%.2f, %.2f) %.2f deg, done %d\n", paths[i].name,
+                       (double)speeds[k][0], (double)speeds[k][1], w.x, w.y, w.heading, w.done);
+            }
+            CHECK(ok);
+            CHECK(w.v_max <= speeds[k][0] + 0.01f);
+            CHECK(w.v_curve_max <= r.v_curve + 0.01f);
+            CHECK(w.a_max <= 3000.0f * 1.01f);
+            // Angular acceleration: at most the ramps' v^2 / (R ramp), no step.
+            const float alpha = r.v_curve * r.v_curve / (CURVE_RADIUS_MM * CURVE_RAMP_MM) * 57.29578f;
+            CHECK(w.alpha_max <= alpha * 1.05f);
+        }
+    }
+    // The curve speed leaves room to stop at the next cell centre after the
+    // last curve: at 3000 mm/s^2, sqrt(2 a (post + 90)) = 753 mm/s.
+    const int8_t corner[2] = {1, 0};
+    const run_path_t path = {corner, 2};
+    path_run_t r;
+    CHECK(path_start(&r, &path, &c, CELL_MM, 2000.0f, 2000.0f, 3000.0f));
+    CHECK(fabsf(r.v_curve - sqrtf(2.0f * 3000.0f * (c.post + 90.0f))) < 0.1f);
+    // Malformed paths are refused.
+    const int8_t bad_last[2] = {0, 1}, bad_turn[2] = {2, 0};
+    CHECK(!path_start(&r, &(run_path_t){bad_last, 2}, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    CHECK(!path_start(&r, &(run_path_t){bad_turn, 2}, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    CHECK(!path_start(&r, &(run_path_t){corner, 0}, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    // A calibrated angle: the encoders turn 88 per real 90, the shape stays.
+    curve_t c88;
+    CHECK(curve_setup(&c88, CURVE_RADIUS_MM, CURVE_RAMP_MM, 88.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(path_start(&r, &path, &c88, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    ref_walk_t w = walk_reference(&r, 20000);
+    CHECK(fabs(w.x - 180.0) < 0.3 && fabs(w.y - 180.0) < 0.3);
+    CHECK(fabsf(r.heading - 88.0f) < 0.001f);
+}
+
+static void test_path_control(void){
+    const curve_t c = default_curve();
+    profile_t fwd, rot;
+    profile_reset(&fwd);
+    profile_reset(&rot);
+    // PAUSE mid-curve: brakes to a stop on the path, then carries on to the same end.
+    const int8_t corner[3] = {0, 1, 0};
+    const run_path_t path = {corner, 3};
+    path_run_t r;
+    CHECK(path_start(&r, &path, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    while(r.s < r.curve_start + 0.5f * c.length) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    r.hold = 1;
+    for(int i = 0; i < 300; i++) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(r.v == 0.0f && !r.done);
+    CHECK(r.s < r.curve_start + c.length);     // stopped inside the curve
+    const float held = r.s;
+    for(int i = 0; i < 100; i++) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(r.s == held && rot.speed == 0.0f);
+    r.hold = 0;
+    for(int i = 0; i < 5000 && !r.done; i++) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(r.done && r.s == r.length && fabsf(r.heading - 90.0f) < 0.001f);
+
+    // Cell centres on the straight, as the supervision asks for them.
+    const run_path_t straight = {NULL, 5};
+    uint8_t entered;
+    float centre;
+    CHECK(path_start(&r, &straight, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    CHECK(path_straight_centre(&r, 100.0f, 0, &entered, &centre) && entered == 0 && centre == 0.0f);
+    CHECK(path_straight_centre(&r, 100.0f, 1, &entered, &centre) && entered == 1 && centre == 180.0f);
+    CHECK(path_straight_centre(&r, 700.0f, 1, &entered, &centre) && entered == 4 && centre == 720.0f);
+    CHECK(path_straight_centre(&r, 5000.0f, 1, &entered, &centre) && entered == 5 && centre == 900.0f);
+    CHECK(path_on_straight(&r, 10.0f) && fabsf(path_straight_end(&r) - 900.0f) < 0.001f);
+    // Stopping short (a wall where the map had none): ends exactly there.
+    for(int i = 0; i < 150; i++) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(path_straight_centre(&r, r.s + 200.0f, 1, &entered, &centre));
+    r.stop_at = centre;
+    for(int i = 0; i < 5000 && !r.done; i++) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(r.done && r.s == centre && r.v == 0.0f);
+
+    // After a curve: the straight starts at the curve cell's exit edge.
+    const int8_t late[4] = {0, -1, 0, 0};
+    const run_path_t after = {late, 4};
+    CHECK(path_start(&r, &after, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
+    CHECK(path_straight_centre(&r, 0.0f, 0, &entered, &centre) && entered == 0 && centre == 0.0f);
+    CHECK(fabsf(path_straight_end(&r) - (1.5f * CELL_MM + 0.5f * CELL_MM)) < 0.001f);   // the curve cell's centre
+    while(r.curves == 0) path_step(&r, &fwd, &rot, CONTROL_DT_S);
+    CHECK(!path_on_straight(&r, r.last_curve_end - 1.0f) && path_on_straight(&r, r.last_curve_end));
+    CHECK(fabsf(r.first_edge - (r.last_curve_end + c.post)) < 0.001f && r.first == 2);
+    CHECK(path_straight_centre(&r, r.s + 300.0f, 1, &entered, &centre) && entered == 4);
+    CHECK(!path_straight_centre(&r, r.first_edge, 0, &entered, &centre));   // no centre passed yet
+}
+
+// The simulated robot (motors, encoders, the chassis' yaw stick-slip)
+// through corners, staircases and u-turns at the default speeds: it must end
+// on the cell centre, square, and never stray from the path. There are no
+// walls here, so nothing centres the robot: over a long tour the small
+// heading errors of each curve add up (the maze's walls take them out).
+static void test_path_tracking(void){
+    const curve_t c = default_curve();
+    static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
+    static const int8_t tour[14] = {0, 0, 1, 0, -1, 1, 0, 0, 0, -1, -1, 0, 1, 0};
+    const run_path_t paths[] = {{corner, 3}, {stairs, 7}, {u_turn, 4}, {tour, 14}};
+    const plant_t base = plant_nominal();
+    plant_t plants[7];
+    for(int i = 0; i < 7; i++) plants[i] = base;
+    plants[1].gain_l = plants[1].gain_r = 0.8f;     // the model off by 20 % either way
+    plants[2].gain_l = plants[2].gain_r = 1.2f;
+    plants[3].tau = 0.08f;
+    plants[4].friction = 40.0f;
+    plants[4].stiction = 160.0f;
+    plants[5].dead_ms = 6;
+    plants[6].gain_r = 1.08f;                       // unequal motors
+    for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
+        for(int k = 0; k < 7; k++){
+            const path_result_t r = sim_path(&plants[k], &paths[i], &c, PARAM_FAST_SPEED, PARAM_CURVE_SPEED, PARAM_ACCEL);
+            // Nominal robot: within a mm (the tour: 2). With the model 20 %
+            // off, each curve lags ~2 deg and leaves 3-5 mm.
+            const uint8_t long_tour = i == 3;
+            const float tol = k == 0 ? (long_tour ? 3.0f : 1.5f) : (long_tour ? 16.0f : 6.0f);
+            const int ok = r.ms > 0 && r.end_err < tol && r.cross_err_max < tol
+                        && fabsf(r.heading_err) < (k == 0 ? 0.5f : 1.0f) && r.fwd_err_max < 6.0f && r.rot_err_max < 3.0f;
+            if(!ok){
+                printf("  path %zu plant %d: end %.2f mm %+.2f deg, off the path %.2f mm, errors %.2f mm %.2f deg, %u ms\n",
+                       i, k, (double)r.end_err, (double)r.heading_err, (double)r.cross_err_max,
+                       (double)r.fwd_err_max, (double)r.rot_err_max, r.ms);
+            }
+            CHECK(ok);
+        }
+        // At the most the motors are asked for (the firmware caps curves at
+        // ~480 mm/s): still on the path.
+        const path_result_t r = sim_path(&base, &paths[i], &c, PARAM_FAST_SPEED, 480.0f, PARAM_ACCEL);
+        CHECK(r.end_err < 2.0f && r.cross_err_max < 3.0f && r.pwm_max < CONTROL_PWM_LIMIT);
+    }
+}
+
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
     printf("recta 540 mm, 15 mm descentrado (KP %.2f KI %.2f):\n", (double)PARAM_KP, (double)PARAM_KI);
@@ -933,6 +1156,24 @@ static void control_report(void){
         sim_result_t r = sim_turn(&p, angles[i], PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
         printf("giro %.0f: %u ms, girado %.2f deg, error max %.2f deg, desplazamiento %.2f mm\n", (double)angles[i],
                r.ms, (double)r.turned, (double)r.rot_err_max, (double)r.travelled);
+    }
+    const curve_t c = default_curve();
+    printf("curvas (radio %.0f, rampas %.0f: %.1f mm, recta antes/despues %.1f mm), FAST %d:\n",
+           (double)c.radius, (double)c.ramp, (double)c.length, (double)c.pre, PARAM_FAST_SPEED);
+    static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
+    const struct { const char *name; run_path_t path; } paths[] = {
+        {"esquina", {corner, 3}}, {"escalera", {stairs, 7}}, {"media vuelta", {u_turn, 4}},
+    };
+    const float curve_speeds[] = {300.0f, 400.0f, 500.0f, 600.0f, 700.0f};
+    for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
+        for(size_t j = 0; j < sizeof(curve_speeds) / sizeof(curve_speeds[0]); j++){
+            const plant_t p = plant_nominal();
+            const path_result_t r = sim_path(&p, &paths[i].path, &c, PARAM_FAST_SPEED, curve_speeds[j], PARAM_ACCEL);
+            printf("  %-12s %3.0f mm/s: %4u ms, final a %.2f mm y %+.2f deg, fuera de la ruta %.2f mm,"
+                   " error max %.2f mm / %.2f deg, PWM max %d\n", paths[i].name, (double)curve_speeds[j], r.ms,
+                   (double)r.end_err, (double)r.heading_err, (double)r.cross_err_max, (double)r.fwd_err_max,
+                   (double)r.rot_err_max, r.pwm_max);
+        }
     }
 }
 
@@ -970,6 +1211,10 @@ int main(int argc, char **argv){
     test_profile();
     test_steering_filter();
     test_speed_control();
+    test_curve_shape();
+    test_path_reference();
+    test_path_control();
+    test_path_tracking();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;
