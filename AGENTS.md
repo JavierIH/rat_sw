@@ -19,6 +19,8 @@ Goal configuration:
   `GOAL 7 7 8 8` + `SAVE`) before a real 16x16 competition.**
 
 ## Hardware
+- The robot is 72 mm wide. No IMU/gyro: the heading comes only from the
+  encoders, corrected by the side walls (centring) and front walls (squaring).
 - MCU STM32F103C8T6 (Cortex-M3, no FPU, 20 KB RAM, 64 KB flash). Bare HAL via
   `framework = stm32cube`; no RTOS, no CubeMX `main.h`.
 - 2 DC motors: H-bridge direction pins + PWM on TIM4 CH3 (right, PB8) / CH4
