@@ -7,11 +7,11 @@ unknown maze, maps it, finds the fastest route and runs it:
 1. **Search** (mode 1): explore to the goal, keep exploring the cells that
    could still shorten the speed-run path until the best path is verified,
    return to the start exploring on the way, face north, save the map. It
-   stops in every cell: the user wants the search robust before fast. With
-   `CONT ON` it drives through the cells without stopping instead, deciding
-   each one on the way (smooth curves into openings it has just seen), and
-   stops only to turn in place, at walls it finds in front, at the goal and
-   at the end.
+   drives straight stretches without stopping, deciding each cell on the
+   way with the walls it would see stopped there, and stops to turn in place
+   (and at the goal and the end). No curves in the search: the user wants it
+   robust before fast; curves are for the speed run. `CONT OFF` makes it stop
+   in every cell.
 2. **Speed run** (mode 2): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
    no turning in place). Then return to the start the same way at `SPD` and
@@ -169,8 +169,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
 `KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
-`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search without stopping: off by default,
-until reset), `CLOCK [HSI]` (clock source; HSI switches to the internal one),
+`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
+default, or stopping in every cell; until reset), `CLOCK [HSI]` (clock source;
+HSI switches to the internal one),
 `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
@@ -296,26 +297,24 @@ until reset), `CLOCK [HSI]` (clock source; HSI switches to the internal one),
   run. `TUNE CURVE_R|CURVE_RAMP` change the
   shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
   as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
-- Search without stopping (`motion_explore()`, `explore_next()`): each leg
-  starts from rest and grows cell by cell (`path_grow()`, SysTick masked).
-  With the slow IR the robot decides a cell with what it can have read by
-  then: after a straight, the side walls read from `SEARCH_SIDE_FROM_MM`
-  before it (the angled beams hit its walls), decided just in time to start
-  a curve there (`SEARCH_DECIDE_S`); after a curve those sides cannot be read
-  in time, so it decides halfway in (`SEARCH_LATE_*`, straight on or stop
-  only). The cell's front wall is unknown when deciding before it: going
-  straight on, the existing wall stop ("PARED") halts it at the cell's
-  centre; curving, it reads that wall at the start of the curve, still
-  facing it (`SEARCH_FRONT_WALL_MM`); without that, every corner left an
-  unknown wall the search had to come back for, and perfect mazes took 37 %
-  longer than stopping. A curve needs the side read open by every reading
-  (`SEARCH_MIN_READINGS`) and the map agreeing: a false "open" would curve
-  into a wall with no way to stop. Legs run at min(`SPD`, `CURVE`), constant
-  speed. Turning in place, the goal (writing flash stalls the CPU) and the
-  end happen at rest. In the simulator (`sim.c` has a time model from the
-  robot's logs) it drives the same cells as stopping in every cell, finds
-  the same verified optimum and takes ~30 % less time; with sensor noise
-  its maps are right more often. `CONT OFF` goes back to stopping.
+- Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
+  starts from rest and grows a cell at a time (`path_grow()`, SysTick
+  masked) as the search decides each next cell, straight on or stop. The
+  decision comes inside the cell, just before the reference would have to
+  start braking for its centre, with its three walls in view: the sides read
+  from `SEARCH_SIDE_FROM_MM` before its entry edge to `SEARCH_SIDE_TO_MM`
+  into it (only unanimous readings count), the front once it reads reliably
+  (under ~170 mm). So the search sees the same walls as stopping there and
+  explores exactly the same cells; if a wall is in front, or a turn is
+  needed, it stops there as an ordinary stop (no hard braking) and turns in
+  place. An unclear front means stopping to look. The legs run at
+  `SEARCH_LEG_SPEED_MAX` (450 mm/s): the fastest at which the front wall is
+  known before that decision (see robot_config.h). In the simulator (`sim.c`
+  has a time model from the robot's logs) it takes 35-45 % fewer stops and
+  4-7 % less time than stopping in every cell (most straights between turns
+  are short), and with sensor noise its maps are right more often (96/93 %
+  at 1/3 % noise, against 63/31 %). A version that also curved in the search
+  (30 % faster) was dropped: the user wants curves only in the speed run.
 - Speed-run planner costs: with smooth curves a turn costs half a cell
   (`FAST_COST_TURN` 1): fastest in `host_tests --costs` at every speed tried,
   0.2-2% faster than pricing it as a stop-and-turn. The cheap turns make
@@ -343,7 +342,7 @@ until reset), `CLOCK [HSI]` (clock source; HSI switches to the internal one),
   clock back to 64 MHz (`sysclock_recover()`, `uart_retime()`) and reports
   "!! fallo del cristal". `CLOCK HSI` does that switch on purpose, to test
   it.
-- Unexplained incident (first robot run of the search without stopping):
+- Unexplained incident (first robot run of the search with curves):
   the robot froze twice for ~200 s (no output; a map save hung and failed;
   later a `SAVE` at rest took 199 s and failed), and after a software reset
   did not boot, all LEDs off, until a power cycle. Then both searches ran
@@ -404,9 +403,8 @@ PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
 stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
 the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
 
-Search without stopping (`CONT ON`): same cells and optimum as stopping in
-every cell in the simulator, ~30 % faster. On the practice maze the whole
-search took 15.2 s against 20.7 s, map right and saved; its first robot run
-hit the unexplained incident above. Off by default until that is
-understood. Still to validate: the curve's front-wall reading
-(`SEARCH_FRONT_*`), other layouts.
+Search legs (straight on without stopping, the default): verified in the
+simulator only. The earlier version with curves ran on the practice maze
+(15.2 s against 20.7 s stopping, map right) and its first robot run hit the
+unexplained incident above. Still to validate on the robot: the decision
+point and the front-wall classification at 450 mm/s, long straights.
