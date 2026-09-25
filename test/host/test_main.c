@@ -1226,12 +1226,12 @@ static void test_path_tracking(void){
     for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
         for(int k = 0; k < 7; k++){
             const path_result_t r = sim_path(&plants[k], &paths[i], &c, PARAM_FAST_SPEED, PARAM_CURVE_SPEED, PARAM_ACCEL);
-            // Nominal robot: within 1.5 mm (the tour: 3). With the model 20 %
+            // Nominal robot: within 2 mm (the tour: 3.5). With the model 20 %
             // off, each curve lags ~2 deg and leaves 3-5 mm at CURVE 400;
             // at 480 a motor 50 % slower than measured leaves 7 mm after a
             // staircase.
             const uint8_t long_tour = i == 3;
-            const float tol = k == 0 ? (long_tour ? 3.0f : 1.5f) : (long_tour ? 16.0f : 8.0f);
+            const float tol = k == 0 ? (long_tour ? 3.5f : 2.0f) : (long_tour ? 16.0f : 8.0f);
             const int ok = r.ms > 0 && r.end_err < tol && r.cross_err_max < tol
                         && fabsf(r.heading_err) < (k == 0 ? 0.5f : 1.0f) && r.fwd_err_max < 6.0f && r.rot_err_max < 3.0f;
             if(!ok){

@@ -236,13 +236,11 @@
 // of the front-wall reference and centres (0.98 s); 900 works too (0.92 s)
 // but runs out of PWM at the end of the acceleration. The motor model holds
 // ~937 mm/s at most. Speed runs on the practice maze at 900 (with CURVE
-// 480): 3 of 3 clean, tracking within 2.4 mm / 3.1 deg. But with motors 20 %
-// weaker (a low battery) 900 saturates in the simulator, the robot falls up
-// to 24 mm behind the reference, and since a curve's heading follows the
-// reference the curves start early and cut inside (47 mm over a 14-cell
-// tour). 700 keeps that margin; go faster once the reference waits for the
-// robot.
-#define PARAM_FAST_SPEED        700     // mm/s, never below SPD
+// 480): 3 of 3 clean, tracking within 2.4 mm / 3.1 deg. With motors 20 %
+// weaker (a low battery) 900 is out of PWM: the path's reference then slows
+// down to the robot's pace (PATH_LAG_*), which keeps it within 4.3 mm of the
+// reference in the simulator (24 mm and curves cut 47 mm inside without).
+#define PARAM_FAST_SPEED        900     // mm/s, never below SPD
 // Speed through the smooth curves, capped by the straights' speed, by the
 // braking room after the last curve and by what the motors can follow
 // (CURVE_PWM_SHARE, ~478 mm/s). Speed runs on the practice maze (9 cells, 4
