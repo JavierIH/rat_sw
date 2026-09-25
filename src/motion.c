@@ -123,6 +123,8 @@ static float sense_settle = SENSE_SETTLE_MS;    // ms
 static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
 static float steer_vref = STEER_VREF_MM_S;      // mm/s
+static float curve_radius = CURVE_RADIUS_MM, curve_ramp = CURVE_RAMP_MM, curve_angle = CURVE_ANGLE_DEG;
+static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
 
 // Owned by SysTick while control_on; the main context only reads them, and
 // writes fwd.target (one aligned float store) to move the end of a straight.
@@ -131,6 +133,12 @@ static control_t ctl;
 static steer_t steer;
 static volatile uint8_t control_on, steer_on;
 static volatile float steer_gain;
+// A path run (motion_run_path) steps `run` instead of the two profiles; it
+// writes them, so everything else reads fwd/rot as in any move. The main
+// context only writes run.stop_at and run.hold (one aligned store each).
+static path_run_t run;
+static volatile uint8_t path_on;
+static uint8_t steer_blind;         // centring suspended by a curve (SysTick)
 static int32_t tick_l, tick_r;      // encoder totals at the last SysTick
 // Where the robot was each of the last TRAIL_LEN ms (forward axis): the IR
 // report the past (IR_DELAY_MS), and must be added to the position then.
@@ -140,33 +148,53 @@ _Static_assert(IR_DELAY_MAX < TRAIL_LEN && IR_DELAY_MAX + STEER_AVERAGE_MAX / 2 
 static float trail[TRAIL_LEN];
 static volatile uint8_t trail_slot;
 
+// Where the robot was when the IR readings now in were taken (this move).
+static float fwd_at_ir(void){
+    const uint8_t ms = (uint8_t)ir_delay;
+    return trail[(trail_slot + TRAIL_LEN - 1u - ms) % TRAIL_LEN];
+}
+
 void motion_tick_1ms(void){
     const int32_t l = encoder_total(ENCODER_L), r = encoder_total(ENCODER_R);
     const int32_t dl = l - tick_l, dr = r - tick_r;
     tick_l = l;
     tick_r = r;
     if(!control_on) return;
-    profile_step(&fwd, CONTROL_DT_S);
-    profile_step(&rot, CONTROL_DT_S);
+    if(path_on){
+        path_step(&run, &fwd, &rot, CONTROL_DT_S);
+    }
+    else{
+        profile_step(&fwd, CONTROL_DT_S);
+        profile_step(&rot, CONTROL_DT_S);
+    }
     float heading = 0.0f;
     if(steer_on){
-        const float ds = 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM;
-        const float rot_now = rot.pos + ctl.steer_prev - ctl.rot_error;     // heading since the move started
-        heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), ds, rot_now, steer_gain);
-        static const uint8_t WALL_LEDS[4] = {0x00, 0x07, 0x38, 0x3F};   // none, right, left, both
-        leds_set_mask(WALL_LEDS[steer.wall & 3u]);
+        // In a curve the side walls say nothing about the centre line, and
+        // right after it the IR still report the curve (IR_DELAY_MS): hold
+        // the heading offset, and start afresh in the new corridor.
+        if(path_on && !(run.s < run.curve_start && fwd_at_ir() >= run.last_curve_end)){
+            steer_blind = 1;
+            heading = steer.heading;
+            leds_set_mask(0);
+        }
+        else{
+            if(steer_blind){
+                steer_restart(&steer);
+                steer_blind = 0;
+            }
+            const float ds = 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM;
+            // Heading since the move started, relative to the corridor (the reference's turns taken out).
+            const float to_corridor = ctl.steer_prev - ctl.rot_error;
+            heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), ds, to_corridor, steer_gain);
+            static const uint8_t WALL_LEDS[4] = {0x00, 0x07, 0x38, 0x3F};   // none, right, left, both
+            leds_set_mask(WALL_LEDS[steer.wall & 3u]);
+        }
     }
     control_step(&ctl, &control_cfg, &fwd, &rot, heading, dl, dr, CONTROL_DT_S);
     motor_set(MOTOR_L, ctl.pwm_l);
     motor_set(MOTOR_R, ctl.pwm_r);
     trail[trail_slot] = fwd.pos - ctl.fwd_error;
     trail_slot = (uint8_t)((trail_slot + 1u) % TRAIL_LEN);
-}
-
-// Where the robot was when the IR readings now in were taken (this move).
-static float fwd_at_ir(void){
-    const uint8_t ms = (uint8_t)ir_delay;
-    return trail[(trail_slot + TRAIL_LEN - 1u - ms) % TRAIL_LEN];
 }
 
 static uint8_t move_id;     // changes with every move (CAL recordings rebase their reference)
@@ -181,6 +209,8 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *id){
 // state alone meanwhile.
 static void control_begin(uint8_t steering){
     control_on = 0;
+    path_on = 0;
+    steer_blind = 0;
     move_id++;
     steer_cfg.average_steps = (uint8_t)steer_average;
     steer_cfg.delay_steps = (uint8_t)(ir_delay + steer_average / 2);  // the averaging delays by half its window
@@ -203,6 +233,7 @@ static void control_go(void){
 // Short brake: the move is over (or cut short).
 static void control_end(void){
     control_on = 0;
+    path_on = 0;
     motors_off();
     if(steer_on){
         steer_on = 0;
@@ -250,6 +281,16 @@ static void guard_start(guard_t *g, uint32_t timeout_ms){
 // actually is, from standstill, to the same target.
 static void hold_while_paused(guard_t *g){
     const uint32_t since = HAL_GetTick();
+    if(path_on){
+        // Brake to a stop on the path (in a curve too) and hold there: the
+        // path carries on from the same point, since its heading depends on
+        // the distance alone.
+        run.hold = 1;
+        while(paused && !abort_flag) poll_inputs();
+        run.hold = 0;
+        g->deadline += HAL_GetTick() - since;
+        return;
+    }
     control_on = 0;
     motors_off();
     while(paused && !abort_flag) poll_inputs();
@@ -319,8 +360,7 @@ static move_result_t drive(float mm, float speed, guard_t *g){
     return run_to_end(g);
 }
 
-// After an early obstacle stop: reverse to where the move started, which is
-// the center of the cell the robot never left.
+// After an obstacle stop: reverse to the last cell centre passed.
 static move_result_t back_up(float traveled){
     guard_t g;
     move_result_t r = drive(-traveled, ALIGN_SPEED, &g);
@@ -331,19 +371,49 @@ static move_result_t back_up(float traveled){
     return result;
 }
 
-move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
+static uint8_t curve_from_tuning(curve_t *c){
+    return curve_setup(c, curve_radius, curve_ramp, curve_angle, curve_pre, curve_post, CELL_MM);
+}
+
+// Fastest curve the motors can follow: the outer wheel's feedforward where a
+// ramp meets the arc (running v (1 + h / R) and accelerating h v^2 / (R
+// ramp), h the half track) within CURVE_PWM_SHARE of the limit.
+static float curve_speed_limit(const curve_t *c){
+    const float h = control_cfg.mm_per_deg * 57.29578f;
+    const float kv = fmaxf(control_cfg.kv_l, control_cfg.kv_r);
+    const float a = kv * control_cfg.tau * h / (c->radius * c->ramp);
+    const float b = kv * (1.0f + h / c->radius);
+    const float room = CURVE_PWM_SHARE * control_cfg.pwm_limit - control_cfg.ks;
+    return (sqrtf(b * b + 4.0f * a * room) - b) / (2.0f * a);
+}
+
+// Every forward move: a whole path in one go (path.h), straights and smooth
+// curves, a plain straight being a path without curves. SysTick steps the
+// reference; this loop watches the sensors and decides when it is over. The
+// front sensors are used on straights only, with readings taken on them: to
+// stop at the right distance from a wall at the end, and to stop short, at a
+// cell centre, if a wall shows up where the (verified) map had a passage.
+move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
     side_pass_clear();
-    if(!cells) return MOVE_OK;
+    *entered = 0;
+    if(!path->cells) return MOVE_OK;
+    curve_t curve;
+    control_begin(1);
+    // TUNE only takes curves that fit, and search.c builds valid paths.
+    if(!curve_from_tuning(&curve)
+       || !path_start(&run, path, &curve, CELL_MM, (float)cruise_speed,
+                      fminf((float)curve_speed, curve_speed_limit(&curve)), (float)params.accel)){
+        print("!! ruta no valida\n");
+        return MOVE_LOST;
+    }
     moved = 1;
-    const float planned = (float)cells * CELL_MM;
     guard_t g;
-    uint8_t ir_seen = 0, ir_emergency = 0;
+    uint8_t ir_seen = 0, ir_emergency = 0, emergency = 0, short_stop = 0, stop_cell = 0;
     const char *stop = "ENC";
     move_result_t result;
-    float vmax = 0.0f, at = 0.0f;
-    control_begin(1);
-    profile_start(&fwd, planned, (float)cruise_speed, 0.0f, (float)params.accel);
-    guard_start(&g, MOVE_TIMEOUT_BASE_MS + (uint32_t)cells * MOVE_TIMEOUT_PER_CELL_MS);
+    float vmax = 0.0f, at = 0.0f, planned_end = run.length;
+    path_on = 1;
+    guard_start(&g, MOVE_TIMEOUT_BASE_MS + (uint32_t)path->cells * MOVE_TIMEOUT_PER_CELL_MS);
     control_go();
     for(;;){
         wait_next_ms();
@@ -353,53 +423,75 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
             break;
         }
         at = fwd_actual();
-        const float remaining = fwd.target - at;
+        const float v = run.v, ir_at = fwd_at_ir();
+        if(v > vmax) vmax = v;
         // Centring gain: KP up to steer_vref, then as 1/speed (see
-        // STEER_VREF_MM_S), fading out over the last STEER_FADE_MM.
+        // STEER_VREF_MM_S), fading out over the last STEER_FADE_MM before
+        // every curve and the end, so the robot gets there parallel.
+        const float remaining = fminf(run.curve_start, run.stop_at) - at;
         const float fade = remaining < STEER_FADE_MM ? fmaxf(remaining, 0.0f) / STEER_FADE_MM : 1.0f;
-        steer_gain = fade * (fwd.speed > steer_vref ? steer_vref / fwd.speed : 1.0f);
-        if(fwd.speed > vmax) vmax = fwd.speed;
+        steer_gain = fade * (v > steer_vref ? steer_vref / v : 1.0f);
 
-        // Side walls of the destination cell, read on the way in: here the
-        // angled beams hit the middle of its walls. At the stop they aim a
-        // couple of cm from the next post, and caught it as phantom walls.
-        // The readings are IR_DELAY_MS old: count from where they were taken.
-        if(fwd.target - fwd_at_ir() <= SIDE_PASS_MM && side_pass.n < WALL_SAMPLES){
+        if(run.s >= run.curve_start || !path_on_straight(&run, ir_at)){
+            ir_seen = ir_emergency = 0;     // turning, or the readings are from the curve
+            if(guard_settled(&g)) break;
+            continue;
+        }
+        // On the straight into the last cell (or into a short stop) the end
+        // of the straight is the end of the move.
+        const uint8_t last_cell = run.next >= path->cells;
+        const uint8_t ending = last_cell || short_stop;
+        const float expected = short_stop ? planned_end : path_straight_end(&run);
+
+        // Side walls of the last cell, read on the way in: here the angled
+        // beams hit the middle of its walls. At the stop they aim a couple
+        // of cm from the next post, and caught it as phantom walls. The
+        // readings are IR_DELAY_MS old: count from where they were taken.
+        if(last_cell && !short_stop && run.stop_at - ir_at <= SIDE_PASS_MM && side_pass.n < WALL_SAMPLES){
             side_pass.n++;
             if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
             if(ir_mm(IR_SR) < WALL_DETECT_MM) side_pass.votes_r++;
         }
-
         const float fl = ir_mm(IR_FL), fr = ir_mm(IR_FR);
-        if(remaining <= FRONT_ZONE_MM){
-            // A wall at the end of the move is the best position reference:
-            // aim the end at FRONT_WALL_REF_MM from it (FL/FR average, as in
-            // motion_align_front()). The profile brakes into the new target,
-            // so the robot stops there instead of coasting past a trigger.
-            const uint8_t wall = fl < front_track && fr < front_track
-                && fabsf(fl - fr - (float)FRONT_SQUARE_OFFSET_MM) < FRONT_IR_MAX_DIFF_MM;
-            ir_seen = wall ? (uint8_t)(ir_seen < 255u ? ir_seen + 1u : ir_seen) : 0u;
-            if(ir_seen >= FRONT_CONFIRM_MS && fwd.active){
-                // The reading is IR_DELAY_MS old: the wall is that far from
-                // where the robot was then (within 0.6 mm on the robot; the
-                // plain reading put it 18 mm too far at 400 mm/s).
-                float end = fwd_at_ir() + 0.5f * (fl + fr) - front_ref;
-                end = fminf(fmaxf(end, planned - FRONT_EARLY_MAX_MM), planned + FRONT_LATE_MAX_MM);
-                const float v = fwd.speed;
-                end = fmaxf(end, fwd.pos + v * v / (4.0f * fwd.rate));     // what braking twice as hard allows
-                fwd.target = end;
-                stop = "IR";
+        const uint8_t wall = fl < front_track && fr < front_track
+            && fabsf(fl - fr - (float)FRONT_SQUARE_OFFSET_MM) < FRONT_IR_MAX_DIFF_MM;
+        ir_seen = wall ? (uint8_t)(ir_seen < 255u ? ir_seen + 1u : ir_seen) : 0u;
+        if(ir_seen >= FRONT_CONFIRM_MS && !run.done){
+            // Where the robot stops centred before this wall (FL/FR average,
+            // as in motion_align_front()). The reading is IR_DELAY_MS old:
+            // the wall is that far from where the robot was then (within 0.6
+            // mm on the robot; the plain reading put it 18 mm too far at 400
+            // mm/s).
+            float end = ir_at + 0.5f * (fl + fr) - front_ref;
+            const float soonest = run.s + v * v / (4.0f * run.accel);     // braking twice as hard
+            float centre;
+            if(end < expected - 0.5f * CELL_MM){
+                // Not the wall this straight leads to: one the map had as
+                // open. Stop at the centre of the cell before it.
+                if(!short_stop && path_straight_centre(&run, end, 1, &stop_cell, &centre) && centre >= soonest){
+                    planned_end = run.stop_at = centre;
+                    short_stop = 1;
+                    stop = "PARED";
+                }
+            }
+            else if(ending && run.stop_at - at <= FRONT_ZONE_MM){
+                // The wall at the end is the best position reference: aim
+                // the stop at it. The reference brakes into the new end, so
+                // the robot stops there instead of coasting past a trigger.
+                end = fminf(fmaxf(end, planned_end - FRONT_EARLY_MAX_MM), planned_end + FRONT_LATE_MAX_MM);
+                run.stop_at = fmaxf(end, soonest);
+                if(!short_stop) stop = "IR";
             }
         }
-        else{
-            // Something this close before the final approach was not in the
-            // plan: stop before touching it (farther out when going faster).
-            // The readings are IR_DELAY_MS old: count the way since.
-            const float v = fwd.speed;
-            const float near_mm = FRONT_EMERGENCY_MM + (at - fwd_at_ir()) + v * v / (2.0f * EMERGENCY_DECEL);
+        // Something this close well before the end of the straight, with no
+        // room left to stop at a cell centre: brake now, farther out when
+        // going faster. The readings are IR_DELAY_MS old: count the way since.
+        if(ir_at < expected - FRONT_ZONE_MM){
+            const float near_mm = FRONT_EMERGENCY_MM + (at - ir_at) + v * v / (2.0f * EMERGENCY_DECEL);
             ir_emergency = (fl < near_mm && fr < near_mm) ? (uint8_t)(ir_emergency + 1u) : 0u;
             if(ir_emergency >= FRONT_CONFIRM_MS){
-                result = at < CELL_MM / 2 ? MOVE_BLOCKED : MOVE_LOST;
+                result = MOVE_LOST;
+                emergency = 1;
                 stop = "OBSTACULO";
                 break;
             }
@@ -408,22 +500,49 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     }
     control_end();
     at = fwd_actual();
-    side_pass.valid = result == MOVE_OK && side_pass.n >= WALL_SAMPLES;
+    if(result == MOVE_OK){
+        *entered = short_stop ? stop_cell : path->cells;
+        if(short_stop) result = MOVE_BLOCKED;
+        side_pass.valid = !short_stop && side_pass.n >= WALL_SAMPLES;
+    }
 
     if(params.log_level >= 2){
-        char dist[12], target[12];
-        print("avance %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%c%c",
-              cells, stop, format_fixed2(dist, sizeof(dist), at), format_fixed2(target, sizeof(target), fwd.target),
-              (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR),
-              side_pass.valid ? (side_pass.votes_l >= WALL_VOTES ? '1' : '0') : '-',
-              side_pass.valid ? (side_pass.votes_r >= WALL_VOTES ? '1' : '0') : '-');
+        char dist[12], end[12];
+        const char sides[3] = {side_pass.valid ? (side_pass.votes_l >= WALL_VOTES ? '1' : '0') : '-',
+                               side_pass.valid ? (side_pass.votes_r >= WALL_VOTES ? '1' : '0') : '-', '\0'};
+        format_fixed2(dist, sizeof(dist), at);
+        format_fixed2(end, sizeof(end), run.stop_at);
+        if(path->turn){
+            print("ruta %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s", path->cells,
+                  run.curves, stop, dist, end, (int)vmax, (int)run.v_curve, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), sides);
+        }
+        else{
+            print("avance %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%s", path->cells,
+                  stop, dist, end, (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
+                  (int)ir_mm(IR_SR), sides);
+        }
         print_errors(&g);
     }
-    if(result == MOVE_BLOCKED){
+    if(emergency){
+        // Braked hard on a straight: back to the last cell centre passed,
+        // which the encoders know exactly.
         side_pass_clear();
-        result = back_up(at);
+        float centre;
+        if(path_straight_centre(&run, at, 0, &stop_cell, &centre)){
+            result = back_up(at - centre);
+            if(result == MOVE_BLOCKED) *entered = stop_cell;
+        }
     }
     return result;
+}
+
+// A straight is a path without curves.
+move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
+    const run_path_t straight = {NULL, cells};
+    uint8_t entered;
+    const move_result_t r = motion_run_path(&straight, cruise_speed, cruise_speed, &entered);
+    // Stopped short at a cell centre the caller could not tell from the start.
+    return r == MOVE_BLOCKED && entered ? MOVE_LOST : r;
 }
 
 move_result_t motion_drive_straight(int16_t speed, int32_t mm){
@@ -596,6 +715,11 @@ static const tunable_t TUNABLES[] = {
     {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
     {"WHEEL_DIFF", &control_cfg.wheel_diff, -0.05f, 0.05f, 3},
     {"SENSE_SETTLE", &sense_settle, 0.0f, 200.0f, 0},
+    {"CURVE_R", &curve_radius, 30.0f, 120.0f, 1},
+    {"CURVE_RAMP", &curve_ramp, 1.0f, 120.0f, 1},
+    {"CURVE_ANGLE", &curve_angle, 80.0f, 100.0f, 2},
+    {"CURVE_PRE", &curve_pre, -40.0f, 40.0f, 1},
+    {"CURVE_POST", &curve_post, -40.0f, 40.0f, 1},
 };
 
 #define TUNABLE_COUNT (sizeof(TUNABLES) / sizeof(TUNABLES[0]))
@@ -618,9 +742,23 @@ void motion_tune_set(const char *name, float value){
                   format_fixed(hi, sizeof(hi), t->max, t->decimals));
             return;
         }
+        const float old = *t->value;
         *t->value = value;      // one aligned store: SysTick sees the old or the new value
+        curve_t c;
+        const uint8_t shape = strncmp(name, "CURVE", 5) == 0;
+        if(shape && !curve_from_tuning(&c)){
+            *t->value = old;
+            print("%s: la curva no cabe en la celda (se queda en %s)\n", t->name,
+                  format_fixed(v, sizeof(v), old, t->decimals));
+            return;
+        }
         print("%s=%s (hasta reiniciar; en robot_config.h para siempre)\n", t->name,
               format_fixed(v, sizeof(v), value, t->decimals));
+        if(shape){
+            char len[12], pre[12], post[12];
+            print("curva: %smm, recta antes %smm y despues %smm\n", format_fixed(len, sizeof(len), c.length, 1),
+                  format_fixed(pre, sizeof(pre), c.pre, 1), format_fixed(post, sizeof(post), c.post, 1));
+        }
         return;
     }
     print("TUNE: %s no existe (TUNE solo: lista)\n", name);

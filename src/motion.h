@@ -2,6 +2,7 @@
 #define MOTION_H
 
 #include <stdint.h>
+#include "path.h"
 
 // Robot actions used by the strategies in search.c. Implemented by motion.c
 // on the robot and by the simulator in test/host, so this header stays free
@@ -33,6 +34,12 @@ typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);
 // Turns in place: -1 = 90 deg left, +1 = 90 deg right, 2 = 180 deg.
 move_result_t motion_turn(int8_t quarter_turns);
+// Drives the whole path without stopping: straights at `cruise_speed`,
+// smooth curves at `curve_speed` (mm/s), stop at the centre of the last cell.
+// `entered` = cells of the path the robot is in when it stops: all of them
+// with MOVE_OK; with MOVE_BLOCKED it stopped at the centre of an earlier one,
+// on a straight, facing a wall the map had as open.
+move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered);
 // Majority-voted wall readings: the front with the robot stopped, the sides
 // from the straight that just ended if there was one (see `moving`).
 move_result_t motion_sense_walls(wall_sense_t *out);

@@ -181,6 +181,12 @@
 // ms late, so it may need to start earlier (exits displaced to the outside).
 #define CURVE_PRE_ADJUST_MM     0.0f
 #define CURVE_POST_ADJUST_MM    0.0f
+// Share of CONTROL_PWM_LIMIT the curves may ask of the outer wheel (the
+// loops need the rest): its feedforward peaks where a ramp meets the arc,
+// fastest and still accelerating. It caps the curve speed at ~480 mm/s with
+// the motor model above. In the simulator 500 still tracked within 1 mm, 600
+// saturated for a moment and 700 fell 15-57 mm behind the reference.
+#define CURVE_PWM_SHARE         0.9f
 
 // ---- Other moves ------------------------------------------------------------------
 // Front alignment after a straight that ends facing a wall: square first
@@ -217,9 +223,10 @@
 // of the front-wall reference and centres (0.98 s); 900 works too (0.92 s)
 // but runs out of PWM at the end of the acceleration.
 #define PARAM_FAST_SPEED        700     // mm/s, never below SPD. The motors top out at ~1000 mm/s
-// Speed through the smooth curves, capped by the straights' speed and by
-// the braking room after the last curve. Not yet tried on the robot: start
-// here and raise it while the curves end centred (see CURVE_* above).
+// Speed through the smooth curves, capped by the straights' speed, by the
+// braking room after the last curve and by what the motors can follow
+// (CURVE_PWM_SHARE). Not yet tried on the robot: start here and raise it
+// while the curves end centred (see CURVE_* above).
 #define PARAM_CURVE_SPEED       400     // mm/s
 // 5000 made the wheels slip when braking (the encoders stopped on target,
 // the robot 6 mm further): 3000 is near the grip limit.
