@@ -669,7 +669,7 @@ LOG_STYLES = (
     (lambda t: t.startswith("=="), "head"),
     (lambda t: t.startswith("Fin:") or t.startswith("? "), "warn"),
     (lambda t: t.startswith("--"), "info"),
-    (lambda t: t.startswith(("avance", "ruta", "giro", "alineado", "IR mm")), "dim"),
+    (lambda t: t.startswith(("avance", "ruta", "exploracion", "giro", "alineado", "IR mm")), "dim"),
 )
 
 
