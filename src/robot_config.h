@@ -190,8 +190,16 @@
 #define MAP_MAX_RECOVERIES      3       // "goal unreachable" map repairs allowed per run
 
 // ---- Runtime parameter defaults (see params.h) ----------------------------------------
-#define PARAM_SEARCH_SPEED      400     // mm/s (the old PWM 400 cruised at ~410 mm/s)
-#define PARAM_FAST_SPEED        500     // mm/s, never below SPD. The motors top out at ~1000 mm/s
+// Practice-maze search + return: 22.3 s at 400 mm/s, 20.3 s at 500 (settle
+// 10 ms), 19.4 s at 600 (settle 0), same map every time. 1-cell moves
+// barely cruise at 3000 mm/s^2, so more speed gains little.
+#define PARAM_SEARCH_SPEED      600     // mm/s
+// Validated on 3-cell straights in a corridor: 700 mm/s stops within ~2 mm
+// of the front-wall reference and centres (0.98 s); 900 works too (0.92 s)
+// but runs out of PWM at the end of the acceleration.
+#define PARAM_FAST_SPEED        700     // mm/s, never below SPD. The motors top out at ~1000 mm/s
+// 5000 made the wheels slip when braking (the encoders stopped on target,
+// the robot 6 mm further): 3000 is near the grip limit.
 #define PARAM_ACCEL             3000    // mm/s^2 of every straight, up and down
 #define PARAM_TURN_SPEED        500     // deg/s peak of in-place turns
 #define PARAM_TURN_ACCEL        5000    // deg/s^2: a 90 deg turn takes ~0.3 s
