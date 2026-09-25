@@ -7,9 +7,11 @@ unknown maze, maps it, finds the fastest route and runs it:
 1. **Search** (mode 1): explore to the goal, keep exploring the cells that
    could still shorten the speed-run path until the best path is verified,
    return to the start exploring on the way, face north, save the map. It
-   drives through the cells without stopping, deciding each one on the way
-   (smooth curves into openings it has just seen), and stops only to turn in
-   place, at walls it finds in front, at the goal and at the end.
+   stops in every cell: the user wants the search robust before fast. With
+   `CONT ON` it drives through the cells without stopping instead, deciding
+   each one on the way (smooth curves into openings it has just seen), and
+   stops only to turn in place, at walls it finds in front, at the goal and
+   at the end.
 2. **Speed run** (mode 2): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
    no turning in place). Then return to the start the same way at `SPD` and
@@ -167,7 +169,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
 `KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
-`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search without stopping, until reset),
+`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search without stopping: off by default,
+until reset), `CLOCK [HSI]` (clock source; HSI switches to the internal one),
 `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
@@ -318,6 +321,37 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   0.2-2% faster than pricing it as a stop-and-turn. The cheap turns make
   more routes tie, so the search's OPTIM phase needs a larger budget
   (`OPTIMIZE_MAX_STEPS` 400).
+- Memory: the map and planner are sized for 16x16 in every build
+  (`PRACTICE_MAZE` only changes the goal), so the practice and competition
+  builds use the same RAM (86.8 %: ~2.7 KB left for the stack) and flash
+  (90.4 % of 63 KB). Keep that headroom: report sizes after every change,
+  reuse buffers (the search's legs borrow the speed run's route buffer).
+- Health checks (`health.c`), for rare failures on the robot: the free
+  stack is painted at boot and `STATUS` shows how much was never used
+  (static estimate of the deepest chain: ~1.65 KB); if the main program
+  stops calling `health_alive()` (every wait loop does) for more than
+  `HEALTH_STALL_MS`, SysTick notes the program counter it interrupted and
+  the main loop prints "!! el programa estuvo parado N ms en PC=..." when it
+  resumes (map the PC with `arm-none-eabi-addr2line -e firmware.elf`); the
+  banner says why the last reset happened.
+- Clock (`sysclock.c`): crystal x 9 = 72 MHz. If it does not start at boot
+  the robot runs on the internal oscillator / 2 x 16 = 64 MHz (+-1 %) and the
+  banner says so; before, `Error_Handler` ran before the LEDs and UART were
+  set up and the robot sat dark. The clock security system watches the
+  crystal while running: on a failure the NMI stops the motors and aborts
+  the run (`clock_failure_hook()` in motion.c), and the main loop brings the
+  clock back to 64 MHz (`sysclock_recover()`, `uart_retime()`) and reports
+  "!! fallo del cristal". `CLOCK HSI` does that switch on purpose, to test
+  it.
+- Unexplained incident (first robot run of the search without stopping):
+  the robot froze twice for ~200 s (no output; a map save hung and failed;
+  later a `SAVE` at rest took 199 s and failed), and after a software reset
+  did not boot, all LEDs off, until a power cycle. Then both searches ran
+  clean. Suspects: the crystal (but it had worked for 10 years), the supply,
+  or software; static analysis rules out a stack overflow. The health checks
+  and the crystal monitor above tell them apart if it happens again: a stall
+  report points at software (and where), a crystal report at the crystal,
+  neither at the supply or the flash itself.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.
@@ -370,9 +404,9 @@ PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
 stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
 the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
 
-Search without stopping: verified in the simulator only (same cells and
-optimum, ~30 % faster, robust to noise). Still to validate on the robot: the
-side-reading windows, the curve's front-wall reading (`SEARCH_FRONT_*`,
-thresholds from CAL CURVE recordings that all had a wall), the decision
-timing, and the time gained on the practice maze (21 s stopping in every
-cell).
+Search without stopping (`CONT ON`): same cells and optimum as stopping in
+every cell in the simulator, ~30 % faster. On the practice maze the whole
+search took 15.2 s against 20.7 s, map right and saved; its first robot run
+hit the unexplained incident above. Off by default until that is
+understood. Still to validate: the curve's front-wall reading
+(`SEARCH_FRONT_*`), other layouts.
