@@ -321,7 +321,10 @@ at the goal landed 0.5 mm from the encoders' plan after 1.49 m; the return
 at 600/400 took 3.27 s. Six CAL CURVE at 300 mm/s: the curve itself turns
 89-90 deg on the encoders and, with the maze's lateral bias taken out
 (two left and two right between (2,0) and (3,1)), ends 1.6 +- 3 mm early:
-CURVE_PRE/POST/ANGLE stay at 0/0/90. Known issue: the centring can carry up
-to 3 deg of heading offset into a curve (held through it by design), which
-rotates the whole curve by that much. Next: fix that, then raise CURVE
-towards the ~480 mm/s cap and FAST.
+CURVE_PRE/POST/ANGLE stay at 0/0/90. The heading offset the centring holds
+through a curve (up to 3.2 deg in these tests) is its learned bias, the
+misalignment of the encoders' frame: in the one test where it could be
+checked (start heading measured on a wall, 3.35 deg off) it put the robot
+into the curve within 0.1 deg of the corridor, and the exit came out centred
+once the maze's lateral bias was taken out. Keep holding it. Next: raise
+CURVE towards the ~480 mm/s cap and FAST.
