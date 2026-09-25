@@ -52,7 +52,9 @@ Commands:
   `test/host/build/host_tests --demo` shows a full search + speed run log and
   the ASCII map exactly as the robot prints them; `--transcript <seed>
   <openings> [practice] [phantom]` prints everything the robot would send
-  over Bluetooth (telemetry included) during a search + speed run.
+  over Bluetooth (telemetry included) during a search + speed run;
+  `--control` prints the speed control's numbers on the simulated robot
+  (straights and turns at several speeds), for tuning gains away from it.
 - `python3 -m unittest discover -s tools -p 'test_*.py'`: monitor and
   calibration analysis tests. They replay `--transcript` output, so they also
   check that the monitor's planner makes the same decisions as the firmware.
@@ -73,8 +75,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `robot_config.h`: every compile-time constant with its unit (geometry,
   calibration, thresholds, planner costs) and the defaults of the runtime
   parameters.
-- `params.c/.h`: runtime parameters (`SPD`, `FAST`, `TURN`, `TURNTICKS`, `KP`,
-  `KI`, `KD`, `KE`, `LOG`, `TELEM`), persisted with the map.
+- `params.c/.h`: runtime parameters in physical units (`SPD`, `FAST`, `ACCEL`,
+  `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KI`, `LOG`, `TELEM`), persisted with
+  the map.
 - `maze.c/.h` (pure): map + planner.
   - Walls carry signed evidence in [-3, 3], one slot per wall shared by both
     cells. > 0 wall, <= 0 passable for exploration, <= -2 (two consistent
@@ -86,25 +89,36 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   OPTIM -> VUELTA), `search_fast_run()` (verified path, replanned at every
   stop, falls back to exploring if the map proves wrong),
   `search_wall_follow()`. Also `search_print_map()` (ASCII map).
+- `control.c/.h` (pure): the speed control. Trapezoidal motion profiles, two
+  position loops (forward mm, rotation deg) with a motor-model feedforward,
+  settling integrals against static friction, and the wall centring
+  (`steer_step()`).
 - `motion.h`: the robot actions the strategies use. `motion.c` implements
   them on the robot; `test/host/sim.c` implements them in a simulated maze.
-- `motion.c`: 1 kHz move loops (forward N cells with cruise/brake profile,
-  90/180 deg turns, front-wall alignment, back-up), wall sensing (5 samples,
-  4 votes), 100 Hz PID steering in SysTick, run control (abort/pause/step).
+- `motion.c`: SysTick steps the profiles, the centring and the loops every
+  millisecond and drives the motors; the move functions (main context)
+  watch the sensors and decide when a move is over: forward N cells, turns
+  in place, front-wall alignment, back-up. Also wall sensing (5 samples, 4
+  votes), run control (abort/pause/step) and `TUNE`.
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
   goal, parameters) in the last flash page.
 - `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
   documented in `telemetry.h`).
 - `calib.c/.h`: calibration recorder (CAL command): samples encoders,
-  requested PWM (`motor_get()`) and raw IR from SysTick into a 384-sample
-  buffer (6 KB; when full it halves its resolution instead of dropping the
-  end), then dumps them as `@D` lines with every constant.
+  requested PWM (`motor_get()`), raw IR and the profile reference from
+  SysTick into a 320-sample buffer (6.4 KB; when full it halves its
+  resolution instead of dropping the end), then dumps them as `@D` lines
+  with every constant.
 - `commands.c/.h`: Bluetooth console (table in `COMMANDS[]`).
 - `main.c`: init, mode selection UI, run dispatch, `app_systick()`.
 - Drivers: `motor`, `pwm`, `encoder`, `infrared`, `gpio`, `uart`, `msp.c`
   (pins/DMA/IRQs), `sysclock.c`, `stm32f1xx_it.c` (SysTick, fault handlers),
   `error.c`, `stm32f1xx_hal_conf.h`.
 - `test_uart.c`, `test_diag.c`: entry points of the smoke-test envs.
+- `test/host/`: `sim.c` implements `motion.h` in a simulated maze (strategy
+  tests); `control_sim.c` runs `control.c` against simulated motors (first
+  order, friction, stiction, dead time), quantised encoders, delayed side IR
+  and the chassis' stick-slip in yaw (speed-control tests).
 - `tools/robot_monitor.py`: live maze monitor + console (curses). Rebuilds
   the map from the telemetry, recomputes the route with a Python port of the
   planner (costs read from `robot_config.h`), renders each frame into an
@@ -127,9 +141,10 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
 `HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
-`SPD n`, `FAST n`, `TURN n`, `TURNTICKS n`, `KP f`, `KI f`, `KD f`, `KE f`,
-`LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
-`SYNC`, `TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
+`SPD n`, `FAST n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`, `KP f`,
+`KI f`, `TUNE [name value]` (control constants live, not saved), `LOG 0-2`,
+`DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`, `SYNC`,
+`TELEM ON|OFF`, `CAL NOISE|STRAIGHT|TURN|STEP|IR|DUMP`.
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -137,25 +152,18 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   during a run. `CAL` only validates and queues the test: it runs from the
   main loop, so `STOP` keeps working during the test and the dump.
 - Decimals are parsed by hand (`parse_decimal`): this nano-libc has no `%f`
-  in scanf/printf. Print floats with `fixed2()`.
+  in scanf/printf. Print floats with `format_fixed()` / `format_fixed2()`.
 
 ## Conventions / hard-won gotchas
 - `stm32f1xx_hal_conf.h` needs `board_build.stm32cube.custom_config_header =
   yes`, or the framework silently uses its own copy.
-- Keep strategy code (`maze`, `search`, `storage`, `params`, `crc32`) free of
-  HAL includes and run `make -C test/host` after touching it. Headers used by
-  it (`motion.h`, `uart.h`, `flash_store.h`) must stay HAL-free too.
+- Keep strategy and control code (`maze`, `search`, `storage`, `params`,
+  `crc32`, `telemetry`, `control`) free of HAL includes and run `make -C
+  test/host` after touching it. Headers used by it (`motion.h`, `uart.h`,
+  `flash_store.h`) must stay HAL-free too.
 - A move only updates the pose when it is confirmed (`MOVE_OK`). `MOVE_BLOCKED`
   means the robot backed up to where it started, so the pose is still valid.
   Anything else invalidates it and ends the run (`search_ready()` = 0).
-- Static friction: every move loop adds a breakaway boost (`breakaway()` in
-  motion.c) while the wheels have not moved yet, dropped the moment they do,
-  so calibrated stops are unaffected. In-place turns at `TURN` 110 needed it in
-  ~1/4 of the turns on the real maze (the wheels scrub sideways), hence the
-  default of 140 with `TURNTICKS` 390: a stall is only declared after
-  `STALL_TIMEOUT_MS` with the full boost. The log prints "arranque dificil:
-  hizo falta +N PWM" when used; if turns always need it, raise `TURN`
-  and recalibrate the turn threshold (CAL TURN, `TURNTICKS`).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
 - Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
@@ -167,61 +175,69 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   median of 44 IR stops) makes the yaw rule symmetric and is the target of the
   front squaring. Confirm it with the robot centred and squared by hand to a
   wall: `CAL NOISE`, then `calib_analyze.py` prints the value.
-- The steering PID prefers the right wall because the SL and FR calibrations
-  read ~10 mm long compared with `calib.txt` (SR and FL fit within ~5 mm).
-  Recalibrate before switching to two-wall centering.
-- The motors pull unevenly: with P only the robot drove ~11 mm left of the
-  centre (SL ~72, SR ~94 for a target of 84), which after a left turn put it
-  ~2 cm ahead of the encoders and after a right turn ~2 cm behind. The
-  integral (`KI`, `steer_trim`) learns that imbalance from the walls while the
-  wheels turn (errors under `STEER_TRIM_ERROR_MM`), keeps it across moves and
-  applies it without walls too. `LOG 2` prints it as `trim=` on every move.
-  At `KI` 1.5 and a 25 mm window it learned transients and swung +-20 PWM
-  between moves, so the default is 0.5 with 12 mm.
-- The angled side sensors also catch posts and walls ahead, which once made
-  the robot swerve 35 deg in a cell (caught as `MOVE_SLIPPED`). The steering
-  therefore clamps the wall error (`STEER_ERROR_MAX_MM`) and its output
-  (`PD_STRAIGHT_MAX` 80), skips the derivative on jumps no motion can cause
-  (`STEER_JUMP_MM` in 10 ms), and uses the left wall when the right reading is
-  implausible and the left one agrees better.
-- Merged straights use `TICKS_FOR_CELLS(n) = n*CELL_TICKS + MOVE_EXTRA_TICKS`.
-  `MOVE_EXTRA_TICKS` was +140 (from front-alignment errors in the maze) until
-  a ruler showed every encoder stop ended ~16 mm long; it is now -5 from one
-  measured `CAL STRAIGHT 1`. Measure a 3-cell straight too (`/nota medido`)
-  and let `calib_analyze.py` split it from `CELL_TICKS`.
-- Every straight (search at `SPD`, speed run at `FAST`) slows down to
-  `STOP_SPEED` (150) over `DECEL_TICKS_PER_PWM` per PWM of difference and runs
-  the last `APPROACH_TICKS` at it, then hard-brakes: `CELL_TICKS`,
-  `MOVE_EXTRA_TICKS`, `FRONT_STOP_LEAD_MM` and `FRONT_WALL_REF_MM` were
-  calibrated braking from 150. Before, `SPD` was also the braking speed, and
-  at `SPD` 400-500 the robot overran every stop by ~3 cm and hit walls. If it
-  still arrives faster, the ENC/IR stops (and the emergency distance) move
-  earlier by ~`BRAKE_TICKS_PER_V2`*v^2 from the measured speed. A straight
-  ends only when the wheels are still (`FORWARD_SETTLE_MAX_MS`); `LOG 2`
-  prints the braking speed `v=` and the coasting `inercia=`.
-- Side walls after a straight are read on the way in, `SIDE_PASS_TICKS`
-  before its end, where the angled beams hit the middle of the walls (`lados=`
-  in the log). Read at the stop they caught the next post as phantom walls
-  (9 in the first logs, some at 82-98 mm). `wall_sense_t.moving` says which
-  way they were read. Read at the stop right after a turn they gave 5 phantoms
-  in 14, so `sense_here()` then records only "no wall" (those walls were seen
-  before the turn anyway). At the start they are trusted: the robot was placed
-  centred by hand, and doubting them cost the 16x16 search 33% more actions
-  in the simulator.
-  The IR stop (armed in the last half cell) uses the FL/FR average, like the
-  front alignment, and fires `FRONT_STOP_LEAD_MM` early because the robot
-  coasts that far. After a move that ends facing a wall, `motion_align_front()`
-  first squares the robot (rotates in place until FL-FR is within
-  `SQUARE_TOL_MM` of `FRONT_SQUARE_OFFSET_MM`, closed loop on the IR), which
-  resets the heading error moves leave behind, then corrects the distance if it
-  is off by more than `ALIGN_DEADBAND_MM`, each wheel stopping at its own
-  target (stopping both on the first one rotated the robot). FL-FR only
-  changes ~0.7 mm per degree, so squaring is coarse (for errors > ~10 deg).
-- The 90 deg turn threshold is the runtime parameter `TURNTICKS`
-  (`params.turn_ticks`, default `TICKS_PER_TURN`, ~5 ticks per degree), so it
-  can be tuned live. After a turn the robot waits only until the encoders are
-  still for `TURN_STILL_MS` (capped at `TURN_SETTLE_MS`), so the final angle
-  includes all the coasting.
+- Speed control: every move is a motion profile (ramps at `ACCEL` or
+  `TACCEL`, cruises, arrives at rest exactly on its target) that two position
+  loops follow in SysTick, forward (mm) and rotation (deg), with a
+  feedforward from the motor model (`MOTOR_KV_L/R`, `MOTOR_TAU_S`,
+  `MOTOR_KS_PWM`, fitted from `CAL STEP` recordings by `calib_analyze.py`).
+  The robot stops where it is told, so there are no coasting calibrations.
+  Position loops, not speed loops: one encoder tick per ms is 111 mm/s of
+  quantisation. Out of PWM the rotation keeps its share and the forward
+  drive gives way. Far behind the reference means blocked or slipping:
+  `MOVE_STALLED` / `MOVE_SLIPPED` (`FWD_ERROR_MAX_MM`, `ROT_ERROR_MAX_DEG`).
+  Once a profile has arrived, settling integrals beat the static friction
+  (~85 PWM) that used to leave the wheels ~1 mm / 1 deg short.
+- The chassis resists changes of heading (stick-slip in yaw, likely the
+  skids): `ROT_KP` 40 with `ROT_KD` 0.8 (0.6 rang at ~7 Hz at 700 mm/s).
+  `ROT_KI` learns the motors' imbalance. Gains were chosen on the simulated
+  robot first (`host_tests --control`), then on the robot with `TUNE`, which
+  changes them live but only until reset: write validated values into
+  `robot_config.h`.
+- `ACCEL` 3000 mm/s^2 is near the grip limit: at 5000 the wheels slipped
+  when braking (the encoders stopped on target, the robot 6 mm further).
+- The IR (Sharp-type, a new value every ~16 ms) report where the robot was
+  `IR_DELAY_MS` (50) earlier. `motion.c` keeps the forward position of the
+  last 64 ms (`trail`) and pairs each reading with where it was taken. The
+  wall at the end of a straight is tracked from `FRONT_TRACK_MM` (170) and
+  the stop aimed at `FRONT_TRACK_REF_MM` from it: stops within ~2 mm at
+  400-700 mm/s (the plain reading stopped 12 mm short). Before the last half
+  cell, both front sensors closer than `FRONT_EMERGENCY_MM` plus the braking
+  distance is an obstacle: brake, and within the first half cell back up to
+  where the move started (`MOVE_BLOCKED`); later the position is lost.
+- Centring (`steer_step()`): the heading offset is proportional to the
+  lateral error (`KP` deg per mm), so it converges over the same distance at
+  any speed; above `STEER_VREF_MM_S` KP scales as 1/speed (it weaved at 700).
+  `KI` learns the heading misalignment a turn leaves, only within
+  `STEER_BIAS_WINDOW_MM` of the centre (it overshot otherwise). The encoders'
+  sideways motion since the reading is added to it (a Smith predictor for the
+  IR delay). Readings are slew-limited (posts and wall edges jump), averaged
+  over a sensor period and referred to `SIDE_CENTER_L/R_MM` (89/76: SL reads
+  long and SR short; measured with 180 deg turns, which mirror the robot
+  across the centre line). With both walls their average is used, unless one
+  reading is implausible: the angled beams catch posts and walls ahead
+  (`STEER_ERROR_MAX_MM`), which once swerved the robot 35 deg. The offset is
+  clamped (`STEER_MAX_DEG`) and curvature-limited (`STEER_CURVE_DEG_PER_MM`),
+  and fades out over the last 40 mm so the robot stops parallel.
+- Side walls after a straight are read on the way in, `SIDE_PASS_MM` before
+  its end, where the angled beams hit the middle of the walls (`lados=` in
+  the log). Read at the stop they caught the next post as phantom walls (9 in
+  the first logs, some at 82-98 mm). `wall_sense_t.moving` says which way
+  they were read. Read at the stop right after a turn they gave 5 phantoms in
+  14, so `sense_here()` then records only "no wall" (those walls were seen
+  before the turn anyway). At the start they are trusted: the robot was
+  placed centred by hand, and doubting them cost the 16x16 search 33% more
+  actions in the simulator. `SENSE_SETTLE_MS` is 0: the controlled stops do
+  not rock the chassis.
+- After a move that ends facing a wall, `motion_align_front()` first squares
+  the robot (rotates in place by (FL - FR - `FRONT_SQUARE_OFFSET_MM`) /
+  `SQUARE_MM_PER_DEG` when beyond `SQUARE_TOL_MM`), which resets the heading
+  error moves leave behind, then corrects the distance if it is off by more
+  than `ALIGN_DEADBAND_MM`.
+- `TURNTICKS` (405) is the wheel track as the encoders see it in in-place
+  turns (the wheels scrub): half the wheel difference of a real 90 deg.
+  Calibrated facing a wall with `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
+  `CAL TURN -4`, `CAL NOISE`, comparing FL - FR (~1.2 mm per degree): 0.2
+  deg per turn, and the turns are truly in place.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.
@@ -239,10 +255,11 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 Verified on the PC simulator (hundreds of random 16x16 and 4x3 mazes, with and
 without sensor noise): searches always complete, the verified speed-run path
 is optimal with perfect sensing, and nothing crashes (also with 20% of side
-readings doubtful). On the practice maze: full search + return at SPD 400 in
-27.9 s (59.5 s at the start of the rework), every IR stop within ~3 mm of the
-reference even when it fired at ~390 mm/s, no phantom walls on the way in,
-turns calibrated with CAL TURN +-4 (TURNTICKS 381), FRONT_SQUARE_OFFSET_MM
-confirmed with CAL NOISE (-15.4). Speed runs worked up to FAST 350 with the old
-braking; with the STOP_SPEED profile still to validate above FAST 400, as is
-the steering (KP/KD tuned at 150) at those speeds and `KE` (off by default).
+readings doubtful). The speed control is tested on the simulated robot
+(exact distances and angles, centring from bad starts, +-20% model errors).
+On the practice maze with the speed control: search + return in 19.4 s at
+SPD 600 (22.3 s at 400), the same map every time and no doubtful wall;
+3-cell straights at 700 mm/s stop within ~2 mm of the front-wall reference
+and centre (900 works but runs out of PWM at the end of the acceleration);
+turns within 0.2 deg each (TURNTICKS 405); FRONT_SQUARE_OFFSET_MM confirmed
+with CAL NOISE (-15.4).
