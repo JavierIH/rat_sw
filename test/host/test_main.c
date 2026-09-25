@@ -639,7 +639,20 @@ static void test_continuous_search(void){
         CHECK(cells[1] <= cells[0] + cells[0] / 20);
         CHECK(seconds[1] < 0.8 * seconds[0]);
     }
-    search_set_continuous(1);
+    // With noisy sensors it must still finish every time and never curve
+    // into a wall (a side counts only when every reading agrees).
+    for(uint32_t m = 1; m <= 40; m++){
+        truth_generate(m * 104729u, 40);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(m % 2 ? 0.01 : 0.03, m);
+        search_set_home();
+        search_set_continuous(1);
+        CHECK_EQ(search_explore(), RUN_OK);
+        CHECK_EQ(sim_stats.crashes, 0);
+    }
+    search_set_continuous(0);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 

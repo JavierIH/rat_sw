@@ -25,7 +25,7 @@ static uint16_t cost_a[MAZE_STATES];    // planner buffers
 static uint16_t cost_b[MAZE_STATES];
 static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h); search legs too
 static run_path_t route = {route_turn, 0};
-static uint8_t continuous = 1;              // search legs without stopping in every cell
+static uint8_t continuous;                  // search legs without stopping in every cell (CONT ON)
 
 static void pose_reset(void){
     pose.x = START_X;
