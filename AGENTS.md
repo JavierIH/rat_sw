@@ -335,8 +335,11 @@ into the curve within 0.1 deg of the corridor, and the exit came out centred
 once the maze's lateral bias was taken out. Keep holding it. Raising the
 speeds (practice maze, 9 cells, 4 curves): CURVE 400 / 450 / 480 (478, the
 motor cap) reached the goal in 3.28 / 2.98 / 2.79 s, FAST 900 in 2.74-2.92 s
-(3 of 3 clean). Defaults FAST 700 and CURVE 480: in the simulator motors 20 %
-weaker (a low battery) saturate at FAST 800-900, the robot falls 24-42 mm
-behind the reference, and as the curves follow the reference's distance
-they start early and cut inside. Making the reference wait for the robot
-would lift that limit.
+(3 of 3 clean). Motors that cannot keep up (a low battery) used to fall
+24-42 mm behind the reference at FAST 800-900 in the simulator, and as the
+curves follow the reference's distance they started early and cut inside.
+The reference now slows down while the robot lags (`PATH_LAG_*`): on the
+robot at FAST 900 with `TUNE MOTOR_SCALE 0.8` (the motors get 80 % of the
+PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
+stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
+the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
