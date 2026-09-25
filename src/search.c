@@ -23,6 +23,8 @@ static uint8_t ready = 1;               // pose is the start facing north, for r
 static uint8_t turned;                  // turned in place since the last straight
 static uint16_t cost_a[MAZE_STATES];    // planner buffers
 static uint16_t cost_b[MAZE_STATES];
+static int8_t route_turn[PATH_MAX_CELLS];   // speed-run route: the curve in each cell (path.h)
+static run_path_t route = {route_turn, 0};
 
 static void pose_reset(void){
     pose.x = START_X;
@@ -115,6 +117,30 @@ static move_result_t forward(uint8_t cells, int16_t speed){
             pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
         }
         telemetry_pose(pose.x, pose.y, pose.h);
+        motion_align_front();
+    }
+    else if(r == MOVE_BLOCKED){
+        maze_mark_blocked(pose.x, pose.y, pose.h);
+        telemetry_cell(pose.x, pose.y, pose.h);
+    }
+    return r;
+}
+
+// Drives `route` without stopping (smooth curves) and moves the pose along
+// the cells actually covered. MOVE_OK: at its end. MOVE_BLOCKED: stopped
+// short at a cell centre, facing a wall the map had as open (noted now).
+static move_result_t run_route(int16_t speed){
+    uint8_t entered = 0;
+    move_result_t r = motion_run_path(&route, speed, params.curve_speed, &entered);
+    for(uint8_t i = 0; i < entered; i++){
+        maze_mark_crossed(pose.x, pose.y, pose.h);
+        pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
+        pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
+        pose.h = (heading_t)((pose.h + route.turn[i] + 4) & 3);
+    }
+    if(entered) turned = 0;
+    if(r == MOVE_OK || r == MOVE_BLOCKED) telemetry_pose(pose.x, pose.y, pose.h);
+    if(r == MOVE_OK){
         motion_align_front();
     }
     else if(r == MOVE_BLOCKED){
@@ -290,9 +316,32 @@ run_result_t search_explore(void){
     }
 }
 
-// Drives to `targets` over verified passages, merging straights and sensing
-// at every stop. If the verified map has no route (a wall appeared where it
-// was believed open), explores step by step instead.
+// The route as the log shows it: cells straight ahead, then D/I for a curve
+// right/left in the last of them ("2D1I3": 2 cells curving right in the
+// second, 1 cell curving left, 3 cells). Cut with '+' if too long.
+#define ROUTE_TEXT_MAX 40
+static const char *route_text(char *text){
+    uint8_t n = 0, run = 0;
+    for(uint8_t i = 0; i < route.cells; i++){
+        run++;
+        if(!route_turn[i] && i + 1u < route.cells) continue;
+        if(n + 5u > ROUTE_TEXT_MAX){
+            text[n++] = '+';
+            break;
+        }
+        if(run >= 100) text[n++] = (char)('0' + run / 100);
+        if(run >= 10) text[n++] = (char)('0' + run / 10 % 10);
+        text[n++] = (char)('0' + run % 10);
+        if(route_turn[i]) text[n++] = route_turn[i] > 0 ? 'D' : 'I';
+        run = 0;
+    }
+    text[n] = '\0';
+    return text;
+}
+
+// Drives to `targets` over verified passages in one go (straights and
+// smooth curves), sensing at every stop. If the verified map has no route (a
+// wall appeared where it was believed open), explores step by step instead.
 static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char *tag, uint16_t *steps){
     uint8_t repairs = 0;
     while(!cellset_has(targets, pose.x, pose.y)){
@@ -304,14 +353,16 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
 
         maze_plan_to(targets, PLAN_VERIFIED, FAST_COSTS, cost_a);
         int8_t turn;
-        uint8_t cells;
-        if(maze_first_segment(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, &cells)){
+        if(maze_route(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, route_turn, PATH_MAX_CELLS,
+                      &route.cells)){
             if(turn == 0 && w.front == SEEN_PRESENT) continue;
             if(params.log_level >= 1){
-                print("%s (%u,%u)%c giro %d + %u celdas\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn, cells);
+                char text[ROUTE_TEXT_MAX + 2];
+                print("%s (%u,%u)%c giro %d + ruta %s (%u celdas)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
+                      route_text(text), route.cells);
             }
             r = turn_by(turn);
-            if(r == MOVE_OK && cells) r = forward(cells, speed);
+            if(r == MOVE_OK && route.cells) r = run_route(speed);
         }
         else{
             if(plan_explore(targets, &repairs) == REPLAN_UNREACHABLE) return fail_plan("destino inalcanzable");

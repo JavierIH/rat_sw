@@ -124,10 +124,10 @@ static void cmd_status(const char *args){
     print("modo %u %s | %s | robot (%u,%u)%c %s\n", app_mode(), app_mode_name(app_mode()),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
-    print("SPD %d FAST %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KI %s LOG %u%s\n", params.search_speed,
-          params.fast_speed, params.accel, params.turn_speed, params.turn_accel, params.turn_ticks,
-          format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki), params.log_level,
-          motion_step_mode() ? " | PASO A PASO" : "");
+    print("SPD %d FAST %d CURVE %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KI %s LOG %u%s\n",
+          params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
+          params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
+          format_fixed2(ki, sizeof(ki), params.ki), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
@@ -221,6 +221,9 @@ static void set_gain(const char *args, float *dst, float max, const char *name){
 
 static void cmd_spd(const char *args){ set_value(args, &params.search_speed, SPEED_MIN, SPEED_MAX, "SPD", "mm/s"); }
 static void cmd_fast(const char *args){ set_value(args, &params.fast_speed, SPEED_MIN, SPEED_MAX, "FAST", "mm/s"); }
+static void cmd_curve(const char *args){
+    set_value(args, &params.curve_speed, SPEED_MIN, SPEED_MAX, "CURVE", "mm/s");
+}
 static void cmd_accel(const char *args){ set_value(args, &params.accel, ACCEL_MIN, ACCEL_MAX, "ACCEL", "mm/s2"); }
 static void cmd_turn(const char *args){
     set_value(args, &params.turn_speed, TURN_SPEED_MIN, TURN_SPEED_MAX, "TURN", "grados/s");
@@ -428,6 +431,7 @@ static const command_t COMMANDS[] = {
     {"DEBUG",    cmd_step,     0, NULL},
     {"SPD",      cmd_spd,      0, "n: mm/s de crucero en busqueda y vuelta"},
     {"FAST",     cmd_fast,     0, "n: mm/s de crucero en carrera rapida"},
+    {"CURVE",    cmd_curve,    0, "n: mm/s en las curvas de la carrera rapida"},
     {"ACCEL",    cmd_accel,    0, "n: mm/s2 de aceleracion y frenada en recta"},
     {"TURN",     cmd_turn,     0, "n: grados/s maximos de giro"},
     {"TACCEL",   cmd_taccel,   0, "n: grados/s2 de giro"},

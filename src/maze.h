@@ -88,11 +88,14 @@ void maze_plan_from(uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_co
 action_t maze_best_action(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h,
                           plan_mode_t mode, plan_costs_t costs);
 
-// First leg of the optimal path from (x, y, h): an in-place turn (quarter
-// turns: 0, -1 = left, +1 = right, 2 = around) followed by `cells` straight
-// cells. Returns 0 when there is nothing to do (at a target or unreachable).
-uint8_t maze_first_segment(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h,
-                           plan_mode_t mode, plan_costs_t costs, int8_t *turn, uint8_t *cells);
+// The optimal path from (x, y, h) as a speed run drives it without stopping:
+// an in-place turn first (quarter turns: 0, -1 = left, +1 = right, 2 =
+// around), then the cells it drives into, with the turn made inside each
+// (`turns`: 0 straight through, +1 right, -1 left; the last cell never
+// turns). At most `max` cells. Returns 0 when there is nothing to do (at a
+// target or unreachable).
+uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_costs_t costs,
+                   int8_t *turn, int8_t *turns, uint8_t max, uint8_t *cells);
 
 // ---- Persistence -----------------------------------------------------------------------
 typedef struct {

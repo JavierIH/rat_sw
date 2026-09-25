@@ -80,6 +80,10 @@ def state(x, y, h):
     return ((y * MAZE + x) << 2) | h
 
 
+ROUTE_MAX_CELLS = 255   # PATH_MAX_CELLS in src/path.h
+ROUTE_TEXT_MAX = 40     # as in src/search.c
+
+
 # ---- Maze model built from the telemetry ---------------------------------------------
 
 class MazeModel:
@@ -312,18 +316,29 @@ class Planner:
                 turns += 2 if a == "U" else 1
         return cells, turns
 
-    def first_segment(self, model, cost, x, y, h, verified, costs):
-        """(quarter turns, straight cells) like maze_first_segment(), or None."""
+    def route(self, model, cost, x, y, h, verified, costs, limit=ROUTE_MAX_CELLS):
+        """(in-place quarter turns, turn inside each cell entered) like
+        maze_route(): the speed run's route driven in one go, or None."""
         a = self.best_action(model, cost, x, y, h, verified, costs)
         if a is None:
             return None
         turn = {"F": 0, "L": -1, "R": 1, "U": 2}[a]
         h = (h + turn) & 3
-        cells = 0
-        while cells < MAZE - 1 and self.best_action(model, cost, x, y, h, verified, costs) == "F":
-            x, y = x + DX[h], y + DY[h]
-            cells += 1
-        return turn, cells
+        turns = []
+        while len(turns) < limit:
+            a = self.best_action(model, cost, x, y, h, verified, costs)
+            if a == "F":
+                x, y = x + DX[h], y + DY[h]
+                turns.append(0)
+            elif a in ("L", "R") and turns and not turns[-1]:
+                turns[-1] = 1 if a == "R" else -1
+                h = (h + turns[-1]) & 3
+            else:
+                break
+        if turns:
+            turns[-1] = 0
+        return turn, turns
+
 
     def candidates(self, model):
         """Unvisited cells on an optimistic optimal speed-run path (search phase OPTIM)."""
@@ -375,6 +390,21 @@ class Planner:
         self._cache_key = key
         self._cache = Overlay(fast_cost if fast_cost < INF else None, fast_path, fast_turns, route, cands)
         return self._cache
+
+
+def route_text(turns, limit=ROUTE_TEXT_MAX):
+    """The route as the firmware logs it: cells straight ahead, then D/I for a
+    curve right/left in the last of them ("2D1I3"), cut with '+'."""
+    text, run = "", 0
+    for i, t in enumerate(turns):
+        run += 1
+        if not t and i + 1 < len(turns):
+            continue
+        if len(text) + 5 > limit:
+            return text + "+"
+        text += str(run) + ("D" if t > 0 else "I" if t < 0 else "")
+        run = 0
+    return text
 
 
 # ---- Calibration data capture ----------------------------------------------------------
@@ -639,7 +669,7 @@ LOG_STYLES = (
     (lambda t: t.startswith("=="), "head"),
     (lambda t: t.startswith("Fin:") or t.startswith("? "), "warn"),
     (lambda t: t.startswith("--"), "info"),
-    (lambda t: t.startswith(("avance", "giro", "alineado", "IR mm")), "dim"),
+    (lambda t: t.startswith(("avance", "ruta", "giro", "alineado", "IR mm")), "dim"),
 )
 
 

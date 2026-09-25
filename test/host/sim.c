@@ -169,6 +169,37 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     return MOVE_OK;
 }
 
+move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
+    (void)cruise_speed;
+    (void)curve_speed;
+    sides_fresh = 0;
+    sim_stats.actions++;
+    sim_stats.paths++;
+    *entered = 0;
+    for(uint8_t i = 0; i < path->cells; i++){
+        if(truth_wall(sim_x, sim_y, sim_h)){
+            // Seen from a straight: the robot stops at the centre of the cell
+            // before it. Right after a curve the front sensors see it too late.
+            if(i == 0 || path->turn[i - 1] == 0){
+                sim_stats.blocked++;
+                return MOVE_BLOCKED;
+            }
+            sim_stats.crashes++;
+            return MOVE_LOST;
+        }
+        sim_x = (uint8_t)(sim_x + heading_dx(sim_h));
+        sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
+        sim_stats.forward_cells++;
+        if(path->turn[i]){
+            sim_h = (heading_t)((sim_h + path->turn[i] + 4) & 3);
+            sim_stats.curves++;
+        }
+        *entered = (uint8_t)(i + 1u);
+    }
+    sides_fresh = 1;
+    return MOVE_OK;
+}
+
 move_result_t motion_turn(int8_t quarter_turns){
     sides_fresh = 0;
     sim_stats.actions++;

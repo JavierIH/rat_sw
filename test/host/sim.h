@@ -9,6 +9,7 @@
 
 typedef struct {
     uint32_t senses, quarter_turns, forward_moves, forward_cells;
+    uint32_t paths, curves;     // motion_run_path() calls and the curves driven in them
     uint32_t blocked;       // drove at a wall on the first cell: robot backed up (safety net)
     uint32_t crashes;       // drove through a wall past the first cell: position lost
     uint32_t actions;

@@ -242,8 +242,8 @@ action_t maze_best_action(const uint16_t *cost, uint8_t x, uint8_t y, heading_t 
     return best < PLAN_INF ? action : ACT_NONE;
 }
 
-uint8_t maze_first_segment(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h,
-                           plan_mode_t mode, plan_costs_t costs, int8_t *turn, uint8_t *cells){
+uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_costs_t costs,
+                   int8_t *turn, int8_t *turns, uint8_t max, uint8_t *cells){
     *turn = 0;
     *cells = 0;
     switch(maze_best_action(cost, x, y, h, mode, costs)){
@@ -253,11 +253,25 @@ uint8_t maze_first_segment(const uint16_t *cost, uint8_t x, uint8_t y, heading_t
         case ACT_TURN_RIGHT:  *turn = 1;  h = heading_right(h); break;
         case ACT_TURN_AROUND: *turn = 2;  h = heading_back(h); break;
     }
-    while(*cells < MAZE_SIZE - 1 && maze_best_action(cost, x, y, h, mode, costs) == ACT_FORWARD){
-        x = (uint8_t)(x + heading_dx(h));
-        y = (uint8_t)(y + heading_dy(h));
-        (*cells)++;
+    // Past the first cell every turn of an optimal path falls between two
+    // cells (turning twice in one cell would be a detour): a turn inside the
+    // cell just entered.
+    while(*cells < max){
+        action_t a = maze_best_action(cost, x, y, h, mode, costs);
+        if(a == ACT_FORWARD){
+            x = (uint8_t)(x + heading_dx(h));
+            y = (uint8_t)(y + heading_dy(h));
+            turns[(*cells)++] = 0;
+        }
+        else if((a == ACT_TURN_LEFT || a == ACT_TURN_RIGHT) && *cells && !turns[*cells - 1]){
+            turns[*cells - 1] = a == ACT_TURN_RIGHT ? 1 : -1;
+            h = a == ACT_TURN_RIGHT ? heading_right(h) : heading_left(h);
+        }
+        else{
+            break;
+        }
     }
+    if(*cells) turns[*cells - 1] = 0;   // cut short by `max`: stop at that cell's centre
     return 1;
 }
 

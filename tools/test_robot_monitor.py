@@ -31,7 +31,7 @@ HOST_TESTS = os.path.join(HOST_DIR, "build", "host_tests")
 MONITOR = os.path.join(HERE, "robot_monitor.py")
 ACTION_NAME = {"F": "AVANZA", "L": "IZQ", "R": "DER", "U": "MEDIA VUELTA", None: "-"}
 DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F[01] I[01?] D[01?] coste=(\d+) -> (.+)$")
-SEGMENT = re.compile(r"^(RAPIDA|VUELTA) \((\d+),(\d+)\)([NESW]) giro (-?\d+) \+ (\d+) celdas$")
+ROUTE = re.compile(r"^(RAPIDA|VUELTA) \((\d+),(\d+)\)([NESW]) giro (-?\d+) \+ ruta ([0-9DI]*\+?) \((\d+) celdas\)$")
 FAST_COST = re.compile(r"^Camino rapido verificado: coste (\d+)$")
 
 _built = False
@@ -101,15 +101,15 @@ class TranscriptChecker:
             self.test.assertEqual(ACTION_NAME[best], action, line)
             self.decisions += 1
             return
-        m = SEGMENT.match(line)
+        m = ROUTE.match(line)
         if m:
-            tag, x, y, h, turn, cells = m.groups()
+            tag, x, y, h, turn, text, cells = m.groups()
             x, y, h = int(x), int(y), rm.HEADINGS.index(h)
             self.test.assertEqual(self.model.pose, (x, y, h), line)
             targets = self.model.goal_cells() if tag == "RAPIDA" else {self.planner.start}
             costs = self.planner.plan_to(self.model, targets, True, self.planner.fast)
-            segment = self.planner.first_segment(self.model, costs, x, y, h, True, self.planner.fast)
-            self.test.assertEqual(segment, (int(turn), int(cells)), line)
+            first, turns = self.planner.route(self.model, costs, x, y, h, True, self.planner.fast)
+            self.test.assertEqual((first, rm.route_text(turns), len(turns)), (int(turn), text, int(cells)), line)
             self.segments += 1
             return
         m = FAST_COST.match(line)

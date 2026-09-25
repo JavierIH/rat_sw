@@ -16,6 +16,7 @@ static const params_t DEFAULTS = {
     .turn_ticks = PARAM_TURN_TICKS,
     .log_level = PARAM_LOG_LEVEL,
     .telemetry = PARAM_TELEMETRY,
+    .curve_speed = PARAM_CURVE_SPEED,
 };
 
 params_t params = {
@@ -29,6 +30,7 @@ params_t params = {
     .turn_ticks = PARAM_TURN_TICKS,
     .log_level = PARAM_LOG_LEVEL,
     .telemetry = PARAM_TELEMETRY,
+    .curve_speed = PARAM_CURVE_SPEED,
 };
 
 void params_reset(void){

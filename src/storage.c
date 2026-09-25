@@ -7,7 +7,7 @@
 #include "params.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-#define STORE_VERSION   4u      // 4: speeds in mm/s and deg/s
+#define STORE_VERSION   5u      // 4: speeds in mm/s and deg/s; 5: curve speed
 
 typedef struct {
     uint32_t magic;
@@ -35,6 +35,7 @@ static uint8_t params_sane(const params_t *p){
     return p->kp >= 0.0f && p->kp <= 10.0f && p->ki >= 0.0f && p->ki <= 100.0f
         && p->search_speed >= SPEED_MIN && p->search_speed <= SPEED_MAX
         && p->fast_speed >= SPEED_MIN && p->fast_speed <= SPEED_MAX
+        && p->curve_speed >= SPEED_MIN && p->curve_speed <= SPEED_MAX
         && p->accel >= ACCEL_MIN && p->accel <= ACCEL_MAX
         && p->turn_speed >= TURN_SPEED_MIN && p->turn_speed <= TURN_SPEED_MAX
         && p->turn_accel >= TURN_ACCEL_MIN && p->turn_accel <= TURN_ACCEL_MAX

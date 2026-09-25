@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Runtime-tunable parameters: changed live over Bluetooth (SPD, FAST, ACCEL,
-// TURN, TACCEL, TURNTICKS, KP, KI, LOG, TELEM) and persisted with SAVE.
+// CURVE, TURN, TACCEL, TURNTICKS, KP, KI, LOG, TELEM) and persisted with SAVE.
 // Defaults in robot_config.h. Speeds are physical units: the speed control
 // (control.h) makes the wheels follow them whatever the battery.
 typedef struct {
@@ -18,7 +18,7 @@ typedef struct {
     int16_t turn_ticks;     // encoder half-difference of a real 90 deg turn (wheel track)
     uint8_t log_level;      // 0 = events, 1 = + decisions, 2 = + per-move details
     uint8_t telemetry;      // 1 = '@' lines for the live maze view (telemetry.h)
-    uint8_t reserved[2];
+    int16_t curve_speed;    // mm/s through the smooth curves of the speed run (path.h)
 } params_t;
 
 // Accepted ranges, for the console and the stored copy.

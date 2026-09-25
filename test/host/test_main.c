@@ -272,27 +272,39 @@ static void test_planner_basics(void){
     maze_plan_to(&goal, PLAN_OPTIMISTIC, FAST, cost);
     CHECK_EQ(maze_best_action(cost, 0, 1, NORTH, PLAN_OPTIMISTIC, FAST), ACT_TURN_AROUND);
 
-    // Fully known empty maze: segments.
+    // Fully known empty maze: routes.
     truth_reset(0);
     truth_load_into_map();
-    int8_t turn;
+    int8_t turn, turns[PATH_MAX_CELLS];
     uint8_t cells;
     maze_set_goal(0, 5, 0, 5);
     maze_goal_cells(&goal);
     maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
-    CHECK(maze_first_segment(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, &cells));
+    CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     CHECK_EQ(turn, 0);
     CHECK_EQ(cells, 5);
-    CHECK(maze_first_segment(cost, 0, 0, SOUTH, PLAN_VERIFIED, FAST, &turn, &cells));
+    CHECK(maze_route(cost, 0, 0, SOUTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     CHECK_EQ(turn, 2);
     CHECK_EQ(cells, 5);
-    CHECK(!maze_first_segment(cost, 0, 5, EAST, PLAN_VERIFIED, FAST, &turn, &cells));
+    CHECK(!maze_route(cost, 0, 5, EAST, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     maze_set_goal(15, 0, 15, 0);
     maze_goal_cells(&goal);
     maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
-    CHECK(maze_first_segment(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, &cells));
+    CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     CHECK_EQ(turn, 1);
     CHECK_EQ(cells, 15);
+    // Around a corner without stopping: north 5, curve right in the 5th cell, east 3.
+    maze_set_goal(3, 5, 3, 5);
+    maze_goal_cells(&goal);
+    maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
+    CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
+    CHECK_EQ(turn, 0);
+    CHECK_EQ(cells, 8);
+    for(uint8_t i = 0; i < cells; i++) CHECK_EQ(turns[i], i == 4 ? 1 : 0);
+    // A route longer than the buffer stops at the centre of its last cell.
+    CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, 5, &cells));
+    CHECK_EQ(cells, 5);
+    CHECK_EQ(turns[4], 0);
 
     // Fewer turns beat fewer cells: to reach (3,3), a staircase of 6 cells and
     // 5 turns loses to a detour of 8 cells and 2 turns.
@@ -315,9 +327,11 @@ static void test_planner_basics(void){
     maze_goal_cells(&goal);
     maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
     CHECK_EQ(cost[maze_state(0, 0, NORTH)], 8 * FAST_COST_CELL + 2 * FAST_COST_TURN);
-    CHECK(maze_first_segment(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, &cells));
+    CHECK(maze_route(cost, 0, 0, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells));
     CHECK_EQ(turn, 0);
-    CHECK_EQ(cells, 4);     // straight up the detour, not into the staircase
+    CHECK_EQ(cells, 8);
+    CHECK_EQ(turns[3], 1);  // straight up the detour, not into the staircase
+    CHECK_EQ(turns[6], 1);
 }
 
 // SPFA (maze.c) against the independent Dijkstra on random evidence maps, for
@@ -351,6 +365,25 @@ static void test_planner_against_reference(void){
                     else{ h = heading_back(h); spent += 2u * k.turn; }
                 }
                 walk_errors += !cellset_has(&targets, x, y) || spent != cost[s];
+                // The same path as a route driven in one go: same cells, same cost.
+                int8_t turn, turns[PATH_MAX_CELLS];
+                uint8_t cells;
+                x = (uint8_t)((s / 4) % MAZE_SIZE);
+                y = (uint8_t)((s / 4) / MAZE_SIZE);
+                h = (heading_t)(s % 4);
+                if(!maze_route(cost, x, y, h, (plan_mode_t)mode, k, &turn, turns, PATH_MAX_CELLS, &cells)){
+                    walk_errors += cost[s] != 0;
+                    continue;
+                }
+                spent = (uint32_t)(turn < 0 ? -turn : turn) * k.turn;
+                h = (heading_t)((h + turn + 4) & 3);
+                for(uint8_t i = 0; i < cells; i++){
+                    x = (uint8_t)(x + heading_dx(h));
+                    y = (uint8_t)(y + heading_dy(h));
+                    h = (heading_t)((h + turns[i] + 4) & 3);
+                    spent += k.cell + (turns[i] ? k.turn : 0u);
+                }
+                walk_errors += !cellset_has(&targets, x, y) || spent != cost[s] || !cells || turns[cells - 1];
             }
 
             uint8_t sx = (uint8_t)(seed % 16), sy = (uint8_t)((seed * 7) % 16);
@@ -433,15 +466,16 @@ static void test_storage(void){
 
 typedef struct {
     int runs, search_ok, fast_ok, optimal, consistent, back_home;
-    long blocked, crashes, search_actions, search_cells, search_senses, fast_cells, fast_turns;
+    long blocked, crashes, search_actions, search_cells, search_senses, fast_cells, fast_curves, fast_turns;
 } summary_t;
 
 static void print_summary(const char *name, const summary_t *s){
     printf("  %-34s runs %3d | search ok %3d, optimal %3d, map ok %3d | fast ok %3d, home %3d | "
-           "blocked %ld crashes %ld | avg search %ld actions %ld cells | avg fast %ld cells %ld turns\n",
+           "blocked %ld crashes %ld | avg search %ld actions %ld cells | avg fast %ld cells %ld curves %ld turns\n",
            name, s->runs, s->search_ok, s->optimal, s->consistent, s->fast_ok, s->back_home,
            s->blocked, s->crashes, s->search_actions / s->runs, s->search_cells / s->runs,
-           s->fast_cells / (s->runs ? s->runs : 1), s->fast_turns / (s->runs ? s->runs : 1));
+           s->fast_cells / (s->runs ? s->runs : 1), s->fast_curves / (s->runs ? s->runs : 1),
+           s->fast_turns / (s->runs ? s->runs : 1));
 }
 
 // Full competition cycle on one maze: search, then speed run + return.
@@ -475,7 +509,11 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->blocked += sim_stats.blocked;
     s->crashes += sim_stats.crashes;
     s->fast_cells += sim_stats.forward_cells;
+    s->fast_curves += sim_stats.curves;
     s->fast_turns += sim_stats.quarter_turns;
+    // The speed run and its return drive whole routes: at most one in-place
+    // turn per leg, at the start of each (and more only when a route fails).
+    CHECK(sim_stats.paths > 0);
 }
 
 static void test_competition_mazes(void){
@@ -646,6 +684,55 @@ static void test_run_control(void){
     CHECK_EQ(search_explore(), RUN_OK);
     CHECK(map_matches_truth());
     CHECK_EQ(sim_stats.crashes, 0);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
+// A wall appears on a straight of the verified route after the search (the
+// map was wrong): the speed run stops at the cell before it, notes it, and
+// drives on around it.
+static void test_fast_run_surprise_wall(void){
+    maze_set_goal(7, 7, 8, 8);
+    cellset_t goal;
+    maze_goal_cells(&goal);
+    int runs = 0, ok = 0;
+    for(uint32_t m = 1; m <= 30; m++){
+        truth_generate(m * 7919u, 60);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        search_set_home();
+        if(search_explore() != RUN_OK) continue;
+        maze_plan_to(&goal, PLAN_VERIFIED, FAST, cost);
+        int8_t turn, turns[PATH_MAX_CELLS];
+        uint8_t cells, x = START_X, y = START_Y;
+        maze_route(cost, x, y, NORTH, PLAN_VERIFIED, FAST, &turn, turns, PATH_MAX_CELLS, &cells);
+        heading_t h = (heading_t)((NORTH + turn + 4) & 3);
+        // The passage out of the second straight cell in a row.
+        uint8_t placed = 0;
+        for(uint8_t i = 0; i < cells && !placed; i++){
+            if(i >= 2 && !turns[i - 1] && !turns[i - 2]){
+                truth_set_wall(x, y, h, 1);
+                placed = 1;
+                break;
+            }
+            x = (uint8_t)(x + heading_dx(h));
+            y = (uint8_t)(y + heading_dy(h));
+            h = (heading_t)((h + turns[i] + 4) & 3);
+        }
+        if(!placed || true_optimum() == PLAN_INF) continue;
+        runs++;
+        sim_reset(0.0, m + 1u);
+        run_result_t r = search_fast_run();
+        const int good = r == RUN_OK && sim_stats.blocked == 1 && sim_stats.crashes == 0
+                      && maze_wall(x, y, h) == WALL_PRESENT && sim_x == START_X && sim_y == START_Y && search_ready();
+        ok += good;
+        if(!good) printf("  surprise wall, maze %u: result %d blocked %u crashes %u\n", m, r, sim_stats.blocked,
+                         sim_stats.crashes);
+    }
+    printf("speed runs with a wall the map had as open: %d/%d finished\n", ok, runs);
+    CHECK(runs >= 10);
+    CHECK_EQ(ok, runs);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
@@ -1205,6 +1292,7 @@ int main(int argc, char **argv){
     test_planner_against_reference();
     test_storage();
     test_run_control();
+    test_fast_run_surprise_wall();
     test_wall_followers();
     test_practice_maze();
     test_competition_mazes();
