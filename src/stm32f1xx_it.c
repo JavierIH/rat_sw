@@ -53,7 +53,8 @@ static void fault_halt(void){
     }
 }
 
-void NMI_Handler(void){}
+// Clock security system: the crystal failed (sysclock.c).
+void NMI_Handler(void){ HAL_RCC_NMI_IRQHandler(); }
 void HardFault_Handler(void){ fault_halt(); }
 void MemManage_Handler(void){ fault_halt(); }
 void BusFault_Handler(void){ fault_halt(); }

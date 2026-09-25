@@ -116,6 +116,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 // ---- Line receive (commands) -------------------------------------------------------
 
+void uart_retime(void){
+    huart3.Instance->BRR = UART_BRR_SAMPLING16(HAL_RCC_GetPCLK1Freq(), UART_BAUDRATE);
+}
+
 void uart_start_receive(void){
     HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
 }

@@ -42,6 +42,7 @@ static uint8_t step_mode;
 static uint8_t moved;   // an action ran since the last checkpoint
 
 void motion_request_abort(void){ abort_flag = 1; }
+
 void motion_clear_abort(void){ abort_flag = 0; paused = 0; }
 uint8_t motion_abort_requested(void){ return abort_flag; }
 uint8_t motion_is_paused(void){ return paused; }
@@ -142,6 +143,15 @@ static volatile float steer_gain;
 static path_run_t run;
 static volatile uint8_t path_on;
 static uint8_t steer_blind;         // centring suspended by a curve (SysTick)
+
+// NMI (sysclock.c): the crystal failed and every timing is 9 times off until
+// the main context recovers the clock. Stop driving now and end the run.
+void clock_failure_hook(void){
+    control_on = 0;
+    path_on = 0;
+    abort_flag = 1;
+    motor_emergency_stop();
+}
 static int32_t tick_l, tick_r;      // encoder totals at the last SysTick
 // Where the robot was each of the last TRAIL_LEN ms (forward axis): the IR
 // report the past (IR_DELAY_MS), and must be added to the position then.

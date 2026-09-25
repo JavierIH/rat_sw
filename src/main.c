@@ -79,6 +79,10 @@ static void sensor_monitor(void){
     print("Monitor de sensores: cualquier boton o STOP para salir\n");
     uint32_t next_print = HAL_GetTick();
     for(;;){
+        if(sysclock_recover()){
+            uart_retime();
+            print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
+        }
         commands_poll();
         if(motion_abort_requested()) break;
         if(button_take_press(BUTTON_START) || button_take_press(BUTTON_SELECT)) break;
@@ -214,6 +218,7 @@ static void print_banner(storage_status_t stored){
     else{
         print("Flash: %s\n", storage_status_name(stored));
     }
+    if(sysclock_source() == CLOCK_HSI_BOOT) print("!! el cristal no arranco: reloj interno a 64 MHz\n");
     print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza, HELP lista comandos\n",
           g[0], g[1], g[2], g[3]);
 }
@@ -235,6 +240,10 @@ int main(void){
     sync_telemetry(TM_IDLE);
 
     for(;;){
+        if(sysclock_recover()){
+            uart_retime();
+            print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
+        }
         commands_poll();
         if(button_take_press(BUTTON_SELECT)){
             app_set_mode((uint8_t)(mode % MODE_COUNT + 1));

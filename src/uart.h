@@ -11,6 +11,8 @@
 
 void UART_Init(void);
 void uart_start_receive(void);
+// After the system clock changed (sysclock.c): the baud rate from the new bus clock.
+void uart_retime(void);
 
 // Queue a message. It is silently DROPPED if the queue is full: logging must
 // never stall a control loop.

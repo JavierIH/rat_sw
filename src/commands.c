@@ -9,6 +9,7 @@
 #include "motion.h"
 #include "params.h"
 #include "search.h"
+#include "sysclock.h"
 #include "storage.h"
 #include "telemetry.h"
 #include "uart.h"
@@ -347,6 +348,23 @@ static void cmd_sync(const char *args){
     app_telemetry_sync();
 }
 
+static void cmd_clock(const char *args){
+    static const char *const NAME[] = {"cristal", "interno (el cristal no arranco)", "interno (el cristal fallo)",
+                                       "interno (CLOCK HSI)"};
+    if(args[0] == 'H' || args[0] == 'h'){
+        if(!sysclock_use_hsi()){
+            print("CLOCK HSI: no se pudo (ya en el reloj interno?)\n");
+            return;
+        }
+        uart_retime();
+    }
+    else if(args[0]){
+        print("CLOCK [HSI]\n");
+        return;
+    }
+    print("reloj: %s, %lu MHz\n", NAME[sysclock_source()], (unsigned long)(SystemCoreClock / 1000000u));
+}
+
 static void cmd_cont(const char *args){
     uint8_t on;
     if(!parse_on_off(args, &on)){
@@ -459,6 +477,7 @@ static const command_t COMMANDS[] = {
     {"LOG",      cmd_log,      0, "0-2: detalle del log"},
     {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
     {"CONT",     cmd_cont,     1, "ON|OFF: busqueda sin parar en cada celda (hasta reiniciar)"},
+    {"CLOCK",    cmd_clock,    1, "[HSI]: fuente de reloj; HSI pasa al oscilador interno (prueba)"},
     {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},
     {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP: datos de calibracion"},
     {"DEFAULTS", cmd_defaults, 0, "parametros por defecto"},
