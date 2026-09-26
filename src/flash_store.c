@@ -51,8 +51,9 @@ uint8_t flash_store_write(const void *data, uint16_t len){
     uint8_t hsi_started = 0;
     if(!(rcc_cr & RCC_CR_HSIRDY)){
         RCC->CR |= RCC_CR_HSION;
+        // Bounded by iterations too: a clone chip may lack the cycle counter.
         const uint32_t t = DWT->CYCCNT;
-        while(!(RCC->CR & RCC_CR_HSIRDY) && DWT->CYCCNT - t < 10u * cycles_per_ms){}
+        for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSIRDY) && DWT->CYCCNT - t < 10u * cycles_per_ms && n < 200000u; n++){}
         hsi_started = 1;
     }
     const uint32_t tick0 = HAL_GetTick(), cycle0 = DWT->CYCCNT;
