@@ -135,13 +135,14 @@ static void cmd_status(const char *args){
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
           (unsigned long)FLASH->ACR, (unsigned long)FLASH->OBR, (unsigned long)FLASH->WRPR);
-    // Which chip (a clone's flash may behave differently): CPUID r1p1 on the
-    // STM32F103; IDCODE reads 0 there without a debugger.
+    // Which chip: a genuine STM32F103 reads IDCODE 0 without a debugger; this
+    // robot's reads 0x307, a clone (docs/freezes.md).
+    print("chip CPUID=%08lx IDCODE=%08lx %u KB\n", (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE,
+          *(const volatile uint16_t *)FLASHSIZE_BASE);
     const flash_timing_t *ft = flash_store_timing();
-    print("chip CPUID=%08lx IDCODE=%08lx %u KB | flash: prueba %lu us, borrado %lu ms, escritura %lu ms%s\n",
-          (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE, *(const volatile uint16_t *)FLASHSIZE_BASE,
-          (unsigned long)ft->probe_us, (unsigned long)ft->erase_ms, (unsigned long)ft->program_ms,
-          flash_store_blocked() ? " BLOQUEADA" : "");
+    print("flash: %u huecos libres%s | ultima escritura: 1a %lu us, peor %lu us, %lu ms | borrado %lu ms\n",
+          storage_free_slots(), flash_store_blocked() ? ", BLOQUEADA" : "", (unsigned long)ft->first_us,
+          (unsigned long)ft->worst_us, (unsigned long)ft->program_ms, (unsigned long)ft->erase_ms);
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
@@ -340,13 +341,18 @@ static void cmd_goal(const char *args){
 
 static void cmd_save(const char *args){
     (void)args;
-    print(storage_save() ? "guardado: mapa, meta y parametros\n" : "!! error escribiendo la flash\n");
+    switch(app_save_now()){
+        case STORAGE_WRITTEN:   print("guardado: mapa, meta y parametros (%u huecos libres)\n", storage_free_slots()); break;
+        case STORAGE_UNCHANGED: print("ya estaba guardado\n"); break;
+        default:                print("!! error escribiendo la flash: el mapa sigue en RAM\n"); break;
+    }
 }
 
 static void cmd_erase(const char *args){
     (void)args;
     maze_init();
-    print(storage_save() ? "mapa borrado (RAM y flash)\n" : "mapa borrado en RAM; !! error escribiendo la flash\n");
+    print(app_save_now() == STORAGE_FAILED ? "mapa borrado en RAM; !! error escribiendo la flash\n"
+                                           : "mapa borrado (RAM y flash)\n");
     app_telemetry_sync();
 }
 

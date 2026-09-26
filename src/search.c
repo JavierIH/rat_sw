@@ -201,10 +201,12 @@ static run_result_t fail_plan(const char *why){
 }
 
 static void save_map(void){
-    const uint8_t r = storage_save();
-    if(r == STORAGE_UNCHANGED) print("Mapa ya guardado (sin cambios)\n");
-    else if(r) print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count());
-    else print("!! no se pudo guardar el mapa en flash\n");
+    switch(storage_save()){
+        case STORAGE_WRITTEN:   print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count()); break;
+        case STORAGE_UNCHANGED: print("Mapa ya guardado (sin cambios)\n"); break;
+        case STORAGE_FULL:      print("!! flash sin hueco: el mapa sigue en RAM (SAVE lo guarda compactando)\n"); break;
+        case STORAGE_FAILED:    print("!! no se pudo guardar el mapa en flash: sigue en RAM\n"); break;
+    }
 }
 
 static run_result_t finish_at_start(uint16_t steps){

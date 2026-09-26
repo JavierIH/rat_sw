@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "calib.h"
+#include "storage.h"
 
 // Run modes: SELECT cycles them (LED n lit = mode n), START launches one.
 typedef enum {
@@ -23,5 +24,8 @@ const char *app_mode_name(uint8_t mode);
 void app_request_start(void);
 void app_telemetry_sync(void);          // full map/state for the monitor (robot stopped)
 void app_request_cal(cal_test_t test, int32_t a, int32_t b);    // run from the main loop
+// SAVE, ERASE, mode 6 (at rest, by hand): storage_save(), compacting first
+// if the log is full and a probe says the flash answers normally.
+storage_save_t app_save_now(void);
 
 #endif // APP_H

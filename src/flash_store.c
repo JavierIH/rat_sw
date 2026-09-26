@@ -5,45 +5,31 @@
 #include "robot_config.h"
 #include "uart.h"
 
-// Last 1 KB page of the 64 KB part. platformio.ini caps the program at 63 KB
-// (board_upload.maximum_size), so the build fails before code could reach it.
-#define STORE_ADDR 0x0800FC00u
+// The last two 1 KB pages of the 64 KB part. platformio.ini caps the program
+// at 62 KB (board_upload.maximum_size), so the build fails before code could
+// reach them.
+#define STORE_ADDR 0x0800F800u
 
-_Static_assert(FLASH_STORE_SIZE == FLASH_PAGE_SIZE, "the store must be exactly one flash page");
+_Static_assert(FLASH_STORE_PAGE_SIZE == FLASH_PAGE_SIZE, "a store page must be exactly one flash page");
 
 const void *flash_store_data(void){
     return (const void *)STORE_ADDR;
 }
 
-static uint8_t erase_page(void){
-    FLASH_EraseInitTypeDef erase;
-    memset(&erase, 0, sizeof(erase));
-    erase.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase.Banks = FLASH_BANK_1;
-    erase.PageAddress = STORE_ADDR;
-    erase.NbPages = 1;
-    uint32_t page_error = 0;
-    return HAL_FLASHEx_Erase(&erase, &page_error) == HAL_OK;
-}
-
 // ---- Protection against a wedged flash (docs/freezes.md) ------------------------------
-// Some writes wedge the flash until a power cycle: every later erase stalls
-// the CPU (it runs from the flash) ~200 s and fails, and programming one
-// halfword takes ~20 ms instead of ~50 us. Every such write began within ms
-// of the end of a move. So a write:
-// - waits until the motors have been off FLASH_SETTLE_MS and the UART is idle;
-// - first programs one spare halfword after the record and times it: slow
-//   or failed means wedged, and then it does not erase (the saved record
-//   survives, the stall is ~20 ms instead of ~200 s);
-// - after any failed or slow write refuses every later one until a power
-//   cycle (a software reset may not even boot then).
-// The cycle counter times it: it keeps counting while the CPU is stalled on
-// the flash (SysTick does not: its handler is in the flash too).
-#define WRITE_SLOW_MS       200u    // a page erase and ~150 words: ~38 ms
-#define PROBE_SLOW_US       1000u   // one halfword: ~50 us; wedged: ~20 ms
-#define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond settle_ms
+// This chip (a clone: DBGMCU_IDCODE 0x307) sometimes wedges its flash until a
+// power cycle: every operation then takes ~9000 times longer (an erase ~200 s
+// instead of 22 ms, a halfword ~0.45 s instead of 56 us), and as the CPU runs
+// from the flash it stalls meanwhile. An erase cannot be cut short, so
+// storage.c erases only at boot; runs only program erased space, a halfword at
+// a time, each timed: the first slow one stops the write (one halfword, well
+// under a second, instead of minutes) and the store refuses everything after
+// it until a power cycle. The cycle counter times them: it keeps counting
+// while the CPU is stalled on the flash (SysTick does not).
+#define HALFWORD_SLOW_US    1000u   // normal: ~56 us
+#define ERASE_SLOW_MS       200u    // normal: ~22 ms
+#define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond FLASH_SETTLE_MS
 
-static uint32_t settle_ms = FLASH_SETTLE_MS;
 static flash_timing_t timing;
 static uint8_t blocked;
 
@@ -55,91 +41,150 @@ uint8_t flash_store_blocked(void){
     return blocked;
 }
 
-void flash_store_settle(uint32_t ms){
-    settle_ms = ms;
+static void cycle_counter_on(void){
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
-// Motors off for settle_ms and nothing left to send (bounded). 0: no wait
-// at all, as before the protection (CAL FLASH).
+static uint32_t cycles_per_us(void){
+    return SystemCoreClock / 1000000u;
+}
+
+// Every wedged write began within ms of the end of a move; writes made with
+// the motors off a while and the UART quiet never wedged (92 of 92). Motors
+// off FLASH_SETTLE_MS and nothing left to send, bounded.
 static void settle(void){
-    if(!settle_ms) return;
     const uint32_t t0 = HAL_GetTick();
-    while((motor_idle_ms() < settle_ms || !uart_tx_idle()) && HAL_GetTick() - t0 < settle_ms + SETTLE_EXTRA_MS){
+    while((motor_idle_ms() < FLASH_SETTLE_MS || !uart_tx_idle()) && HAL_GetTick() - t0 < FLASH_SETTLE_MS + SETTLE_EXTRA_MS){
         uart_waiting();
     }
 }
 
-// First erased halfword after the record: every write erases the page, so
-// there is room unless the page holds something else there.
-static uint32_t probe_address(uint16_t len){
-    for(uint32_t a = STORE_ADDR + len; a < STORE_ADDR + FLASH_STORE_SIZE; a += 2u){
-        if(*(const volatile uint16_t *)a == 0xFFFFu) return a;
-    }
-    return 0;
+// The flash times its erase and program with the HSI: it must run. Bounded by
+// iterations too, in case the cycle counter did not start.
+static void hsi_wait(uint32_t ready){
+    const uint32_t t = DWT->CYCCNT, limit = 10000u * cycles_per_us();
+    for(uint32_t n = 0; ((RCC->CR & RCC_CR_HSIRDY) != 0) != ready && DWT->CYCCNT - t < limit && n < 200000u; n++){}
 }
 
-// The CPU stalls while the page is erased/programmed (~38 ms): only call this
-// with the robot stopped.
-uint8_t flash_store_write(const void *data, uint16_t len){
-    if(len > FLASH_STORE_SIZE || (len & 3u)) return 0;
-    if(blocked){
-        print("!! flash bloqueada por un fallo anterior: no escribo hasta apagar y encender\n");
+static uint8_t hsi_on(void){
+    if(RCC->CR & RCC_CR_HSIRDY) return 1;
+    RCC->CR |= RCC_CR_HSION;
+    hsi_wait(1);
+    print("!! flash: el HSI estaba parado: arrancado (%s)\n", (RCC->CR & RCC_CR_HSIRDY) ? "listo" : "NO arranca");
+    return (RCC->CR & RCC_CR_HSIRDY) != 0;
+}
+
+static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32_t acr){
+    blocked = 1;
+    print("!! flash: %s | 1a %lu us, peor %lu us, total %lu ms, borrado %lu ms | HAL %lx\n", what,
+          (unsigned long)timing.first_us, (unsigned long)timing.worst_us, (unsigned long)timing.program_ms,
+          (unsigned long)timing.erase_ms, (unsigned long)hal_error);
+    print("!! flash: antes RCC_CR=%08lx ACR=%02lx | despues RCC_CR=%08lx SR=%02lx CR=%04lx\n", (unsigned long)rcc_cr,
+          (unsigned long)acr, (unsigned long)RCC->CR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR);
+    print("!! flash bloqueada hasta apagar y encender: el mapa sigue en RAM (no uses RESET)\n");
+}
+
+uint8_t flash_store_erase(uint8_t page){
+    if(blocked || page >= FLASH_STORE_PAGES) return 0;
+    settle();
+    cycle_counter_on();
+    const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
+    if(!hsi_on()) return 0;
+    const uint32_t tick0 = HAL_GetTick(), t0 = DWT->CYCCNT;
+    HAL_FLASH_Unlock();
+    FLASH_EraseInitTypeDef erase;
+    memset(&erase, 0, sizeof(erase));
+    erase.TypeErase = FLASH_TYPEERASE_PAGES;
+    erase.Banks = FLASH_BANK_1;
+    erase.PageAddress = STORE_ADDR + page * FLASH_STORE_PAGE_SIZE;
+    erase.NbPages = 1;
+    uint32_t page_error = 0;
+    uint8_t ok = HAL_FLASHEx_Erase(&erase, &page_error) == HAL_OK;
+    const uint32_t hal_error = HAL_FLASH_GetError();
+    HAL_FLASH_Lock();
+    timing.erase_ms = (DWT->CYCCNT - t0) / (cycles_per_us() * 1000u);   // wraps after ~60 s: see the ticks too
+    const volatile uint32_t *w = (const volatile uint32_t *)erase.PageAddress;
+    for(uint16_t i = 0; ok && i < FLASH_STORE_PAGE_SIZE / 4u; i++) ok = w[i] == 0xFFFFFFFFu;
+    if(!ok || timing.erase_ms > ERASE_SLOW_MS || HAL_GetTick() - tick0 > ERASE_SLOW_MS){
+        report(ok ? "borrado lento" : "borrado fallido", hal_error, rcc_cr, acr);
         return 0;
     }
-    settle();
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-    const uint32_t rcc_cr = RCC->CR, sr_before = FLASH->SR, cr_before = FLASH->CR, acr = FLASH->ACR;
-    const uint32_t cycles_per_us = SystemCoreClock / 1000000u, cycles_per_ms = cycles_per_us * 1000u;
-    uint8_t hsi_started = 0;
-    if(!(rcc_cr & RCC_CR_HSIRDY)){
-        // The flash times its erase and program with the HSI.
-        RCC->CR |= RCC_CR_HSION;
-        // Bounded by iterations too: a clone chip may lack the cycle counter.
-        const uint32_t t = DWT->CYCCNT;
-        for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSIRDY) && DWT->CYCCNT - t < 10u * cycles_per_ms && n < 200000u; n++){}
-        hsi_started = 1;
-    }
-    memset(&timing, 0, sizeof(timing));
-    const uint32_t tick0 = HAL_GetTick();
+    return 1;
+}
+
+// Programs one halfword and times it (us); 0xFFFFFFFF if it failed.
+static uint32_t program_halfword(uint32_t address, uint16_t value){
+    const uint32_t t = DWT->CYCCNT;
+    const uint8_t ok = HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, address, value) == HAL_OK;
+    const uint32_t us = (DWT->CYCCNT - t) / cycles_per_us();
+    return ok ? us : 0xFFFFFFFFu;
+}
+
+// A wedged flash is timed by a crawling HSI, or wedged in itself: restart the
+// HSI and time one more halfword to tell (the store stays blocked anyway).
+static void hsi_restart_test(uint32_t address){
+    RCC->CR &= ~RCC_CR_HSION;   // ignored while the HSI runs the system (CLOCK HSI)
+    hsi_wait(0);
+    RCC->CR |= RCC_CR_HSION;
+    hsi_wait(1);
     HAL_FLASH_Unlock();
-    uint8_t ok = 1;
-    const uint32_t probe = probe_address(len);
-    uint32_t t = DWT->CYCCNT;
-    if(probe){
-        ok = HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, probe, 0u) == HAL_OK;
-        timing.probe_us = (DWT->CYCCNT - t) / cycles_per_us;
+    const uint32_t us = program_halfword(address, 0u);
+    HAL_FLASH_Lock();
+    print("!! flash: tras reiniciar el HSI, 2 bytes en %lu us (normal ~56)\n", (unsigned long)us);
+}
+
+uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
+    if(blocked || (offset & 1u) || (len & 1u) || (uint32_t)offset + len > FLASH_STORE_SIZE) return 0;
+    const volatile uint16_t *dst = (const volatile uint16_t *)(STORE_ADDR + offset);
+    for(uint16_t i = 0; i < len / 2u; i++){
+        if(dst[i] != 0xFFFFu) return 0;     // not erased: the caller's mistake, not the flash's
     }
-    const uint8_t wedged = !ok || timing.probe_us > PROBE_SLOW_US;
-    if(!wedged){
-        t = DWT->CYCCNT;
-        ok = erase_page();
-        timing.erase_ms = (DWT->CYCCNT - t) / cycles_per_ms;
-        t = DWT->CYCCNT;
-        const uint8_t *src = (const uint8_t *)data;
-        for(uint16_t i = 0; ok && i < len; i += 4){
-            uint32_t word;
-            memcpy(&word, src + i, sizeof(word));
-            ok = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, STORE_ADDR + i, word) == HAL_OK;
-        }
-        timing.program_ms = (DWT->CYCCNT - t) / cycles_per_ms;   // wraps after ~60 s: see the ticks too
+    settle();
+    cycle_counter_on();
+    const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
+    if(!hsi_on()) return 0;
+    const uint32_t t0 = DWT->CYCCNT;
+    timing.first_us = timing.worst_us = 0;
+    HAL_FLASH_Unlock();
+    const uint8_t *src = (const uint8_t *)data;
+    uint8_t ok = 1;
+    uint16_t i;
+    for(i = 0; ok && i < len; i += 2u){
+        uint16_t value;
+        memcpy(&value, src + i, sizeof(value));
+        const uint32_t us = program_halfword(STORE_ADDR + offset + i, value);
+        if(i == 0) timing.first_us = us;
+        if(us > timing.worst_us) timing.worst_us = us;
+        ok = us <= HALFWORD_SLOW_US;
     }
     const uint32_t hal_error = HAL_FLASH_GetError();
     HAL_FLASH_Lock();
-    ok = ok && !wedged && memcmp((const void *)STORE_ADDR, data, len) == 0;
-    const uint32_t ticks = HAL_GetTick() - tick0;
-    const uint8_t slow = timing.erase_ms + timing.program_ms > WRITE_SLOW_MS || ticks > WRITE_SLOW_MS;
-    if(!ok || slow) blocked = 1;
-    if(blocked || hsi_started || (sr_before & (FLASH_SR_PGERR | FLASH_SR_WRPRTERR | FLASH_SR_BSY))
-       || (cr_before & ~FLASH_CR_LOCK)){
-        print("!! flash: %s | prueba %lu us, borrado %lu ms, escritura %lu ms, tick %lu ms | HAL %lx\n",
-              wedged ? "ATASCADA, no borro" : !ok ? "ERROR" : slow ? "lenta" : "aviso",
-              (unsigned long)timing.probe_us, (unsigned long)timing.erase_ms, (unsigned long)timing.program_ms,
-              (unsigned long)ticks, (unsigned long)hal_error);
-        print("!! flash antes: RCC_CR=%08lx SR=%02lx CR=%04lx ACR=%02lx%s | despues: RCC_CR=%08lx SR=%02lx\n",
-              (unsigned long)rcc_cr, (unsigned long)sr_before, (unsigned long)cr_before, (unsigned long)acr,
-              hsi_started ? " HSI PARADO: arrancado" : "", (unsigned long)RCC->CR, (unsigned long)FLASH->SR);
-        if(blocked) print("!! flash bloqueada: no escribo mas hasta apagar y encender (un RESET puede no arrancar)\n");
+    timing.program_ms = (DWT->CYCCNT - t0) / (cycles_per_us() * 1000u);
+    if(ok && memcmp((const void *)dst, data, len) == 0) return 1;
+    report(timing.worst_us == 0xFFFFFFFFu ? "escritura fallida" : "escritura LENTA, cortada", hal_error, rcc_cr, acr);
+    if(timing.worst_us != 0xFFFFFFFFu && i < len) hsi_restart_test(STORE_ADDR + offset + i);
+    return 0;
+}
+
+uint8_t flash_store_probe(void){
+    if(blocked) return 0;
+    cycle_counter_on();
+    const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
+    for(uint8_t page = 0; page < FLASH_STORE_PAGES; page++){
+        const uint32_t base = STORE_ADDR + (page + 1u) * FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE;
+        for(uint32_t a = base; a < base + FLASH_STORE_SPARE; a += 2u){
+            if(*(const volatile uint16_t *)a != 0xFFFFu) continue;
+            if(!hsi_on()) return 0;
+            HAL_FLASH_Unlock();
+            const uint32_t us = program_halfword(a, 0u);
+            const uint32_t hal_error = HAL_FLASH_GetError();
+            HAL_FLASH_Lock();
+            timing.first_us = timing.worst_us = us;
+            if(us <= HALFWORD_SLOW_US) return 1;
+            report("prueba LENTA", hal_error, rcc_cr, acr);
+            return 0;
+        }
     }
-    return ok;
+    return 0;   // no spare halfword left: cannot tell
 }

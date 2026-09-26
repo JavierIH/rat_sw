@@ -3,6 +3,7 @@
 #include "calib.h"
 #include "commands.h"
 #include "encoder.h"
+#include "flash_store.h"
 #include "gpio.h"
 #include "health.h"
 #include "infrared.h"
@@ -131,7 +132,8 @@ static void erase_map_confirmed(void){
         if(button_take_press(BUTTON_START)){
             maze_init();
             leds_all(0);
-            print(storage_save() ? "Mapa borrado\n" : "!! error escribiendo la flash\n");
+            print(app_save_now() == STORAGE_FAILED ? "Mapa borrado en RAM; !! error escribiendo la flash\n"
+                                                   : "Mapa borrado\n");
             sync_telemetry(TM_ERASE);
             return;
         }
@@ -244,6 +246,28 @@ static void print_banner(storage_status_t stored){
           g[0], g[1], g[2], g[3]);
 }
 
+storage_save_t app_save_now(void){
+    const storage_save_t r = storage_save();
+    if(r != STORAGE_FULL) return r;
+    print("flash sin hueco: compactando (borra 2 paginas, ~50 ms)\n");
+    if(!flash_store_probe() || !storage_compact()) return STORAGE_FAILED;
+    return storage_save();
+}
+
+// The saved records are a log that only grows during runs (storage.c): the
+// boot compacts it, the only time pages are erased on their own, and only
+// with a healthy flash: after a power-on, or when a probe says so (after a
+// reset it may still be wedged, docs/freezes.md).
+static void compact_store(void){
+    if(!storage_needs_compact()) return;
+    if(!health_power_on() && !flash_store_probe()){
+        print("!! flash: no compacto (sin probar tras un reinicio): apaga y enciende; quedan %u huecos\n",
+              storage_free_slots());
+        return;
+    }
+    if(!storage_compact()) print("!! flash: no se pudo compactar\n");
+}
+
 int main(void){
     health_init();
     HAL_Init();
@@ -259,6 +283,7 @@ int main(void){
     storage_status_t stored = storage_load();
     uart_start_receive();
     print_banner(stored);
+    compact_store();
     leds_sweep(2);
     sync_telemetry(TM_IDLE);
 

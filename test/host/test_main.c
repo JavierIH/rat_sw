@@ -18,8 +18,9 @@
 
 extern int host_verbose;
 extern unsigned char fake_flash[FLASH_STORE_SIZE];
-extern int fake_flash_writes;
+extern int fake_flash_programs, fake_flash_erases, fake_flash_fail_after;
 void fake_flash_wipe(void);
+void fake_flash_power_cycle(void);
 
 static int checks, failures;
 
@@ -418,37 +419,50 @@ static void test_planner_against_reference(void){
     CHECK_EQ(walk_errors, 0);
 }
 
+// A record changed by hand at `at` in the fake flash: seal it again.
+static void reseal(uint16_t at){
+    uint16_t size;
+    memcpy(&size, fake_flash + at + 6, sizeof(size));
+    const uint32_t crc = crc32_update(0, fake_flash + at, (size_t)size - 4u);
+    memcpy(fake_flash + at + size - 4, &crc, sizeof(crc));
+}
+
+static void fill_test_map(void){
+    maze_init();
+    maze_observe(4, 4, EAST, 1);
+    maze_mark_crossed(0, 0, NORTH);
+    maze_mark_visited(4, 4);
+    maze_set_goal(3, 2, 3, 2);
+    for(int i = 0; i < 3; i++){
+        maze_observe(10, 10, NORTH, 1);     // every evidence level must survive the packing
+        maze_observe(11, 11, EAST, 0);
+    }
+    maze_observe(12, 12, NORTH, 0);
+}
+
+// The store is a log (docs/freezes.md): saves only program erased slots,
+// the newest valid record wins, pages are erased only by the boot's
+// compaction, and a flash that wedges mid-save loses nothing saved before.
 static void test_storage(void){
     fake_flash_wipe();
     params_reset();
     CHECK_EQ(storage_load(), STORAGE_EMPTY);
+    CHECK_EQ(storage_free_slots(), 6);
+    CHECK(!storage_needs_compact());
 
-    maze_init();
-    maze_observe(4, 4, EAST, 1);
-    maze_mark_crossed(0, 0, NORTH);
-    maze_mark_visited(4, 4);
-    maze_set_goal(3, 2, 3, 2);
+    fill_test_map();
     params.search_speed = 123;
     params.turn_ticks = 415;
     params.accel = 4321;
     params.ki = 0.75f;
-    CHECK_EQ(storage_save(), 1);
-    // The same record again: nothing written (every write risks the flash);
-    // a change or a forced rewrite writes.
-    int writes = fake_flash_writes;
+    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    uint16_t size;
+    memcpy(&size, fake_flash + 6, sizeof(size));
+    CHECK(3u * size <= FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE);
+    // The same record again: nothing programmed.
+    int programs = fake_flash_programs;
     CHECK_EQ(storage_save(), STORAGE_UNCHANGED);
-    CHECK_EQ(fake_flash_writes, writes);
-    CHECK_EQ(storage_rewrite(), 1);
-    CHECK_EQ(fake_flash_writes, writes + 1);
-    maze_mark_visited(5, 5);
-    CHECK_EQ(storage_save(), 1);
-    CHECK_EQ(fake_flash_writes, writes + 2);
-    maze_init();
-    maze_observe(4, 4, EAST, 1);
-    maze_mark_crossed(0, 0, NORTH);
-    maze_mark_visited(4, 4);
-    maze_set_goal(3, 2, 3, 2);
-    CHECK_EQ(storage_save(), 1);
+    CHECK_EQ(fake_flash_programs, programs);
 
     maze_init();
     maze_set_goal(7, 7, 8, 8);
@@ -456,7 +470,12 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK_EQ(maze_wall(4, 4, EAST), WALL_PRESENT);
     CHECK_EQ(maze_evidence(0, 0, NORTH), -3);
+    CHECK_EQ(maze_evidence(10, 10, NORTH), 3);
+    CHECK_EQ(maze_evidence(11, 11, EAST), -3);
+    CHECK_EQ(maze_evidence(12, 12, NORTH), -1);
+    CHECK_EQ(maze_evidence(5, 5, EAST), 0);
     CHECK(maze_is_visited(4, 4));
+    CHECK(!maze_is_visited(5, 4));
     CHECK(maze_is_goal(3, 2));
     CHECK(!maze_is_goal(7, 7));
     CHECK_EQ(params.search_speed, 123);
@@ -464,23 +483,95 @@ static void test_storage(void){
     CHECK_EQ(params.accel, 4321);
     CHECK(params.ki == 0.75f);
 
+    // Every change is a new record in the next free slot, never an erase;
+    // with no slot left the map stays in RAM.
+    const int erases = fake_flash_erases;
+    for(uint8_t i = 0; i < 5; i++){
+        maze_mark_visited(i, 9);
+        CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    }
+    CHECK_EQ(storage_free_slots(), 0);
+    maze_mark_visited(9, 9);
+    CHECK_EQ(storage_save(), STORAGE_FULL);
+    CHECK_EQ(fake_flash_erases, erases);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(4, 9) && !maze_is_visited(9, 9));
+
+    // The boot compacts: the newest record stays, the other five slots are
+    // freed with two erases, and the sequence goes on after it.
+    CHECK(storage_needs_compact());
+    CHECK(storage_compact());
+    CHECK_EQ(fake_flash_erases, erases + 2);
+    CHECK_EQ(storage_free_slots(), 5);
+    CHECK(!storage_needs_compact());
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(4, 9));
+    maze_mark_visited(9, 9);
+    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(9, 9));
+
+    // The flash wedges 40 halfwords into a save: the write stops, the store
+    // refuses everything until a power cycle, the previous record loads.
+    maze_mark_visited(8, 8);
+    fake_flash_fail_after = 40;
+    CHECK_EQ(storage_save(), STORAGE_FAILED);
+    CHECK(flash_store_blocked());
+    CHECK_EQ(storage_save(), STORAGE_FAILED);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(9, 9) && !maze_is_visited(8, 8));
+    fake_flash_power_cycle();
+    CHECK(storage_needs_compact());         // the half-written slot is neither free nor valid
+    CHECK(storage_compact());
+    CHECK_EQ(storage_free_slots(), 5);
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(9, 9));
+
+    // A power cut between the copy and the erase of its old page: the copy
+    // (newer) wins, and the next boot finishes the compaction.
+    for(uint8_t i = 0; i < 2; i++){
+        maze_mark_visited(i, 12);
+        CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    }
+    fake_flash_fail_after = (int)(size / 2u);   // the copy lands, the next erase does not
+    CHECK(!storage_compact());
+    fake_flash_power_cycle();
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(1, 12));
+    CHECK(storage_needs_compact());
+    CHECK(storage_compact());
+    CHECK_EQ(storage_free_slots(), 5);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(1, 12) && maze_is_visited(4, 4));
+
+    // Find the current record for the checks below.
+    uint16_t at = 0;
+    for(uint16_t s = 0; s < 6; s++){
+        const uint16_t o = (uint16_t)((s / 3u) * FLASH_STORE_PAGE_SIZE + (s % 3u) * size);
+        uint32_t magic;
+        memcpy(&magic, fake_flash + o, sizeof(magic));
+        if(magic == 0x4D544152u) at = o;
+    }
+
     // A corrupt record is rejected and leaves RAM untouched.
     maze_init();
-    fake_flash[40] ^= 0x55;
+    fake_flash[at + 40] ^= 0x55;
     CHECK_EQ(storage_load(), STORAGE_CORRUPT);
     CHECK_EQ(maze_wall(4, 4, EAST), WALL_UNKNOWN);
-    fake_flash[40] ^= 0x55;
+    fake_flash[at + 40] ^= 0x55;
     CHECK_EQ(storage_load(), STORAGE_LOADED);
 
     // Saved by firmware with other parameter defaults (tuned values written
     // into the code): the map and goal load, the parameters stay the new
     // defaults.
-    uint16_t size;
-    memcpy(&size, fake_flash + 6, sizeof(size));
-    CHECK(size > 16 && size <= FLASH_STORE_SIZE);
-    fake_flash[12] ^= 0xFF;         // parameter signature
-    uint32_t crc = crc32_update(0, fake_flash, (size_t)size - 4u);
-    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    fake_flash[at + 16] ^= 0xFF;    // parameter signature
+    reseal(at);
     maze_init();
     maze_set_goal(7, 7, 8, 8);
     params_reset();
@@ -489,31 +580,37 @@ static void test_storage(void){
     CHECK(maze_is_goal(3, 2));
     CHECK_EQ(params.search_speed, PARAM_SEARCH_SPEED);
     CHECK_EQ(params.accel, PARAM_ACCEL);
-    CHECK(params_defaults_signature() == params_defaults_signature());
-    fake_flash[12] ^= 0xFF;
+    fake_flash[at + 16] ^= 0xFF;
 
     // Saved by firmware for another maze (another default goal): ignored
     // even with a valid CRC, map and parameters alike.
-    fake_flash[8] ^= 0xFF;          // maze signature
-    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
-    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    fake_flash[at + 12] ^= 0xFF;    // maze signature
+    reseal(at);
     maze_init();
     params_reset();
     CHECK_EQ(storage_load(), STORAGE_STALE);
     CHECK_EQ(maze_wall(4, 4, EAST), WALL_UNKNOWN);
     CHECK_EQ(params.search_speed, PARAM_SEARCH_SPEED);
-
-    // Older record layout (another STORE_VERSION): stale, not corrupt.
-    fake_flash[8] ^= 0xFF;
-    fake_flash[4] ^= 0x03;          // version
-    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
-    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
-    CHECK_EQ(storage_load(), STORAGE_STALE);
-    fake_flash[4] ^= 0x03;
-    crc = crc32_update(0, fake_flash, (size_t)size - 4u);
-    memcpy(fake_flash + size - 4, &crc, sizeof(crc));
+    fake_flash[at + 12] ^= 0xFF;
+    reseal(at);
     CHECK_EQ(storage_load(), STORAGE_LOADED);
+
+    // The old one-page layout (STORE_VERSION 6 at the start of the second
+    // page): stale, and the boot's compaction clears it.
+    fake_flash_wipe();
+    const uint32_t magic = 0x4D544152u;
+    const uint16_t v6 = 6, v6_size = 592;
+    memcpy(fake_flash + FLASH_STORE_PAGE_SIZE, &magic, sizeof(magic));
+    memcpy(fake_flash + FLASH_STORE_PAGE_SIZE + 4, &v6, sizeof(v6));
+    memcpy(fake_flash + FLASH_STORE_PAGE_SIZE + 6, &v6_size, sizeof(v6_size));
+    memset(fake_flash + FLASH_STORE_PAGE_SIZE + 8, 0x11, v6_size - 8u);
+    CHECK_EQ(storage_load(), STORAGE_STALE);
+    CHECK(storage_needs_compact());
+    CHECK(storage_compact());
+    CHECK_EQ(storage_free_slots(), 6);
+    CHECK_EQ(storage_load(), STORAGE_EMPTY);
     params_reset();
+    maze_init();
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 

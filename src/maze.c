@@ -278,8 +278,11 @@ uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan
 // ---- Persistence -----------------------------------------------------------------------
 
 void maze_export(maze_snapshot_t *out){
-    memcpy(out->north, ev_north, sizeof(ev_north));
-    memcpy(out->east, ev_east, sizeof(ev_east));
+    for(uint8_t x = 0; x < MAZE_SIZE; x++){
+        for(uint8_t y = 0; y < MAZE_SIZE; y++){
+            out->walls[x][y] = (uint8_t)((ev_north[x][y] + EV_MAX) | ((ev_east[x][y] + EV_MAX) << 4));
+        }
+    }
     memcpy(out->visited, visited_rows, sizeof(visited_rows));
     memcpy(out->goal, goal, sizeof(goal));
 }
@@ -287,15 +290,18 @@ void maze_export(maze_snapshot_t *out){
 uint8_t maze_import(const maze_snapshot_t *in){
     for(uint8_t x = 0; x < MAZE_SIZE; x++){
         for(uint8_t y = 0; y < MAZE_SIZE; y++){
-            if(in->north[x][y] < -EV_MAX || in->north[x][y] > EV_MAX) return 0;
-            if(in->east[x][y] < -EV_MAX || in->east[x][y] > EV_MAX) return 0;
+            if((in->walls[x][y] & 0x0Fu) > 2 * EV_MAX || (in->walls[x][y] >> 4) > 2 * EV_MAX) return 0;
         }
     }
     const uint8_t *g = in->goal;
     if(g[0] > g[2] || g[1] > g[3] || g[2] >= MAZE_SIZE || g[3] >= MAZE_SIZE) return 0;
 
-    memcpy(ev_north, in->north, sizeof(ev_north));
-    memcpy(ev_east, in->east, sizeof(ev_east));
+    for(uint8_t x = 0; x < MAZE_SIZE; x++){
+        for(uint8_t y = 0; y < MAZE_SIZE; y++){
+            ev_north[x][y] = (int8_t)((in->walls[x][y] & 0x0Fu) - EV_MAX);
+            ev_east[x][y] = (int8_t)((in->walls[x][y] >> 4) - EV_MAX);
+        }
+    }
     memcpy(visited_rows, in->visited, sizeof(visited_rows));
     memcpy(goal, g, sizeof(goal));
     return 1;

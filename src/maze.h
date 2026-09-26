@@ -98,9 +98,10 @@ uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan
                    int8_t *turn, int8_t *turns, uint8_t max, uint8_t *cells);
 
 // ---- Persistence -----------------------------------------------------------------------
+// Packed so that three records fit in a flash page (storage.c): each
+// wall's evidence (-3..3) + 3 in a nibble.
 typedef struct {
-    int8_t north[MAZE_SIZE][MAZE_SIZE];     // [x][y]: evidence of the wall north of (x, y)
-    int8_t east[MAZE_SIZE][MAZE_SIZE];      // [x][y]: evidence of the wall east of (x, y)
+    uint8_t walls[MAZE_SIZE][MAZE_SIZE];    // [x][y]: the wall north of (x, y) in the low nibble, east in the high one
     uint16_t visited[MAZE_SIZE];            // bit x of row y
     uint8_t goal[4];                        // x0, y0, x1, y1
 } maze_snapshot_t;

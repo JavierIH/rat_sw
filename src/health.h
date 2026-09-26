@@ -11,6 +11,9 @@ void health_init(void);         // first thing in main(): paints the free stack,
 void health_alive(void);        // main context, in every loop that waits
 // The reason for the last reset: "encendido", "RESET", "boton"...
 const char *health_reset_cause(void);
+// 1 if the last reset was a power-on (or brown-out): the flash is healthy
+// then (docs/freezes.md: a power cycle always cured a wedged flash).
+uint8_t health_power_on(void);
 // Bytes of stack never used since boot (the stack meets the end of .bss).
 uint32_t health_stack_free(void);
 // 1 once after the main program stopped responding for more than

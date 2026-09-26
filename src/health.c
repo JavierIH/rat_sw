@@ -7,6 +7,7 @@
 extern uint32_t _ebss;      // linker: end of .bss, where the free RAM (and the stack's reach) begins
 
 static const char *reset_cause = "?";
+static uint8_t power_on;
 static volatile uint32_t alive_ms;
 static volatile uint8_t stalled, stall_ready;
 static volatile uint32_t stall_start, stall_ms, stall_pc, stall_lr;
@@ -35,6 +36,7 @@ void health_init(void){
                 : (csr & RCC_CSR_WWDGRSTF) ? "watchdog de ventana"
                 : (csr & RCC_CSR_PINRSTF) ? "boton de reset"
                 : "?";
+    power_on = (csr & RCC_CSR_PORRSTF) != 0;
     RCC->CSR |= RCC_CSR_RMVF;
     alive_ms = HAL_GetTick();
 }
@@ -71,6 +73,10 @@ uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen){
 // uart.c: waiting for room to print.
 void uart_waiting(void){
     health_alive();
+}
+
+uint8_t health_power_on(void){
+    return power_on;
 }
 
 const char *health_reset_cause(void){
