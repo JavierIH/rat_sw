@@ -140,6 +140,15 @@ Read the section you are about to touch; AGENTS.md has the rules.
   displacement (sideways slip), not the heading. Never tune curves live on
   a full-speed staircase: calibrate them on single curves with a straight
   after (the centring recovers there).
+  The displacement is compensated by starting each curve later: `pre` +=
+  `CURVE_PRE_SLIP` (v^2 - V0^2) / (480^2 - V0^2) mm above `CURVE_PRE_V0`
+  (300). On E, lateral at the last straight's first reading (09-26 22:53 and
+  09-27 00:47, TURNTICKS 403 the second time), slip 0: 300 -6.2/+5.4, 400
+  +10.0/+8.1 (v^2 from 0 would predict ~+14: V0 300 fits), 480 +19.7/+21.3;
+  at 480 slip 3 +6.8/+12.3, 5 +1.1/+2.0/+9.8, 7 +17.4 (once)/+4.6/0.0;
+  slip 7 at 400 0.0, at 300 +0.4. Run to run +-5 mm (the start's yaw after
+  the previous run's 180 varies -4..+2 deg); ~-2.7 mm per mm of slip, zero
+  near 7: the default.
 - Curve angle on the ring (layout F, 2026-09-26 20:03-20:31, CURVE_SLIP
   2.0, 300 mm/s): four `CAL CURVE` of one side round the island, back to
   the same spot. Physical rotation from FL-FR at a border stop (`CAL

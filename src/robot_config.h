@@ -251,8 +251,11 @@
 // agrees), so ~+7; pure v^2 would put 300 ~7 mm right. On E (2026-09-26
 // 22:53-23:05, WHEEL_DIFF -0.0025) slip 0: 300 -6.2, 400 +10.0, 480 +19.7
 // mm; with V0 300: slip 3 +6.8, slip 5 +1.1 and +2.0 at 480, 0.0 at 400
-// (slip 7 +17.4 once, unexplained: not tried again).
-#define CURVE_PRE_SLIP_MM       5.0f
+// (slip 7 +17.4 once, unexplained). Rechecked on E 2026-09-27 00:47-00:53
+// (TURNTICKS 403): slip 0: 300 +5.4, 400 +8.1, 480 +21.3; at 480 slip 3
+// +12.3, 5 +9.8, 7 +4.6 and 0.0; slip 7 at 400 0.0, at 300 +0.4. Over both
+// sessions ~-2.7 mm per mm of slip, zero near 7.
+#define CURVE_PRE_SLIP_MM       7.0f
 #define CURVE_PRE_V0_MM_S       300.0f
 // Share of CONTROL_PWM_LIMIT the curves may ask of the outer wheel (the
 // loops need the rest): its feedforward peaks where a ramp meets the arc,
