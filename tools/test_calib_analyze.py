@@ -30,6 +30,7 @@ INFO = [
 ]
 
 
+FR_CAL = (-0.00000003535, 0.0001995, -0.3834, 317.6)
 SL_CAL = (-0.00000005219, 0.0002629, -0.4566, 325.6)
 SR_CAL = (-0.00000003241, 0.0001505, -0.25, 189.0)
 
@@ -475,6 +476,33 @@ class TestCalibAnalyze(unittest.TestCase):
         # Without the turn, or with a wall missing, no centres.
         self.assertNotIn("TUNE CENTER_L", ca.report([paths[0], paths[2]]))
         self.assertIn("falta una pared", ca.report([paths[0], paths[1], still(94, 150)]))
+
+    def test_side_sensors_from_rounds_of_quarter_turns(self):
+        # Centred, SL reads 88 and SR 75, both following the offset x (to
+        # the right) mm for mm; facing a wall centred the fronts read 94.
+        def still(front, sl, sr):
+            raws = (fl_raw_for(front), fl_raw_for(front, FR_CAL)) if front else (40, 40)
+            row = (0, 0, 0, 0) + raws + (fl_raw_for(sl, SL_CAL), fl_raw_for(sr, SR_CAL))
+            return save(self.tmp.name, "noise 500", 10, [row] * 50)
+
+        def turn():
+            return save(self.tmp.name, "turn 1", 4, [(0, 0, 100, -100) + (0,) * 4] * 20)
+
+        def round_at(x, back=94):
+            # Headings 0 (open), right, back (a wall `back` mm away), left.
+            return [still(None, 88 + x, 75 - x), turn(), still(94 - x, 150, 150), turn(),
+                    still(back, 88 - x, 75 + x), turn(), still(94 + x, 150, 150), turn()]
+
+        text = ca.report(round_at(-12) + round_at(10))
+        self.assertAlmostEqual(number(r"robot a ([-+\d.]+) mm a la derecha", text), -12, delta=0.7)
+        self.assertAlmostEqual(number(r"TUNE CENTER_L ([\d.]+), TUNE CENTER_R", text), 88, delta=1)
+        self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+) \(ahora", text), 75, delta=1)
+        self.assertAlmostEqual(number(r"pendiente SL ([\d.]+)", text), 1, delta=0.05)
+        self.assertAlmostEqual(number(r"pendiente SL [\d.]+, SR ([\d.]+)", text), 1, delta=0.05)
+        # 12 mm towards the back wall: the back heading's beams land by the post.
+        text = ca.report(round_at(-12, back=82))
+        self.assertIn("descartado", text)
+        self.assertIn("hacen falta puntos separados", text)
 
     def test_missing_measurements_ask_for_notes(self):
         rows = [(i * 10, i * 10, 150, 150, 0, 0, 0, 0) for i in range(50)] + [(500, 500) + (0,) * 6]

@@ -195,32 +195,101 @@ def analyze_noise(rec, out):
                    % (round(offset), rec.meta.get("front_square_offset_mm", "?")))
 
 
-def side_means(rec):
-    """Mean SL and SR in mm of a recording at rest, or None without calibration."""
-    sides = [[rec.ir_mm(s, r) for r in rec.data["raw_" + s]] for s in ("sl", "sr")]
-    return None if None in sides[0] + sides[1] else [mean(v) for v in sides]
+def rest_means(rec):
+    """Mean mm of every sensor over a recording at rest, or None without calibration."""
+    means = {}
+    for s in SENSORS:
+        mm = [rec.ir_mm(s, r) for r in rec.data["raw_" + s]]
+        if None in mm:
+            return None
+        means[s] = mean(mm)
+    return means
+
+
+def front_mean(means):
+    """FL and FR averaged when both see a wall, else None."""
+    return (means["fl"] + means["fr"]) / 2 if max(means["fl"], means["fr"]) < 140 else None
 
 
 def mirror_centres(rec, before, after, out):
     """A 180 deg turn in place mirrors the robot across the lane's centre line,
     so each side sensor's readings before and after it average to what it
     reads with the robot centred (SIDE_CENTER_L/R_MM), wherever it stood."""
-    (slb, srb), (sla, sra) = before, after
+    slb, srb, sla, sra = before["sl"], before["sr"], after["sl"], after["sr"]
     out.append("  Giro de 180 desde el CAL NOISE anterior: SL %.1f -> %.1f, SR %.1f -> %.1f mm"
                % (slb, sla, srb, sra))
     track = rec.number("side_track_mm", 130)
-    if max(before + after) >= track:
+    if max(slb, srb, sla, sra) >= track:
         out.append("  ! falta una pared lateral (> %.0f mm): repitelo en un pasillo con paredes a ambos lados" % track)
         return
+    ref = rec.number("front_ref_mm", 94)
+    for means in (before, after):
+        front = front_mean(means)
+        if front is not None and abs(front - ref) > 5:
+            out.append("  ! el robot esta a %+.0f mm del centro de la celda delante-detras: mirando a un lado los"
+                       " haces laterales caen junto al poste y el par no vale; centralo o usa la vuelta de 4 cuartos"
+                       % (front - ref))
     off_r, off_l = (srb - sra) / 2, (sla - slb) / 2
     out.append("  descentrado antes del giro: %+.1f mm segun SR, %+.1f segun SL (> 0: a la izquierda)"
                % (off_r, off_l))
     if abs(off_r - off_l) > 3:
-        out.append("  ! no coinciden: el giro no fue en el sitio o un haz toco un poste; no uses este par")
+        out.append("  ! no coinciden: el giro no fue en el sitio, un haz toco un poste o la pendiente de un sensor falla")
     cl, cr = (slb + sla) / 2, (srb + sra) / 2
     out.append("  centrado: SL %.1f, SR %.1f mm -> TUNE CENTER_L %.1f, TUNE CENTER_R %.1f (ahora %s / %s;"
                % (cl, cr, cl, cr, rec.meta.get("center_l", "?"), rec.meta.get("center_r", "?")))
     out.append("     un giro de vuelta, CAL TURN -2 + CAL NOISE, promedia el error de angulo de los giros)")
+
+
+def side_round(rec, stations, out, points):
+    """CAL NOISE at four headings a quarter turn apart (CAL TURN 1 between) in
+    a cell closed on three sides: facing the side walls, the front sensors
+    (calibrated against the encoders) give the robot's offset to the right of
+    the first heading, x = (F_left - F_right) / 2, whatever their offset; at
+    the first heading and its opposite the side sensors read at +x and -x.
+    A heading whose beams land by a post (the robot off the cell's centre
+    front to back, seen by the front sensors) is left out."""
+    right, left = front_mean(stations[1]), front_mean(stations[3])
+    if right is None or left is None:
+        out.append("  Vuelta de 4 cuartos: ! falta una pared mirando a un lado; hazla en una celda cerrada por 3 lados")
+        return
+    x = (left - right) / 2
+    out.append("  Vuelta de 4 cuartos: robot a %+.1f mm a la derecha del centro (frontales: derecha %.1f, izquierda %.1f)"
+               % (x, right, left))
+    ref, keep = rec.number("front_ref_mm", 94), {0: True, 2: True}
+    for q in (0, 2):
+        front = front_mean(stations[q])
+        if front is not None and abs(front - ref) > 5:
+            keep[q if front < ref else 2 - q] = False
+    for q, offset in ((0, x), (2, -x)):
+        m = stations[q]
+        if not keep[q]:
+            out.append("   rumbo %3d: SL %.1f, SR %.1f mm, descartado (el robot no esta centrado delante-detras:"
+                       " los haces caen junto al poste)" % (q * 90, m["sl"], m["sr"]))
+        elif max(m["sl"], m["sr"]) >= rec.number("side_track_mm", 130):
+            out.append("   rumbo %3d: falta una pared lateral" % (q * 90))
+        else:
+            out.append("   rumbo %3d: SL %.1f, SR %.1f mm con el robot a %+.1f mm" % (q * 90, m["sl"], m["sr"], offset))
+            points.append((offset, m["sl"], m["sr"]))
+
+
+def side_fit(rec, points, out):
+    """Side readings against the offset measured by the front sensors: the
+    slope says whether each sensor's curve follows the robot's sideways
+    motion (1), the value at x = 0 is its centred reading."""
+    xs = [p[0] for p in points]
+    if len(points) < 2 or max(xs) - min(xs) < 10:
+        out.append("Laterales: hacen falta puntos separados al menos 10 mm (mueve el robot a un lado entre vueltas)")
+        return
+    kl, cl = fit_line(xs, [p[1] for p in points])
+    kr, cr = fit_line(xs, [p[2] for p in points])
+    worst = max(max(abs(sl - (cl + kl * x)), abs(sr - (cr + kr * x))) for x, sl, sr in points)
+    old_l, old_r = rec.number("center_l", cl), rec.number("center_r", cr)
+    out.append("Laterales con %d puntos, robot de %+.1f a %+.1f mm: SL = %.1f %+.3f x, SR = %.1f %+.3f x"
+               " (residuo max %.1f mm)" % (len(points), min(xs), max(xs), cl, kl, cr, kr, worst))
+    out.append("  pendiente SL %.2f, SR %.2f (1: la curva sigue al desplazamiento; si se aleja mas de un 10 %%,"
+               " recalibra la curva de ese sensor)" % (kl, -kr))
+    out.append("  centrado: TUNE CENTER_L %.1f, TUNE CENTER_R %.1f (ahora %.1f / %.1f): con las dos paredes el"
+               " robot se centraria %.1f mm mas a la derecha" % (cl, cr, old_l, old_r, ((cl - old_l) - (cr - old_r)) / 2))
 
 
 def controlled(rec):
@@ -778,7 +847,9 @@ ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir, "run
 
 def report(paths):
     out, measured_pairs, motor_points = [], [], []
-    mirror = None   # side readings of the last CAL NOISE, quarters turned since
+    mirror = None   # readings of the last CAL NOISE, quarters turned since
+    stations, turned = None, 0          # a round's readings by heading (quarters)
+    side_points, side_rec = [], None    # (offset, SL, SR) from the rounds
     for path in paths:
         rec = load(path)
         out.append("=" * 72)
@@ -808,16 +879,31 @@ def report(paths):
             ANALYSES[rec.kind](rec, out)
         else:
             out.append("  prueba desconocida: %s" % rec.kind)
-        # CAL NOISE, CAL TURN 2, CAL NOISE in a corridor: the side sensors' centres.
+        # The side sensors: CAL NOISE, CAL TURN 2, CAL NOISE in a corridor
+        # (their centres), or rounds of CAL NOISE + CAL TURN 1 (see side_round).
         if rec.kind == "noise" and rec.n:
-            sides = side_means(rec)
-            if mirror and sides and mirror[1] % 4 == 2:
-                mirror_centres(rec, mirror[0], sides, out)
-            mirror = (sides, 0) if sides else None
+            means = rest_means(rec)
+            if mirror and means and mirror[1] % 4 == 2:
+                mirror_centres(rec, mirror[0], means, out)
+            mirror = (means, 0) if means else None
+            if means is None:
+                stations = None
+            else:
+                if stations is None:
+                    stations, turned = {}, 0
+                stations[turned % 4] = means
+                if len(stations) == 4:
+                    side_round(rec, stations, out, side_points)
+                    stations, side_rec = None, rec
         elif rec.kind == "turn" and mirror:
-            mirror = (mirror[0], mirror[1] + (rec.args[0] if rec.args else 4))
+            quarters = rec.args[0] if rec.args else 4
+            mirror = (mirror[0], mirror[1] + quarters)
+            turned += quarters
         else:
-            mirror = None
+            mirror = stations = None
+    if side_rec:
+        out.append("=" * 72)
+        side_fit(side_rec, side_points, out)
     lengths = {cells for cells, _ in measured_pairs}
     if len(lengths) >= 2:
         # needed(N) = N * CELL_TICKS + MOVE_EXTRA_TICKS, least squares over all measured straights.
