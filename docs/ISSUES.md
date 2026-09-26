@@ -9,8 +9,10 @@ commit when done. Details go in the docs it points to, not here.
 10. **Next flash** (built, not flashed; keeps map, goal and params): the
    wall followers (modes 2/3) drive straights without stopping like the
    search (`drive_leg()` shared with it; `CONT OFF` stops in every cell);
-   host: same cells, 36 % fewer stops. After it: modes 2 and 3 on E (no
-   follower runs before this flash, the user's request). Also pending, low
+   host: same cells, 36 % fewer stops. Also: after boot the LEDs sweep
+   until SELECT picks mode 1 (START ignored until then). After it: check
+   the sweep and SELECT, then modes 2 and 3 on E (no follower runs before
+   this flash, the user's request). Also pending, low
    priority: `TURN_CARRY` 1 would need its own in-place scale (TURNTICKS
    398 for turns, 403 for curves); no clear gain on D, carry stays 0.
 6. **Roadmap, not started:** side-sensor calibration. Dropped by the user

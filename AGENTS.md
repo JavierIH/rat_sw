@@ -169,7 +169,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `tools/dashboard.py`: live panel for `diag_test`.
 
 ## Operating the robot
-- SELECT cycles the mode (LED n = mode n): 1 search, 2/3 left/right wall
+- After boot the LEDs sweep 1 -> 6 -> 1 until SELECT picks mode 1 (START
+  is ignored until then; console `MODE`/`START` also pick one). Then SELECT
+  cycles the mode (LED n = mode n): 1 search, 2/3 left/right wall
   follower (to the goal; straights without stopping like the search,
   `CONT OFF` stops in every cell), 4 speed run with FAST 800
   CURVE 300, 5 speed run with FAST 900 CURVE 480 (`FAST_SAFE_*`,

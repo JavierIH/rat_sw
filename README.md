@@ -16,8 +16,8 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 
 | Botón | Parado | Durante un run |
 |---|---|---|
-| SELECT | cambia de modo (LED n encendido = modo n) | — |
-| START | lanza el modo tras 5 s de cuenta atrás | detiene el run |
+| SELECT | tras el arranque (LEDs en vaivén) elige el modo 1; luego cambia de modo (LED n = modo n) | — |
+| START | lanza el modo tras 5 s de cuenta atrás (ignorado hasta elegir modo) | detiene el run |
 
 Modos: 1 búsqueda, 2/3 seguidor de pared izquierda/derecha (hasta la meta),
 4 carrera rápida segura (`FAST 800 CURVE 300`), 5 carrera rápida (`FAST 900

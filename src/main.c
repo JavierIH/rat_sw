@@ -24,6 +24,7 @@ static const char *const MODE_NAME[MODE_COUNT + 1] = {
 };
 
 static uint8_t mode = MODE_SEARCH;
+static uint8_t mode_chosen;         // 0 after boot: the LEDs sweep until SELECT (or MODE, START)
 static uint8_t run_active;
 static volatile uint8_t start_requested;
 static volatile uint8_t cal_requested;
@@ -44,6 +45,7 @@ void app_request_cal(cal_test_t test, int32_t a, int32_t b){
 uint8_t app_set_mode(uint8_t m){
     if(m < 1 || m > MODE_COUNT) return 0;
     mode = m;
+    mode_chosen = 1;
     if(m == MODE_FAST_SAFE){
         params.fast_speed = FAST_SAFE_SPEED;
         params.curve_speed = FAST_SAFE_CURVE;
@@ -79,8 +81,13 @@ void app_systick(void){
     calib_tick_1ms();
 }
 
-// Idle: the selected mode's LED, briefly off once a second as a heartbeat.
+// Idle: the boot sweep until a mode is chosen, then the selected mode's LED,
+// briefly off once a second as a heartbeat.
 static void show_mode(void){
+    if(!mode_chosen){
+        leds_sweep_frame(HAL_GetTick());
+        return;
+    }
     uint8_t on = (HAL_GetTick() % 1000u) >= 100u;
     leds_set_mask(on ? (uint8_t)(1u << (6u - mode)) : 0u);    // bit 5 = LED 1 ... bit 0 = LED 6
 }
@@ -130,6 +137,7 @@ static void erase_map_confirmed(void){
 }
 
 static void run_mode(uint8_t m){
+    mode_chosen = 1;
     motion_clear_abort();
     buttons_clear();
     run_active = 1;
@@ -267,17 +275,16 @@ int main(void){
     uart_start_receive();
     print_banner(stored);
     compact_store();
-    leds_sweep(2);
     sync_telemetry(TM_IDLE);
 
     for(;;){
         report_health();
         commands_poll();
         if(button_take_press(BUTTON_SELECT)){
-            app_set_mode((uint8_t)(mode % MODE_COUNT + 1));
+            app_set_mode(mode_chosen ? (uint8_t)(mode % MODE_COUNT + 1) : MODE_SEARCH);
             print("modo %u: %s\n", mode, MODE_NAME[mode]);
         }
-        uint8_t pressed = button_take_press(BUTTON_START);
+        uint8_t pressed = button_take_press(BUTTON_START) && mode_chosen;    // no mode yet: ignored
         if(pressed) search_set_home();  // someone is at the robot: it stands at the start
         if(pressed || start_requested){
             start_requested = 0;
