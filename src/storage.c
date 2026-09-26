@@ -52,7 +52,9 @@ static uint8_t params_sane(const params_t *p){
         && p->log_level <= 2 && p->telemetry <= 1;
 }
 
-uint8_t storage_save(void){
+// Every write risks wedging the flash (docs/freezes.md): skip the ones that
+// would change nothing (a speed run's end), unless forced.
+static uint8_t save(uint8_t force){
     memset(&record, 0, sizeof(record));
     record.magic = STORE_MAGIC;
     record.version = STORE_VERSION;
@@ -62,7 +64,16 @@ uint8_t storage_save(void){
     maze_export(&record.maze);
     record.params = params;
     record.crc = record_crc(&record);
+    if(!force && memcmp(flash_store_data(), &record, sizeof(record)) == 0) return STORAGE_UNCHANGED;
     return flash_store_write(&record, sizeof(record));
+}
+
+uint8_t storage_save(void){
+    return save(0);
+}
+
+uint8_t storage_rewrite(void){
+    return save(1);
 }
 
 storage_status_t storage_load(void){

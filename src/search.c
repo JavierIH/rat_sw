@@ -201,7 +201,9 @@ static run_result_t fail_plan(const char *why){
 }
 
 static void save_map(void){
-    if(storage_save()) print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count());
+    const uint8_t r = storage_save();
+    if(r == STORAGE_UNCHANGED) print("Mapa ya guardado (sin cambios)\n");
+    else if(r) print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count());
     else print("!! no se pudo guardar el mapa en flash\n");
 }
 
@@ -300,7 +302,8 @@ static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
         if(!stopped) return PHASE_STOP;
         print("Meta alcanzada en (%u,%u) tras %u acciones\n", pose.x, pose.y, e->steps);
         motion_indicate(IND_GOAL);
-        save_map();
+        // No save here: the map is saved once, at the end (a flash write
+        // stalls the robot, and one right after a move once froze it).
         e->phase = PH_OPTIMIZE;
         telemetry_activity(TM_OPTIMIZE);
     }

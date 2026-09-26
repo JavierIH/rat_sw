@@ -432,7 +432,23 @@ static void test_storage(void){
     params.turn_ticks = 415;
     params.accel = 4321;
     params.ki = 0.75f;
-    CHECK(storage_save());
+    CHECK_EQ(storage_save(), 1);
+    // The same record again: nothing written (every write risks the flash);
+    // a change or a forced rewrite writes.
+    int writes = fake_flash_writes;
+    CHECK_EQ(storage_save(), STORAGE_UNCHANGED);
+    CHECK_EQ(fake_flash_writes, writes);
+    CHECK_EQ(storage_rewrite(), 1);
+    CHECK_EQ(fake_flash_writes, writes + 1);
+    maze_mark_visited(5, 5);
+    CHECK_EQ(storage_save(), 1);
+    CHECK_EQ(fake_flash_writes, writes + 2);
+    maze_init();
+    maze_observe(4, 4, EAST, 1);
+    maze_mark_crossed(0, 0, NORTH);
+    maze_mark_visited(4, 4);
+    maze_set_goal(3, 2, 3, 2);
+    CHECK_EQ(storage_save(), 1);
 
     maze_init();
     maze_set_goal(7, 7, 8, 8);
