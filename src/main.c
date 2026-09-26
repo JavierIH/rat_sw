@@ -183,6 +183,7 @@ static void run_mode(uint8_t m){
         }
     }
     motion_stop();
+    calib_run_finished();
     run_active = 0;
     motion_clear_abort();
     buttons_clear();

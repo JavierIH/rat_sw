@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include "stm32f1xx_hal.h"
+#include "calib.h"
 #include "commands.h"
 #include "control.h"
 #include "encoder.h"
@@ -500,6 +501,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
     float vmax = 0.0f, at = 0.0f, planned_end = run.length;
     path_on = 1;
     guard_start(&g, MOVE_TIMEOUT_BASE_MS + (uint32_t)path->cells * MOVE_TIMEOUT_PER_CELL_MS);
+    calib_path_start();
     control_go();
     for(;;){
         wait_next_ms();
@@ -628,6 +630,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         if(run.scale_min < 0.995f) print(" ritmo=%d%%", (int)(100.0f * run.scale_min + 0.5f));
         print_errors(&g);
     }
+    calib_path_end(move_result_name(result));
     if(emergency){
         // Braked hard on a straight: back to the last cell centre passed,
         // which the encoders know exactly.

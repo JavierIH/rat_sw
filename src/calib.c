@@ -37,9 +37,17 @@ static float ref_fwd0, ref_rot0, ref_fwd_last, ref_rot_last;
 static uint8_t ref_id;
 static char description[32];
 static const char *outcome = "sin datos";
+static uint8_t run_armed;               // CAL RUN: 1 armed, 2 recording a run's move, 3 to dump
+static volatile uint16_t coast_left;    // ms still to record after that move
+
+static void dump(void);
 
 void calib_tick_1ms(void){
     if(!recording) return;
+    if(coast_left && --coast_left == 0){
+        recording = 0;
+        return;
+    }
     if(divider == 0){
         if(count >= CAL_CAPACITY){
             // Full: halve the resolution instead of losing the end of the
@@ -101,7 +109,33 @@ static void record_stop(void){
 }
 
 uint8_t calib_moves(cal_test_t test){
-    return test != CAL_NOISE && test != CAL_DUMP;
+    return test != CAL_NOISE && test != CAL_DUMP && test != CAL_RUN;
+}
+
+void calib_path_start(void){
+    if(run_armed != 1) return;
+    snprintf(description, sizeof(description), "run");
+    coast_left = 0;
+    record_start(2);    // halves by itself if the move runs longer
+    run_armed = 2;
+}
+
+void calib_path_end(const char *result){
+    if(run_armed != 2) return;
+    outcome = result;
+    coast_left = CAL_COAST_MS;
+    run_armed = 3;
+}
+
+void calib_run_finished(void){
+    if(run_armed < 2) return;
+    record_stop();
+    coast_left = 0;
+    if(run_armed == 2) outcome = "ABORTADO";
+    run_armed = 0;
+    print("CAL run: %s, %u muestras cada %u ms%s\n", outcome, count, period_ms,
+          full ? " (buffer lleno: solo el principio)" : "");
+    dump();
 }
 
 // ---- Dump ----------------------------------------------------------------------------
@@ -239,6 +273,10 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
             break;
         case CAL_DUMP:
             dump();
+            return;
+        case CAL_RUN:
+            run_armed = 1;
+            print("CAL RUN: se grabara el proximo movimiento continuo del run\n");
             return;
     }
     motion_stop();

@@ -17,11 +17,18 @@ typedef enum {
     CAL_STEP,       // open-loop PWM step then coast: motor model, braking
     CAL_IR,         // back away from a front wall: IR curve vs distance
     CAL_DUMP,       // send the last recording again
+    CAL_RUN,        // arm: record the next continuous move of a run (speed run to the goal, search leg)
 } cal_test_t;
 
 void calib_tick_1ms(void);              // from SysTick
 uint8_t calib_moves(cal_test_t test);   // 1 if the robot will move
 // Runs `test` with its (validated) arguments and dumps the samples.
 void calib_run(cal_test_t test, int32_t a, int32_t b);
+// CAL RUN: motion.c marks where a continuous move starts and ends (the
+// recording goes on CAL_COAST_MS after it); main.c dumps it once the run is
+// over.
+void calib_path_start(void);
+void calib_path_end(const char *result);
+void calib_run_finished(void);
 
 #endif // CALIB_H
