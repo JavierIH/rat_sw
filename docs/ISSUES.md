@@ -15,21 +15,25 @@ commit when done. Details go in the docs it points to, not here.
    saved (safe); the code default is still 480. Ring layout F
    (`docs/mazes.md`; `docs/control.md`, "curve angle on the ring"),
    analysed offline: the centring's turns are real; the encoders run ~3
-   deg/m ahead of the robot (to the right; wheels 0.3 % apart?) and the
-   curves at 300 turn 1.3 +- 0.7 deg less than asked (a real 90 needs ~92
-   encoder deg). `calib_analyze.py --chain <session csvs>` follows it.
-   Next (robot on F, centring on: KP 0.7 KI 8; never loops without it at
-   400/480): a right and a left loop at 400, then at 480, each between
-   border stops (`CAL STRAIGHT 1 300` ending `fin=IR`), same moves as
-   20:17-20:28; `--chain`: curve error = (right - left loop) / 8 per speed;
-   fit `TUNE CURVE_ANGLE`/`CURVE_SLIP` (no flash). For the next flash,
-   each behind TUNE: turns' shortfall carry-over (`TURNTICKS` ~401.5), a
-   wheel trim for the drift, the nose lever in the centring's observer.
+   deg/m ahead of the robot (to the right; wheels 0.3 % apart?).
+   `calib_analyze.py --chain <session csvs>` follows it. Loops at 400 and
+   480 with centring (21:06-21:22, all clean): the curves' slip is ~1.5
+   +- 0.7 deg at 300-480, not growing with speed; the asked angles (90 +
+   2.0 (v/480)^2) are within ~0.7 of the ~91.5 needed: no change. So the
+   curves' heading is calibrated; E's +20 mm at 480 is the sideways
+   displacement. Next: trim the drift live, `TUNE WHEEL_DIFF -0.003`
+   (exists; ~1011 x value deg/m) on layout D's long straights at 300,
+   `--chain` before/after (drift should go from ~3 to ~0 deg/m); then, for
+   the next flash, a `CURVE_PRE` growing as (v/480)^2 (E's kinematic model:
+   ~+7 at 480 cancels its +20 mm), tried on single curves at 400 before E.
+   Also for that flash, behind TUNE: turns' shortfall carry-over
+   (`TURNTICKS` ~401.5), the nose lever in the centring's observer.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
    the same work before without drops. 20:32-21:00: 237 drops with the
-   robot at rest on layout F after the ring session (low battery?). Next:
+   robot at rest on layout F after the ring session (low battery?).
+   21:04-21:22, charged: no drops in 30 dumps. Next:
    charge it; if it goes on, note where the robot and the PC are, try a
    dump next to the PC, and watch `btmon`.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal

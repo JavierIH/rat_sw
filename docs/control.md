@@ -164,7 +164,9 @@ Read the section you are about to touch; AGENTS.md has the rules.
   "+3.5 deg" there; ~4.8 on the ring, a stop every 0.33 m: maybe ~0.5 per
   stop more; 0.3 % between the wheels would do it), and the curves turn
   1.3 +- 0.7 deg less than the encoders count (loops without centring:
-  right 10.3, left 0.2 deg ahead), so a real 90 at 300 needs ~92. The
+  right 10.3, left 0.2 deg ahead): 90.78 asked turns ~89.5, so a real 90
+  at 300 needs ~91.3 (the drift aside: it adds ~1.3 to every right curve
+  and takes it from every left one). The
   centring keeps the robot parallel and the encoders count that correction
   (374.5 for 361.7 real by FL-FR); without it the same error stays as yaw
   (362.8 for 352.5 real). L1's "360" was FL-FR facing the island after a
@@ -174,6 +176,28 @@ Read the section you are about to touch; AGENTS.md has the rules.
   at the nose, `SIDE_LEVER_MM`): the firmware's observer ignores it, so
   every turn of the centring looks like a lateral surprise and moves the
   bias against it (the heading a move ends with is that bias).
+  At 400 and 480 (21:06-21:22, centring on: KP 0.7 KI 8, CURVE_ANGLE 90,
+  CURVE_SLIP 2.0; one right and one left loop each, same moves; every
+  move OK, tracking <= 2.1 mm / 2.7 deg, <= ~10 mm off-centre at the
+  stops): encoders minus real per loop, border stop to border stop, 400:
+  right +20.6, left +4.8; 480: right +9.9, left +4.5. With the centring
+  the robot ends every move parallel and the encoders count the
+  correction, so a loop measures the slip whatever angle the curve asks:
+  (right - left) / 8 = 2.0 (400), 0.7 (480); from the encoder totals of
+  each curve move 1.6 and 1.5, from the chain's fits after each curve 2.1
+  and 1.8. So ~1.5 +- 0.7 deg at 300-480: the slip does not grow as v^2
+  here, the curves need ~91.5 encoder deg at every speed, and the asked
+  90.78 / 91.39 / 92.0 are within ~0.7 of it, under the noise of a loop
+  pair: CURVE_ANGLE / CURVE_SLIP stay. The common part, (right + left) /
+  2, 12.7 and 7.2 per loop (~1.7 m, two 180s; 5.3 at 300 without
+  centring), is more than the ~3 deg/m drift. The right loops end 7-23 mm
+  short of (0,1) at every speed (the last straight to the border 188-204
+  mm, 181 from the centre), no trend. A lone `CAL CURVE` cannot calibrate
+  `CURVE_PRE`: its exit lateral (-12..+20 mm) follows the entry's (up to
+  15 mm: it starts from the previous stop, 90 mm before the curve). The
+  encoder drift can be trimmed live: `TUNE WHEEL_DIFF` (left wheel travel
+  per tick / right - 1) moves the encoder heading by ~1011 x WHEEL_DIFF
+  deg per metre; -0.003 would cancel 3 deg/m to the right.
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The
