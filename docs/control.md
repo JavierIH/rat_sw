@@ -140,6 +140,22 @@ Read the section you are about to touch; AGENTS.md has the rules.
   displacement (sideways slip), not the heading. Never tune curves live on
   a full-speed staircase: calibrate them on single curves with a straight
   after (the centring recovers there).
+- Curve angle on the ring (layout F, 2026-09-26 20:03-20:31, CURVE_SLIP
+  2.0, 300 mm/s): four `CAL CURVE` of one side round the island, back to
+  the same spot. Physical rotation from FL-FR at a border stop (`CAL
+  STRAIGHT 1` ending `fin=IR`: same distance every time; FL-FR facing the
+  island after a turn was off by several degrees: the end spot varies
+  +-15 mm), against the encoder totals `IR` prints; in-place turns in +-
+  pairs cancel. Without centring (`KP 0`, `KI 0`): right loop physical
+  354.3 / encoders 362.8, left 363.0 / 362.4 (one of each): the curves
+  turn ~1.0 deg less than the encoders count on both sides (90.78 asked ~
+  89.8 real: fine at 300), plus a common leftward drift of ~4.6 deg per
+  loop (~1.7 m, 6 stops: 0.3 % between the wheels, or the stops). With the
+  centring on, the same right loop gave encoders 365.4 and 374.5 for ~360
+  physical: the centring's rotations on the 95 mm straights (0.6-3 deg
+  per move) do not add up as physical rotation. Unexplained. Without
+  centring the yaw carries from move to move: the third loop started 3 deg
+  yawed and hit the island at the end of its first curve (300 mm/s).
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The

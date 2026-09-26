@@ -130,6 +130,29 @@ Drawn from the robot's `MAP` after its search (31 actions, no "!!").
   No straight between the curves: nothing corrects the robot's position
   there, so each curve's error carries into the next (issue 1).
 
+## F: a ring round an island (2026-09-26 20:00, curve calibration)
+
+From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
+(2,1); add east of (1,1), north of (1,0) and north of (1,1).
+
+```
+      0   1   2   3
+    +---+---+---+---+
+  2 |               |
+    +   +---+   +   +
+  1 |   |   |   |   |
+    +   +---+   +   +
+  0 |               |
+    +---+---+---+---+
+```
+
+- Walls (5): east of (0,1), (1,1) and (2,1); north of (1,0) and (1,1).
+- Only for `CAL` moves (the start is open to the east: no searches or
+  speed runs). From (0,1), four `CAL CURVE 1` go round the island
+  clockwise, four `CAL CURVE -1` anticlockwise, back to (0,1) with the
+  same heading; the robot measures FL-FR on the border at (0,2) facing
+  north or (0,0) facing south (`docs/control.md`, curve angle on the ring).
+
 ## Every wall at a glance
 
 Only the positions that hold a wall in some layout; the other 6 internal

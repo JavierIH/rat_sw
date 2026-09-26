@@ -12,14 +12,18 @@ commit when done. Details go in the docs it points to, not here.
    six curves in a row), last straight: CURVE 480 +19..+21 mm left (4 runs),
    CURVE 300 ~0; live `CURVE_PRE -8` and `CURVE_SLIP 0` crashed the robot
    (details in `docs/control.md`, curve slip). The robot keeps `CURVE 300`
-   saved (safe); the code default is still 480. Next: calibrate the curve
-   angle on single curves (ask the user for a layout with one curve then 2+
-   cells walled on both sides, left and right; `CAL CURVE` at 300, 400, 480,
-   the heading after each from `calib_analyze.py`'s "paralelo a las
-   paredes" line; E hints left curves turn ~0.6 deg more than right ones),
-   then set `CURVE_SLIP`/`CURVE_ANGLE` and re-check E starting at 300. The
-   root fix of the turns (carry each turn's ~0.78 deg shortfall into the
-   next move, `TURNTICKS` to ~401.5) needs a flash: batch it with the curves.
+   saved (safe); the code default is still 480. Ring layout F
+   (`docs/mazes.md`; results in `docs/control.md`, "curve angle on the
+   ring"): at 300 without centring the curves turn ~1.0 deg less than the
+   encoders on both sides (fine at 300) plus a ~4.6 deg leftward drift per
+   loop; with centring the encoder totals varied 9 deg for the same loop
+   (unexplained); a third loop without centring started 3 deg yawed and
+   hit the island (20:31, 300 mm/s). Next: before more robot time, find
+   offline in the ring's dumps (tools/calib_data 20:04-20:31) why the
+   centring's rotations do not add up; no loops without centring at
+   400/480. The root fix of the turns (carry each turn's ~0.78 deg
+   shortfall into the next move, `TURNTICKS` to ~401.5) needs a flash:
+   batch it with the curves.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
