@@ -34,13 +34,19 @@ static void set_direction(motor_t motor, uint8_t forward){
 }
 
 static volatile int16_t requested[2];
+static volatile uint32_t last_drive_ms;     // HAL tick of the last non-zero duty requested
 
 int16_t motor_get(motor_t motor){
     return requested[motor];
 }
 
+uint32_t motor_idle_ms(void){
+    return HAL_GetTick() - last_drive_ms;
+}
+
 void motor_set(motor_t motor, int16_t pwm){
     requested[motor] = pwm;
+    if(pwm) last_drive_ms = HAL_GetTick();
 #if MOTORS_ENABLED
     int32_t duty = pwm;
     set_direction(motor, duty > 0);

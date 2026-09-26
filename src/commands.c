@@ -132,9 +132,16 @@ static void cmd_status(const char *args){
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(ki, sizeof(ki), params.ki), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     print("pila: %lu bytes sin usar nunca | reinicio: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
-    print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx | ultima escritura de la flash %lu ms\n",
+    print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
-          (unsigned long)flash_store_last_ms());
+          (unsigned long)FLASH->ACR, (unsigned long)FLASH->OBR, (unsigned long)FLASH->WRPR);
+    // Which chip (a clone's flash may behave differently): CPUID r1p1 on the
+    // STM32F103; IDCODE reads 0 there without a debugger.
+    const flash_timing_t *ft = flash_store_timing();
+    print("chip CPUID=%08lx IDCODE=%08lx %u KB | flash: prueba %lu us, borrado %lu ms, escritura %lu ms%s\n",
+          (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE, *(const volatile uint16_t *)FLASHSIZE_BASE,
+          (unsigned long)ft->probe_us, (unsigned long)ft->erase_ms, (unsigned long)ft->program_ms,
+          flash_store_blocked() ? " BLOQUEADA" : "");
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
@@ -458,6 +465,11 @@ static void cmd_cal(const char *args){
 
 static void cmd_reset(const char *args){
     (void)args;
+    if(flash_store_blocked()){
+        // After a wedged write a software reset once did not boot at all.
+        print("!! flash bloqueada: un RESET puede no arrancar. Apaga y enciende el robot\n");
+        return;
+    }
     motion_stop();
     print("reiniciando...\n");
     uart_flush(1500);

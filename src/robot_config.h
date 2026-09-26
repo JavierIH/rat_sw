@@ -243,6 +243,13 @@
 #define START_DELAY_MS          2000    // countdown after START (hands away)
 #define BUTTON_DEBOUNCE_MS      20
 
+// ---- Flash store (flash_store.c) ----------------------------------------------------------
+// Every write that wedged the flash (docs/freezes.md) began within ms of the
+// end of a move; 92 writes at rest or 1-2 s after hard moves were all fine.
+// A write first waits until the motors have been off this long and the
+// UART has nothing left to send.
+#define FLASH_SETTLE_MS         1000
+
 // ---- Planner / strategy ------------------------------------------------------------
 // Costs in arbitrary units per cell and per 90 deg turn. Search moves stop at
 // every cell, so a turn costs about half a cell. Speed runs take every turn
