@@ -2,18 +2,21 @@
 // only fills erased space, an erase clears one page. It can wedge like the
 // robot's flash (docs/freezes.md): after fake_flash_fail_after more halfwords
 // the next one never lands and the store refuses everything until
-// fake_flash_power_cycle().
+// fake_flash_power_cycle(). After fake_flash_glitch_after more halfwords the
+// next one lands wrong and the write fails, the store still usable (a slow
+// halfword the HSI restart recovered from).
 #include <string.h>
 #include "flash_store.h"
 
 unsigned char fake_flash[FLASH_STORE_SIZE];
 int fake_flash_programs, fake_flash_erases;
 int fake_flash_fail_after = -1;     // halfwords (or erases) still fine; -1: never wedges
+int fake_flash_glitch_after = -1;   // halfwords still right; -1: never lands one wrong
 static uint8_t blocked;
 
 void fake_flash_power_cycle(void){
     blocked = 0;
-    fake_flash_fail_after = -1;
+    fake_flash_fail_after = fake_flash_glitch_after = -1;
 }
 
 void fake_flash_wipe(void){
@@ -46,6 +49,7 @@ uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
         if(fake_flash[offset + i] != 0xFFu) return 0;
     }
     fake_flash_programs++;
+    uint8_t right = 1;
     for(uint16_t i = 0; i < len; i += 2u){
         if(fake_flash_fail_after == 0){
             blocked = 1;
@@ -53,6 +57,11 @@ uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
         }
         if(fake_flash_fail_after > 0) fake_flash_fail_after--;
         memcpy(fake_flash + offset + i, (const unsigned char *)data + i, 2);
+        if(fake_flash_glitch_after == 0){
+            fake_flash[offset + i] ^= 0x10u;
+            right = 0;
+        }
+        if(fake_flash_glitch_after >= 0) fake_flash_glitch_after--;
     }
-    return 1;
+    return right;
 }

@@ -149,8 +149,12 @@ storage_save_t storage_save(void){
     record.crc = record_crc(&record);
     // What the current record already holds is not written again.
     if(current >= 0 && memcmp(slot_record((uint8_t)current), &record, sizeof(record)) == 0) return STORAGE_UNCHANGED;
-    const int8_t slot = free_slot();
+    int8_t slot = free_slot();
     if(slot < 0) return STORAGE_FULL;
+    if(put((uint8_t)slot)) return STORAGE_WRITTEN;
+    // A slow halfword the flash recovered from may have landed wrong
+    // (flash_store.c): once more, in the next erased slot.
+    if(flash_store_blocked() || (slot = free_slot()) < 0) return STORAGE_FAILED;
     return put((uint8_t)slot) ? STORAGE_WRITTEN : STORAGE_FAILED;
 }
 

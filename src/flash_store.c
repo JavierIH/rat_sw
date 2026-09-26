@@ -22,13 +22,18 @@ const void *flash_store_data(void){
 // instead of 22 ms, a halfword ~0.45 s instead of 56 us), and as the CPU runs
 // from the flash it stalls meanwhile. An erase cannot be cut short, so
 // storage.c erases only at boot; runs only program erased space, a halfword at
-// a time, each timed: the first slow one stops the write (one halfword, well
-// under a second, instead of minutes) and the store refuses everything after
-// it until a power cycle. The cycle counter times them: it keeps counting
-// while the CPU is stalled on the flash (SysTick does not).
+// a time, each timed (one slow halfword costs well under a second, not
+// minutes). The flash times its program and erase with the HSI, whatever
+// clock runs the CPU, and restarting the HSI cleared a wedge (09-27): so the
+// first slow halfword restarts it and the write goes on; a second slow one
+// (the restart did not help) or a failed one stops the write, and the store
+// refuses everything after it until a power cycle. The cycle counter times
+// them: it keeps counting while the CPU is stalled on the flash (SysTick
+// does not).
 #define HALFWORD_SLOW_US    1000u   // normal: ~56 us
 #define ERASE_SLOW_MS       200u    // normal: ~22 ms
 #define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond FLASH_SETTLE_MS
+#define HALFWORD_FAILED     0xFFFFFFFFu
 
 static flash_timing_t timing;
 static uint8_t blocked;
@@ -113,25 +118,25 @@ uint8_t flash_store_erase(uint8_t page){
     return 1;
 }
 
-// Programs one halfword and times it (us); 0xFFFFFFFF if it failed.
+// Programs one halfword and times it (us); HALFWORD_FAILED if it failed.
 static uint32_t program_halfword(uint32_t address, uint16_t value){
     const uint32_t t = DWT->CYCCNT;
     const uint8_t ok = HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, address, value) == HAL_OK;
     const uint32_t us = (DWT->CYCCNT - t) / cycles_per_us();
-    return ok ? us : 0xFFFFFFFFu;
+    return ok ? us : HALFWORD_FAILED;
 }
 
-// A wedged flash is timed by a crawling HSI, or wedged in itself: restart the
-// HSI and time one more halfword to tell (the store stays blocked anyway).
-static void hsi_restart_test(uint32_t address){
-    RCC->CR &= ~RCC_CR_HSION;   // ignored while the HSI runs the system (CLOCK HSI)
+// Off and on again (a few us). Not while the HSI runs the CPU (the crystal
+// failed): the RCC ignores clearing HSION then.
+static uint8_t hsi_restart(void){
+    const uint32_t cfgr = RCC->CFGR, sws = cfgr & RCC_CFGR_SWS;
+    if(sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC))) return 0;
+    RCC->CR &= ~RCC_CR_HSION;
     hsi_wait(0);
     RCC->CR |= RCC_CR_HSION;
     hsi_wait(1);
-    HAL_FLASH_Unlock();
-    const uint32_t us = program_halfword(address, 0u);
-    HAL_FLASH_Lock();
-    print("!! flash: tras reiniciar el HSI, 2 bytes en %lu us (normal ~56)\n", (unsigned long)us);
+    timing.hsi_restarts++;
+    return (RCC->CR & RCC_CR_HSIRDY) != 0;
 }
 
 uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
@@ -148,22 +153,38 @@ uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
     timing.first_us = timing.worst_us = 0;
     HAL_FLASH_Unlock();
     const uint8_t *src = (const uint8_t *)data;
-    uint8_t ok = 1;
-    uint16_t i;
-    for(i = 0; ok && i < len; i += 2u){
+    uint8_t ok = 1, restarted = 0, slow_right = 0;
+    uint32_t slow_us = 0, after_us = 0;    // the slow halfword; the slowest after the restart
+    for(uint16_t i = 0; ok && i < len; i += 2u){
         uint16_t value;
         memcpy(&value, src + i, sizeof(value));
         const uint32_t us = program_halfword(STORE_ADDR + offset + i, value);
         if(i == 0) timing.first_us = us;
         if(us > timing.worst_us) timing.worst_us = us;
-        ok = us <= HALFWORD_SLOW_US;
+        if(restarted && us > after_us) after_us = us;
+        if(us <= HALFWORD_SLOW_US) continue;
+        // Slow: restart the HSI once and go on; the next halfword tells.
+        ok = us != HALFWORD_FAILED && !restarted && hsi_restart();
+        if(ok){
+            restarted = 1;
+            slow_us = us;
+            slow_right = dst[i / 2u] == value;
+        }
     }
     const uint32_t hal_error = HAL_FLASH_GetError();
     HAL_FLASH_Lock();
     timing.program_ms = (DWT->CYCCNT - t0) / (cycles_per_us() * 1000u);
-    if(ok && memcmp((const void *)dst, data, len) == 0) return 1;
-    report(timing.worst_us == 0xFFFFFFFFu ? "escritura fallida" : "escritura LENTA, cortada", hal_error, rcc_cr, acr);
-    if(timing.worst_us != 0xFFFFFFFFu && i < len) hsi_restart_test(STORE_ADDR + offset + i);
+    const uint8_t right = memcmp((const void *)dst, data, len) == 0;
+    if(restarted){
+        print("!! flash: 2 bytes en %lu us (dato %s): HSI reiniciado; despues, peor %lu us (normal ~56)\n",
+              (unsigned long)slow_us, slow_right ? "bien" : "MAL", (unsigned long)after_us);
+    }
+    if(ok && right) return 1;
+    // The slow halfword landed wrong but the restart cured the flash: the
+    // store goes on (storage.c tries the next slot).
+    if(ok && restarted) return 0;
+    report(timing.worst_us == HALFWORD_FAILED ? "escritura fallida" : ok ? "verificacion fallida"
+           : "escritura LENTA, cortada", hal_error, rcc_cr, acr);
     return 0;
 }
 
@@ -171,6 +192,7 @@ uint8_t flash_store_probe(void){
     if(blocked) return 0;
     cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
+    uint8_t restarted = 0;
     for(uint8_t page = 0; page < FLASH_STORE_PAGES; page++){
         const uint32_t base = STORE_ADDR + (page + 1u) * FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE;
         for(uint32_t a = base; a < base + FLASH_STORE_SPARE; a += 2u){
@@ -182,8 +204,12 @@ uint8_t flash_store_probe(void){
             HAL_FLASH_Lock();
             timing.first_us = timing.worst_us = us;
             if(us <= HALFWORD_SLOW_US) return 1;
-            report("prueba LENTA", hal_error, rcc_cr, acr);
-            return 0;
+            if(us == HALFWORD_FAILED || restarted || !hsi_restart()){
+                report("prueba LENTA", hal_error, rcc_cr, acr);
+                return 0;
+            }
+            restarted = 1;
+            print("!! flash: prueba lenta (%lu us): HSI reiniciado, otra\n", (unsigned long)us);
         }
     }
     return 0;   // no spare halfword left: cannot tell

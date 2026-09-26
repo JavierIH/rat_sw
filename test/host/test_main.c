@@ -18,7 +18,7 @@
 
 extern int host_verbose;
 extern unsigned char fake_flash[FLASH_STORE_SIZE];
-extern int fake_flash_programs, fake_flash_erases, fake_flash_fail_after;
+extern int fake_flash_programs, fake_flash_erases, fake_flash_fail_after, fake_flash_glitch_after;
 void fake_flash_wipe(void);
 void fake_flash_power_cycle(void);
 
@@ -513,6 +513,18 @@ static void test_storage(void){
     maze_init();
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(9, 9));
+
+    // A halfword lands wrong but the flash recovers (the HSI restart): the
+    // save goes on into the next erased slot.
+    maze_mark_visited(7, 9);
+    const uint8_t free_before = storage_free_slots();
+    fake_flash_glitch_after = 40;
+    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    CHECK(!flash_store_blocked());
+    CHECK_EQ(storage_free_slots(), free_before - 2);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(maze_is_visited(7, 9));
 
     // The flash wedges 40 halfwords into a save: the write stops, the store
     // refuses everything until a power cycle, the previous record loads.
