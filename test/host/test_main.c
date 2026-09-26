@@ -517,6 +517,19 @@ static void test_storage(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// The firmware's own square root (control_sqrt: newlib's sqrtf pulls in ~2 KB
+// of double-precision code) against the C library's.
+static void test_sqrt(void){
+    float worst = 0.0f;
+    for(float x = 1e-4f; x < 1e7f; x *= 1.37f){
+        const float err = fabsf(control_sqrt(x) - sqrtf(x)) / sqrtf(x);
+        if(err > worst) worst = err;
+    }
+    CHECK(worst < 1e-6f);
+    CHECK(control_sqrt(0.0f) == 0.0f && control_sqrt(-4.0f) == 0.0f);
+    CHECK(control_sqrt(4.0f) == 2.0f);
+}
+
 // ---- Simulation --------------------------------------------------------------------
 
 typedef struct {
@@ -1613,6 +1626,7 @@ int main(int argc, char **argv){
     test_planner_basics();
     test_planner_against_reference();
     test_storage();
+    test_sqrt();
     test_run_control();
     test_fast_run_surprise_wall();
     test_search_modes();

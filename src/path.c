@@ -126,7 +126,7 @@ uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, 
     // curve speed must leave room to brake there. Every other curve is
     // followed by a straight or another curve at the same speed.
     const float room = curve->post + 0.5f * cell_mm;
-    r->v_curve = fminf(fminf(v_curve, v_straight), sqrtf(2.0f * accel * room));
+    r->v_curve = fminf(fminf(v_curve, v_straight), control_sqrt(2.0f * accel * room));
     // The faster the curves, the less they really turn for the same encoder angle.
     r->curve.angle = curve->angle + curve->slip_k * r->v_curve * r->v_curve;
     r->length = r->stop_at = length;

@@ -36,6 +36,10 @@ typedef struct {
     uint8_t active;     // still heading for the target
 } profile_t;
 
+// Square root (0 for x <= 0). Not newlib's sqrtf: its error path pulls ~2 KB
+// of double-precision code into a firmware that has no other use for it.
+float control_sqrt(float x);
+
 void profile_reset(profile_t *p);   // at rest at 0
 void profile_start(profile_t *p, float distance, float top, float final, float rate);
 void profile_step(profile_t *p, float dt);

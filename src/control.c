@@ -38,6 +38,17 @@ float profile_remaining(const profile_t *p){
     return rem > 0.0f ? rem : 0.0f;
 }
 
+float control_sqrt(float x){
+    if(!(x > 0.0f)) return 0.0f;
+    // The exponent halved is within ~6 %; each Newton step squares the
+    // error: three reach float precision.
+    union { float f; uint32_t u; } g = {x};
+    g.u = (g.u >> 1) + 0x1FC00000u;
+    float r = g.f;
+    for(uint8_t i = 0; i < 3; i++) r = 0.5f * (r + x / r);
+    return r;
+}
+
 // Fastest speed for the end of this step from which a point `rem` ahead can
 // still be reached at `final` braking at `rate`, counted from where the step
 // ends: next^2 = final^2 + 2 rate (rem - (v + next) dt / 2). Solved for
@@ -45,7 +56,7 @@ float profile_remaining(const profile_t *p){
 float profile_brake_speed(float v, float rem, float final, float rate, float dt){
     const float a_dt = rate * dt;
     const float disc = a_dt * a_dt + 4.0f * (final * final + 2.0f * rate * (rem - 0.5f * v * dt));
-    return disc > 0.0f ? 0.5f * (sqrtf(disc) - a_dt) : 0.0f;
+    return disc > 0.0f ? 0.5f * (control_sqrt(disc) - a_dt) : 0.0f;
 }
 
 void profile_resume(profile_t *p, float pos){

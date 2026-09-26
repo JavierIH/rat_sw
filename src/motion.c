@@ -408,7 +408,7 @@ static float curve_speed_limit(const curve_t *c){
     const float a = kv * control_cfg.tau * h / (c->radius * c->ramp);
     const float b = kv * (1.0f + h / c->radius);
     const float room = CURVE_PWM_SHARE * control_cfg.pwm_limit - control_cfg.ks;
-    return (sqrtf(b * b + 4.0f * a * room) - b) / (2.0f * a);
+    return (control_sqrt(b * b + 4.0f * a * room) - b) / (2.0f * a);
 }
 
 // ---- Search legs (motion_explore) ---------------------------------------------------------
