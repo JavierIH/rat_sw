@@ -75,21 +75,33 @@ static void show_mode(void){
     leds_set_mask(on ? (uint8_t)(1u << (MODE_COUNT - mode)) : 0u);
 }
 
+// The main loops say they are alive and report what the health checks and
+// the clock security system caught meanwhile.
+static void report_health(void){
+    health_alive();
+    uint32_t stall_ms, stall_pc, stall_lr;
+    if(health_take_stall(&stall_ms, &stall_pc, &stall_lr)){
+        print("!! el programa estuvo parado %lu ms en PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
+              (unsigned long)stall_pc, (unsigned long)stall_lr);
+    }
+    uint32_t expected, seen;
+    if(health_take_clock_change(&expected, &seen)){
+        print("!! osciladores cambiados sin pedirlo: RCC_CR %08lx -> %08lx%s\n", (unsigned long)expected,
+              (unsigned long)seen, (seen & RCC_CR_HSION) ? "" : " (HSI apagado: encendido otra vez)");
+    }
+    if(sysclock_recover()){
+        uart_retime();
+        health_clock_baseline();
+        print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
+    }
+}
+
 // Live sensor check (e.g. in the maze before a run). Motors stay off.
 static void sensor_monitor(void){
     print("Monitor de sensores: cualquier boton o STOP para salir\n");
     uint32_t next_print = HAL_GetTick();
     for(;;){
-        health_alive();
-        uint32_t stall_ms, stall_pc, stall_lr;
-        if(health_take_stall(&stall_ms, &stall_pc, &stall_lr)){
-            print("!! el programa estuvo parado %lu ms en PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
-                  (unsigned long)stall_pc, (unsigned long)stall_lr);
-        }
-        if(sysclock_recover()){
-            uart_retime();
-            print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
-        }
+        report_health();
         commands_poll();
         if(motion_abort_requested()) break;
         if(button_take_press(BUTTON_START) || button_take_press(BUTTON_SELECT)) break;
@@ -235,6 +247,7 @@ int main(void){
     health_init();
     HAL_Init();
     SystemClock_Config();
+    health_clock_baseline();
     LED_Init();
     UART_Init();
     PWM_Init();
@@ -249,10 +262,7 @@ int main(void){
     sync_telemetry(TM_IDLE);
 
     for(;;){
-        if(sysclock_recover()){
-            uart_retime();
-            print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
-        }
+        report_health();
         commands_poll();
         if(button_take_press(BUTTON_SELECT)){
             app_set_mode((uint8_t)(mode % MODE_COUNT + 1));

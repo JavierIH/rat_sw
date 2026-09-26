@@ -102,9 +102,14 @@ void uart_flush(uint32_t timeout_ms){
     while(!uart_tx_idle() && HAL_GetTick() - start < timeout_ms){}
 }
 
+// Called while waiting: the application says it is alive (health.c), so a
+// long printout is not taken for a stalled program.
+__weak void uart_waiting(void){
+}
+
 void uart_wait_space(uint32_t timeout_ms){
     uint32_t start = HAL_GetTick();
-    while(tx_count >= UART_TX_QUEUE_LEN && HAL_GetTick() - start < timeout_ms){}
+    while(tx_count >= UART_TX_QUEUE_LEN && HAL_GetTick() - start < timeout_ms) uart_waiting();
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){

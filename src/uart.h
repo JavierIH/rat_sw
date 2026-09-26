@@ -23,6 +23,7 @@ uint8_t uart_tx_idle(void);
 uint8_t uart_tx_full(void);
 void uart_flush(uint32_t timeout_ms);       // wait until everything queued was sent
 void uart_wait_space(uint32_t timeout_ms);  // wait for a free slot (bulk output while stopped)
+void uart_waiting(void);                    // called meanwhile (weak: the application's health check)
 
 // Pops one received line (without the line ending). 0 if none pending.
 uint8_t uart_read_line(char *buffer, uint8_t buffer_size);

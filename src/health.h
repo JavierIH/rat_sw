@@ -18,6 +18,14 @@ uint32_t health_stack_free(void);
 // address when it was caught).
 uint8_t health_take_stall(uint32_t *ms, uint32_t *pc, uint32_t *lr);
 
+// The oscillators in RCC->CR as the clock setup left them (call after every
+// intended clock change). health_alive() watches them: the freezes all came
+// in flash writes, and the flash needs the HSI on to erase and program. A
+// change nobody asked for turns the HSI back on and is kept (the first one)
+// for the main loop to report.
+void health_clock_baseline(void);
+uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen);
+
 #define HEALTH_STALL_MS 2000u
 
 #endif // HEALTH_H

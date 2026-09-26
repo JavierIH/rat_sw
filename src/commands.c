@@ -360,6 +360,7 @@ static void cmd_clock(const char *args){
             return;
         }
         uart_retime();
+        health_clock_baseline();
     }
     else if(p[0]){
         print("CLOCK [HSI]\n");

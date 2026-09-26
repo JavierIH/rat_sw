@@ -1,5 +1,6 @@
 #include "health.h"
 #include "stm32f1xx_hal.h"
+#include "uart.h"
 
 #define STACK_PAINT 0x5AA5C33Cu
 
@@ -9,6 +10,12 @@ static const char *reset_cause = "?";
 static volatile uint32_t alive_ms;
 static volatile uint8_t stalled, stall_ready;
 static volatile uint32_t stall_start, stall_ms, stall_pc, stall_lr;
+
+#define RCC_WATCH (RCC_CR_HSION | RCC_CR_HSIRDY | RCC_CR_HSEON | RCC_CR_HSERDY | RCC_CR_PLLON | RCC_CR_PLLRDY \
+                   | RCC_CR_CSSON)
+static uint32_t rcc_expected;       // 0 until the clock setup is done
+static uint32_t rcc_seen;
+static uint8_t rcc_changed;
 
 // Every word between the end of .bss and a little below the stack pointer
 // gets a pattern; whatever is still the pattern later was never used.
@@ -35,11 +42,35 @@ void health_init(void){
 void health_alive(void){
     const uint32_t now = HAL_GetTick();
     alive_ms = now;
+    const uint32_t cr = RCC->CR & RCC_WATCH;
+    if(rcc_expected && cr != rcc_expected && !rcc_changed){
+        rcc_seen = cr;
+        rcc_changed = 1;
+        if(!(cr & RCC_CR_HSION)) RCC->CR |= RCC_CR_HSION;
+    }
     if(stalled){
         stall_ms = now - stall_start;
         stalled = 0;
         stall_ready = 1;
     }
+}
+
+void health_clock_baseline(void){
+    rcc_expected = RCC->CR & RCC_WATCH;
+    rcc_changed = 0;
+}
+
+uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen){
+    if(!rcc_changed) return 0;
+    *expected = rcc_expected;
+    *seen = rcc_seen;
+    health_clock_baseline();    // report each change once
+    return 1;
+}
+
+// uart.c: waiting for room to print.
+void uart_waiting(void){
+    health_alive();
 }
 
 const char *health_reset_cause(void){
