@@ -227,7 +227,11 @@
 // (rotate by the angle FL - FR says), then fix the distance.
 #define SQUARE_MM_PER_DEG       1.2f    // FL - FR change per degree of yaw (TURNTICKS calibration: 1.07-1.16 mm per tick over 4 turns)
 #define SQUARE_TOL_MM           4       // |FL - FR - offset| tolerated (~3 deg)
-#define SQUARE_MAX_SKEW_MM      35      // beyond this the readings are not a flat wall: leave it
+// Beyond this (12 deg) the readings are not a flat wall square ahead: leave
+// it. Turns and hand placements leave up to ~9 deg (every squaring in the
+// logs was under 15 mm). At 35, a speed run that arrived off-centre scraping
+// the wall read 17 mm by the corner and turned 15 deg into it.
+#define SQUARE_MAX_SKEW_MM      15
 #define ALIGN_DEADBAND_MM       3       // distance to the front wall: no correction below this...
 #define ALIGN_MAX_MM            30      // ...nor beyond this (unreliable)
 #define ALIGN_SPEED             150     // mm/s of alignment and backing-up moves
