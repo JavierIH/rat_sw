@@ -78,7 +78,11 @@
 // regardless of where the robot stood: SR 87/65 and SL 76/101 (twice, alike).
 // SR reads ~8 mm short and SL ~5 mm long of LANE_WIDTH_MM / 2: centring on
 // 84 kept the robot ~8 mm towards the left wall. Hand-centred readings
-// agree (SR 76-80, SL 84-89). TUNE CENTER_L / CENTER_R to try values.
+// agree (SR 76-80, SL 84-89). Rounds of CAL NOISE + CAL TURN 1 in the start
+// cell at three offsets (2026-09-27, calib_analyze.py) gave SL 88.1 and SR
+// 75.3 centred, and slopes 0.95 / 0.99 against the offset the front sensors
+// measured: within ~1 mm, the centring target moves 0.1 mm, so kept.
+// TUNE CENTER_L / CENTER_R to try values.
 #define SIDE_CENTER_L_MM        89.0f
 #define SIDE_CENTER_R_MM        76.0f
 #define FRONT_WALL_REF_MM       94      // front IR average when centered in a cell facing a wall

@@ -52,7 +52,13 @@ Read the section you are about to touch; AGENTS.md has the rules.
   the lateral error (a Smith predictor for the IR delay). Readings are slew-limited (posts and wall edges jump), averaged
   over a sensor period and referred to `SIDE_CENTER_L/R_MM` (89/76: SL reads
   long and SR short; measured with 180 deg turns, which mirror the robot
-  across the centre line). With both walls their average is used, unless one
+  across the centre line; confirmed on 2026-09-27 at 88.1/75.3 by rounds of
+  four quarter turns at three offsets, where the front sensors facing the
+  side walls measure the offset: slopes 0.95 (SL) and 0.99 (SR), so the
+  curves follow the sideways motion. A 180 deg pair is only valid with the
+  robot centred front to back: 12-17 mm off, the beams of the heading facing
+  the near wall land by the post and read up to 1.5x the true motion).
+  With both walls their average is used, unless one
   reading is implausible: the angled beams catch posts and walls ahead
   (`STEER_ERROR_MAX_MM`), which once swerved the robot 35 deg. The offset is
   clamped (`STEER_MAX_DEG`) and curvature-limited (`STEER_CURVE_DEG_PER_MM`),

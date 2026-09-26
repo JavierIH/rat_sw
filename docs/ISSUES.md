@@ -6,11 +6,15 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-6. **Roadmap, not started:** side-sensor calibration. Dropped by the user
-   (2026-09-27): longitudinal correction on wall edges (too fine for our
-   precision) and diagonals.
+None.
 
 ## Closed
+
+- 2026-09-27 Side-sensor calibration (issue 6, roadmap): no flash needed.
+  `calib_analyze.py` now fits rounds of `CAL NOISE` + `CAL TURN 1` x4 (the
+  fronts facing the side walls measure the offset): slopes SL 0.95, SR 0.99,
+  centred 88.1/75.3 vs 89/76 in firmware (0.1 mm of centring), kept. The
+  180 deg pair needs the robot centred front to back (warns now).
 
 - 2026-09-27 Flash of the followers' straights and the boot sweep (issue
   10): sweep and SELECT OK; on E mode 2 reached the goal in 9 actions,

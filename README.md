@@ -107,6 +107,7 @@ mueven el robot esperan 2 s (START o STOP cancelan).
 | `CAL TURN [±cuartos]` | en el sitio; luego `/nota angulo <grados>` | `TURNTICKS`, sobregiro |
 | `CAL STEP [pwm] [ms]` | espacio libre delante | modelo del motor, frenada |
 | `CAL IR [mm]` | pegado a una pared de frente; `/nota inicio <mm> mm` | curva de los IR frontales |
+| vueltas de `CAL NOISE` + `CAL TURN 1` (x4) | en una celda cerrada por 3 lados, centrado delante-detrás; una vuelta por posición, moviendo el robot 10-15 mm a cada lado entre vueltas | pendiente y centro (`SIDE_CENTER_L/R_MM`) de los IR laterales |
 | `CAL DUMP` | — | reenviar la última grabación |
 
 ```
