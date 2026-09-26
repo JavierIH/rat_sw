@@ -28,8 +28,10 @@ commit when done. Details go in the docs it points to, not here.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
-   the same work before without drops. Next: if it goes on, note where the
-   robot and the PC are, try a dump next to the PC, and watch `btmon`.
+   the same work before without drops. 20:32-21:00: 237 drops with the
+   robot at rest on layout F after the ring session (low battery?). Next:
+   charge it; if it goes on, note where the robot and the PC are, try a
+   dump next to the PC, and watch `btmon`.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
 
