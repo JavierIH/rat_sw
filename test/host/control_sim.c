@@ -8,6 +8,7 @@
 #define DEAD_MAX 32
 #define SIDE_BEAM_MM_PER_DEG 0.33f  // the 15 deg side beam reads shorter as the robot yaws towards its wall
 #define FADE_MM 40.0f               // as STEER_FADE_MM in motion.c
+#define SIDE_BEAM_AHEAD_MM 20.0f    // where the angled side beams hit the walls, ahead of the robot's centre
 
 typedef struct {
     float gain, tau, friction, stiction;
@@ -20,6 +21,8 @@ static uint32_t rng;
 float sim_average = STEER_AVERAGE_MS;       // experiments: side IR averaging, ms
 float sim_curve = STEER_CURVE_DEG_PER_MM;   // experiments: centring curvature limit
 float sim_window = STEER_BIAS_WINDOW_MM;    // experiments: KI learning window
+float sim_observer = STEER_OBSERVER_MM;     // experiments: bias observer (0: the old integral)
+float sim_vref = STEER_VREF_MM_S;           // experiments: speed above which KP falls as 1/speed
 
 static float uniform(void){
     rng = rng * 1664525u + 1013904223u;
@@ -111,7 +114,7 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
         .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = sim_window, .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
+        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = sim_window, .observer_mm = sim_observer, .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
         .average_steps = (uint8_t)sim_average,
     };
     profile_t fwd, rot;
@@ -126,6 +129,11 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     motor_init(&ml, p->gain_l / MOTOR_KV_L, p);
     motor_init(&mr, p->gain_r / MOTOR_KV_R, p);
     rng = p->seed;
+    static float wall_error[64][2];
+    for(int i = 0; i < 64 && p->wall_error_mm > 0.0f; i++){
+        wall_error[i][0] = 2.0f * uniform() - 1.0f;
+        wall_error[i][1] = 2.0f * uniform() - 1.0f;
+    }
     const uint8_t steering = mm != 0.0f;
     if(steering) profile_start(&fwd, mm, speed, 0.0f, accel);
     else profile_start(&rot, deg, turn_speed, 0.0f, turn_accel);
@@ -155,13 +163,16 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
             // Sample and hold every ir_period_ms, quantized, as the real sensors.
             if(!p->ir_period_ms || t % (uint32_t)p->ir_period_ms == 1u || t == 1u){
                 const float step = p->ir_step_mm > 0.0f ? p->ir_step_mm : 0.001f;
-                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + ys - SIDE_BEAM_MM_PER_DEG * yaws + gauss(p->ir_noise)) / step);
-                held_l = step * roundf((LANE_WIDTH_MM / 2.0f - ys + SIDE_BEAM_MM_PER_DEG * yaws + gauss(p->ir_noise)) / step);
+                // Walls a few mm off: each cell's pair, from where the beams hit it.
+                const int cell = (int)floorf((r.travelled + SIDE_BEAM_AHEAD_MM) / CELL_MM + 0.5f) & 63;
+                const float off_r = p->wall_error_mm * wall_error[cell][0], off_l = p->wall_error_mm * wall_error[cell][1];
+                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + ys - SIDE_BEAM_MM_PER_DEG * yaws + off_r + gauss(p->ir_noise)) / step);
+                held_l = step * roundf((LANE_WIDTH_MM / 2.0f - ys + SIDE_BEAM_MM_PER_DEG * yaws + off_l + gauss(p->ir_noise)) / step);
             }
             const float sr = held_r, sl = held_l;
             const float remaining = fwd.target - (fwd.pos - c.fwd_error);
             const float fade = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;
-            const float gain = fade * (fwd.speed > STEER_VREF_MM_S ? STEER_VREF_MM_S / fwd.speed : 1.0f);  // as motion.c
+            const float gain = fade * (fwd.speed > sim_vref ? sim_vref / fwd.speed : 1.0f);  // as motion.c
             const float rot_now = rot.pos + c.steer_prev - c.rot_error;
             heading = steer_step(&s, &sk, sl, sr, 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM, rot_now, gain);
         }
@@ -195,6 +206,10 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     r.turned = turned;
     r.y_end = y;
     r.yaw_end = yaw;
+    // Parallel to the walls: the encoder heading minus the true yaw
+    // (steer_step()'s heading is > 0 to the right, as the yaw here).
+    r.bias_end = s.bias;
+    r.bias_true = (rot.pos + c.steer_prev - c.rot_error) - yaw;
     for(uint32_t i = 1; i < n; i++){
         if((y_hist[i] < 0.0f) != (y_hist[i - 1] < 0.0f)) r.crossings++;
         if(i >= n / 2 && fabsf(y_hist[i]) > r.y_late) r.y_late = fabsf(y_hist[i]);

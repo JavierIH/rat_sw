@@ -22,6 +22,7 @@ typedef struct {
     float ir_step_mm;           // ...in steps of about this much
     float y0;                   // start: mm left of the centre line
     float yaw0;                 // start: deg to the right of the corridor
+    float wall_error_mm;        // each wall of each cell off by up to this much (a real maze: ~3, up to 7)
     uint32_t seed;
 } plant_t;
 
@@ -31,6 +32,8 @@ typedef struct {
     float y_end;                // mm left of the centre at the end
     float y_late;               // largest |y| over the second half of the move
     float yaw_end;              // deg to the right of the corridor at the end
+    float bias_end;             // deg: the centring's idea of the encoder heading parallel to the walls...
+    float bias_true;            // ...and the real one
     float fwd_err_max, rot_err_max;
     int crossings;              // sign changes of y (weaving)
     int pwm_max;                // largest |PWM| asked
@@ -53,6 +56,8 @@ typedef struct {
 extern float sim_average;       // side IR averaging, ms (default STEER_AVERAGE_MS)
 extern float sim_window;        // KI learning window, mm (default STEER_BIAS_WINDOW_MM)
 extern float sim_curve;         // centring curvature limit, deg/mm (default STEER_CURVE_DEG_PER_MM)
+extern float sim_observer;      // bias observer distance, mm (default STEER_OBSERVER_MM; 0: the old integral)
+extern float sim_vref;          // KP falls as 1/speed above this, mm/s (default STEER_VREF_MM_S)
 
 plant_t plant_nominal(void);
 sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki);

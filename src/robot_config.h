@@ -190,6 +190,12 @@
 // corrections). At 5 mm a turn that left the robot 5 deg off kept it 12 mm
 // off-centre for a whole straight (KP 0.5 alone: 10 mm per 5 deg).
 #define STEER_BIAS_WINDOW_MM    12.0f
+// The bias (the encoder heading parallel to the walls) learned from how the
+// readings move against what the encoders predict (steer_step()), following
+// the readings over this distance. 0: the old integral of the lateral error
+// (within STEER_BIAS_WINDOW_MM), which took an off-centre start for a heading
+// error.
+#define STEER_OBSERVER_MM       40.0f
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------
 // The speed run turns without stopping: a 90 deg clothoid-arc-clothoid inside

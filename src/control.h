@@ -98,8 +98,11 @@ typedef enum { STEER_WALL_NONE, STEER_WALL_RIGHT, STEER_WALL_LEFT, STEER_WALL_BO
 
 typedef struct {
     float kp;               // deg of heading per mm off-centre
-    float ki;               // deg per mm off-centre per mm travelled (heading misalignment)...
-    float bias_window_mm;   // ...learned only while closer to the centre than this
+    float ki;               // bias learning: deg per mm of lateral error per mm travelled
+    float observer_mm;      // > 0: learn it from the unexplained sideways motion (see steer_step()), with
+                            // the lateral estimate following the readings over this distance; 0: from the
+                            // lateral error itself, only while closer to the centre than...
+    float bias_window_mm;   // ...this
     float max_deg;          // clamp of the heading offset
     float curve_deg;        // max change of the heading offset per mm travelled (curvature)
     float slew_mm;          // max change of the lateral error per step (posts, wall edges)
@@ -116,7 +119,8 @@ typedef struct {
 
 typedef struct {
     float lateral;          // filtered lateral error, mm (> 0: left of the centre line)
-    float bias;             // integral part of the heading offset, deg
+    float bias;             // encoder heading that is parallel to the corridor, deg
+    float expected;         // lateral error the readings should show, mm (observer)
     float heading;          // heading offset asked for, deg (> 0: to the right)
     float drift;            // lateral motion over the last delay_steps (encoders), mm
     float drift_hist[STEER_DELAY_MAX];
@@ -126,6 +130,7 @@ typedef struct {
     uint8_t slot, reading_slot;
     uint8_t wall;           // steer_wall_t in use
     uint8_t valid;          // lateral holds a reading
+    uint8_t expecting;      // expected is valid
 } steer_t;
 
 void steer_reset(steer_t *s);

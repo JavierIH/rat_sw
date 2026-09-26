@@ -194,6 +194,8 @@ void steer_restart(steer_t *s){
     s->slot = s->reading_slot = 0;
     s->wall = STEER_WALL_NONE;
     s->valid = 0;
+    s->expected = 0.0f;
+    s->expecting = 0;
 }
 
 // The heading offset is proportional to the lateral error, which makes the
@@ -212,8 +214,10 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
     const float to_corridor = (heading_deg - s->bias) * (3.14159265f / 180.0f);    // rad, > 0 heading right
     const float dy = -ds_mm * to_corridor;          // heading right: the robot moves right, lateral decreases
     const uint8_t n = k->delay_steps < STEER_DELAY_MAX ? k->delay_steps : STEER_DELAY_MAX;
+    float then = dy;                                // sideways motion when the reading was taken
     if(n){
-        s->drift += dy - s->drift_hist[s->slot];
+        then = s->drift_hist[s->slot];
+        s->drift += dy - then;
         s->drift_hist[s->slot] = dy;
         s->slot = (uint8_t)((s->slot + 1u) % n);
     }
@@ -232,7 +236,11 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
     if(right || left){
         const float raw = right && left ? 0.5f * (error_r + error_l) : right ? error_r : error_l;
         const float error = clampf(raw, -k->error_max_mm, k->error_max_mm);
-        s->wall = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT : STEER_WALL_LEFT;
+        const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT : STEER_WALL_LEFT;
+        // Another wall is another reference (each has its own few mm of
+        // error): what the readings should show starts afresh.
+        if(walls != s->wall || absf(raw) >= k->error_max_mm) s->expecting = 0;
+        s->wall = walls;
         // A post or a wall edge makes the reading jump further in 1 ms than
         // the robot can move sideways: follow it at a limited rate, so a
         // short glitch barely moves the estimate and a real change is
@@ -253,14 +261,39 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
         s->reading_hist[s->reading_slot] = s->reading;
         s->reading_slot = (uint8_t)((s->reading_slot + 1u) % avg_n);
         s->valid = 1;
-        s->lateral = s->reading_sum / (float)avg_n + s->drift;
-        // Only near the centre: during a big correction the error is the
-        // P part's business, and integrating it there made the robot
-        // overshoot the centre line.
-        // Nor while the heading offset is at its clamp (it would wind up).
-        const float unclamped = gain * k->kp * s->lateral + s->bias;
-        if(absf(s->lateral) < k->bias_window_mm && absf(unclamped) < k->max_deg){
-            s->bias = clampf(s->bias + k->ki * s->lateral * ds_mm, -k->max_deg, k->max_deg);
+        const float measured = s->reading_sum / (float)avg_n;
+        s->lateral = measured + s->drift;
+        if(k->observer_mm > 0.0f){
+            // The bias is where the encoder heading is parallel to the
+            // walls. Moving at an angle to them changes the readings: the
+            // encoders predict that change (with the bias as it is), and
+            // what the readings do beyond it, per mm travelled, is the bias
+            // still missing. An off-centre robot moves exactly as predicted
+            // and teaches nothing; integrating the lateral error itself
+            // learned a start 8 mm off-centre as 5 deg of bias in the first
+            // cell of a speed run, which then aimed the robot at a wall
+            // after the curves. `expected` follows the readings over
+            // observer_mm: that averages their steps and noise.
+            if(!s->expecting){
+                s->expected = measured;
+                s->expecting = 1;
+            }
+            else{
+                s->expected += then;
+                const float surprise = measured - s->expected;
+                s->expected += surprise * fminf(ds_mm / k->observer_mm, 1.0f);
+                s->bias = clampf(s->bias + k->ki * surprise * ds_mm, -k->max_deg, k->max_deg);
+            }
+        }
+        else{
+            // Only near the centre: during a big correction the error is
+            // the P part's business, and integrating it there made the
+            // robot overshoot the centre line.
+            // Nor while the heading offset is at its clamp (it would wind up).
+            const float unclamped = gain * k->kp * s->lateral + s->bias;
+            if(absf(s->lateral) < k->bias_window_mm && absf(unclamped) < k->max_deg){
+                s->bias = clampf(s->bias + k->ki * s->lateral * ds_mm, -k->max_deg, k->max_deg);
+            }
         }
         want = clampf(gain * k->kp * s->lateral + s->bias, -k->max_deg, k->max_deg);
     }
@@ -268,6 +301,7 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
         // No wall: hold the heading, corrected by what the walls taught.
         s->wall = STEER_WALL_NONE;
         s->valid = 0;
+        s->expecting = 0;
     }
     // Limited per mm travelled, not per second: a gentle curve at any speed,
     // and no pivoting at the start of a move when the robot barely moves.

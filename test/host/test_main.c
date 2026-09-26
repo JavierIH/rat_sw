@@ -1026,6 +1026,44 @@ static void test_steering_filter(void){
     CHECK(fabsf(s.heading) < 0.01f);
 }
 
+// The bias (the encoder heading parallel to the walls) is learned from how
+// the readings move against what the encoders predict, not from how far off
+// the centre the robot is.
+static void test_steering_bias(void){
+    const steer_config_t k = {
+        .kp = PARAM_KP, .ki = PARAM_KI * 0.001f, .observer_mm = STEER_OBSERVER_MM, .max_deg = STEER_MAX_DEG,
+        .curve_deg = STEER_CURVE_DEG_PER_MM, .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM,
+        .center_l_mm = LANE_WIDTH_MM / 2.0f, .center_r_mm = LANE_WIDTH_MM / 2.0f,
+        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = STEER_BIAS_WINDOW_MM, .delay_steps = 20,
+        .average_steps = 8,
+    };
+    // 10 mm off-centre, moving parallel to the walls as the encoders say:
+    // nothing to learn (the integral of the lateral error learned ~3 deg).
+    steer_t s;
+    steer_reset(&s);
+    for(int i = 0; i < 400; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(fabsf(s.bias) < 0.01f);
+    CHECK(s.heading > 0.0f);                // but it does head for the centre
+    steer_config_t old = k;
+    old.observer_mm = 0.0f;
+    steer_reset(&s);
+    for(int i = 0; i < 400; i++) steer_step(&s, &old, 74.0f, 94.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(s.bias > 1.0f);
+    // Drifting left 0.05 mm per mm while the encoders say straight: the
+    // encoder heading parallel to the walls is 2.86 deg to the right.
+    steer_reset(&s);
+    float y = 0.0f;
+    for(int i = 0; i < 1200; i++){
+        y += 0.05f * 0.5f;
+        steer_step(&s, &k, 84.0f - y, 84.0f + y, 0.5f, 0.0f, 1.0f);
+    }
+    CHECK(fabsf(s.bias - 0.05f * 180.0f / 3.14159265f) < 0.3f);
+    // A new wall (another reference, a few mm off): no jump in the bias.
+    const float before = s.bias;
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 84.0f - y - 5.0f, 250.0f, 0.5f, 0.0f, 1.0f);
+    CHECK(fabsf(s.bias - before) < 0.3f);
+}
+
 static void test_speed_control(void){
     // Nominal robot, 15 mm off-centre: exact distance, centred within the
     // first half, no weaving, at search and speed-run speeds.
@@ -1074,6 +1112,25 @@ static void test_speed_control(void){
     yawed.yaw0 = 5.0f;
     r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KI);
     CHECK(fabsf(r.y_end) < 2.5f);
+    // Off-centre at the start of a short straight (the first cell of a
+    // speed run): the bias stays where it is, so the next corridor is not
+    // aimed at a wall.
+    plant_t off = base;
+    off.y0 = 10.0f;
+    r = sim_straight(&off, 180.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(fabsf(r.bias_end - r.bias_true) < 1.0f);
+    CHECK(fabsf(r.yaw_end) < 1.0f);
+    // A real heading error at speed-run speed: learned.
+    yawed.yaw0 = 3.0f;
+    r = sim_straight(&yawed, 540.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(fabsf(r.bias_end - r.bias_true) < 1.0f);
+    // Walls a few mm off in every cell, a long straight at 900.
+    plant_t maze = base;
+    maze.y0 = 3.0f;
+    maze.wall_error_mm = 3.0f;
+    r = sim_straight(&maze, 1440.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(fabsf(r.bias_end - r.bias_true) < 1.5f);
+    CHECK(r.y_late < 5.0f);
     // Out of PWM (flat battery at full speed): rotation keeps priority.
     plant_t flat = base;
     flat.gain_l = flat.gain_r = 0.7f;
@@ -1524,6 +1581,7 @@ int main(int argc, char **argv){
     test_competition_mazes();
     test_profile();
     test_steering_filter();
+    test_steering_bias();
     test_speed_control();
     test_curve_shape();
     test_path_reference();

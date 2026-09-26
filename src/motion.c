@@ -116,6 +116,7 @@ static steer_config_t steer_cfg = {
     .center_l_mm = SIDE_CENTER_L_MM,
     .center_r_mm = SIDE_CENTER_R_MM,
     .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = STEER_BIAS_WINDOW_MM,
+    .observer_mm = STEER_OBSERVER_MM,
     // average_steps, delay_steps: set per move (TUNE STEER_AVG, IR_DELAY)
 };
 
@@ -824,6 +825,7 @@ static const tunable_t TUNABLES[] = {
     {"STEER_CURVE", &steer_cfg.curve_deg, 0.01f, 5.0f, 2},
     {"STEER_AVG", &steer_average, 1.0f, STEER_AVERAGE_MAX, 0},
     {"BIAS_WIN", &steer_cfg.bias_window_mm, 0.0f, 30.0f, 1},
+    {"OBSERVER", &steer_cfg.observer_mm, 0.0f, 500.0f, 0},
     {"STEER_VREF", &steer_vref, 100.0f, 3000.0f, 0},
     {"SETTLE_MM", &settle_mm, 0.1f, 5.0f, 2},
     {"SETTLE_DEG", &settle_deg, 0.1f, 5.0f, 2},
