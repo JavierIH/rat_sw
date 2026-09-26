@@ -247,7 +247,7 @@ search leg; the dump comes when the run ends).
   - Side walls are read on the way in (`SIDE_PASS_MM`), not at the stop
     (posts give phantoms); right after a turn only "no wall" is recorded.
     Squaring on a front wall only within `SQUARE_MAX_SKEW_MM`.
-  - `TURNTICKS` (405) is the in-place turn's scrub, calibrated with `CAL
+  - `TURNTICKS` (403) is the in-place turn's scrub, calibrated with `CAL
     NOISE` / `CAL TURN` against a wall.
   - Curves are for the speed run only (the user's rule): clothoid-arc-
     clothoid, R 70, in one cell; curve speed capped by the motors (~480);

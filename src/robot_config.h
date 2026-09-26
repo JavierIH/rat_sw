@@ -36,8 +36,12 @@
 // 4, CAL NOISE, CAL TURN -4, CAL NOISE, comparing FL - FR (~1.2 mm per
 // degree, SQUARE_MM_PER_DEG). With the speed control: 400 turned 355.3 deg
 // per 360; 405 turns 360.8 right / 359.4 left (0.2 deg per turn), and the
-// side readings do not move after 8 turns (truly in place).
-#define TICKS_PER_TURN          405
+// side readings do not move after 8 turns (truly in place). But every turn
+// stops ~0.78 deg short (SETTLE_DEG) and the next move starts from there, so
+// a scale calibrated on 90s over-turns a 180: at 405 each speed run started
+// yawed +1.1..+2.0 deg right after its 180 at the start (layout D, 5 runs).
+// 403 (2026-09-26): +0.8 and -0.5; 90s now ~0.4 short.
+#define TICKS_PER_TURN          403
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present

@@ -74,11 +74,17 @@ Read the section you are about to touch; AGENTS.md has the rules.
   than `ALIGN_DEADBAND_MM`. Only up to `SQUARE_MAX_SKEW_MM` (15, ~12 deg;
   every squaring in the logs was under 15 mm): a robot arriving far
   off-centre reads the corner, and at 35 it turned 15 deg into the wall.
-- `TURNTICKS` (405) is the wheel track as the encoders see it in in-place
+- `TURNTICKS` (403) is the wheel track as the encoders see it in in-place
   turns (the wheels scrub): half the wheel difference of a real 90 deg.
   Calibrated facing a wall with `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
   `CAL TURN -4`, `CAL NOISE`, comparing FL - FR (~1.2 mm per degree): 0.2
-  deg per turn, and the turns are truly in place.
+  deg per turn, and the turns are truly in place. Every turn ends ~0.78 deg
+  short by the encoders (it is done once within `SETTLE_DEG`) and the next
+  move starts from there, so a scale fitted to 90s absorbs that and a 180
+  over-turns: at 405 the speed runs of layout D started yawed +1.1..+2.0 deg
+  right after the 180 at the start (the "-1.2 deg" the centring held on every
+  straight; fitted from the side walls along the first straight, constant,
+  not growing with distance: no wheel mismatch). At 403: +0.8 and -0.5.
 - Smooth curves (`path.c`, speed run only; search moves still stop in every
   cell). A curve enters its cell on the centre line and leaves on the centre
   line through the side edge: `pre` mm straight, the clothoid-arc-clothoid
