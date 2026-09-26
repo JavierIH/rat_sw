@@ -443,6 +443,34 @@ What this says:
   never used right after boot); nothing in the legs code writes outside RAM
   that I could find (`grow_path()` masks IRQs only around `path_grow()`).
 
+Update 2026-09-26:
+- During freeze 2 the robot was already facing north (the user saw it): it
+  had made the final turn and froze in the map save that follows; the log
+  lines came late only because the stalled CPU could not send them. So all
+  four freezes coincide with flash writes (save at the goal, two saves at
+  the end, `SAVE` at rest), each lasting about 4 x 50 s, the HAL flash
+  timeout, with the CPU stalled (no SysTick: no stall report).
+- LED 2 blinking afterwards was just the idle heartbeat of mode 2.
+- After a power cycle the user ran several searches (straight legs, the
+  default) and speed runs, saves included: no freeze.
+- Hypothesis: on the STM32F1 the flash program/erase timing runs on the HSI
+  RC oscillator, the same clock the chip boots on after any reset. An HSI
+  that stopped or crawled would make every flash write take minutes and
+  fail, would keep a software reset from booting (LEDs off), and would be
+  cleared by a power cycle, while the CPU, on the crystal + PLL, runs
+  normally otherwise: every symptom. Nothing in the firmware is meant to
+  touch RCC->CR after the clock setup; a stray write through a corrupted
+  pointer would be the candidate (the USART3 DMA handle sits at the end of
+  .bss, and the DMA1 registers are 4 KB below RCC). Unconfirmed.
+- Both freeze sessions began right after a flash; to ask the user: was the
+  robot power-cycled between flashing and testing then, and in the earlier
+  flash sessions that did not freeze?
+- Next flash: before every flash write read RCC->CR (HSION/HSIRDY),
+  FLASH->SR and FLASH->CR, and time the write with the DWT cycle counter
+  (it keeps counting through bus stalls); report them with the result, and
+  in STATUS. If HSIRDY is 0, set HSION, wait for it, and say so: that both
+  confirms the hypothesis and works around it.
+
 Plan (the user must disassemble the robot to flash: keep flashes minimal):
 1. No flash: power cycle, `CONT OFF` (never runs `motion_explore`), then
    ~10 cycles of search + speed run. Note the time since power-on of any
