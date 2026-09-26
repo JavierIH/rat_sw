@@ -21,9 +21,15 @@ followed it, the centring and the real distance/angle. Open-loop steps
 (CAL STEP) at two or more PWMs give the motor model constants
 (MOTOR_KV_L/R, MOTOR_KS_PWM, MOTOR_TAU_S). Older recordings (no reference)
 are still analysed as before.
+
+    python3 tools/calib_analyze.py --chain tools/calib_data/2026-09-26_20-*.csv
+
+follows the heading over a whole session of moves (the ring, layout F):
+how far the encoders drift from the robot's real heading, move by move.
 """
 import argparse
 import math
+import os
 import re
 import sys
 
@@ -31,6 +37,11 @@ CELL_MM = 180
 SENSORS = ("fl", "fr", "sl", "sr")
 IR_DELAY_MS = 50            # as in robot_config.h: the IR report the robot's past
 SQUARE_MM_PER_DEG = 1.2     # as in robot_config.h: FL - FR per degree of yaw
+# The side sensors sit at the nose: a yaw moves their readings ~1 mm per
+# degree (right: towards the right wall), besides the robot's sideways
+# motion. Fitted on 54 wall stretches of the ring (layout F, 2026-09-26)
+# while the centring turned the robot 4 deg on average.
+SIDE_LEVER_MM = 55.0        # per radian
 
 
 # ---- Loading ----------------------------------------------------------------------------
@@ -561,21 +572,22 @@ def analyze_ir(rec, out):
         out.append("     #define CAL_%s  %.5gf, %.5gf, %.5gf, %.5gf" % (s.upper(), a, b, c, d))
 
 
-def wall_parallel(seen, fwd, rot, base):
+def wall_parallel(seen, fwd, rot, base, min_span=100):
     """Encoder heading (relative to `base`, degrees, > 0 right) along which a
     straight ran parallel to its walls: the side readings' drift beyond what
     the encoder heading explains, fitted as a constant (a yawed start, a turn
     or a curve that turned more or less than the encoders say). `seen`: (sample
     where the robot was, lateral mm). None if the readings span too little."""
-    if len(seen) < 8 or fwd[seen[-1][0]] - fwd[seen[0][0]] < 100:
+    if len(seen) < 8 or fwd[seen[-1][0]] - fwd[seen[0][0]] < min_span:
         return None
     k0 = seen[0][0]
     integral, acc = {k0: 0.0}, 0.0
     for k in range(k0 + 1, seen[-1][0] + 1):
         acc += (fwd[k] - fwd[k - 1]) * math.radians(0.5 * (rot[k] + rot[k - 1]) - base)
         integral[k] = acc
-    # lateral = L0 - integral - rad(yaw) * s, and parallel = -yaw.
-    slope, _ = fit_line([fwd[k] - fwd[k0] for k, _ in seen], [lat + integral[k] for k, lat in seen])
+    # lateral = L0 - integral - rad(yaw) * s - lever * rad(heading), and parallel = -yaw.
+    slope, _ = fit_line([fwd[k] - fwd[k0] for k, _ in seen],
+                        [lat + integral[k] + SIDE_LEVER_MM * math.radians(rot[k] - base) for k, lat in seen])
     return math.degrees(slope)
 
 
@@ -670,6 +682,65 @@ def analyze_run(rec, out):
                       rot[k] - base))
 
 
+def chain(paths):
+    """--chain: the recordings of one session in order, every move recorded
+    and the robot not moved by hand in between. The encoder heading summed
+    over them against the robot's real one: per wall stretch (a straight, the
+    cells before and after a CAL CURVE), how far the encoders are ahead of
+    the robot, from the side walls; and from FL - FR where a move stopped
+    square in front of a wall."""
+    out = ["Encoders menos rumbo real, grados (> 0: los encoders van a la derecha del robot; modulo 90)"]
+    heading = travelled = 0.0
+    for path in paths:
+        rec = load(path)
+        if rec.n == 0 or "ref_rot" not in rec.data:
+            continue
+        tpm = rec.number("ticks_per_mm", 9.05)
+        mpd = rec.number("turn_ticks", 400) / 90 / tpm
+        fwd = [t / tpm for t in average_ticks(rec)]
+        rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+        ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
+        on = [i for i in range(rec.n) if motor_on(rec, i)]
+        end = on[-1] + 1 if on else rec.n
+        stretches = []
+        if rec.kind == "straight":
+            stretches.append(("recta", 0, end, 0.0))
+        elif rec.kind == "curve" and "curve_len" in rec.meta:
+            s0 = CELL_MM / 2 + rec.number("curve_pre", 0.0)
+            s1 = s0 + rec.number("curve_len", 0.0)
+            a = next((i for i in range(end) if ref_f[i] > s0), end)
+            b = next((i for i in range(end) if ref_f[i] >= s1), end)
+            turn = 90.0 if not rec.args or rec.args[0] >= 0 else -90.0
+            stretches += [("antes", 0, a, 0.0), ("despues", b, end, turn)]
+        delay = int(round(IR_DELAY_MS / rec.period))
+        lateral = dict(side_errors(rec, rec.n))
+        found = []
+        for name, a, b, base in stretches:
+            seen = [(k - delay, lateral[k]) for k in range(a + delay, min(b + delay, rec.n)) if k in lateral]
+            parallel = wall_parallel(seen, fwd, rot, base, min_span=60)
+            if parallel is not None:
+                found.append("%s %+5.1f" % (name, wrap90(heading + base + parallel)))
+        heading += rot[-1]
+        still = list(range(end, rec.n))
+        front = [(rec.ir_mm("fl", rec.data["raw_fl"][i]), rec.ir_mm("fr", rec.data["raw_fr"][i])) for i in still]
+        if stretches and front and None not in front[0]:
+            fl, fr = mean([f for f, _ in front]), mean([r for _, r in front])
+            if max(fl, fr) < rec.number("wall_detect_mm", 140) \
+                    and abs(0.5 * (fl + fr) - rec.number("front_ref_mm", 94)) <= 6:
+                yaw_right = -(fl - fr - rec.number("front_square_offset_mm", 0.0)) / SQUARE_MM_PER_DEG
+                found.append("frente %+5.1f" % wrap90(heading - yaw_right))
+        travelled += fwd[end - 1] - fwd[0]
+        name = os.path.basename(path)
+        stamp = re.search(r"_(\d\d-\d\d-\d\d)_", name)
+        out.append("  %s %-15s %5.2f m  encoders %+8.2f  %s"
+                   % (stamp.group(1) if stamp else name, rec.test, travelled / 1000.0, heading, "  ".join(found)))
+    return "\n".join(out)
+
+
+def wrap90(deg):
+    return (deg + 45.0) % 90.0 - 45.0
+
+
 ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir, "run": analyze_run}
 
 
@@ -751,8 +822,10 @@ def motor_model(points):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("files", nargs="+", help="CSV de tools/calib_data/")
+    parser.add_argument("--chain", action="store_true",
+                        help="una sesion en orden: rumbo de encoders frente al real, movimiento a movimiento")
     args = parser.parse_args(argv)
-    print(report(args.files))
+    print(chain(sorted(args.files)) if args.chain else report(args.files))
     return 0
 
 

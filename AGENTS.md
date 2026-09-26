@@ -164,7 +164,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   off-screen `Canvas` then blits it (clipped, resize-safe), records sessions
   to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
   `tools/calib_data/` (`/nota` appends measurements).
-- `tools/calib_analyze.py`: reports and suggested constants from those CSVs.
+- `tools/calib_analyze.py`: reports and suggested constants from those CSVs;
+  `--chain` follows the encoder heading against the walls over a session.
 - `tools/dashboard.py`: live panel for `diag_test`.
 
 ## Operating the robot

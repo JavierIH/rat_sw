@@ -326,6 +326,58 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"rumbo de encoders ([-+\d.]+)", second),
                                math.degrees(-10.0 / (stop - c1)), delta=0.3)
 
+    def test_chain_follows_the_heading_across_moves(self):
+        # Two straights of a session. In the first the encoders drive
+        # straight while the robot runs 2 deg left of them (a turn before came
+        # out short). In the second the centring turns it 2 deg right over
+        # its first 60 mm, which the side readings also show through the
+        # nose (SIDE_LEVER_MM), and it stops square to a front wall. The
+        # encoders stay 2 deg ahead of the robot: that turn was real.
+        period, v, tpm, mpd = 4, 300.0, 9.05, 400 / 90 / 9.05
+        y, paths = 0.0, []
+        for n, turn in enumerate((0.0, 2.0)):
+            def encoders(s):
+                return turn * min(1.0, s / 60.0)
+            rows, poses, t, s = [], [], 0, 0.0
+            while s < 180.0:
+                s = min(180.0, v * t / 1000.0)
+                physical = encoders(s) - 2.0
+                if poses:
+                    y -= (s - poses[-1][0]) * math.radians(physical)
+                poses.append((s, y - ca.SIDE_LEVER_MM * math.radians(physical)))
+                seen = poses[max(0, len(poses) - 1 - int(50 / period))][1]
+                rows.append([s * tpm + encoders(s) * mpd * tpm, s * tpm - encoders(s) * mpd * tpm, 400, 400,
+                             fl_raw_for(300), fl_raw_for(300), fl_raw_for(84 - seen), fl_raw_for(84 + seen),
+                             s * 10, encoders(s) * 100])
+                t += period
+            front = fl_raw_for(94) if n else fl_raw_for(300)
+            rows += [row[:2] + [0, 0, front, front] + row[6:] for row in [rows[-1]] * 20]
+            capture = rm.CalibrationCapture(self.tmp.name)
+            lines = ["@D BEGIN straight 1 300",
+                     '@D INFO period_ms=%d samples=%d capacity=320 result=OK build="t"' % (period, len(rows))]
+            lines += NEW_INFO + ["@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot"]
+            lines += ["@D %d,%s" % (i * period, ",".join(str(int(round(x))) for x in row))
+                      for i, row in enumerate(rows)]
+            lines += ["@D END result=OK samples=%d" % len(rows)]
+            for line in lines:
+                capture.feed(line)
+            with open(capture.last_path) as f:
+                text = f.read()
+            for sensor in ("fr", "sl", "sr"):
+                text = re.sub(r'ir_cal_%s="[^"]*"' % sensor,
+                              'ir_cal_%s="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"' % sensor, text)
+            os.remove(capture.last_path)
+            paths.append(os.path.join(self.tmp.name, "%d.csv" % n))
+            with open(paths[-1], "w") as f:
+                f.write(text)
+        text = ca.chain(paths)
+        straights = [float(v) for v in re.findall(r"recta\s+([-+\d.]+)", text)]
+        self.assertEqual(len(straights), 2, text)
+        for ahead in straights:
+            self.assertAlmostEqual(ahead, 2.0, delta=0.4)
+        self.assertAlmostEqual(number(r"frente\s+([-+\d.]+)", text), 2.0, delta=0.4)
+        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+recta\s+[-+\d.]+\s+frente", text), 2.0, delta=0.1)
+
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140
         rows, pos = [], 0.0
