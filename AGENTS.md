@@ -170,7 +170,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 
 ## Operating the robot
 - SELECT cycles the mode (LED n = mode n): 1 search, 2/3 left/right wall
-  follower (to the goal, stopping in every cell), 4 speed run with FAST 800
+  follower (to the goal; straights without stopping like the search,
+  `CONT OFF` stops in every cell), 4 speed run with FAST 800
   CURVE 300, 5 speed run with FAST 900 CURVE 480 (`FAST_SAFE_*`,
   `FAST_FULL_*`: set when the mode is selected, the console can change them
   before START), 6 erase map (confirm with a second START within 3 s).

@@ -10,11 +10,16 @@ commit when done. Details go in the docs it points to, not here.
    `CURVE_PRE_SLIP` 7, modes 1 search, 2/3 wall follower left/right, 4
    FAST 800 CURVE 300, 5 FAST 900 CURVE 480, 6 erase (LED n = mode n), 5 s
    countdown (CAL 2 s), erase wait reports health. Battery on layout E:
-   a) SELECT through the modes (LED n); b) modes 2 and 3 to the goal; c)
+   a) SELECT through the modes (LED n); b) modes 2 and 3 to the goal (2
+   done: 9 actions, no "!!"); c)
    mode 4 with `CAL RUN`, then mode 5 with `CAL RUN` (expect the last
    straight within ~5 mm). Also pending, low priority: `TURN_CARRY` 1 would
    need its own in-place scale (TURNTICKS 398 for turns, 403 for curves);
    no clear gain on D (`docs/control.md`), so carry stays 0.
+10. **Next flash** (built, not flashed; keeps map, goal and params): the
+   wall followers (modes 2/3) drive straights without stopping like the
+   search (`drive_leg()` shared with it; `CONT OFF` stops in every cell);
+   host: same cells, 36 % fewer stops. After it: modes 2 and 3 on E.
 6. **Roadmap, not started:** side-sensor calibration. Dropped by the user
    (2026-09-27): longitudinal correction on wall edges (too fine for our
    precision) and diagonals.
