@@ -33,6 +33,12 @@ commit when done. Details go in the docs it points to, not here.
    + `CURVE_PRE_V0` v0 (pre += k (v^2-v0^2)/(480^2-v0^2); sim on E: +7 at
    480 moves the exit +20 mm right; V0 300 leaves 300 alone, pure v^2
    would move it +7). Battery after the flash:
+   Flashed 22:50: a) OK (stack 1712 free). On E (ERASE, search 31
+   actions), slip 0, lateral at the last straight's first reading:
+   300 -6.2, 400 +10.0, 480 +19.7 mm (left > 0); `wheel_diff_ppm=-2500`.
+   V0 300 at 480: slip 3 +6.8, 5 +1.1 and +2.0, 7 +17.4 (outlier?
+   stopped); slip 5 at 400: 0.0. Defaults now 5 / 300 (not flashed;
+   live they need TUNE after every reset). Next: b), c) on layout D.
    a) boot: `STATUS` no "!!"; `TUNE` lists the four at 0.
    b) layout D, facing a wall: `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
       `CAL TURN -4`, `CAL NOISE` at 403/carry 0, then `TUNE TURN_CARRY 1`

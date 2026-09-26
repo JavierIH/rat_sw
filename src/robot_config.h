@@ -248,9 +248,12 @@
 // growing as v^2 - V0^2 from CURVE_PRE_V0 (TUNE CURVE_PRE_V0; 0: as (v /
 // VREF)^2). Layout E's six curves left the robot 20 mm left at 480 and ~0 at
 // 300; ~3 mm there per mm of `pre` (CURVE_PRE -8 measured +23, the simulator
-// agrees), so ~+7; pure v^2 would put 300 ~7 mm right. 0 until tested.
-#define CURVE_PRE_SLIP_MM       0.0f
-#define CURVE_PRE_V0_MM_S       0.0f
+// agrees), so ~+7; pure v^2 would put 300 ~7 mm right. On E (2026-09-26
+// 22:53-23:05, WHEEL_DIFF -0.0025) slip 0: 300 -6.2, 400 +10.0, 480 +19.7
+// mm; with V0 300: slip 3 +6.8, slip 5 +1.1 and +2.0 at 480, 0.0 at 400
+// (slip 7 +17.4 once, unexplained: not tried again).
+#define CURVE_PRE_SLIP_MM       5.0f
+#define CURVE_PRE_V0_MM_S       300.0f
 // Share of CONTROL_PWM_LIMIT the curves may ask of the outer wheel (the
 // loops need the rest): its feedforward peaks where a ramp meets the arc,
 // fastest and still accelerating. It caps the curve speed at ~480 mm/s with
