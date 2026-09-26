@@ -5,11 +5,13 @@
 #include "stm32f1xx_hal.h"
 #include "commands.h"
 #include "encoder.h"
+#include "flash_store.h"
 #include "infrared.h"
 #include "motion.h"
 #include "motor.h"
 #include "params.h"
 #include "robot_config.h"
+#include "storage.h"
 #include "uart.h"
 
 #define CAL_CAPACITY    320     // 6.4 KB of RAM
@@ -227,6 +229,28 @@ static move_result_t run_step(int16_t pwm, uint32_t ms){
     return r;
 }
 
+// CAL FLASH: the freeze reproducer (docs/freezes.md). Every write that
+// wedged the flash began within ms of the end of a move: `n` half turns in
+// place (alternating, so it ends as it started), each followed `ms` later
+// by a real write of the record, timed. The probe before each erase makes
+// a wedged flash a ~20 ms stall and a report instead of ~200 s.
+static move_result_t flash_cycles(int32_t n, int32_t ms){
+    flash_store_settle((uint32_t)ms);
+    move_result_t r = MOVE_OK;
+    for(int32_t i = 0; i < n && r == MOVE_OK; i++){
+        r = motion_turn(i & 1 ? -2 : 2);
+        if(r != MOVE_OK) break;
+        const uint8_t ok = storage_rewrite();
+        const flash_timing_t *t = flash_store_timing();
+        print("CAL flash %ld/%ld: %s, prueba %lu us, borrado %lu ms, escritura %lu ms\n", (long)(i + 1), (long)n,
+              ok ? "OK" : "FALLO", (unsigned long)t->probe_us, (unsigned long)t->erase_ms,
+              (unsigned long)t->program_ms);
+        if(!ok) break;
+    }
+    flash_store_settle(FLASH_SETTLE_MS);
+    return r;
+}
+
 void calib_run(cal_test_t test, int32_t a, int32_t b){
     move_result_t r = MOVE_OK;
     switch(test){
@@ -277,6 +301,10 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
         case CAL_RUN:
             run_armed = 1;
             print("CAL RUN: se grabara el proximo movimiento continuo del run\n");
+            return;
+        case CAL_FLASH:
+            r = flash_cycles(a, b);
+            print("CAL flash: %s\n", move_result_name(r));
             return;
     }
     motion_stop();

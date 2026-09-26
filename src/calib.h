@@ -18,6 +18,7 @@ typedef enum {
     CAL_IR,         // back away from a front wall: IR curve vs distance
     CAL_DUMP,       // send the last recording again
     CAL_RUN,        // arm: record the next continuous move of a run (speed run to the goal, search leg)
+    CAL_FLASH,      // N half turns, each followed by a timed flash write: the freeze reproducer
 } cal_test_t;
 
 void calib_tick_1ms(void);              // from SysTick
