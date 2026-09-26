@@ -120,3 +120,20 @@ failed, so once stuck the flash stays stuck (as on 09-25).
 - Next flash: split the diagnostic line (FLASH_SR after, HAL error code),
   print the chip identity in STATUS, and skip writes whose record equals
   what the page already holds (a speed run's end rarely changes the map).
+
+2026-09-26 ~12:15, after a power cycle (same firmware), robot at rest on
+layout D: 60 `SAVE` in a row, all 38 ms; then 32 hard moves (`CAL STRAIGHT
+2 900` and `CAL TURN 2`, which do not save), each followed by a `SAVE`
+1-2 s later: all fine. With failures as frequent as today's run saves
+(~1 in 4-20) 92 clean writes would be very unlikely: writing itself and
+the driving itself do not wedge the flash (or rarely). What the failing
+writes had in common: each started within ms of the end of a move (the
+goal stop, the final turn), after a hard run (two speed runs, one search
+with curves), with the Bluetooth link still sending the run's lines.
+Mechanism still unknown.
+- The first freeze's tail: its queued lines trickled out 0.45 s apart
+  over the last ~7 s, so after the ~205 s stall the CPU still spent most
+  of its time stalled: the programming of the record's halfwords was slow
+  too (~20 ms each instead of ~50 us). A stuck flash is slow to program,
+  not only to erase: one halfword programmed and timed before the erase
+  can detect it in ~20 ms and skip the erase (the plan for the protection).
