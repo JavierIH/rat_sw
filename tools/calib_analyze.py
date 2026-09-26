@@ -195,6 +195,34 @@ def analyze_noise(rec, out):
                    % (round(offset), rec.meta.get("front_square_offset_mm", "?")))
 
 
+def side_means(rec):
+    """Mean SL and SR in mm of a recording at rest, or None without calibration."""
+    sides = [[rec.ir_mm(s, r) for r in rec.data["raw_" + s]] for s in ("sl", "sr")]
+    return None if None in sides[0] + sides[1] else [mean(v) for v in sides]
+
+
+def mirror_centres(rec, before, after, out):
+    """A 180 deg turn in place mirrors the robot across the lane's centre line,
+    so each side sensor's readings before and after it average to what it
+    reads with the robot centred (SIDE_CENTER_L/R_MM), wherever it stood."""
+    (slb, srb), (sla, sra) = before, after
+    out.append("  Giro de 180 desde el CAL NOISE anterior: SL %.1f -> %.1f, SR %.1f -> %.1f mm"
+               % (slb, sla, srb, sra))
+    track = rec.number("side_track_mm", 130)
+    if max(before + after) >= track:
+        out.append("  ! falta una pared lateral (> %.0f mm): repitelo en un pasillo con paredes a ambos lados" % track)
+        return
+    off_r, off_l = (srb - sra) / 2, (sla - slb) / 2
+    out.append("  descentrado antes del giro: %+.1f mm segun SR, %+.1f segun SL (> 0: a la izquierda)"
+               % (off_r, off_l))
+    if abs(off_r - off_l) > 3:
+        out.append("  ! no coinciden: el giro no fue en el sitio o un haz toco un poste; no uses este par")
+    cl, cr = (slb + sla) / 2, (srb + sra) / 2
+    out.append("  centrado: SL %.1f, SR %.1f mm -> TUNE CENTER_L %.1f, TUNE CENTER_R %.1f (ahora %s / %s;"
+               % (cl, cr, cl, cr, rec.meta.get("center_l", "?"), rec.meta.get("center_r", "?")))
+    out.append("     un giro de vuelta, CAL TURN -2 + CAL NOISE, promedia el error de angulo de los giros)")
+
+
 def controlled(rec):
     """Recorded by the speed-control firmware (profile reference present)."""
     return "ref_fwd" in rec.data
@@ -750,6 +778,7 @@ ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir, "run
 
 def report(paths):
     out, measured_pairs, motor_points = [], [], []
+    mirror = None   # side readings of the last CAL NOISE, quarters turned since
     for path in paths:
         rec = load(path)
         out.append("=" * 72)
@@ -779,6 +808,16 @@ def report(paths):
             ANALYSES[rec.kind](rec, out)
         else:
             out.append("  prueba desconocida: %s" % rec.kind)
+        # CAL NOISE, CAL TURN 2, CAL NOISE in a corridor: the side sensors' centres.
+        if rec.kind == "noise" and rec.n:
+            sides = side_means(rec)
+            if mirror and sides and mirror[1] % 4 == 2:
+                mirror_centres(rec, mirror[0], sides, out)
+            mirror = (sides, 0) if sides else None
+        elif rec.kind == "turn" and mirror:
+            mirror = (mirror[0], mirror[1] + (rec.args[0] if rec.args else 4))
+        else:
+            mirror = None
     lengths = {cells for cells, _ in measured_pairs}
     if len(lengths) >= 2:
         # needed(N) = N * CELL_TICKS + MOVE_EXTRA_TICKS, least squares over all measured straights.

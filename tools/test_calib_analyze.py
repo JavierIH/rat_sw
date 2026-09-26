@@ -30,12 +30,16 @@ INFO = [
 ]
 
 
-def fl_raw_for(mm):
-    """Raw ADC reading that the FL calibration maps to `mm` (bisection)."""
+SL_CAL = (-0.00000005219, 0.0002629, -0.4566, 325.6)
+SR_CAL = (-0.00000003241, 0.0001505, -0.25, 189.0)
+
+
+def fl_raw_for(mm, cal=FL_CAL):
+    """Raw ADC reading that the calibration maps to `mm` (bisection)."""
     lo, hi = 0.0, 4095.0
     for _ in range(60):
         mid = (lo + hi) / 2
-        a, b, c, d = FL_CAL
+        a, b, c, d = cal
         if ((a * mid + b) * mid + c) * mid + d > mm:
             lo = mid
         else:
@@ -454,6 +458,23 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report([path])
         self.assertAlmostEqual(number(r"FL-FR = ([-+\d.]+) mm", text), 100 - fr_mm, delta=0.6)
         self.assertIn("#define FRONT_SQUARE_OFFSET_MM", text)
+
+    def test_side_centres_from_a_turn_in_place(self):
+        # Centred, SL reads 88 and SR 77; the robot stands 6 mm left of centre.
+        def still(sl, sr):
+            row = (0, 0, 0, 0, 0, 0, fl_raw_for(sl, SL_CAL), fl_raw_for(sr, SR_CAL))
+            return save(self.tmp.name, "noise 500", 10, [row] * 50)
+        paths = [still(82, 83),
+                 save(self.tmp.name, "turn 2", 4, [(0, 0, 100, -100) + (0,) * 4] * 20),
+                 still(94, 71)]
+        text = ca.report(paths)
+        self.assertAlmostEqual(number(r"TUNE CENTER_L ([\d.]+)", text), 88, delta=1)
+        self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+)", text), 77, delta=1)
+        self.assertAlmostEqual(number(r"([-+\d.]+) mm segun SR", text), 6, delta=1)
+        self.assertNotIn("no coinciden", text)
+        # Without the turn, or with a wall missing, no centres.
+        self.assertNotIn("TUNE CENTER_L", ca.report([paths[0], paths[2]]))
+        self.assertIn("falta una pared", ca.report([paths[0], paths[1], still(94, 150)]))
 
     def test_missing_measurements_ask_for_notes(self):
         rows = [(i * 10, i * 10, 150, 150, 0, 0, 0, 0) for i in range(50)] + [(500, 500) + (0,) * 6]
