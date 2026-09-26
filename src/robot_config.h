@@ -30,6 +30,11 @@
 // ruler (4885 ticks ~ 540 mm). Every distance the robot drives is exact to
 // this: the speed control stops where it is told, with no coasting to model.
 #define WHEEL_TICKS_PER_MM      9.05f
+// Default of TUNE WHEEL_DIFF: left wheel travel per tick relative to the
+// right one, minus 1. The encoders ran ahead of the robot to the right ~2.5
+// deg per metre (three laps of layout D at 300 mm/s, calib_analyze.py
+// --chain); the heading moves ~1011 x WHEEL_DIFF deg per metre.
+#define WHEEL_DIFF              (-0.0025f)
 // Default of TURNTICKS: half the wheel difference (encoder ticks) of a real
 // 90 deg in-place turn, i.e. the wheel track as the encoders see it (the
 // wheels scrub). Calibrated with the robot facing a wall: CAL NOISE, CAL TURN

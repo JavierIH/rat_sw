@@ -94,6 +94,7 @@ uint8_t motion_checkpoint(void){
 
 static control_config_t control_cfg = {
     .ticks_per_mm = WHEEL_TICKS_PER_MM,
+    .wheel_diff = WHEEL_DIFF,
     .mm_per_deg = TICKS_PER_TURN / 90.0f / WHEEL_TICKS_PER_MM,
     .kv_l = MOTOR_KV_L,
     .kv_r = MOTOR_KV_R,
@@ -867,9 +868,12 @@ void motion_curve_info(uint8_t line){
               format_fixed(e, sizeof(e), c.length, 1), (int)curve_speed_limit(&c));
     }
     else{
-        print("@D INFO curve_pre=%s curve_post=%s curve_pre_adj=%s curve_post_adj=%s\n",
+        // WHEEL_DIFF in millionths: format_fixed() stops at 3 decimals.
+        const float ppm = control_cfg.wheel_diff * 1e6f;
+        print("@D INFO curve_pre=%s curve_post=%s curve_pre_adj=%s curve_post_adj=%s wheel_diff_ppm=%d\n",
               format_fixed(a, sizeof(a), c.pre, 1), format_fixed(b, sizeof(b), c.post, 1),
-              format_fixed(d, sizeof(d), curve_pre, 1), format_fixed(e, sizeof(e), curve_post, 1));
+              format_fixed(d, sizeof(d), curve_pre, 1), format_fixed(e, sizeof(e), curve_post, 1),
+              (int)(ppm + (ppm < 0.0f ? -0.5f : 0.5f)));
     }
 }
 
