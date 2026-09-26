@@ -7,19 +7,24 @@ commit when done. Details go in the docs it points to, not here.
 ## Open
 
 9. **Next flash** (built, not flashed; keeps map, goal and params):
-   `CURVE_PRE_SLIP` default 7 (issue 1). Until then the robot runs 5 after
+   `CURVE_PRE_SLIP` default 7 (issue 1); new modes (1 search, 2/3 wall
+   follower left/right, 4 FAST 800 CURVE 300, 5 FAST 900 CURVE 480, 6
+   erase; LED n = mode n, was shifted two LEDs), 5 s countdown (CAL 2 s).
+   After it: SELECT through the modes (LED n), mode 2 and 3 on E to the
+   goal, mode 4 then 5 with `CAL RUN`. Until then the robot runs 5 after
    every reset and keeps `CURVE 300` saved; after the flash `CURVE 480` +
    `SAVE`, and a speed run on E with `CAL RUN` (expect the last straight
    within ~5 mm). Also pending, low priority: `TURN_CARRY` 1 would need its
    own in-place scale (TURNTICKS 398 for turns, 403 for curves); no clear
    gain on D (`docs/control.md`), so carry stays 0 and it is not written.
-8. **Minor: `!! el programa estuvo parado 3000 ms`** while mode 4 waited
-   for the ERASE confirmation (09-26 23:13, PC in `leds_set_mask` from
-   `main`): the stall check flags the UI's own 3 s wait. Silence it there.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
 
 ## Closed
+
+- 2026-09-27 `!! el programa estuvo parado 3000 ms` while mode 4 (now 6)
+  waited for the erase confirmation: the wait now reports health (next
+  flash).
 
 - 2026-09-27 Speed-run curves at 480 off-centre on staircases (issue 1):
   the 180's over-turn fixed (`TURNTICKS` 403), wheel drift trimmed
