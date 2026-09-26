@@ -198,6 +198,24 @@ Read the section you are about to touch; AGENTS.md has the rules.
   encoder drift can be trimmed live: `TUNE WHEEL_DIFF` (left wheel travel
   per tick / right - 1) moves the encoder heading by ~1011 x WHEEL_DIFF
   deg per metre; -0.003 would cancel 3 deg/m to the right.
+  Trimmed on layout D (21:41-21:56, `CAL STRAIGHT` / `CAL TURN` at 300,
+  centring on): three laps of the border, 2 N, 3 E, 2 S, 2 W, a 180 and
+  back (3.1 m, 8 straights, 8-9 turns in place), with WHEEL_DIFF 0,
+  -0.003 and -0.0025; every move OK, the stops alike in all three. The
+  raw encoders (unweighted) turn right during the straights, where the
+  centring holds the robot parallel: +2.28, +2.74, +3.51 deg/m (25.9 deg
+  over 9.05 m: 2.9); `--chain` from the lap's first straight to its last,
+  +1.4, +2.8, +2.5 (2.2; it includes the turns in place, whose errors
+  swing it up to +-8 deg mid-lap and cancel over a lap). The mismatch did
+  not change with the trim: it is the wheels. Weighted as the firmware
+  does, -0.003 left -0.3 deg/m on the straights and ~0 over its lap,
+  -0.0025 +1.0 and 0; the lap-to-lap spread (+-0.6) is larger than the
+  difference, so the default is the middle of the two measures,
+  `WHEEL_DIFF` -0.0025 (`robot_config.h`). The ring's recordings weighted
+  with -0.003 keep ~1.5 deg/m, the curves' part (right loops gain, left
+  ones lose). `TUNE` prints it rounded to 3 decimals (-0.003); the dumps
+  carry it as `wheel_diff_ppm`, which `--chain` applies (`--wheel-diff`
+  for older dumps, recorded with 0).
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The
