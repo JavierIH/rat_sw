@@ -80,10 +80,13 @@
 // Search legs (motion_explore, CONT ON): straight on without stopping, each
 // cell decided inside it once its front wall is in plain view, so with the
 // same walls the robot would see stopped there. Sides read from
-// SEARCH_SIDE_FROM_MM before the cell's entry edge (the angled beams then hit
-// ~30 mm into it, past the post) to SEARCH_SIDE_TO_MM into it (~110 mm in,
-// short of the far post); a side counts only if SEARCH_MIN_READINGS or more
-// (one each WALL_SAMPLE_MS) all agree, else it is doubtful. The decision is
+// SEARCH_SIDE_FROM_MM before the cell's entry edge to SEARCH_SIDE_TO_MM into
+// it: the angled beams hit ~70 mm ahead of the robot (at a stop, a couple of
+// cm short of the next post), so from ~50 mm into the cell to ~100. From 60
+// mm before the edge they still caught the post there, or the previous
+// cell's wall: on the practice maze 1-cell legs left open sides and border
+// walls doubtful. A side counts only if SEARCH_MIN_READINGS or more (one
+// each WALL_SAMPLE_MS) all agree, else it is doubtful. The decision is
 // due SEARCH_LATE_MARGIN_MM before the reference would start braking (at
 // ACCEL) for the cell's centre, so a stop there is an ordinary one. The front
 // wall must be known by then: it reads reliably under ~170 mm, which with the
@@ -92,7 +95,7 @@
 // comes before the decision; SEARCH_LEG_SPEED_MAX leaves ~12 mm (25 ms) to
 // spare. Faster, the robot would decide blind and brake harder at walls (at
 // 600, ~4100 mm/s^2; the wheels slipped at 5000).
-#define SEARCH_SIDE_FROM_MM     60.0f
+#define SEARCH_SIDE_FROM_MM     20.0f
 #define SEARCH_SIDE_TO_MM       30.0f
 #define SEARCH_LATE_MARGIN_MM   8.0f
 #define SEARCH_LEG_SPEED_MAX    450
