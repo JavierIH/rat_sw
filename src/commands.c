@@ -20,7 +20,6 @@ typedef struct {
     const char *name;
     void (*run)(const char *args);
     uint8_t idle_only;      // blocks, writes flash or uses the planner: robot stopped only
-    const char *help;       // NULL = hidden alias
 } command_t;
 
 // ---- Parsing (nano-libc: no %f in scanf/printf) ------------------------------------
@@ -115,8 +114,6 @@ static uint8_t parse_on_off(const char *args, uint8_t *on){
 }
 
 // ---- Commands ------------------------------------------------------------------------------
-
-static void cmd_help(const char *args);
 
 static void cmd_status(const char *args){
     (void)args;
@@ -367,25 +364,6 @@ static void cmd_sync(const char *args){
     app_telemetry_sync();
 }
 
-static void cmd_clock(const char *args){
-    static const char *const NAME[] = {"cristal", "interno (el cristal no arranco)", "interno (el cristal fallo)",
-                                       "interno (CLOCK HSI)"};
-    const char *p = skip_spaces(args);
-    if(p[0] == 'H' || p[0] == 'h'){
-        if(!sysclock_use_hsi()){
-            print("CLOCK HSI: no se pudo (ya en el reloj interno?)\n");
-            return;
-        }
-        uart_retime();
-        health_clock_baseline();
-    }
-    else if(p[0]){
-        print("CLOCK [HSI]\n");
-        return;
-    }
-    print("reloj: %s, %lu MHz\n", NAME[sysclock_source()], (unsigned long)(SystemCoreClock / 1000000u));
-}
-
 static void cmd_cont(const char *args){
     uint8_t on;
     if(parse_on_off(args, &on)) search_set_mode(on ? SEARCH_STRAIGHTS : SEARCH_STOP_EACH);
@@ -482,53 +460,43 @@ static void cmd_reset(const char *args){
     NVIC_SystemReset();
 }
 
+// The commands and what they do: README.md, "Consola Bluetooth".
 static const command_t COMMANDS[] = {
-    {"HELP",     cmd_help,     1, "esta ayuda"},
-    {"STATUS",   cmd_status,   0, "estado, parametros y mapa"},
-    {"MODE",     cmd_mode,     1, "n: 1 busqueda 2 rapida 3 sensores 4 borrar"},
-    {"START",    cmd_start,    0, "lanza el modo seleccionado (como el boton)"},
-    {"STOP",     cmd_stop,     0, "detiene el run (como START durante el run)"},
-    {"PAUSE",    cmd_pause,    0, "frena y espera"},
-    {"RESUME",   cmd_resume,   0, "continua tras PAUSE o un paso"},
-    {"STEP",     cmd_step,     0, "ON|OFF: pausa tras cada accion"},
-    {"DEBUG",    cmd_step,     0, NULL},
-    {"SPD",      cmd_spd,      0, "n: mm/s de crucero en busqueda y vuelta"},
-    {"FAST",     cmd_fast,     0, "n: mm/s de crucero en carrera rapida"},
-    {"CURVE",    cmd_curve,    0, "n: mm/s en las curvas de la carrera rapida"},
-    {"ACCEL",    cmd_accel,    0, "n: mm/s2 de aceleracion y frenada en recta"},
-    {"TURN",     cmd_turn,     0, "n: grados/s maximos de giro"},
-    {"TACCEL",   cmd_taccel,   0, "n: grados/s2 de giro"},
-    {"TURNTICKS", cmd_turnticks, 0, "n: ticks de un giro de 90 (menos = gira menos)"},
-    {"KP",       cmd_kp,       0, "f: centrado, grados de rumbo por mm descentrado"},
-    {"KI",       cmd_ki,       0, "f: centrado, corrige el rumbo torcido (grados por mm y metro; 0 = off)"},
-    {"TUNE",     cmd_tune,     0, "[nombre valor]: ajusta en vivo el control (no se guarda)"},
-    {"LOG",      cmd_log,      0, "0-2: detalle del log"},
-    {"TELEM",    cmd_telem,    0, "ON|OFF: lineas @ para el mapa en vivo del monitor"},
-    {"CONT",     cmd_cont,     1, "ON|OFF: busqueda con rectas sin parar (ON) o parando en cada celda"},
-    {"CLOCK",    cmd_clock,    1, "[HSI]: fuente de reloj; HSI pasa al oscilador interno (prueba)"},
-    {"SYNC",     cmd_sync,     1, "reenvia mapa y estado al monitor"},
-    {"CAL",      cmd_cal,      1, "NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN: datos de calibracion"},
-    {"DEFAULTS", cmd_defaults, 0, "parametros por defecto"},
-    {"IR",       cmd_ir,       0, "lectura de sensores y encoders"},
-    {"WALLS",    cmd_walls,    1, "detecta las paredes ahora"},
-    {"MAP",      cmd_map,      1, "dibuja el mapa y el camino rapido"},
-    {"GOAL",     cmd_goal,     1, "x y | x0 y0 x1 y1: celdas meta"},
-    {"SAVE",     cmd_save,     1, "guarda mapa, meta y parametros"},
-    {"ERASE",    cmd_erase,    1, "borra el mapa (RAM y flash)"},
-    {"HOME",     cmd_home,     1, "el robot esta en la salida mirando al norte"},
-    {"RESET",    cmd_reset,    0, "reinicia el micro"},
+    {"STATUS",    cmd_status,     0},
+    {"MODE",      cmd_mode,       1},
+    {"START",     cmd_start,      0},
+    {"STOP",      cmd_stop,       0},
+    {"PAUSE",     cmd_pause,      0},
+    {"RESUME",    cmd_resume,     0},
+    {"STEP",      cmd_step,       0},
+    {"DEBUG",     cmd_step,       0},
+    {"SPD",       cmd_spd,        0},
+    {"FAST",      cmd_fast,       0},
+    {"CURVE",     cmd_curve,      0},
+    {"ACCEL",     cmd_accel,      0},
+    {"TURN",      cmd_turn,       0},
+    {"TACCEL",    cmd_taccel,     0},
+    {"TURNTICKS", cmd_turnticks,  0},
+    {"KP",        cmd_kp,         0},
+    {"KI",        cmd_ki,         0},
+    {"TUNE",      cmd_tune,       0},
+    {"LOG",       cmd_log,        0},
+    {"TELEM",     cmd_telem,      0},
+    {"CONT",      cmd_cont,       1},
+    {"SYNC",      cmd_sync,       1},
+    {"CAL",       cmd_cal,        1},
+    {"DEFAULTS",  cmd_defaults,   0},
+    {"IR",        cmd_ir,         0},
+    {"WALLS",     cmd_walls,      1},
+    {"MAP",       cmd_map,        1},
+    {"GOAL",      cmd_goal,       1},
+    {"SAVE",      cmd_save,       1},
+    {"ERASE",     cmd_erase,      1},
+    {"HOME",      cmd_home,       1},
+    {"RESET",     cmd_reset,      0},
 };
 
 #define COMMAND_COUNT (sizeof(COMMANDS) / sizeof(COMMANDS[0]))
-
-static void cmd_help(const char *args){
-    (void)args;
-    for(size_t i = 0; i < COMMAND_COUNT; i++){
-        if(!COMMANDS[i].help) continue;
-        uart_wait_space(500);
-        print("%-8s %s\n", COMMANDS[i].name, COMMANDS[i].help);
-    }
-}
 
 void commands_poll(void){
     // Handlers that wait (WALLS) poll inputs themselves: queue nested lines
@@ -549,7 +517,7 @@ void commands_poll(void){
             break;
         }
     }
-    if(!cmd) print("? %s (HELP: lista de comandos)\n", name);
+    if(!cmd) print("? %s (comandos: README.md)\n", name);
     else if(cmd->idle_only && app_run_active()) print("%s: solo con el robot parado\n", cmd->name);
     else cmd->run(name + len);
     busy = 0;

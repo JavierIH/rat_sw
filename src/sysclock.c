@@ -87,16 +87,3 @@ uint8_t sysclock_recover(void){
     if(pll_from_hsi()) clocks_from_pll();   // else it stays at 8 MHz: slow, but alive
     return 1;
 }
-
-uint8_t sysclock_use_hsi(void){
-    if(source != CLOCK_HSE) return 0;
-    HAL_RCC_DisableCSS();
-    // Off the crystal's PLL first: the HSI alone for a moment.
-    RCC_ClkInitTypeDef clk = {0};
-    clk.ClockType = RCC_CLOCKTYPE_SYSCLK;
-    clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-    if(HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2) != HAL_OK) return 0;
-    if(!pll_from_hsi() || !clocks_from_pll()) return 0;
-    source = CLOCK_HSI_FORCED;
-    return 1;
-}

@@ -171,6 +171,6 @@ Read the section you are about to touch; AGENTS.md has the rules.
   crystal while running: on a failure the NMI stops the motors and aborts
   the run (`clock_failure_hook()` in motion.c), and the main loop brings the
   clock back to 64 MHz (`sysclock_recover()`, `uart_retime()`) and reports
-  "!! fallo del cristal". `CLOCK HSI` does that switch on purpose, to test
-  it.
+  "!! fallo del cristal". (A `CLOCK HSI` command made that switch on
+  purpose, to test it; removed on 2026-09-26 to save flash.)
 - OPEN INVESTIGATION, freezes: see "Freezes (open)" at the end.

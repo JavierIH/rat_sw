@@ -54,23 +54,41 @@ el camino rápido verificado. Al lado, el log con colores y la consola.
 
 ## Consola Bluetooth
 
-Un comando por línea (en el monitor o en cualquier terminal serie); `HELP`
-los lista.
+Un comando por línea (en el monitor o en cualquier terminal serie), en
+mayúsculas o minúsculas. El firmware no trae ayuda (`HELP`) para ahorrar
+flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 
-| Comando | Qué hace |
-|---|---|
-| `MODE n`, `START`, `STOP` | elegir, lanzar y detener modos |
-| `PAUSE`, `RESUME`, `STEP ON/OFF` | pausa, y modo paso a paso (para tras cada acción) |
-| `STATUS`, `MAP` | estado y parámetros; mapa ASCII con el camino rápido |
-| `IR`, `WALLS` | sensores en mm y crudo; paredes detectadas ahora mismo |
-| `SPD n`, `FAST n`, `TURN n` | PWM de crucero en búsqueda y en carrera rápida, y de giro (0-1000). Cada recta frena a 150 antes de parar, así que las paradas no dependen de ellos |
-| `TURNTICKS n` | ticks de un giro de 90° (~5 por grado; menos = gira menos) |
-| `KP f`, `KI f`, `KD f`, `KE f` | centrado en pasillo (`KI` corrige el desvío por motores desiguales); `KE` mantiene el rumbo sin paredes (0 = off) |
-| `LOG 0-2`, `DEFAULTS` | detalle del log; parámetros por defecto |
-| `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) |
-| `SAVE`, `ERASE`, `HOME`, `RESET` | guardar, borrar mapa, "estoy en la salida", reiniciar |
-| `SYNC`, `TELEM ON/OFF` | reenviar mapa y estado al monitor; activar la telemetría |
-| `CAL …` | pruebas de calibración (ver abajo) |
+| Comando | Qué hace | Parado |
+|---|---|---|
+| `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura | |
+| `MODE n` | elige el modo: 1 búsqueda, 2 carrera rápida, 3 monitor de sensores, 4 borrar mapa | sí |
+| `START` | lanza el modo elegido tras 2 s (como el botón) | |
+| `STOP` | detiene el run (como START durante el run) | |
+| `PAUSE`, `RESUME` | frena y espera; sigue tras una pausa o un paso | |
+| `STEP ON\|OFF` (o `DEBUG`) | paso a paso: pausa tras cada acción | |
+| `SPD n` | mm/s de crucero en la búsqueda y en la vuelta de la carrera rápida | |
+| `FAST n` | mm/s de crucero en las rectas de la carrera rápida | |
+| `CURVE n` | mm/s en las curvas de la carrera rápida (los motores lo limitan a ~480) | |
+| `ACCEL n` | mm/s² de aceleración y frenada en recta | |
+| `TURN n`, `TACCEL n` | grados/s máximos y grados/s² de los giros en el sitio | |
+| `TURNTICKS n` | ticks de encoder de un giro de 90° (menos = gira menos) | |
+| `KP f` | centrado: grados de rumbo por mm descentrado | |
+| `KI f` | centrado: corrige el rumbo torcido (grados por mm y metro; 0 = apagado) | |
+| `TUNE [nombre valor]` | ajusta en vivo una constante del control (no se guarda); `TUNE` solo las lista | |
+| `LOG 0-2` | detalle del log | |
+| `TELEM ON\|OFF` | líneas `@` para el mapa en vivo del monitor | |
+| `CONT ON\|OFF` | búsqueda con rectas sin parar (ON, por defecto) o parando en cada celda; hasta reiniciar | sí |
+| `DEFAULTS` | vuelve a los parámetros por defecto | |
+| `IR` | sensores en mm y crudos, y encoders | |
+| `WALLS` | detecta las paredes ahora mismo | sí |
+| `MAP` | dibuja el mapa ASCII con el camino rápido | sí |
+| `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) | sí |
+| `SAVE` | guarda mapa, meta y parámetros (si la flash no tiene hueco, la compacta) | sí |
+| `ERASE` | borra el mapa en RAM y en flash | sí |
+| `HOME` | "el robot está en la salida mirando al norte" | sí |
+| `SYNC` | reenvía mapa y estado al monitor | sí |
+| `CAL …` | pruebas de calibración (ver abajo) | sí |
+| `RESET` | reinicia el micro (se niega si la flash está bloqueada: apaga y enciende) | |
 
 ## Datos de calibración
 

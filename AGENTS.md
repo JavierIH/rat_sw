@@ -183,21 +183,21 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   such a flash, the robot will need a new search.
 
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
-`HELP` lists everything. Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
+Every command is in the table of README.md ("Consola Bluetooth"; the
+firmware has no HELP, to save flash). Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
 `KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
-default, or stopping in every cell; until reset), `CLOCK [HSI]` (clock source;
-HSI switches to the internal one),
+default, or stopping in every cell; until reset),
 `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`RUN` arms the recorder
 for the next continuous move of a run: the speed run to the goal, or a
 search leg; the dump comes when the run ends).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
-  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `HELP`, `SYNC`, `CAL`) are refused
+  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `CONT`, `SYNC`, `CAL`) are refused
   during a run. `CAL` only validates and queues the test: it runs from the
   main loop, so `STOP` keeps working during the test and the dump.
 - Decimals are parsed by hand (`parse_decimal`): this nano-libc has no `%f`
@@ -264,8 +264,8 @@ search leg; the dump comes when the run ends).
   stack never used, the reset cause, RCC/FLASH registers, the chip's
   identity and the flash's free slots and last write's times; "!! ..." lines
   report stalls, unrequested oscillator changes, crystal failures and slow
-  or failed flash operations. Clock: crystal x 9 = 72 MHz, else HSI 64 MHz;
-  `CLOCK HSI` switches on purpose.
+  or failed flash operations. Clock: crystal x 9 = 72 MHz, else HSI 64 MHz
+  (at boot, or after a crystal failure; never on purpose).
 - Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). So nothing erases during runs: the map

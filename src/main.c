@@ -240,7 +240,7 @@ static void print_banner(storage_status_t stored){
     }
     if(sysclock_source() == CLOCK_HSI_BOOT) print("!! el cristal no arranco: reloj interno a 64 MHz\n");
     print("Reinicio: %s\n", health_reset_cause());
-    print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza, HELP lista comandos\n",
+    print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza\n",
           g[0], g[1], g[2], g[3]);
 }
 
