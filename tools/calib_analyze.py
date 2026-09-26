@@ -554,7 +554,90 @@ def analyze_ir(rec, out):
         out.append("     #define CAL_%s  %.5gf, %.5gf, %.5gf, %.5gf" % (s.upper(), a, b, c, d))
 
 
-ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir}
+def analyze_run(rec, out):
+    """CAL RUN: a whole continuous move of a run (a speed run to the goal, a
+    search leg). Per straight between curves: how far off the centre line
+    the side walls put the robot once they read that straight, at its end
+    and at worst, and the heading offset the centring asked for."""
+    tpm = rec.number("ticks_per_mm", 9.05)
+    mpd = rec.number("turn_ticks", 400) / 90 / tpm
+    angle = rec.number("curve_angle", 90.0)
+    fwd = [t / tpm for t in average_ticks(rec)]
+    rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+    ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
+    ref_r = [v / 100.0 for v in rec.data["ref_rot"]]
+    on = [i for i in range(rec.n) if motor_on(rec, i)]
+    if not on:
+        out.append("  el robot no se movio")
+        return
+    first, end = on[0], on[-1] + 1
+    v = speed_mm_s(rec, average_ticks(rec), smooth=2)
+    out.append("Movimiento continuo (%s): %.0f mm en %.0f ms, hasta %.0f mm/s"
+               % (rec.meta.get("result", "?"), fwd[end - 1] - fwd[first], (end - first) * rec.period,
+                  max(v[first:end])))
+    out.append("  seguimiento: error de avance max %.2f mm, de rumbo max %.2f grados"
+               % (max(abs(ref_f[i] - fwd[i]) for i in on), max(abs(ref_r[i] - rot[i]) for i in on)))
+    saturated = sum(1 for i in on if max(abs(rec.data["pwm_l"][i]), abs(rec.data["pwm_r"][i])) >= 1000)
+    if saturated:
+        out.append("  ! PWM al maximo en %d muestras de %d" % (saturated, len(on)))
+    # The reference turns fast in the curves (~0.65 deg/mm) and the centring
+    # at most STEER_CURVE_DEG_PER_MM (0.2): the straights are where it turns
+    # slower than 0.4 deg/mm. The heading offset is what it holds beyond the
+    # curves' multiples of their angle.
+    # The clothoid ramps turn slower near their ends: under 0.4 deg/mm for
+    # their first 15 mm, so every curve is widened by that much.
+    fast = []
+    for i in range(rec.n):
+        a, b = max(0, i - 2), min(rec.n - 1, i + 2)
+        ds = ref_f[b] - ref_f[a]
+        fast.append(ds > 0.5 and abs(ref_r[b] - ref_r[a]) / ds > 0.4)
+    marks = [ref_f[i] for i in range(rec.n) if fast[i]]
+    curving = [any(abs(ref_f[i] - m) <= 15.0 for m in marks) for i in range(rec.n)]
+    delay = int(round(IR_DELAY_MS / rec.period))
+    lateral = dict(side_errors(rec, rec.n))
+    straights, i = [], first
+    while i < end:
+        if curving[i]:
+            i += 1
+            continue
+        j = i
+        while j < end and not curving[j]:
+            j += 1
+        if fwd[j - 1] - fwd[i] > 20:
+            straights.append((i, j))
+        i = j
+    for n, (a, b) in enumerate(straights, 1):
+        base = angle * round(ref_r[a] / angle)
+        # A reading at sample k is where the robot was IR_DELAY_MS before.
+        seen = [(k - delay, lateral[k]) for k in range(a + delay, min(b + delay, rec.n)) if k in lateral]
+        head = "  recta %d: %.0f-%.0f mm, rumbo %+.0f" % (n, fwd[a] - fwd[first], fwd[b - 1] - fwd[first], base)
+        offsets = [ref_r[k] - base for k in range(a, b)]
+        if not seen:
+            out.append(head + ": sin paredes laterales")
+            continue
+        worst = max(seen, key=lambda e: abs(e[1]))
+        out.append(head + ": lateral %+.1f mm al leer las paredes (a %.0f mm), %+.1f al final, peor %+.1f (a %.0f mm);"
+                   " centrado pidio %+.1f..%+.1f grados, %+.1f al final"
+                   % (seen[0][1], fwd[seen[0][0]] - fwd[a], seen[-1][1], worst[1], fwd[worst[0]] - fwd[a],
+                      min(offsets), max(offsets), offsets[-1]))
+    out.append("  (lateral > 0: a la izquierda del centro; grados > 0: a la derecha)")
+    out.append("       s mm   v mm/s  lateral  rumbo pedido  rumbo encoders")
+    last = None
+    for k in range(first, end):
+        if last is not None and fwd[k] - fwd[last] < 30:
+            continue
+        last = k
+        base = angle * round(ref_r[k] / angle)
+        lat = lateral.get(k + delay)
+        if curving[k]:
+            out.append("    %6.0f  %6.0f  %7s  %11s  %14s  curva" % (fwd[k] - fwd[first], v[k], "-", "-", "-"))
+            continue
+        out.append("    %6.0f  %6.0f  %7s  %+11.1f  %+14.1f"
+                   % (fwd[k] - fwd[first], v[k], "%+.1f" % lat if lat is not None else "-", ref_r[k] - base,
+                      rot[k] - base))
+
+
+ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir, "run": analyze_run}
 
 
 def report(paths):

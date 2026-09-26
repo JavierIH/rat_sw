@@ -249,6 +249,78 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"TUNE CURVE_POST ([-\d.]+)", text), -3.0, delta=0.2)
         self.assertAlmostEqual(number(r"TUNE CURVE_ANGLE ([\d.]+)", text), 92.0, delta=0.4)
 
+    def test_continuous_run(self):
+        # CAL RUN over a cell, a right curve and 270 mm of straight at 500
+        # mm/s. The robot leaves the curve 12 mm left of centre and ends 2 mm
+        # off; the side IR report where it was 50 ms before.
+        period, v, tpm, mpd = 4, 500.0, 9.05, 400 / 90 / 9.05
+        radius, ramp = 70.0, 30.0
+        length = radius * math.pi / 2 + ramp
+        c0, c1 = 94.5, 94.5 + length
+        stop = c1 + 4.5 + 270.0
+
+        def heading_at(s):
+            u = s - c0
+            if u <= 0:
+                return 0.0
+            if u >= length:
+                return 90.0
+            k = 1 / radius
+            if u < ramp:
+                h = 0.5 * k * u * u / ramp
+            elif u < length - ramp:
+                h = k * (u - 0.5 * ramp)
+            else:
+                h = math.pi / 2 - 0.5 * k * (length - u) ** 2 / ramp
+            return math.degrees(h)
+
+        def lateral_at(s):
+            return 0.0 if s < c1 else 12.0 - 10.0 * (s - c1) / (stop - c1)
+
+        rows, t = [], 0
+        while True:
+            s = min(stop, v * t / 1000.0)
+            seen = max(0.0, s - v * 0.05)
+            walls = seen < c0 - 10 or seen > c1
+            sl, sr = (fl_raw_for(84 - lateral_at(seen)), fl_raw_for(84 + lateral_at(seen))) if walls else (0, 0)
+            half_rot = heading_at(s) * mpd * tpm
+            done = s >= stop
+            p = 0 if done else 400
+            rows.append((s * tpm + half_rot, s * tpm - half_rot, p, p, fl_raw_for(300), fl_raw_for(300), sl, sr,
+                         s * 10, heading_at(s) * 100))
+            if done:
+                break
+            t += period
+        capture = rm.CalibrationCapture(self.tmp.name)
+        lines = ["@D BEGIN run", '@D INFO period_ms=%d samples=%d capacity=320 result=OK build="t"' % (period, len(rows))]
+        lines += NEW_INFO + ["@D INFO curve_angle=90.00"]
+        lines += ["@D COLS t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot"]
+        lines += ["@D %d,%s" % (i * period, ",".join(str(int(round(x))) for x in row)) for i, row in enumerate(rows)]
+        lines += ["@D END result=OK samples=%d" % len(rows)]
+        for line in lines:
+            capture.feed(line)
+        with open(capture.last_path) as f:
+            text = f.read()
+        for sensor in ("fr", "sl", "sr"):
+            text = re.sub(r'ir_cal_%s="[^"]*"' % sensor, 'ir_cal_%s="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"'
+                          % sensor, text)
+        with open(capture.last_path, "w") as f:
+            f.write(text)
+        text = ca.report([capture.last_path])
+        self.assertIn("Movimiento continuo (OK)", text)
+        self.assertAlmostEqual(number(r"(\d+) mm en \d+ ms", text), stop, delta=2)
+        self.assertIn("recta 1", text)
+        second = text[text.index("recta 2"):]
+        self.assertIn("rumbo +90", second)
+        self.assertAlmostEqual(number(r"lateral ([-+\d.]+) mm al leer", second), 12.0, delta=1.0)
+        self.assertAlmostEqual(number(r"([-+\d.]+) al final, peor", second), 2.0, delta=1.0)
+        self.assertAlmostEqual(number(r"peor ([-+\d.]+)", second), 12.0, delta=1.0)
+        self.assertNotIn("recta 3", text)
+        # The curve's ramps belong to the curve, not to the straights.
+        self.assertAlmostEqual(number(r"recta 1: 0-(\d+) mm", text), c0, delta=3)
+        self.assertAlmostEqual(number(r"recta 2: (\d+)-", text), c1, delta=3)
+        self.assertIn("pidio +0.0..+0.0 grados", text[:text.index("recta 2")])
+
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140
         rows, pos = [], 0.0
