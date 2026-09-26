@@ -205,3 +205,9 @@ and the option bytes. It does not remove the cause: if a wedged flash
 programmed halfwords fast, the first erase would still stall ~200 s (once).
 Reproducer: `CAL FLASH [n] [ms]`, n half turns each followed by a write ms
 after the stop (0 = right away, as the stuck writes were).
+
+Seen again (09-27 00:26, layout D, firmware 8467786, ~4 min after a
+power-on, the 2nd run-end save since then, 1 s after the motors stopped):
+"1a 344891 us" (~6000x slow), cut, store blocked; RCC_CR 030b4d83 before
+and after, SR 00, CR 0080. The HSI restart's check: "2 bytes en 56 us"
+(normal). First evidence that restarting the HSI clears the wedge (n=1).

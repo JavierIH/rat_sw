@@ -39,14 +39,25 @@ commit when done. Details go in the docs it points to, not here.
    V0 300 at 480: slip 3 +6.8, 5 +1.1 and +2.0, 7 +17.4 (outlier?
    stopped); slip 5 at 400: 0.0. Defaults now 5 / 300 (not flashed;
    live they need TUNE after every reset). Next: b), c) on layout D.
-   a) boot: `STATUS` no "!!"; `TUNE` lists the four at 0.
-   b) layout D, facing a wall: `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
-      `CAL TURN -4`, `CAL NOISE` at 403/carry 0, then `TUNE TURN_CARRY 1`
-      + `TURNTICKS 401`, then 402 (FL-FR). No `SAVE` of 401/402 until the
-      carry's default is flashed.
-   c) D speed runs with `CAL RUN`: carry 0 vs 1 (yaw after the 180; the
-      dump shows `wheel_diff_ppm=-2500`), then `SIDE_LEVER` 55 vs 0
-      (per-straight lateral/heading, `calib_analyze.py`).
+   b) done 23:02-23:12 (D, facing the south wall; FL-FR change per 4
+   quarter turns, right/left, 1.12 mm/deg from 401->402): 403 carry 0
+   -1.5/+0.8; carry 1: 401 -0.8/+1.9, 402 -2.4/+2.3, 399 -0.3/-1.5.
+   In-place turns: real = encoder x TURNTICKS/398.2 (every set
+   397.9-398.6); 403 carry 0 turns each 90 ~+0.3 deg real.
+   c) done 09-27 00:19-00:30, D speed runs with `CAL RUN` at CURVE 480
+   (PRE_SLIP 5/V0 300), the start yaw after the previous run's final 180,
+   carry executed (from the first straight's "paralelo" heading):
+   carry 0/403 +1.8 (A3; before +0.8, -0.5); carry 1/398 +0.3, -1.3,
+   -0.5. No clear gain, and TURNTICKS is also the curves' scale: at 398
+   the curve turned ~2 deg less (straight 2 +2..+4.7 deg, exit +15..+23 mm
+   left, 403: -3..+12). Carry 1 needs its own in-place scale (TURNTICKS
+   398 for turns, 403 for rolling): next flash, then retest; until then
+   carry 0/403. `SIDE_LEVER` 55 (L2, L3) vs 0 (A2, A3): straight 1 ends
+   -5 mm vs -8, straight 2 the same (+14/+15 at the curve exit either
+   way), end bias vs parallel no better: inconclusive, keep 0.
+   !! The robot's last good flash record (B1's save) has TURNTICKS 398:
+   after the next power-on send `TURNTICKS 403` + `SAVE`.
+   Next: d) below; the curve exit at 480 on D is +12..+17 mm left too.
    d) layout E (from D: remove east of (1,1); add east of (1,0), (1,2)),
       `ERASE`, search, speed runs with `CAL RUN` at CURVE 300, 400 (new
       point), 480, slip 0: E@400 ~+14 left = v^2 (V0 0), ~+10 = V0 300.
@@ -61,6 +72,16 @@ commit when done. Details go in the docs it points to, not here.
    Next:
    charge it; if it goes on, note where the robot and the PC are, try a
    dump next to the PC, and watch `btmon`.
+7. **Flash wedge again** (09-27 00:26, `docs/freezes.md`): L1's run-end
+   save (the 2nd since the power-on) wedged: "1a 344891 us", cut, store
+   blocked; RCC_CR 030b4d83 before and after; "tras reiniciar el HSI, 2
+   bytes en 56 us (normal)": the designed test says the HSI was the
+   culprit (n=1). Robot and runs fine. Next: write it into
+   `docs/freezes.md`; consider (next flash) restarting the HSI and going
+   on instead of blocking the store.
+8. **Minor: `!! el programa estuvo parado 3000 ms`** while mode 4 waited
+   for the ERASE confirmation (09-26 23:13, PC in `leds_set_mask` from
+   `main`): the stall check flags the UI's own 3 s wait. Silence it there.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
 
