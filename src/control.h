@@ -90,6 +90,9 @@ void control_reset(control_t *c);
 // The robot is where it is: errors and damping history to zero, keeping the
 // learned imbalance and the steering offset (after a pause).
 void control_clear_errors(control_t *c);
+// A move that starts `deg` short of its rotation reference: what the last
+// turn left undone (the loop finishes it; no damping kick at the start).
+void control_carry_rot(control_t *c, float deg);
 // One control period. dl, dr: encoder ticks since the last call (forward
 // positive); fwd, rot: profiles already stepped; steer: heading offset asked
 // by the centring (deg, added to the rotation reference). Writes pwm_l/pwm_r.
@@ -114,6 +117,7 @@ typedef struct {
     float center_l_mm;      // SL reading with the robot on the centre line
     float center_r_mm;      // SR reading with the robot on the centre line
     float error_max_mm;     // clamp of the lateral error
+    float lever_mm;         // observer: side readings' shift per radian of yaw (sensors at the nose); 0: ignored
     uint8_t delay_steps;    // side IR delay in steps, averaging included (<= STEER_DELAY_MAX)
     uint8_t average_steps;  // side IR averaged over this many steps (<= STEER_AVERAGE_MAX)
 } steer_config_t;
@@ -128,6 +132,9 @@ typedef struct {
     float heading;          // heading offset asked for, deg (> 0: to the right)
     float drift;            // lateral motion over the last delay_steps (encoders), mm
     float drift_hist[STEER_DELAY_MAX];
+    int16_t lever_hist[STEER_DELAY_MAX];    // the readings' shift by the yaw of each step, 0.1 um (observer)
+    float heading_prev;     // heading of the last step, deg
+    uint8_t heading_known;  // heading_prev is valid
     float reading;          // lateral error from the wall, slew-limited, mm
     float reading_sum;      // of the last average_steps readings
     float reading_hist[STEER_AVERAGE_MAX];

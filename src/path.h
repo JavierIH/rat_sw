@@ -41,6 +41,8 @@ typedef struct {
     float pre, post;    // mm straight inside the cell before and after the curve (geometry + tuning)
     float k, k_ramp;    // 1/radius (per mm) and its rate along a ramp (per mm^2): no divisions in SysTick
     float slip_k;       // deg added to `angle` per (mm/s)^2 of the path's curve speed (0 after curve_setup)
+    float pre_k;        // mm added to `pre` per (mm/s)^2 of the path's curve speed above...
+    float pre_v0;       // ...this, mm/s (0 after curve_setup)
 } curve_t;
 
 // Derives the curve from its shape. The adjustments move the start later
@@ -84,8 +86,9 @@ typedef struct {
 } path_run_t;
 
 // v_curve is lowered if the shortest straight after a curve (to the centre
-// of the next cell) could not brake from it at `accel`. Returns 0 if the
-// path is malformed.
+// of the next cell) could not brake from it at `accel`; the curve's angle
+// and `pre` then grow with it (slip_k, pre_k), `pre` only as far as the
+// curves still fit their cells. Returns 0 if the path is malformed.
 uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, float cell_mm,
                    float v_straight, float v_curve, float accel);
 // One control period: advances the reference and writes it into the two

@@ -6,7 +6,6 @@
 #include "robot_config.h"
 
 #define DEAD_MAX 32
-#define SIDE_BEAM_MM_PER_DEG 0.33f  // the 15 deg side beam reads shorter as the robot yaws towards its wall
 #define FADE_MM 40.0f               // as STEER_FADE_MM in motion.c
 #define SIDE_BEAM_AHEAD_MM 20.0f    // where the angled side beams hit the walls, ahead of the robot's centre
 
@@ -23,6 +22,7 @@ float sim_curve = STEER_CURVE_DEG_PER_MM;   // experiments: centring curvature l
 float sim_window = STEER_BIAS_WINDOW_MM;    // experiments: KI learning window
 float sim_observer = STEER_OBSERVER_MM;     // experiments: bias observer (0: the old integral)
 float sim_vref = STEER_VREF_MM_S;           // experiments: speed above which KP falls as 1/speed
+float sim_lever = SIDE_LEVER_MM;            // experiments: the observer's side lever
 
 static float uniform(void){
     rng = rng * 1664525u + 1013904223u;
@@ -89,6 +89,9 @@ plant_t plant_nominal(void){
         .yaw_friction = 15.0f, .yaw_stiction = 50.0f,
         .dead_ms = 0, .ir_noise = 1.0f, .ir_delay_ms = IR_DELAY_MS,
         .ir_period_ms = 16, .ir_step_mm = 2.0f, .y0 = 0.0f, .yaw0 = 0.0f, .seed = 1,
+        // The robot's: sensors ~40 mm ahead of the axle, their beams 15 deg
+        // forward (fitted on the ring, calib_analyze.py SIDE_LEVER_MM).
+        .side_lever_mm = 55.0f,
     };
     return p;
 }
@@ -114,7 +117,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
         .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = sim_window, .observer_mm = sim_observer, .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
+        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = sim_window, .observer_mm = sim_observer,
+        .lever_mm = sim_lever, .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
         .average_steps = (uint8_t)sim_average,
     };
     profile_t fwd, rot;
@@ -124,6 +128,7 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     profile_reset(&fwd);
     profile_reset(&rot);
     control_reset(&c);
+    if(p->rot_carry != 0.0f) control_carry_rot(&c, p->rot_carry);
     steer_reset(&s);
     // The model gives PWM = KV * v, so the true gain is 1 / KV (scaled).
     motor_init(&ml, p->gain_l / MOTOR_KV_L, p);
@@ -166,8 +171,9 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
                 // Walls a few mm off: each cell's pair, from where the beams hit it.
                 const int cell = (int)floorf((r.travelled + SIDE_BEAM_AHEAD_MM) / CELL_MM + 0.5f) & 63;
                 const float off_r = p->wall_error_mm * wall_error[cell][0], off_l = p->wall_error_mm * wall_error[cell][1];
-                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + ys - SIDE_BEAM_MM_PER_DEG * yaws + off_r + gauss(p->ir_noise)) / step);
-                held_l = step * roundf((LANE_WIDTH_MM / 2.0f - ys + SIDE_BEAM_MM_PER_DEG * yaws + off_l + gauss(p->ir_noise)) / step);
+                const float lever = p->side_lever_mm * yaws * (3.14159265f / 180.0f);
+                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + ys - lever + off_r + gauss(p->ir_noise)) / step);
+                held_l = step * roundf((LANE_WIDTH_MM / 2.0f - ys + lever + off_l + gauss(p->ir_noise)) / step);
             }
             const float sr = held_r, sl = held_l;
             const float remaining = fwd.target - (fwd.pos - c.fwd_error);
@@ -204,6 +210,7 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         }
     }
     r.turned = turned;
+    r.rot_error_end = c.rot_error;
     r.y_end = y;
     r.yaw_end = yaw;
     // Parallel to the walls: the encoder heading minus the true yaw
@@ -283,6 +290,10 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         y += v * cos(mid) * dt;
         yaw += w * dt;
         travelled += v * dt;
+        if(pr.curves && pr.next >= pr.path.cells && r.x_exit == 0.0f && r.y_exit == 0.0f){
+            r.x_exit = (float)x;
+            r.y_exit = (float)y;
+        }
         // Distance to the reference's path near where the robot has got to
         // (behind the reference is not off the path).
         double nearest = 1e9;
@@ -306,6 +317,8 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
     }
     r.scale_min = pr.scale_min;
     r.end_err = (float)hypot(x - rx, y - ry);
+    r.x_end = (float)x;
+    r.y_end = (float)y;
     r.heading_err = (float)(yaw - pr.heading * 90.0 / pr.curve.angle);
     return r;
 }

@@ -1589,6 +1589,146 @@ static void test_curve_slip(void){
     CHECK(ok);
 }
 
+// Straights with a start a turn or a hand placement leaves (yawed 3 deg
+// either way, 10 mm off-centre, both), 20 seeds each, walls +-3 mm: mean
+// final errors of the learned bias, the lateral and the yaw.
+typedef struct { float bias, y, yaw; } lever_stats_t;
+
+static lever_stats_t lever_stats(float mm, float speed){
+    static const float yaws[] = {3.0f, -3.0f, 0.0f, 5.0f}, ys[] = {0.0f, 0.0f, 10.0f, 8.0f};
+    lever_stats_t st = {0.0f, 0.0f, 0.0f};
+    int n = 0;
+    for(int c = 0; c < 4; c++){
+        for(uint32_t seed = 1; seed <= 20; seed++){
+            plant_t p = plant_nominal();
+            p.yaw0 = yaws[c];
+            p.y0 = ys[c];
+            p.wall_error_mm = 3.0f;
+            p.seed = seed;
+            const sim_result_t r = sim_straight(&p, mm, speed, PARAM_ACCEL, PARAM_KP, PARAM_KI);
+            st.bias += fabsf(r.bias_end - r.bias_true);
+            st.y += fabsf(r.y_end);
+            st.yaw += fabsf(r.yaw_end);
+            n++;
+        }
+    }
+    st.bias /= (float)n;
+    st.y /= (float)n;
+    st.yaw /= (float)n;
+    return st;
+}
+
+// The side sensors sit at the nose: a turn moves their readings by the
+// lever (~55 mm per radian on the robot). With it in the observer
+// (SIDE_LEVER) the centring's own turns teach no bias; without it a 3 deg
+// turn dragged the bias ~0.6 deg the wrong way. Open loop, readings from the
+// geometry, as late as on the robot.
+static void test_steering_lever(void){
+    const float deg = 3.14159265f / 180.0f;
+    const uint8_t delay = IR_DELAY_MS + STEER_AVERAGE_MS / 2;
+    for(int lever = 0; lever <= 55; lever += 55){
+        const steer_config_t k = {
+            .kp = 0.0f, .ki = PARAM_KI * 0.001f, .observer_mm = STEER_OBSERVER_MM, .max_deg = STEER_MAX_DEG,
+            .curve_deg = STEER_CURVE_DEG_PER_MM, .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM,
+            .center_l_mm = LANE_WIDTH_MM / 2.0f, .center_r_mm = LANE_WIDTH_MM / 2.0f,
+            .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = STEER_BIAS_WINDOW_MM,
+            .lever_mm = (float)lever, .delay_steps = delay, .average_steps = 1,
+        };
+        steer_t s;
+        steer_reset(&s);
+        static float seen[3000];
+        float y = 0.0f, peak = 0.0f;
+        for(int i = 0; i < 3000; i++){
+            // The encoder heading (the true one: bias 0) turns 3 deg right and back.
+            const float h = i < 400 ? 0.0f : i < 700 ? 0.01f * (float)(i - 400) : i < 1200 ? 3.0f
+                          : i < 1500 ? 0.01f * (float)(1500 - i) : 0.0f;
+            y -= 0.5f * h * deg;
+            seen[i] = y - 55.0f * h * deg;
+            const float m = seen[i >= delay ? i - delay : 0];
+            steer_step(&s, &k, LANE_WIDTH_MM / 2.0f - m, LANE_WIDTH_MM / 2.0f + m, 0.5f, h, 1.0f);
+            peak = fmaxf(peak, fabsf(s.bias));
+        }
+        CHECK(lever ? peak < 0.05f : peak > 0.4f);
+    }
+    // Closed loop, the plant with the robot's lever: one- and two-cell
+    // straights end with the bias and the lateral closer (1.7 -> 1.3 deg and
+    // 0.6 -> 0.4 deg at 450 mm/s; 540 mm: 0.26 -> 0.36, see --control).
+    const float dists[] = {180.0f, 360.0f};
+    for(size_t d = 0; d < 2; d++){
+        sim_lever = 0.0f;
+        const lever_stats_t without = lever_stats(dists[d], 450.0f);
+        sim_lever = 55.0f;
+        const lever_stats_t with = lever_stats(dists[d], 450.0f);
+        CHECK(with.bias < 0.85f * without.bias);
+        CHECK(with.y < without.y);
+    }
+    sim_lever = SIDE_LEVER_MM;
+}
+
+// An in-place turn stops within SETTLE_DEG of its target. With TURN_CARRY
+// the next move starts that far off its reference and finishes it: two 90s
+// turn as much as a 180 (without it, one shortfall less), and the straight
+// after a turn has its encoder heading on the corridor.
+static void test_turn_carry(void){
+    const plant_t base = plant_nominal();
+    for(int sign = -1; sign <= 1; sign += 2){
+        const sim_result_t t90 = sim_turn(&base, 90.0f * (float)sign, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+        const sim_result_t t180 = sim_turn(&base, 180.0f * (float)sign, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+        const float short_by = t90.rot_error_end * (float)sign;
+        CHECK(short_by > 0.1f && short_by < SETTLE_DEG);
+        plant_t carried = base;
+        carried.rot_carry = t90.rot_error_end;
+        const sim_result_t next = sim_turn(&carried, 90.0f * (float)sign, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+        CHECK(fabsf(t90.turned + next.turned - t180.turned) < 0.1f);
+        CHECK(fabsf(2.0f * t90.turned - t180.turned) > 0.15f);
+        CHECK(next.ms < 450u);
+        plant_t p = base;
+        p.yaw0 = -t90.rot_error_end;    // short of the turn: yawed back towards the old heading
+        p.rot_carry = t90.rot_error_end;
+        const sim_result_t r = sim_straight(&p, 360.0f, 450.0f, PARAM_ACCEL, PARAM_KP, PARAM_KI);
+        CHECK(fabsf(r.bias_true) < 0.1f);
+        CHECK(fabsf(r.yaw_end) < 1.0f);
+        CHECK(r.rot_err_max < 3.0f);
+    }
+}
+
+// The faster the curves, the more they slip sideways: `pre` grows with the
+// curve speed above CURVE_PRE_V0, CURVE_PRE_SLIP mm at CURVE_SLIP_VREF_MM_S,
+// and layout E's six curves shift ~3 mm per mm of it.
+static void test_curve_pre_slip(void){
+    static const int8_t layout_e[9] = {0, 1, 1, -1, 1, -1, -1, 0, 0};
+    const run_path_t e = {layout_e, 9};
+    const float vref2 = CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S;
+    const curve_t plain = default_curve();
+    curve_t c = plain;
+    c.pre_k = 7.0f / (vref2 - 300.0f * 300.0f);
+    c.pre_v0 = 300.0f;
+    path_run_t r;
+    CHECK(path_start(&r, &e, &c, CELL_MM, 900.0f, CURVE_SLIP_VREF_MM_S, PARAM_ACCEL));
+    CHECK(fabsf(r.curve.pre - (plain.pre + 7.0f)) < 0.01f);
+    CHECK(fabsf(r.length - (3.0f * CELL_MM + 6.0f * (r.curve.pre + c.length + c.post))) < 0.01f);
+    CHECK(path_start(&r, &e, &c, CELL_MM, 900.0f, 300.0f, PARAM_ACCEL));
+    CHECK(fabsf(r.curve.pre - plain.pre) < 0.001f);
+    // Never so early that curves in consecutive cells overlap.
+    c.pre_k = -40.0f / vref2;
+    c.pre_v0 = 0.0f;
+    CHECK(path_start(&r, &e, &c, CELL_MM, 900.0f, CURVE_SLIP_VREF_MM_S, PARAM_ACCEL));
+    CHECK(r.curve.pre + r.curve.post > -0.001f);
+    // In the simulator +7 at 480 moves E's exit ~20 mm right (the robot's
+    // 20 mm left); with V0 300, 300 mm/s is untouched.
+    const plant_t p = plant_nominal();
+    c.pre_k = 7.0f / (vref2 - 300.0f * 300.0f);
+    c.pre_v0 = 300.0f;
+    const path_result_t fast0 = sim_path(&p, &e, &plain, 900.0f, CURVE_SLIP_VREF_MM_S, PARAM_ACCEL);
+    const path_result_t fast = sim_path(&p, &e, &c, 900.0f, CURVE_SLIP_VREF_MM_S, PARAM_ACCEL);
+    const path_result_t slow0 = sim_path(&p, &e, &plain, 900.0f, 300.0f, PARAM_ACCEL);
+    const path_result_t slow = sim_path(&p, &e, &c, 900.0f, 300.0f, PARAM_ACCEL);
+    const float shift = fast.x_exit - fast0.x_exit;
+    CHECK(shift > 15.0f && shift < 25.0f);
+    CHECK(fabsf(slow.x_exit - slow0.x_exit) < 0.5f);
+    CHECK(!fast.stall_ms && fast.cross_err_max < 3.0f && fast.end_err < 5.0f);
+}
+
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
     printf("recta 540 mm, 15 mm descentrado (KP %.2f KI %.2f):\n", (double)PARAM_KP, (double)PARAM_KI);
@@ -1626,6 +1766,63 @@ static void control_report(void){
                    (double)r.end_err, (double)r.heading_err, (double)r.cross_err_max, (double)r.fwd_err_max,
                    (double)r.rot_err_max, r.pwm_max);
         }
+    }
+    // The side sensors at the nose: the observer with and without the lever
+    // (the plant has the robot's, plant_nominal()), over short straights.
+    printf("palanca de los sensores laterales (planta %.0f mm/rad): errores finales medios de 80 rectas\n"
+           "(girado +-3 deg, descentrado 10 mm, girado 5 y descentrado 8; 20 semillas, paredes +-3 mm):\n",
+           (double)plant_nominal().side_lever_mm);
+    const float lever_dists[] = {180.0f, 360.0f, 540.0f}, lever_speeds[] = {300.0f, 450.0f, 700.0f};
+    for(size_t d = 0; d < 3; d++){
+        for(size_t v = 0; v < 3; v++){
+            printf("  %3.0f mm a %3.0f mm/s:", (double)lever_dists[d], (double)lever_speeds[v]);
+            for(int lever = 0; lever <= 55; lever += 55){
+                sim_lever = (float)lever;
+                const lever_stats_t st = lever_stats(lever_dists[d], lever_speeds[v]);
+                printf("  SIDE_LEVER %2d: sesgo %.2f deg, %.1f mm, %.2f deg", lever, (double)st.bias, (double)st.y,
+                       (double)st.yaw);
+            }
+            printf("\n");
+        }
+    }
+    sim_lever = SIDE_LEVER_MM;
+    // What an in-place turn leaves undone, carried into the next move or not.
+    const plant_t base = plant_nominal();
+    const sim_result_t t90 = sim_turn(&base, 90.0f, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+    const sim_result_t t180 = sim_turn(&base, 180.0f, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+    plant_t carried = base;
+    carried.rot_carry = t90.rot_error_end;
+    const sim_result_t t90b = sim_turn(&carried, 90.0f, PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
+    printf("giros en el sitio: un 90 gira %.2f (le faltan %.2f), un 180 %.2f; 90+90 %.2f sin arrastre, %.2f con\n",
+           (double)t90.turned, (double)t90.rot_error_end, (double)t180.turned, (double)(2.0f * t90.turned),
+           (double)(t90.turned + t90b.turned));
+    for(int k = 0; k < 2; k++){
+        plant_t p = base;
+        p.yaw0 = -t90.rot_error_end;    // short of a right turn: yawed left of the new corridor
+        p.rot_carry = k ? t90.rot_error_end : 0.0f;
+        const sim_result_t r = sim_straight(&p, 360.0f, 450.0f, PARAM_ACCEL, PARAM_KP, PARAM_KI);
+        printf("  recta 360 mm tras el 90, %s arrastre: final %+.1f mm %+.2f deg, sesgo %+.2f (real %+.2f)\n",
+               k ? "con" : "sin", (double)r.y_end, (double)r.yaw_end, (double)r.bias_end, (double)r.bias_true);
+    }
+    // Layout E: north 2, a curve in each of six cells, north 2 (no walls:
+    // no centring). Lateral right after the last curve (> 0 right of the
+    // centre line), for several CURVE_PRE_SLIP.
+    static const int8_t layout_e[9] = {0, 1, 1, -1, 1, -1, -1, 0, 0};
+    const run_path_t e = {layout_e, 9};
+    printf("laberinto E (2D1D1I1D1I1I2), lateral tras la ultima curva (> 0 a la derecha):\n");
+    const float e_speeds[] = {300.0f, 400.0f, 480.0f};
+    const struct { float slip, v0; } laws[] = {{0.0f, 0.0f}, {4.0f, 0.0f}, {7.0f, 0.0f}, {7.0f, 300.0f}, {10.0f, 0.0f}};
+    for(size_t k = 0; k < sizeof(laws) / sizeof(laws[0]); k++){
+        printf("  CURVE_PRE_SLIP %2.0f V0 %3.0f:", (double)laws[k].slip, (double)laws[k].v0);
+        for(size_t j = 0; j < sizeof(e_speeds) / sizeof(e_speeds[0]); j++){
+            curve_t ce = c;
+            ce.pre_k = laws[k].slip / (CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S - laws[k].v0 * laws[k].v0);
+            ce.pre_v0 = laws[k].v0;
+            const path_result_t r = sim_path(&base, &e, &ce, PARAM_FAST_SPEED, e_speeds[j], PARAM_ACCEL);
+            printf("  %3.0f mm/s %+5.1f mm%s", (double)e_speeds[j], (double)(r.x_exit - 3.0f * CELL_MM),
+                   r.stall_ms ? " (atasco)" : "");
+        }
+        printf("\n");
     }
 }
 
@@ -1722,6 +1919,9 @@ int main(int argc, char **argv){
     test_path_tracking();
     test_path_governor();
     test_curve_slip();
+    test_steering_lever();
+    test_turn_carry();
+    test_curve_pre_slip();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;

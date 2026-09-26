@@ -117,6 +117,11 @@ void control_clear_errors(control_t *c){
     for(uint8_t i = 0; i < CONTROL_D_WINDOW; i++) c->fwd_hist[i] = c->rot_hist[i] = 0.0f;
 }
 
+void control_carry_rot(control_t *c, float deg){
+    c->rot_error = deg;
+    for(uint8_t i = 0; i < CONTROL_D_WINDOW; i++) c->rot_hist[i] = deg;
+}
+
 // PWM that makes a wheel run at `v` while accelerating at `a` (motor model
 // from CAL STEP). The friction term fades in over the first 10 mm/s so that
 // it does not chatter around standstill.
@@ -199,7 +204,11 @@ void steer_reset(steer_t *s){
 
 void steer_restart(steer_t *s){
     s->lateral = s->drift = 0.0f;
-    for(uint8_t i = 0; i < STEER_DELAY_MAX; i++) s->drift_hist[i] = 0.0f;
+    for(uint8_t i = 0; i < STEER_DELAY_MAX; i++){
+        s->drift_hist[i] = 0.0f;
+        s->lever_hist[i] = 0;
+    }
+    s->heading_known = 0;
     s->reading = s->reading_sum = 0.0f;
     for(uint8_t i = 0; i < STEER_AVERAGE_MAX; i++) s->reading_hist[i] = 0.0f;
     s->slot = s->reading_slot = 0;
@@ -224,12 +233,23 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
                  float gain){
     const float to_corridor = (heading_deg - s->bias) * (3.14159265f / 180.0f);    // rad, > 0 heading right
     const float dy = -ds_mm * to_corridor;          // heading right: the robot moves right, lateral decreases
+    // The side sensors sit at the nose: a yaw to the right moves their
+    // readings to the right too (lever_mm per radian), besides the robot's
+    // sideways motion. In 0.1 um steps: +-3 mm per ms is far beyond any turn
+    // on a straight.
+    const float yawed = s->heading_known ? (heading_deg - s->heading_prev) * (3.14159265f / 180.0f) : 0.0f;
+    s->heading_prev = heading_deg;
+    s->heading_known = 1;
+    const int16_t lever = (int16_t)clampf(-k->lever_mm * yawed * 1e4f, -32767.0f, 32767.0f);
     const uint8_t n = k->delay_steps < STEER_DELAY_MAX ? k->delay_steps : STEER_DELAY_MAX;
     float then = dy;                                // sideways motion when the reading was taken
+    int16_t lever_then = lever;                     // and the readings' shift by the yaw then
     if(n){
         then = s->drift_hist[s->slot];
+        lever_then = s->lever_hist[s->slot];
         s->drift += dy - then;
         s->drift_hist[s->slot] = dy;
+        s->lever_hist[s->slot] = lever;
         s->slot = (uint8_t)((s->slot + 1u) % n);
     }
     const float error_r = sr_mm - k->center_r_mm, error_l = k->center_l_mm - sl_mm;
@@ -284,13 +304,15 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
             // learned a start 8 mm off-centre as 5 deg of bias in the first
             // cell of a speed run, which then aimed the robot at a wall
             // after the curves. `expected` follows the readings over
-            // observer_mm: that averages their steps and noise.
+            // observer_mm: that averages their steps and noise. Without
+            // the lever every turn of the centring looked like the robot
+            // moving sideways, and moved the bias against it.
             if(!s->expecting){
                 s->expected = measured;
                 s->expecting = 1;
             }
             else{
-                s->expected += then;
+                s->expected += then + (float)lever_then * 1e-4f;
                 const float surprise = measured - s->expected;
                 s->expected += surprise * fminf(ds_mm / k->observer_mm, 1.0f);
                 s->bias = clampf(s->bias + k->ki * surprise * ds_mm, -k->max_deg, k->max_deg);

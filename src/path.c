@@ -52,7 +52,7 @@ uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre
     c->radius = radius;
     c->ramp = ramp;
     c->angle = angle;
-    c->slip_k = 0.0f;
+    c->slip_k = c->pre_k = c->pre_v0 = 0.0f;
     c->k = 1.0f / radius;
     c->k_ramp = c->k / ramp;
     // Each clothoid turns ramp / (2 radius): the arc makes up the rest.
@@ -111,24 +111,29 @@ static float brake_cap(float next, float v0, float rem, float final, float rate,
 uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, float cell_mm,
                    float v_straight, float v_curve, float accel){
     if(!path->cells || turn_at(path, (uint8_t)(path->cells - 1u)) != 0) return 0;
+    // After its last curve the path ends at the next cell centre: the
+    // curve speed must leave room to brake there. Every other curve is
+    // followed by a straight or another curve at the same speed.
+    const float room = curve->post + 0.5f * cell_mm;
+    const float vc = fminf(fminf(v_curve, v_straight), control_sqrt(2.0f * accel * room));
+    // The faster the curves, the less they really turn for the same encoder
+    // angle, and the more they slip sideways (a later start makes up for it).
+    const float pre = fmaxf(curve->pre + curve->pre_k * fmaxf(vc * vc - curve->pre_v0 * curve->pre_v0, 0.0f),
+                            fmaxf(-curve->post, -0.25f * cell_mm));
     float length = cell_mm;     // half of the start cell and half of the last one
     for(uint8_t i = 0; i + 1u < path->cells; i++){
         const int8_t turn = turn_at(path, i);
         if(turn < -1 || turn > 1) return 0;
-        length += turn ? curve->pre + curve->length + curve->post : cell_mm;
+        length += turn ? pre + curve->length + curve->post : cell_mm;
     }
     r->path = *path;
     r->curve = *curve;
     r->cell_mm = cell_mm;
     r->accel = accel;
     r->v_straight = v_straight;
-    // After its last curve the path ends at the next cell centre: the
-    // curve speed must leave room to brake there. Every other curve is
-    // followed by a straight or another curve at the same speed.
-    const float room = curve->post + 0.5f * cell_mm;
-    r->v_curve = fminf(fminf(v_curve, v_straight), control_sqrt(2.0f * accel * room));
-    // The faster the curves, the less they really turn for the same encoder angle.
-    r->curve.angle = curve->angle + curve->slip_k * r->v_curve * r->v_curve;
+    r->v_curve = vc;
+    r->curve.angle = curve->angle + curve->slip_k * vc * vc;
+    r->curve.pre = pre;
     r->length = r->stop_at = length;
     r->s = r->v = 0.0f;
     r->heading = r->base = 0.0f;

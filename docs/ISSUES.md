@@ -25,12 +25,27 @@ commit when done. Details go in the docs it points to, not here.
    laps of `CAL STRAIGHT`/`CAL TURN` at 300, all OK): the wheels differ
    ~2.5 deg/m; `WHEEL_DIFF` default -0.0025 committed (`docs/control.md`,
    after "trimmed live"), not flashed yet: the robot runs with 0 until
-   then. Next flash, all in one: that default, `wheel_diff_ppm` in the
-   dumps (done), and still to write: a `CURVE_PRE` growing as (v/480)^2
-   (E's kinematic model: ~+7 at 480 cancels its +20 mm), the turns'
-   shortfall carry-over (`TURNTICKS` ~401.5), the nose lever in the
-   centring's observer, each behind TUNE. After it: a dump shows
-   `wheel_diff_ppm=-2500`; `CURVE_PRE` on single curves at 400, then E.
+   then. Next flash written (all TUNE, default off but WHEEL_DIFF; host
+   tests OK, numbers in `--control`; RAM 86.9 %, flash 91.9 %; keeps map,
+   goal and saved params): `TURN_CARRY` 1 (a turn's rest goes to the next
+   move; then `TURNTICKS` ~401.5; sim: 90+90 = 180), `SIDE_LEVER` 55
+   (sim: bias error of 1-2 cell straights -25..30 %), `CURVE_PRE_SLIP` k
+   + `CURVE_PRE_V0` v0 (pre += k (v^2-v0^2)/(480^2-v0^2); sim on E: +7 at
+   480 moves the exit +20 mm right; V0 300 leaves 300 alone, pure v^2
+   would move it +7). Battery after the flash:
+   a) boot: `STATUS` no "!!"; `TUNE` lists the four at 0.
+   b) layout D, facing a wall: `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
+      `CAL TURN -4`, `CAL NOISE` at 403/carry 0, then `TUNE TURN_CARRY 1`
+      + `TURNTICKS 401`, then 402 (FL-FR). No `SAVE` of 401/402 until the
+      carry's default is flashed.
+   c) D speed runs with `CAL RUN`: carry 0 vs 1 (yaw after the 180; the
+      dump shows `wheel_diff_ppm=-2500`), then `SIDE_LEVER` 55 vs 0
+      (per-straight lateral/heading, `calib_analyze.py`).
+   d) layout E (from D: remove east of (1,1); add east of (1,0), (1,2)),
+      `ERASE`, search, speed runs with `CAL RUN` at CURVE 300, 400 (new
+      point), 480, slip 0: E@400 ~+14 left = v^2 (V0 0), ~+10 = V0 300.
+      Then `CURVE_PRE_SLIP` 3, 5, 7 at 480 (stop at the first anomaly),
+      recheck 300. Validated values into robot_config.h.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of

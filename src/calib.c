@@ -174,7 +174,7 @@ static void dump(void){
     print("@D INFO spd=%d fast=%d curve=%d accel=%d turn=%d turn_accel=%d kp=%s ki=%s\n",
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
           params.turn_accel, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki));
-    for(uint8_t i = 0; i < 2; i++){
+    for(uint8_t i = 0; i < 3; i++){
         if(!wait_slot()) goto interrupted;
         motion_curve_info(i);
     }

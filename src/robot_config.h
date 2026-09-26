@@ -47,6 +47,12 @@
 // yawed +1.1..+2.0 deg right after its 180 at the start (layout D, 5 runs).
 // 403 (2026-09-26): +0.8 and -0.5; 90s now ~0.4 short.
 #define TICKS_PER_TURN          403
+// Default of TUNE TURN_CARRY: 1 = the move after an in-place turn starts
+// with what the turn left undone (control_carry_rot()), so the turns end
+// on target and TURNTICKS no longer absorbs the ~0.78 deg: ~401.5 then
+// (405 fitted to 90s x 89.22 / 90). 0 until tested on the robot.
+#define TURN_CARRY              0
+#define ROT_CARRY_MAX_DEG       2.0f    // more left undone is not a turn's rest
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
@@ -208,6 +214,11 @@
 // (within STEER_BIAS_WINDOW_MM), which took an off-centre start for a heading
 // error.
 #define STEER_OBSERVER_MM       40.0f
+// Default of TUNE SIDE_LEVER: the side readings move ~55 mm per radian of
+// yaw (sensors at the nose; fitted on the ring, calib_analyze.py), which the
+// observer must expect, or it takes the centring's own turns for sideways
+// motion. 0 (ignored) until tested on the robot.
+#define SIDE_LEVER_MM           0.0f
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------
 // The speed run turns without stopping: a 90 deg clothoid-arc-clothoid inside
@@ -233,6 +244,13 @@
 // ms late, so it may need to start earlier (exits displaced to the outside).
 #define CURVE_PRE_ADJUST_MM     0.0f
 #define CURVE_POST_ADJUST_MM    0.0f
+// Default of TUNE CURVE_PRE_SLIP: mm more of `pre` at CURVE_SLIP_VREF_MM_S,
+// growing as v^2 - V0^2 from CURVE_PRE_V0 (TUNE CURVE_PRE_V0; 0: as (v /
+// VREF)^2). Layout E's six curves left the robot 20 mm left at 480 and ~0 at
+// 300; ~3 mm there per mm of `pre` (CURVE_PRE -8 measured +23, the simulator
+// agrees), so ~+7; pure v^2 would put 300 ~7 mm right. 0 until tested.
+#define CURVE_PRE_SLIP_MM       0.0f
+#define CURVE_PRE_V0_MM_S       0.0f
 // Share of CONTROL_PWM_LIMIT the curves may ask of the outer wheel (the
 // loops need the rest): its feedforward peaks where a ramp meets the arc,
 // fastest and still accelerating. It caps the curve speed at ~480 mm/s with

@@ -24,6 +24,8 @@ typedef struct {
     float yaw0;                 // start: deg to the right of the corridor
     float wall_error_mm;        // each wall of each cell off by up to this much (a real maze: ~3, up to 7)
     float curve_slip;           // deg a 90 deg curve at CURVE_SLIP_VREF_MM_S turns less than the encoders say (~v^2)
+    float side_lever_mm;        // side readings' shift per radian of yaw (sensors at the nose, angled beams)
+    float rot_carry;            // deg the last turn left undone, handed to this move (TURN_CARRY)
     uint32_t seed;
 } plant_t;
 
@@ -36,6 +38,7 @@ typedef struct {
     float bias_end;             // deg: the centring's idea of the encoder heading parallel to the walls...
     float bias_true;            // ...and the real one
     float fwd_err_max, rot_err_max;
+    float rot_error_end;        // deg the rotation loop stopped short of its reference
     int crossings;              // sign changes of y (weaving)
     int pwm_max;                // largest |PWM| asked
     uint32_t ms;                // until the move settled
@@ -46,6 +49,8 @@ typedef struct {
 typedef struct {
     float end_err;              // mm from where the robot stops to where the reference ends
     float heading_err;          // deg, true heading at the end minus the reference's
+    float x_end, y_end;         // mm, where the robot stops (+y the start heading, +x to its right)
+    float x_exit, y_exit;       // mm, where it was when the reference left the last curve
     float cross_err_max;        // mm, largest distance from the robot to the reference's path (not to where the reference is)
     float fwd_err_max, rot_err_max;
     int pwm_max;
@@ -59,6 +64,7 @@ extern float sim_window;        // KI learning window, mm (default STEER_BIAS_WI
 extern float sim_curve;         // centring curvature limit, deg/mm (default STEER_CURVE_DEG_PER_MM)
 extern float sim_observer;      // bias observer distance, mm (default STEER_OBSERVER_MM; 0: the old integral)
 extern float sim_vref;          // KP falls as 1/speed above this, mm/s (default STEER_VREF_MM_S)
+extern float sim_lever;         // the observer's side lever, mm per rad (default SIDE_LEVER_MM)
 
 plant_t plant_nominal(void);
 sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki);
