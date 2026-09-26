@@ -42,6 +42,16 @@ wedge shows "!! flash: escritura LENTA, cortada" within a second, the
 robot carries on, and the "tras reiniciar el HSI" line says which part
 failed.
 
+Validated on the robot (09-26 16:15, layout D, right after a power-on, no
+"!!" line): `ERASE` and the search wrote once each (1st halfword 56 us,
+worst 63 us, 9 ms a record); speed runs saved while the map still changed
+(2), then "Mapa ya guardado (sin cambios)" (2); `SAVE` until the log was
+full, then one compacted (erase 22 ms) and saved. No wedge in these 7
+writes, so the "LENTA, cortada" path is still unseen on the robot: if a
+"!! flash" line ever appears, copy it here. IDCODE read 0 after this
+power-on (the 0x307 reads followed flashes, with the debug block enabled);
+0x307 is still not a genuine DEV_ID.
+
 ## History of the investigation
 Symptom: the whole robot freezes for ~200 s (no output, no reply, LEDs all
 off, motors off), then carries on by itself. Flash writes around then hang

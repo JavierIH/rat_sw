@@ -17,19 +17,6 @@ commit when done. Details go in the docs it points to, not here.
    resends), with the robot at rest; no kernel errors on the PC. Hours of
    the same work before without drops. Next: if it goes on, note where the
    robot and the PC are, try a dump next to the PC, and watch `btmon`.
-3. **Freezes: the flash wedges** (`docs/freezes.md`, summary at the top).
-   The chip is a clone whose flash sometimes runs ~9000x slow until a power
-   cycle; the cause is unknown. Fix in 452756d: no run erases; saves program
-   a slot a halfword at a time and stop at the first slow one (~0.5 s, store
-   blocked, map in RAM); only the boot erases. On the robot since 4dcec40
-   (flashed 09-26 15:37; its boot compacted the old record: probe 56 us,
-   erase 22 ms, 6 free slots). Next, on layout D right after a power-on:
-   `STATUS` (no "!!" at boot); `ERASE` + search (one "Mapa guardado", at the
-   end; `STATUS` "1a ~56 us"); 3-4 speed runs (they write only while the map
-   still changes, then "Mapa ya guardado (sin cambios)"; with `CAL RUN` the
-   same runs serve issue 1); `SPD 601`/`SAVE`, `SPD 600`/`SAVE`... until the
-   log is full: that `SAVE` compacts (~50 ms) and saves; end with SPD 600
-   saved. Any "!! flash" line: copy it into freezes.md.
 5. **Search legs on long straights.** Layout D (`docs/mazes.md`, set up
    now): route N 2 cells, E 3 to the goal.
    Check the decision point and the front wall at 450 mm/s.
@@ -37,6 +24,11 @@ commit when done. Details go in the docs it points to, not here.
    correction on wall edges (posts); short diagonals (low priority).
 
 ## Closed
+
+- 2026-09-26 Freezes, the flash wedging (`docs/freezes.md`): fix 452756d
+  validated on layout D (search, 4 speed runs, `SAVE`s to a full log and
+  its compaction: 56-63 us a halfword, no "!!"). The wedge never showed in
+  those writes; if a "!! flash" line appears, reopen with it.
 
 - 2026-09-26 Robot checks of the 10:48 firmware: 1-cell search legs leave
   no doubtful sides (only rest readings do, by design); step mode does not
