@@ -187,9 +187,11 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset), `CLOCK [HSI]` (clock source;
 HSI switches to the internal one),
-`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`RUN` arms the recorder
-for the next continuous move of a run: the speed run to the goal, or a
-search leg; the dump comes when the run ends).
+`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN|FLASH` (`RUN` arms the
+recorder for the next continuous move of a run: the speed run to the goal,
+or a search leg; the dump comes when the run ends. `FLASH [n] [ms]`: n half
+turns, each followed by a flash write `ms` after the stop: the freeze
+reproducer).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -245,21 +247,28 @@ search leg; the dump comes when the run ends).
   - `TURNTICKS` (405) is the in-place turn's scrub, calibrated with `CAL
     NOISE` / `CAL TURN` against a wall.
   - Curves are for the speed run only (the user's rule): clothoid-arc-
-    clothoid, R 70, in one cell; curve speed capped by the motors (~480).
+    clothoid, R 70, in one cell; curve speed capped by the motors (~480);
+    each asks the encoders for 90 + `CURVE_SLIP` (v/480)^2 deg (sideways slip).
   - Search legs decide each cell inside it with its three walls in view, at
     most `SEARCH_LEG_SPEED_MAX` (450); no curves in the search.
   - Planner: `FAST_COST_TURN` 1 (a curve costs half a cell), which needs
     `OPTIMIZE_MAX_STEPS` 400 in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (86.9 %: ~2.7 KB left for the stack) and flash
-  (91.8 % of 63 KB). Keep that headroom: report sizes after every change,
+  builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash
+  (94.6 % of 63 KB, 3.4 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`, the open freeze
   investigation in `docs/freezes.md`): `STATUS` shows the stack never used,
-  the reset cause, RCC/FLASH registers and the last flash write's duration;
-  "!! ..." lines report stalls, unrequested oscillator changes, crystal
-  failures and flash writes that were slow, failed or found the HSI off.
+  the reset cause, RCC/FLASH registers, the chip's identity and the last
+  flash write's times; "!! ..." lines report stalls, unrequested oscillator
+  changes, crystal failures and flash writes that were slow, failed or
+  found the HSI off.
+- Flash writes (`flash_store.c`, `docs/freezes.md`): the map is saved once,
+  at the end of a run, only if it changed; a write waits until the motors
+  have been off `FLASH_SETTLE_MS` and the UART is idle, and programs and
+  times one spare halfword before erasing. A failed or slow write locks the
+  flash until a power cycle (`RESET` refuses: it once did not boot).
   Clock: crystal x 9 = 72 MHz, else HSI 64 MHz; `CLOCK HSI` switches on
   purpose.
 - The UART TX queue drops messages when full (never blocks a control loop).
