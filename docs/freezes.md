@@ -137,3 +137,17 @@ Mechanism still unknown.
   too (~20 ms each instead of ~50 us). A stuck flash is slow to program,
   not only to erase: one halfword programmed and timed before the erase
   can detect it in ~20 ms and skip the erase (the plan for the protection).
+
+Protection (firmware 490c9d5, 5595853, 563ce4f; not yet on the robot):
+the map is saved once per run, at the end, and only if the record changed
+(a speed run's end writes nothing); a write waits until the motors have
+been off 1 s (`FLASH_SETTLE_MS`) and the UART is idle, then programs one
+spare halfword after the record and times it before erasing: slow (> 1 ms)
+or failed = wedged, no erase (~20 ms stall instead of ~200 s, the record
+survives). Any failed or slow write locks the flash until a power cycle and
+`RESET` refuses. The report fits the print buffer and adds the HAL error,
+each phase's time and FLASH_ACR; `STATUS` shows CPUID, IDCODE, flash size
+and the option bytes. It does not remove the cause: if a wedged flash
+programmed halfwords fast, the first erase would still stall ~200 s (once).
+Reproducer: `CAL FLASH [n] [ms]`, n half turns each followed by a write ms
+after the stop (0 = right away, as the stuck writes were).
