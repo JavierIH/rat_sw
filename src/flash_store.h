@@ -9,5 +9,6 @@
 
 const void *flash_store_data(void);                         // FLASH_STORE_SIZE bytes, read-only
 uint8_t flash_store_write(const void *data, uint16_t len);  // erase + program + verify; len multiple of 4
+uint32_t flash_store_last_ms(void);                         // robot only: how long the last write took
 
 #endif // FLASH_STORE_H

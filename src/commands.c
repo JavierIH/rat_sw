@@ -4,6 +4,7 @@
 #include "stm32f1xx_hal.h"
 #include "app.h"
 #include "encoder.h"
+#include "flash_store.h"
 #include "health.h"
 #include "infrared.h"
 #include "maze.h"
@@ -131,6 +132,9 @@ static void cmd_status(const char *args){
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(ki, sizeof(ki), params.ki), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     print("pila: %lu bytes sin usar nunca | reinicio: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
+    print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx | ultima escritura de la flash %lu ms\n",
+          (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
+          (unsigned long)flash_store_last_ms());
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
