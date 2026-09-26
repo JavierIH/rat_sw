@@ -7,8 +7,9 @@
   the file alone. One session per issue.
 - Details live in `docs/`: `control.md` (design notes and measurements of
   motion, sensing, curves, search legs), `history.md` (what was validated
-  on the robot), `freezes.md` (the freeze investigation). Read only what the
-  issue needs; keep this file to rules and commands.
+  on the robot), `freezes.md` (the freeze investigation), `mazes.md` (the
+  test layouts A-D, drawn). Read only what the issue needs; keep this file
+  to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
   `/dev/rfcomm0`, logs to `tools/logs/`, saves `@D` dumps) and
   `tools/robot.sh [-w regex] [-t s] "CMD" ...`. Only one program may hold

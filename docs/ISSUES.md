@@ -25,8 +25,8 @@ commit when done. Details go in the docs it points to, not here.
    Next: flash (the saved map is discarded once, STORE_VERSION 7), power
    cycle, `STATUS` (5 free slots, "1a ~56 us"), then searches and speed
    runs as usual; any "!! flash" line: copy it into freezes.md.
-5. **Search legs on long straights.** Layout D = C with the wall
-   (0,1)/(0,2) moved to (0,1)|(1,1): route N 2 cells, E 3 to the goal.
+5. **Search legs on long straights.** Layout D (`docs/mazes.md`, set up
+   now): route N 2 cells, E 3 to the goal.
    Check the decision point and the front wall at 450 mm/s.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
