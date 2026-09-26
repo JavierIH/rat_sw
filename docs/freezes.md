@@ -98,3 +98,25 @@ with 3-4 cell straights: remove walls (1,2)|(2,2), (2,2)|(3,2),
 search on the practice maze: same 22/36 actions and map as stopping in
 every cell, 21.4 s against 20.7 s (legs of 1-2 cells at 450 mm/s do not
 beat stop-and-go at 600 there).
+
+2026-09-26 ~11:50, with the diagnostics (firmware 10:48, last reset a
+power-on): search (2 saves), speed run (1 save) fine; the second speed run's
+final save froze 212.8 s and failed; then `SAVE` at rest froze 199.9 s and
+failed, so once stuck the flash stays stuck (as on 09-25).
+- The cycle counter wraps every 59.65 s at 72 MHz: the reported 33811 and
+  20616 ms are 212.8 and 199.6 s with 3 wraps, matching the log clock. The
+  diagnostic line was cut before "despues FLASH_SR" (print buffer).
+- SysTick counted 18 and 2 ms of those ~200 s: the CPU itself was stalled
+  on the flash bus (not looping in the HAL's 50 s timeout, which it never
+  reached). The first freeze's queued lines ("giro der", "En la salida")
+  came out ~7 s before its error line: a long stall (erase?) then ~7 s of
+  shorter ones.
+- Before and after both writes: RCC_CR=030b4d83 (HSI on and ready,
+  HSE/PLL/CSS on), FLASH_SR=00, FLASH_CR=0080 (locked, no error): the HSI
+  hypothesis is refuted; nothing visible outside the flash explains it.
+- Candidates: the flash array or its controller wedged (the page is
+  rewritten on every run end: wear?), or a clone MCU whose flash behaves
+  differently (GD32/CKS32: identify it, SCB->CPUID / DBGMCU->IDCODE).
+- Next flash: split the diagnostic line (FLASH_SR after, HAL error code),
+  print the chip identity in STATUS, and skip writes whose record equals
+  what the page already holds (a speed run's end rarely changes the map).
