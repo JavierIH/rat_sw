@@ -288,8 +288,7 @@ typedef struct {
     uint16_t steps, optimize_steps;
     uint8_t repairs;
     cellset_t targets;
-    uint8_t decided;        // cells decided in the current leg...
-    uint8_t reached;        // ...and those the robot got to (it stopped in the last one)
+    uint8_t reached;        // cells of the last leg the robot got to (it stopped in the last one)
     uint8_t failed;         // planning failed on the way: handled at rest
 } explore_t;
 
@@ -345,11 +344,14 @@ static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a){
     return 1;
 }
 
+// ---- Legs: straight on through the cells, each decided on the way -----------------
+
+static uint8_t leg_decided;             // cells decided in the current leg
+
 // The robot is getting to the centre of the next cell of a leg, its walls
-// in view: record them, then decide. Anything the search does at rest
-// (turning in place, the goal, the end, an unclear front) is a stop there.
-static next_move_t explore_next(const wall_sense_t *w, void *ctx){
-    explore_t *e = ctx;
+// in view: move the pose there and record them. Every leg's `decide` starts
+// with it.
+static void leg_enter_cell(const wall_sense_t *w){
     maze_mark_crossed(pose.x, pose.y, pose.h);
     pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
     pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
@@ -357,32 +359,23 @@ static next_move_t explore_next(const wall_sense_t *w, void *ctx){
     if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
     if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
     maze_mark_visited(pose.x, pose.y);
-    e->decided++;
+    leg_decided++;
     telemetry_cell(pose.x, pose.y, pose.h);
     telemetry_pose(pose.x, pose.y, pose.h);
     telemetry_background_row();
-    if(explore_phase(e, 0) != PHASE_GO) return NEXT_STOP;
-    action_t a;
-    if(!explore_plan(e, w, &a)) return NEXT_STOP;
-    if(a == ACT_FORWARD && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
-    // It stops here and decides again at rest: one action, not two (the
-    // optimisation budget counts them).
-    e->steps--;
-    if(e->phase == PH_OPTIMIZE) e->optimize_steps--;
-    return NEXT_STOP;
 }
 
-// Forward from rest, deciding every cell on the way until the search needs
-// a stop. The pose follows the cells the robot actually got to.
-static move_result_t explore_leg(explore_t *e){
+// Forward from rest, deciding every cell on the way until `decide` needs a
+// stop. The pose follows the cells the robot actually got to (`reached`).
+static move_result_t drive_leg(next_cell_fn decide, void *ctx, uint8_t *reached){
     const pose_t start = pose;
     const int16_t speed = params.search_speed < SEARCH_LEG_SPEED_MAX ? params.search_speed : SEARCH_LEG_SPEED_MAX;
     uint8_t entered = 0;
-    e->decided = 0;
-    move_result_t r = motion_explore(speed, explore_next, e, &entered);
+    leg_decided = 0;
+    move_result_t r = motion_explore(speed, decide, ctx, &entered);
     turned = 0;
-    e->reached = entered;
-    if(entered < e->decided){
+    *reached = entered;
+    if(entered < leg_decided){
         // Stopped short (an obstacle: backed up to a cell centre).
         pose = start;
         pose.x = (uint8_t)(pose.x + entered * heading_dx(pose.h));
@@ -397,6 +390,23 @@ static move_result_t explore_leg(explore_t *e){
         telemetry_cell(pose.x, pose.y, pose.h);
     }
     return r;
+}
+
+// The search's leg: record each cell, then decide. Anything the search does
+// at rest (turning in place, the goal, the end, an unclear front) is a stop
+// there.
+static next_move_t explore_next(const wall_sense_t *w, void *ctx){
+    explore_t *e = ctx;
+    leg_enter_cell(w);
+    if(explore_phase(e, 0) != PHASE_GO) return NEXT_STOP;
+    action_t a;
+    if(!explore_plan(e, w, &a)) return NEXT_STOP;
+    if(a == ACT_FORWARD && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
+    // It stops here and decides again at rest: one action, not two (the
+    // optimisation budget counts them).
+    e->steps--;
+    if(e->phase == PH_OPTIMIZE) e->optimize_steps--;
+    return NEXT_STOP;
 }
 
 run_result_t search_explore(void){
@@ -423,7 +433,7 @@ run_result_t search_explore(void){
         // sensing again converges to the truth.
         if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
         if(a == ACT_FORWARD && mode != SEARCH_STOP_EACH){
-            r = explore_leg(&e);
+            r = drive_leg(explore_next, &e, &e.reached);
             if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
             sides_recorded = e.reached > 0;
             continue;
@@ -521,9 +531,33 @@ run_result_t search_fast_run(void){
     return finish_at_start(steps);
 }
 
+typedef struct {
+    uint8_t left_hand;
+    uint16_t steps;
+} follow_t;
+
+// The side of the hand the robot follows, from its heading.
+static heading_t follow_near_side(const follow_t *f){
+    return f->left_hand ? heading_left(pose.h) : heading_right(pose.h);
+}
+
+// The follower's leg: straight on while the hand's wall goes on and the way
+// ahead is open, by the same map rule it applies at rest; anything else (a
+// turn, the goal, an unclear reading) is a stop there, decided at rest.
+static next_move_t follow_next(const wall_sense_t *w, void *ctx){
+    follow_t *f = ctx;
+    leg_enter_cell(w);
+    if(maze_is_goal(pose.x, pose.y) || ++f->steps > SEARCH_MAX_STEPS) return NEXT_STOP;
+    if(maze_wall(pose.x, pose.y, follow_near_side(f)) == WALL_PRESENT
+       && maze_wall(pose.x, pose.y, pose.h) != WALL_PRESENT && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
+    f->steps--;     // decided again at rest: one action, not two
+    return NEXT_STOP;
+}
+
 run_result_t search_wall_follow(uint8_t left_hand){
     const int8_t near_turn = left_hand ? -1 : 1;
-    uint16_t steps = 0;
+    follow_t f = {.left_hand = left_hand};
+    uint8_t sides_recorded = 0;     // this cell's sides were read on the way in, at the end of a leg
 
     pose_reset();
     ready = 0;
@@ -531,13 +565,14 @@ run_result_t search_wall_follow(uint8_t left_hand){
     print("== SEGUIDOR DE PARED %s ==\n", left_hand ? "IZQUIERDA" : "DERECHA");
     while(!maze_is_goal(pose.x, pose.y)){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");
-        if(++steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
+        if(++f.steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
         wall_sense_t w;
-        move_result_t r = sense_here(&w, 0);
+        move_result_t r = sense_here(&w, sides_recorded);
+        sides_recorded = 0;
         if(r != MOVE_OK) return fail_move(r, "sensado");
 
         // Decide on the map, which now holds this sighting plus the border.
-        heading_t near_side = left_hand ? heading_left(pose.h) : heading_right(pose.h);
+        heading_t near_side = follow_near_side(&f);
         heading_t far_side = heading_back(near_side);
         int8_t q;
         if(maze_wall(pose.x, pose.y, near_side) != WALL_PRESENT) q = near_turn;
@@ -546,10 +581,19 @@ run_result_t search_wall_follow(uint8_t left_hand){
         else q = 2;
 
         r = turn_by(q);
-        if(r == MOVE_OK) r = forward(1, params.search_speed);
+        if(r == MOVE_OK){
+            if(mode != SEARCH_STOP_EACH){
+                uint8_t reached = 0;
+                r = drive_leg(follow_next, &f, &reached);
+                sides_recorded = reached > 0;
+            }
+            else{
+                r = forward(1, params.search_speed);
+            }
+        }
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
     }
-    print("Meta alcanzada (seguidor) en (%u,%u) tras %u acciones\n", pose.x, pose.y, steps);
+    print("Meta alcanzada (seguidor) en (%u,%u) tras %u acciones\n", pose.x, pose.y, f.steps);
     motion_indicate(IND_GOAL);
     return RUN_OK;
 }
