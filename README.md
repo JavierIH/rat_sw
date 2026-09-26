@@ -1,6 +1,6 @@
 # rat_sw
 
-Firmware de micromouse para un robot con STM32F103 ("Blue Pill"): explora un
+Firmware de micromouse para un robot con STM32F103: explora un
 laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 
 - **Búsqueda** (modo 1): explora hasta la meta, sigue explorando solo las

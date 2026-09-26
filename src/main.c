@@ -82,13 +82,13 @@ void app_systick(void){
 }
 
 // Idle: the boot sweep until a mode is chosen, then the selected mode's LED,
-// briefly off once a second as a heartbeat.
+// briefly off twice a second as a heartbeat.
 static void show_mode(void){
     if(!mode_chosen){
         leds_sweep_frame(HAL_GetTick());
         return;
     }
-    uint8_t on = (HAL_GetTick() % 1000u) >= 100u;
+    uint8_t on = (HAL_GetTick() % 500u) >= 50u;
     leds_set_mask(on ? (uint8_t)(1u << (6u - mode)) : 0u);    // bit 5 = LED 1 ... bit 0 = LED 6
 }
 
