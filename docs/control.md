@@ -152,10 +152,28 @@ Read the section you are about to touch; AGENTS.md has the rules.
   89.8 real: fine at 300), plus a common leftward drift of ~4.6 deg per
   loop (~1.7 m, 6 stops: 0.3 % between the wheels, or the stops). With the
   centring on, the same right loop gave encoders 365.4 and 374.5 for ~360
-  physical: the centring's rotations on the 95 mm straights (0.6-3 deg
-  per move) do not add up as physical rotation. Unexplained. Without
-  centring the yaw carries from move to move: the third loop started 3 deg
-  yawed and hit the island at the end of its first curve (300 mm/s).
+  physical. Without centring the yaw carries from move to move: the third
+  loop started 3 deg yawed (TURN 2 leaves ~4.5) and hit the island at the
+  end of its first curve (300 mm/s).
+  Offline, with `calib_analyze.py --chain` (the encoder heading summed over
+  the session against the walls', per wall stretch; it agrees with FL-FR at
+  every border stop within ~1.3 deg): the centring's rotations are real
+  (inside a move the side walls see at least ~75 % of them). What does not
+  add up is the encoders against the robot: they run ahead of it, to the
+  right, ~3 deg per metre (layout E, no stops, same at 300 and 480: the
+  "+3.5 deg" there; ~4.8 on the ring, a stop every 0.33 m: maybe ~0.5 per
+  stop more; 0.3 % between the wheels would do it), and the curves turn
+  1.3 +- 0.7 deg less than the encoders count (loops without centring:
+  right 10.3, left 0.2 deg ahead), so a real 90 at 300 needs ~92. The
+  centring keeps the robot parallel and the encoders count that correction
+  (374.5 for 361.7 real by FL-FR); without it the same error stays as yaw
+  (362.8 for 352.5 real). L1's "360" was FL-FR facing the island after a
+  turn: the walls put it at ~359, and L4 had 0.38 m and two 180s more. The
+  robot was re-placed by hand between 20:08 and 20:12 (-9 deg in the
+  chain). The side readings also move ~1 mm per degree of yaw (the sensors
+  at the nose, `SIDE_LEVER_MM`): the firmware's observer ignores it, so
+  every turn of the centring looks like a lateral surprise and moves the
+  bias against it (the heading a move ends with is that bias).
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The

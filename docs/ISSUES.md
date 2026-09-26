@@ -13,17 +13,18 @@ commit when done. Details go in the docs it points to, not here.
    CURVE 300 ~0; live `CURVE_PRE -8` and `CURVE_SLIP 0` crashed the robot
    (details in `docs/control.md`, curve slip). The robot keeps `CURVE 300`
    saved (safe); the code default is still 480. Ring layout F
-   (`docs/mazes.md`; results in `docs/control.md`, "curve angle on the
-   ring"): at 300 without centring the curves turn ~1.0 deg less than the
-   encoders on both sides (fine at 300) plus a ~4.6 deg leftward drift per
-   loop; with centring the encoder totals varied 9 deg for the same loop
-   (unexplained); a third loop without centring started 3 deg yawed and
-   hit the island (20:31, 300 mm/s). Next: before more robot time, find
-   offline in the ring's dumps (tools/calib_data 20:04-20:31) why the
-   centring's rotations do not add up; no loops without centring at
-   400/480. The root fix of the turns (carry each turn's ~0.78 deg
-   shortfall into the next move, `TURNTICKS` to ~401.5) needs a flash:
-   batch it with the curves.
+   (`docs/mazes.md`; `docs/control.md`, "curve angle on the ring"),
+   analysed offline: the centring's turns are real; the encoders run ~3
+   deg/m ahead of the robot (to the right; wheels 0.3 % apart?) and the
+   curves at 300 turn 1.3 +- 0.7 deg less than asked (a real 90 needs ~92
+   encoder deg). `calib_analyze.py --chain <session csvs>` follows it.
+   Next (robot on F, centring on: KP 0.7 KI 8; never loops without it at
+   400/480): a right and a left loop at 400, then at 480, each between
+   border stops (`CAL STRAIGHT 1 300` ending `fin=IR`), same moves as
+   20:17-20:28; `--chain`: curve error = (right - left loop) / 8 per speed;
+   fit `TUNE CURVE_ANGLE`/`CURVE_SLIP` (no flash). For the next flash,
+   each behind TUNE: turns' shortfall carry-over (`TURNTICKS` ~401.5), a
+   wheel trim for the drift, the nose lever in the centring's observer.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
