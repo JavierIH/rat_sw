@@ -20,16 +20,15 @@ commit when done. Details go in the docs it points to, not here.
    resends), with the robot at rest; no kernel errors on the PC. Hours of
    the same work before without drops. Next: if it goes on, note where the
    robot and the PC are, try a dump next to the PC, and watch `btmon`.
-5. **Search legs on long straights.** Layout D (`docs/mazes.md`, set up
-   now): route N 2 cells, E 3 to the goal.
-   Check the decision point and the front wall at 450 mm/s. First search
-   (09-26 16:16): both legs (2 N, 3 E) decided the next cell in time and
-   stopped on the front wall ~0.5 mm short, err <= 1.7 mm. Next: one more
-   search; if as clean, close.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
 
 ## Closed
+
+- 2026-09-26 Search legs on long straights (layout D, 450 mm/s): two
+  searches (16:16, 16:23), both identical: 13 actions, the legs 2 N, 3 E,
+  3 W, 2 S decided each next cell in time and stopped on the front wall
+  (`fin=IR`) 0.3-0.5 mm short, err <= 1.7 mm / 2.7 deg; map right, no "!!".
 
 - 2026-09-26 Freezes, the flash wedging (`docs/freezes.md`): fix 452756d
   validated on layout D (search, 4 speed runs, `SAVE`s to a full log and

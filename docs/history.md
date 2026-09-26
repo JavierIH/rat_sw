@@ -61,3 +61,8 @@ curves at 478 mm/s turn ~2.4 deg less than the encoders say (4.9 for a
 right plus a left; single measurements scatter +-3 deg), and one exited
 12 mm wide; at 300 mm/s they matched. Not compensated yet: re-measure with
 `CAL RUN` on the staircase once the observer is on the robot.
+
+Layout D (2026-09-26; route N 2 cells, E 3 to the goal): two searches with
+`CONT ON` at 450 mm/s made the same 13 actions and the same map; every leg
+(2 N, 3 E, 3 W, 2 S) decided its next cell in time and ended on the front
+wall 0.3-0.5 mm short of its target, tracking error <= 1.7 mm / 2.7 deg.
