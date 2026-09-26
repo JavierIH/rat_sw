@@ -1,4 +1,48 @@
-# Freezes (open investigation since 2026-09-25)
+# Freezes (2026-09-25..26): the flash wedges
+
+## Summary (2026-09-26 evening)
+What happens: every freeze is a flash write (the map save). Sometimes the
+flash wedges: from then on every program/erase takes ~9000 times longer
+(an erase ~200 s instead of 22 ms, a halfword ~0.45 s instead of 56 us:
+the same factor, as if the clock timing the flash crawled), until a power
+cycle. The CPU runs from that flash, so it stalls through each operation
+(SysTick counted 2-18 ms in 200 s; the cycle counter, with its 59.65 s
+wraps, matched the log clock). A software reset then did not boot (the chip
+boots on the HSI, which also times the flash: consistent with a crawling
+HSI, not proven).
+
+The chip is a clone: DBGMCU_IDCODE reads 0x00000307 without a debugger (a
+genuine STM32F103 reads 0; its DEV_ID would be 0x410); CPUID 0x411FC231,
+option bytes, write protection and FLASH_ACR are normal.
+
+When: three episodes (09-25 21:1x at the goal after a search with curves;
+09-25 22:05 and 09-26 11:53 at the end of a speed run), each in a write
+that began within ms of the end of a move. Writes at rest (60) and 1-2 s
+after hard moves (32) never wedged. Before the 21:14 build of 09-25
+(d6fcf2f and earlier) 58 writes never wedged; since it (9716cfb..1090d04,
+the search legs) 3 of ~35 run-end writes did. Those commits touch no flash,
+clock or driver code: the link is statistical, the cause unknown.
+
+Ruled out: the HSI off (RCC_CR 030b4d83 before and after: HSI on and
+ready), flash registers (SR, CR, ACR, OBR, WRPR normal), wear (~100-400
+writes), more motor load (the same speeds before and after the regression).
+
+Fix (452756d): no run erases any more. The map is a log in two pages (six
+slots of 340-byte records); a save programs an erased slot a halfword at a
+time, each timed, and the first slow or failed one stops it and blocks the
+store until a power cycle (a wedged flash then costs ~0.5 s once, not 200 s;
+the map stays in RAM). Only the boot erases (compacts), after a power-on or
+a good probe. Plus: one save per run, only if the map changed; writes wait
+for the motors off 1 s and the UART quiet; RESET refuses once blocked.
+After a slow halfword the HSI is restarted and one more halfword timed: if
+that one is fast, the HSI was the culprit.
+
+To confirm on the robot: normal writes show "1a ~56 us" in STATUS; a
+wedge shows "!! flash: escritura LENTA, cortada" within a second, the
+robot carries on, and the "tras reiniciar el HSI" line says which part
+failed.
+
+## History of the investigation
 Symptom: the whole robot freezes for ~200 s (no output, no reply, LEDs all
 off, motors off), then carries on by itself. Flash writes around then hang
 and fail (`SAVE` at rest: 199 s, then "error escribiendo la flash"; map

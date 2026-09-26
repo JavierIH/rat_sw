@@ -92,8 +92,9 @@ the deprecated HLA transport. `upload_protocol = custom` calls openocd with
 (fails with "unable to connect to the target"). If upload fails, suspect the
 SWD/USB cable first (`lsusb` should show 0483:3748).
 
-`board_upload.maximum_size = 64512`: the last 1 KB flash page (0x0800FC00)
-stores the map; the build fails if the program would grow into it.
+`board_upload.maximum_size = 63488`: the last 2 KB (two flash pages from
+0x0800F800) store the map; the build fails if the program would grow into
+them.
 
 ## Architecture (`src/`)
 Strategy code is pure C with no HAL, so the same files run on the PC tests.
@@ -135,8 +136,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   curves; `motion_explore()`, the search's legs, is one that grows as the
   search decides each next cell); also turns in place, front-wall alignment, back-up, wall sensing
   (5 samples, 4 votes), run control (abort/pause/step) and `TUNE`.
-- `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected record (map,
-  goal, parameters) in the last flash page.
+- `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected records (map
+  packed in nibbles, goal, parameters) as a log in the last two flash pages
+  (six slots): saves only program erased slots, the boot erases.
 - `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
   documented in `telemetry.h`).
 - `calib.c/.h`: calibration recorder (CAL command): samples encoders,
@@ -171,7 +173,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).
-- The map survives resets and reflashes. Boot prints whether one was loaded:
+- The map survives resets and reflashes (up to five saves per power-on;
+  then `SAVE` compacts). Boot prints whether one was loaded:
   send `ERASE` (or run mode 6) when moving to a different maze. A firmware
   with new parameter defaults keeps the map and goal but starts from its own
   defaults; one built for another maze (default goal) or with another record
@@ -187,11 +190,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset), `CLOCK [HSI]` (clock source;
 HSI switches to the internal one),
-`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN|FLASH` (`RUN` arms the
-recorder for the next continuous move of a run: the speed run to the goal,
-or a search leg; the dump comes when the run ends. `FLASH [n] [ms]`: n half
-turns, each followed by a flash write `ms` after the stop: the freeze
-reproducer).
+`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`RUN` arms the recorder
+for the next continuous move of a run: the speed run to the goal, or a
+search leg; the dump comes when the run ends).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -255,22 +256,24 @@ reproducer).
     `OPTIMIZE_MAX_STEPS` 400 in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash
-  (94.6 % of 63 KB, 3.4 KB left). Keep that headroom: report sizes after every change,
+  builds use the same RAM (85.9 %: ~2.9 KB left for the stack) and flash
+  (94.2 % of 62 KB, 3.6 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
-- Health checks and clock (details in `docs/control.md`, the open freeze
-  investigation in `docs/freezes.md`): `STATUS` shows the stack never used,
-  the reset cause, RCC/FLASH registers, the chip's identity and the last
-  flash write's times; "!! ..." lines report stalls, unrequested oscillator
-  changes, crystal failures and flash writes that were slow, failed or
-  found the HSI off.
-- Flash writes (`flash_store.c`, `docs/freezes.md`): the map is saved once,
-  at the end of a run, only if it changed; a write waits until the motors
-  have been off `FLASH_SETTLE_MS` and the UART is idle, and programs and
-  times one spare halfword before erasing. A failed or slow write locks the
-  flash until a power cycle (`RESET` refuses: it once did not boot).
-  Clock: crystal x 9 = 72 MHz, else HSI 64 MHz; `CLOCK HSI` switches on
-  purpose.
+- Health checks and clock (details in `docs/control.md`): `STATUS` shows the
+  stack never used, the reset cause, RCC/FLASH registers, the chip's
+  identity and the flash's free slots and last write's times; "!! ..." lines
+  report stalls, unrequested oscillator changes, crystal failures and slow
+  or failed flash operations. Clock: crystal x 9 = 72 MHz, else HSI 64 MHz;
+  `CLOCK HSI` switches on purpose.
+- Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
+  sometimes wedges until a power cycle, every operation ~9000x slower (an
+  erase ~200 s, stalling the CPU). So nothing erases during runs: the map
+  is saved once, at the end of a run, only if it changed, into an erased
+  slot, a halfword at a time, each timed (the first slow one stops it and
+  blocks the store until a power cycle; `RESET` refuses then: it once did
+  not boot); only the boot erases (compacts), after a power-on or a good
+  probe. Writes also wait for the motors off `FLASH_SETTLE_MS` and the UART
+  quiet. Never add an erase to a run.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.

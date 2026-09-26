@@ -7,23 +7,24 @@ commit when done. Details go in the docs it points to, not here.
 ## Open
 
 1. **Speed run: heading error after a staircase of curves.** Measured
-   on layout C at 478 mm/s: best `CURVE_ANGLE` ~92 (+-2 per run). In
-   firmware (e9bd652, not flashed): 90 + `CURVE_SLIP` (v/480)^2, 2.0 deg,
-   `TUNE CURVE_SLIP`. Next: flash, then speed runs with `CAL RUN` on layout
-   D (one curve then 3 cells): the centring's heading on the last straight
-   should average ~0.
+   on layout C at 478 mm/s: best `CURVE_ANGLE` ~92 (+-2 per run). On the
+   robot since the 14:30 build of 09-26 (e9bd652): 90 + `CURVE_SLIP`
+   (v/480)^2, 2.0 deg, `TUNE CURVE_SLIP`; not validated yet (issue 3 first).
+   Next: speed runs with `CAL RUN` on layout D (one curve then 3 cells): the
+   centring's heading on the last straight should average ~0.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
    the same work before without drops. Next: if it goes on, note where the
    robot and the PC are, try a dump next to the PC, and watch `btmon`.
-3. **Freezes in flash writes** (`docs/freezes.md`). Cause unknown; every
-   stuck write began within ms of a move (92 writes at rest or 1-2 s after
-   hard moves were fine). Protection in firmware (490c9d5, 5595853, not
-   flashed): one save per run and only if changed, 1 s settle, a probe
-   halfword before erasing, lock after a failure; `CAL FLASH [n] [ms]`
-   reproducer. Next: flash, `CAL FLASH 100 0` (immediate writes), then
-   `CAL FLASH 100 1000`; power-cycle after any lock.
+3. **Freezes: the flash wedges** (`docs/freezes.md`, summary at the top).
+   The chip is a clone whose flash sometimes runs ~9000x slow until a power
+   cycle; the cause is unknown. Fix in 452756d (not flashed yet): no run
+   erases; saves program a slot a halfword at a time and stop at the first
+   slow one (~0.5 s, store blocked, map in RAM); only the boot erases.
+   Next: flash (the saved map is discarded once, STORE_VERSION 7), power
+   cycle, `STATUS` (5 free slots, "1a ~56 us"), then searches and speed
+   runs as usual; any "!! flash" line: copy it into freezes.md.
 5. **Search legs on long straights.** Layout D = C with the wall
    (0,1)/(0,2) moved to (0,1)|(1,1): route N 2 cells, E 3 to the goal.
    Check the decision point and the front wall at 450 mm/s.
