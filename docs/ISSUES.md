@@ -10,8 +10,9 @@ commit when done. Details go in the docs it points to, not here.
    `CURVE_PRE_SLIP` 7, modes 1 search, 2/3 wall follower left/right, 4
    FAST 800 CURVE 300, 5 FAST 900 CURVE 480, 6 erase (LED n = mode n), 5 s
    countdown (CAL 2 s), erase wait reports health. Battery on layout E:
-   a) SELECT through the modes (LED n); b) modes 2 and 3 to the goal (2
-   done: 9 actions, no "!!"); c)
+   a) SELECT through the modes (LED n): OK; b) mode 2 to the goal: OK (9
+   actions, no "!!"); mode 3 waits for issue 10's flash (user: no follower
+   runs until then); c)
    mode 4 with `CAL RUN`, then mode 5 with `CAL RUN` (expect the last
    straight within ~5 mm). Also pending, low priority: `TURN_CARRY` 1 would
    need its own in-place scale (TURNTICKS 398 for turns, 403 for curves);
