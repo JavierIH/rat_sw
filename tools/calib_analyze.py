@@ -682,13 +682,15 @@ def analyze_run(rec, out):
                       rot[k] - base))
 
 
-def chain(paths):
+def chain(paths, wheel_diff=None):
     """--chain: the recordings of one session in order, every move recorded
     and the robot not moved by hand in between. The encoder heading summed
     over them against the robot's real one: per wall stretch (a straight, the
     cells before and after a CAL CURVE), how far the encoders are ahead of
     the robot, from the side walls; and from FL - FR where a move stopped
-    square in front of a wall."""
+    square in front of a wall. The ticks are weighted by WHEEL_DIFF as the
+    firmware weights them: the dump's (wheel_diff_ppm), or `wheel_diff` for
+    the dumps without it (0 then: the firmware's default until 2026-09-26)."""
     out = ["Encoders menos rumbo real, grados (> 0: los encoders van a la derecha del robot; modulo 90)"]
     heading = travelled = 0.0
     for path in paths:
@@ -698,7 +700,9 @@ def chain(paths):
         tpm = rec.number("ticks_per_mm", 9.05)
         mpd = rec.number("turn_ticks", 400) / 90 / tpm
         fwd = [t / tpm for t in average_ticks(rec)]
-        rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+        wd = wheel_diff if wheel_diff is not None else rec.number("wheel_diff_ppm", 0.0) / 1e6
+        rot = [(l * (1 + 0.5 * wd) - r * (1 - 0.5 * wd)) / 2 / tpm / mpd
+               for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
         ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
         on = [i for i in range(rec.n) if motor_on(rec, i)]
         end = on[-1] + 1 if on else rec.n
@@ -824,8 +828,10 @@ def main(argv=None):
     parser.add_argument("files", nargs="+", help="CSV de tools/calib_data/")
     parser.add_argument("--chain", action="store_true",
                         help="una sesion en orden: rumbo de encoders frente al real, movimiento a movimiento")
+    parser.add_argument("--wheel-diff", type=float,
+                        help="con --chain: el WHEEL_DIFF de la sesion, si los volcados no lo llevan (0)")
     args = parser.parse_args(argv)
-    print(chain(sorted(args.files)) if args.chain else report(args.files))
+    print(chain(sorted(args.files), args.wheel_diff) if args.chain else report(args.files))
     return 0
 
 

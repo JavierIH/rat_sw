@@ -377,6 +377,19 @@ class TestCalibAnalyze(unittest.TestCase):
             self.assertAlmostEqual(ahead, 2.0, delta=0.4)
         self.assertAlmostEqual(number(r"frente\s+([-+\d.]+)", text), 2.0, delta=0.4)
         self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+recta\s+[-+\d.]+\s+frente", text), 2.0, delta=0.1)
+        # WHEEL_DIFF weighs the ticks as the firmware does: from the option,
+        # or from the dump's wheel_diff_ppm. -0.003 turns each 180 mm
+        # straight's encoder heading 0.003 / 2 * 180 / mpd deg to the left.
+        trimmed = ca.chain(paths, wheel_diff=-0.003)
+        shift = 2 * 0.003 / 2 * 180.0 / mpd
+        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+recta\s+[-+\d.]+\s+frente", trimmed),
+                               2.0 - shift, delta=0.1)
+        for path in paths:
+            with open(path) as f:
+                text = f.read()
+            with open(path, "w") as f:
+                f.write("# wheel_diff_ppm=-3000\n" + text)
+        self.assertEqual(ca.chain(paths), trimmed)
 
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140
