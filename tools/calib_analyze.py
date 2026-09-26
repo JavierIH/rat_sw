@@ -571,6 +571,10 @@ def analyze_run(rec, out):
         out.append("  el robot no se movio")
         return
     first, end = on[0], on[-1] + 1
+    # The recording goes on after the stop: what follows (a turn in place)
+    # is another move.
+    top = max(ref_f)
+    end = min(end, next(i for i in range(rec.n) if ref_f[i] >= top - 0.05) + 1)
     v = speed_mm_s(rec, average_ticks(rec), smooth=2)
     out.append("Movimiento continuo (%s): %.0f mm en %.0f ms, hasta %.0f mm/s"
                % (rec.meta.get("result", "?"), fwd[end - 1] - fwd[first], (end - first) * rec.period,
