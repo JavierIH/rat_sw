@@ -32,7 +32,7 @@ typedef enum {
     TM_TO_START  = 'H',
     TM_FAST      = 'F',
     TM_RETURN    = 'R',
-    TM_SENSORS   = 'S',
+    TM_FOLLOW    = 'W',
     TM_ERASE     = 'E',
     TM_CALIBRATE = 'K',
 } telemetry_activity_t;

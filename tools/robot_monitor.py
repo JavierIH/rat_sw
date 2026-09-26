@@ -50,11 +50,12 @@ UNKNOWN, WALL, OPEN_ONCE, OPEN_VERIFIED = range(4)
 CELL_CODE = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 WALL_CHAR = {"?": UNKNOWN, "#": WALL, ".": OPEN_ONCE, "o": OPEN_VERIFIED}
 
-MODE_NAME = {1: "BUSQUEDA", 2: "CARRERA RAPIDA", 3: "SENSORES", 4: "BORRAR MAPA"}
+MODE_NAME = {1: "BUSQUEDA", 2: "SEGUIDOR IZQ", 3: "SEGUIDOR DER", 4: "RAPIDA SEGURA",
+             5: "RAPIDA", 6: "BORRAR MAPA"}
 ACTIVITY_NAME = {"I": "parado", "C": "cuenta atras", "G": "explorando hacia la meta",
                  "O": "optimizando la ruta", "H": "explorando hacia la salida",
                  "F": "carrera rapida", "R": "volviendo a la salida",
-                 "S": "monitor de sensores", "E": "borrando el mapa", "K": "calibrando"}
+                 "W": "siguiendo la pared", "E": "borrando el mapa", "K": "calibrando"}
 RUNNING = set("CGOHFRWK")
 MIN_ROWS, MIN_COLS = 12, 44
 MIN_LOG_COLS = 34
@@ -692,7 +693,7 @@ HELP_LINES = [
     ("", "  /nota texto  anade una medida al ultimo fichero de calibracion"),
     ("", ""),
     ("head", "ROBOT (todos en README.md, Consola Bluetooth)"),
-    ("", "  MODE n   1 busqueda 2 rapida 3 sensores 4 borrar"),
+    ("", "  MODE n   1 busq 2/3 seg.izq/der 4 rapida 800/300 5 900/480 6 borrar"),
     ("", "  START STOP PAUSE RESUME STEP ON|OFF"),
     ("", "  STATUS MAP IR WALLS SYNC TELEM ON|OFF"),
     ("", "  SPD FAST CURVE ACCEL TURN TACCEL TURNTICKS n   KP KI f   LOG 0-2"),

@@ -170,7 +170,7 @@ static void cmd_start(const char *args){
     if(app_run_active()){
         print("ya hay un run en marcha\n");
     }
-    else if(m != MODE_SENSORS && m != MODE_ERASE && !search_ready()){
+    else if(m != MODE_ERASE && !search_ready()){
         print("START rechazado: el robot no esta en la salida. Colocalo mirando al norte y manda HOME\n");
     }
     else{

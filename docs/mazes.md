@@ -4,7 +4,7 @@ The robot's physical maze is 4x3 cells of 180 mm. Its internal walls are
 rearranged for tests: layouts A-E below. In every layout the border is
 closed, the start cell is closed to the east (as in a competition maze), the
 robot starts at (0,0) facing north and the goal is (3,2) (the
-`PRACTICE_MAZE` build). A new layout needs `ERASE` (or mode 4) and a new
+`PRACTICE_MAZE` build). A new layout needs `ERASE` (or mode 6) and a new
 search before speed runs.
 
 How to read the drawings:

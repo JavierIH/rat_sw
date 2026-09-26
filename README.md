@@ -6,7 +6,7 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 - **Búsqueda** (modo 1): explora hasta la meta, sigue explorando solo las
   celdas que aún podrían acortar el camino rápido hasta que el mejor camino
   queda verificado, vuelve a la salida explorando y guarda el mapa en flash.
-- **Carrera rápida** (modo 2): recorre el camino verificado con las rectas
+- **Carrera rápida** (modos 4 y 5): recorre el camino verificado con las rectas
   fusionadas a velocidad `FAST`, frenando antes de cada giro; vuelve a la
   salida sola.
 - El planificador minimiza **tiempo** (celdas y giros), no solo celdas.
@@ -17,13 +17,15 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 | Botón | Parado | Durante un run |
 |---|---|---|
 | SELECT | cambia de modo (LED n encendido = modo n) | — |
-| START | lanza el modo tras 2 s de cuenta atrás | detiene el run |
+| START | lanza el modo tras 5 s de cuenta atrás | detiene el run |
 
-Modos: 1 búsqueda, 2 carrera rápida, 3 monitor de sensores (motores apagados;
-paredes en los LEDs), 4 borrar mapa (pide pulsar START otra vez en 3 s).
+Modos: 1 búsqueda, 2/3 seguidor de pared izquierda/derecha (hasta la meta),
+4 carrera rápida segura (`FAST 800 CURVE 300`), 5 carrera rápida (`FAST 900
+CURVE 480`), 6 borrar mapa (pide pulsar START otra vez en 3 s). Elegir el
+modo 4 o 5 fija `FAST` y `CURVE`; por consola se pueden cambiar antes de START.
 
-Flujo de competición: `ERASE` (o modo 4) si el laberinto es nuevo → modo 1 →
-modo 2 tantas veces como quieras (subiendo `FAST` entre carreras).
+Flujo de competición: `ERASE` (o modo 6) si el laberinto es nuevo → modo 1 →
+modo 4, y modo 5 cuando la 4 salga bien.
 
 LEDs: modo seleccionado (con un parpadeo por segundo = vivo); durante las
 rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; fallo =
@@ -61,7 +63,7 @@ flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 | Comando | Qué hace | Parado |
 |---|---|---|
 | `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura | |
-| `MODE n` | elige el modo: 1 búsqueda, 2 carrera rápida, 3 monitor de sensores, 4 borrar mapa | sí |
+| `MODE n` | elige el modo: 1 búsqueda, 2/3 seguidor izquierda/derecha, 4 rápida 800/300, 5 rápida 900/480, 6 borrar mapa | sí |
 | `START` | lanza el modo elegido tras 2 s (como el botón) | |
 | `STOP` | detiene el run (como START durante el run) | |
 | `PAUSE`, `RESUME` | frena y espera; sigue tras una pausa o un paso | |

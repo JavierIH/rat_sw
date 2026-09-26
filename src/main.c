@@ -10,6 +10,7 @@
 #include "maze.h"
 #include "motion.h"
 #include "motor.h"
+#include "params.h"
 #include "pwm.h"
 #include "robot_config.h"
 #include "search.h"
@@ -19,7 +20,7 @@
 #include "uart.h"
 
 static const char *const MODE_NAME[MODE_COUNT + 1] = {
-    "?", "BUSQUEDA", "CARRERA RAPIDA", "SENSORES", "BORRAR MAPA",
+    "?", "BUSQUEDA", "SEGUIDOR IZQ", "SEGUIDOR DER", "RAPIDA SEGURA", "RAPIDA", "BORRAR MAPA",
 };
 
 static uint8_t mode = MODE_SEARCH;
@@ -43,6 +44,14 @@ void app_request_cal(cal_test_t test, int32_t a, int32_t b){
 uint8_t app_set_mode(uint8_t m){
     if(m < 1 || m > MODE_COUNT) return 0;
     mode = m;
+    if(m == MODE_FAST_SAFE){
+        params.fast_speed = FAST_SAFE_SPEED;
+        params.curve_speed = FAST_SAFE_CURVE;
+    }
+    else if(m == MODE_FAST){
+        params.fast_speed = FAST_FULL_SPEED;
+        params.curve_speed = FAST_FULL_CURVE;
+    }
     telemetry_mode(mode);
     return 1;
 }
@@ -73,7 +82,7 @@ void app_systick(void){
 // Idle: the selected mode's LED, briefly off once a second as a heartbeat.
 static void show_mode(void){
     uint8_t on = (HAL_GetTick() % 1000u) >= 100u;
-    leds_set_mask(on ? (uint8_t)(1u << (MODE_COUNT - mode)) : 0u);
+    leds_set_mask(on ? (uint8_t)(1u << (6u - mode)) : 0u);    // bit 5 = LED 1 ... bit 0 = LED 6
 }
 
 // The main loops say they are alive and report what the health checks and
@@ -97,36 +106,13 @@ static void report_health(void){
     }
 }
 
-// Live sensor check (e.g. in the maze before a run). Motors stay off.
-static void sensor_monitor(void){
-    print("Monitor de sensores: cualquier boton o STOP para salir\n");
-    uint32_t next_print = HAL_GetTick();
-    for(;;){
-        report_health();
-        commands_poll();
-        if(motion_abort_requested()) break;
-        if(button_take_press(BUTTON_START) || button_take_press(BUTTON_SELECT)) break;
-        uint8_t fl = ir_mm(IR_FL) < WALL_DETECT_MM;
-        uint8_t fr = ir_mm(IR_FR) < WALL_DETECT_MM;
-        uint8_t sl = ir_mm(IR_SL) < WALL_DETECT_MM;
-        uint8_t sr = ir_mm(IR_SR) < WALL_DETECT_MM;
-        // LED 1 left wall, 2 front-left, 3-4 any front, 5 front-right, 6 right wall.
-        leds_set_mask((uint8_t)((sl << 5) | (fl << 4) | ((fl || fr) ? 0x0Cu : 0u) | (fr << 1) | sr));
-        if((int32_t)(HAL_GetTick() - next_print) >= 0){
-            next_print += 250;
-            print("IR mm FL=%d FR=%d SL=%d SR=%d\n",
-                  (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL), (int)ir_mm(IR_SR));
-        }
-    }
-    leds_all(0);
-}
-
 // Erasing needs a second START press within 3 s, so a mis-selected mode
 // cannot wipe a map by accident.
 static void erase_map_confirmed(void){
     print("BORRAR MAPA: pulsa START otra vez en 3 s para confirmar\n");
     uint32_t start = HAL_GetTick();
     while(HAL_GetTick() - start < 3000u){
+        report_health();    // the wait is the UI's, not a stall
         commands_poll();
         leds_all((uint8_t)(((HAL_GetTick() - start) / 100u) & 1u));
         if(button_take_press(BUTTON_START)){
@@ -147,15 +133,11 @@ static void run_mode(uint8_t m){
     motion_clear_abort();
     buttons_clear();
     run_active = 1;
-    if(m == MODE_SENSORS){
-        telemetry_activity(TM_SENSORS);
-        sensor_monitor();
-    }
-    else if(m == MODE_ERASE){
+    if(m == MODE_ERASE){
         telemetry_activity(TM_ERASE);
         erase_map_confirmed();
     }
-    else if(m == MODE_FAST && search_fast_path_cost() == PLAN_INF){
+    else if((m == MODE_FAST || m == MODE_FAST_SAFE) && search_fast_path_cost() == PLAN_INF){
         print("Sin camino verificado salida->meta: haz antes una busqueda (modo 1)\n");
     }
     else{
@@ -173,6 +155,9 @@ static void run_mode(uint8_t m){
             run_result_t r = RUN_FAILED;
             switch(m){
                 case MODE_SEARCH:       r = search_explore(); break;
+                case MODE_FOLLOW_LEFT:  r = search_wall_follow(1); break;
+                case MODE_FOLLOW_RIGHT: r = search_wall_follow(0); break;
+                case MODE_FAST_SAFE:
                 case MODE_FAST:         r = search_fast_run(); break;
                 default: break;
             }
@@ -201,9 +186,9 @@ static void run_calibration(void){
     telemetry_activity(TM_CALIBRATE);
     uint8_t go = 1;
     if(calib_moves(cal_test)){
-        print("CAL: el robot se movera en %u ms (START o STOP cancela)\n", START_DELAY_MS);
+        print("CAL: el robot se movera en %u ms (START o STOP cancela)\n", CAL_DELAY_MS);
         leds_all(1);
-        go = motion_wait(START_DELAY_MS);
+        go = motion_wait(CAL_DELAY_MS);
         leds_all(0);
     }
     if(go){
