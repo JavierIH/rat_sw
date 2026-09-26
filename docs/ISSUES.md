@@ -6,15 +6,20 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-1. **Speed run: heading error after a staircase of curves.** Measured
-   on layout C at 478 mm/s: best `CURVE_ANGLE` ~92 (+-2 per run). On the
-   robot since the 14:30 build of 09-26 (e9bd652): 90 + `CURVE_SLIP`
-   (v/480)^2, 2.0 deg, `TUNE CURVE_SLIP`. 4 runs with `CAL RUN` on layout
-   D (09-26 16:17-16:19, CSVs in `tools/calib_data/`): the centring's mean
-   heading is -1.3 deg on the straight after the curve and -1.2 on the one
-   before it, so the curve adds ~0 (slip compensation right); the robot
-   exits the curve ~10 mm wide (+8.5..+12 mm left, peak +17 at 97 mm).
-   Next: find the -1.2 deg bias of plain straights and the wide exit.
+1. **Speed run: curves at 480 mm/s leave the robot off-centre; staircases
+   add it up.** The -1.2 deg bias of the straights is fixed (the 180 at the
+   start over-turned: `TURNTICKS` 403, 8025265). Layout E (`docs/mazes.md`,
+   six curves in a row), last straight: CURVE 480 +19..+21 mm left (4 runs),
+   CURVE 300 ~0; live `CURVE_PRE -8` and `CURVE_SLIP 0` crashed the robot
+   (details in `docs/control.md`, curve slip). The robot keeps `CURVE 300`
+   saved (safe); the code default is still 480. Next: calibrate the curve
+   angle on single curves (ask the user for a layout with one curve then 2+
+   cells walled on both sides, left and right; `CAL CURVE` at 300, 400, 480,
+   the heading after each from `calib_analyze.py`'s "paralelo a las
+   paredes" line; E hints left curves turn ~0.6 deg more than right ones),
+   then set `CURVE_SLIP`/`CURVE_ANGLE` and re-check E starting at 300. The
+   root fix of the turns (carry each turn's ~0.78 deg shortfall into the
+   next move, `TURNTICKS` to ~401.5) needs a flash: batch it with the curves.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of

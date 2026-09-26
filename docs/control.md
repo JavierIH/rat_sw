@@ -123,7 +123,23 @@ Read the section you are about to touch; AGENTS.md has the rules.
   encoder degrees (2.0; `TUNE CURVE_SLIP`, applied in `path_start()` at the
   path's curve speed). In the simulator (`curve_slip` of the plant) the
   staircase comes out -1.9 deg off without it, within 0.2 with it at 480
-  and 300 mm/s.
+  and 300 mm/s. But every speed run on layout C started yawed ~+1.2 deg by
+  the 180 at the start (see `TURNTICKS`), so 2.0 may be too much now.
+  Layout E (a staircase of six curves, no straight between them), lateral
+  at the first reading of the last straight: CURVE 480 +19..+21 mm left (4
+  runs, entering the staircase within 0.25 deg of parallel), CURVE 300 +1
+  and -3; `CURVE_PRE -8` +43 (crashed on the return); `CURVE_SLIP 0` +12,
+  then +84 (PWM saturated, pace 81 %: crashed). In a staircase a lateral
+  error becomes a longitudinal one at the next curve and back, so small
+  per-curve changes add up: a kinematic model gives +24 mm for `CURVE_PRE
+  -8` alone (measured +23) and ~10 mm per degree of angle error per curve.
+  `calib_analyze.py` now fits, per straight, the encoder heading that runs
+  parallel to the walls: on E the last straight's is ~+3.5 deg (1.7..6.3)
+  beyond the first's at both 300 and 480 (3 right and 3 left curves: left
+  ones turn ~0.6 deg more each?), so the speed-dependent +20 mm is a
+  displacement (sideways slip), not the heading. Never tune curves live on
+  a full-speed staircase: calibrate them on single curves with a straight
+  after (the centring recovers there).
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The

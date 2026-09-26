@@ -320,6 +320,11 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"recta 1: 0-(\d+) mm", text), c0, delta=3)
         self.assertAlmostEqual(number(r"recta 2: (\d+)-", text), c1, delta=3)
         self.assertIn("pidio +0.0..+0.0 grados", text[:text.index("recta 2")])
+        # Parallel to the walls: straight 2 drifts 10 mm right with the
+        # encoders straight; straight 1 is too short to fit it.
+        self.assertNotIn("rumbo de encoders", text[:text.index("recta 2")])
+        self.assertAlmostEqual(number(r"rumbo de encoders ([-+\d.]+)", second),
+                               math.degrees(-10.0 / (stop - c1)), delta=0.3)
 
     def straight(self, cells, true_ticks_per_mm, coast):
         target = cells * 1620 + 140

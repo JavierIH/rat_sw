@@ -1,7 +1,7 @@
 # Test mazes
 
 The robot's physical maze is 4x3 cells of 180 mm. Its internal walls are
-rearranged for tests: layouts A-D below. In every layout the border is
+rearranged for tests: layouts A-E below. In every layout the border is
 closed, the start cell is closed to the east (as in a competition maze), the
 robot starts at (0,0) facing north and the goal is (3,2) (the
 `PRACTICE_MAZE` build). A new layout needs `ERASE` (or mode 4) and a new
@@ -106,24 +106,46 @@ From C: move the wall north of (0,1) to the east side of (0,1).
 - Expected speed run: 5 cells and 1 curve, `2D3`, the same route as B (the
   rest of the maze differs). Return: `3I2`. Dead end: (2,1).
 - For the curve compensation (`CURVE_SLIP`: the heading on the straight
-  after one curve) and search legs on long straights. Not searched by the
-  robot yet: drawn from C and the change above.
+  after one curve) and search legs on long straights.
+
+## E: a staircase of six curves (since 2026-09-26 19:15)
+
+Drawn from the robot's `MAP` after its search (31 actions, no "!!").
+
+```
+          walls                  speed run
+      0   1   2   3            0   1   2   3
+    +---+---+---+---+        +---+---+---+---+
+  2 |       |     G |      2 | >   v |     G |
+    +   +   +---+   +        +   +   +---+   +
+  1 |   |       |   |      1 | ^ | >   v | ^ |
+    +   +   +   +   +        +   +   +   +   +
+  0 | S |   |       |      0 | S |   | >   ^ |
+    +---+---+---+---+        +---+---+---+---+
+```
+
+- Walls (6): east of (0,0), (1,0), (0,1), (2,1) and (1,2); north of (2,1).
+- Speed run: 9 cells and 6 curves in a row, `2D1D1I1D1I1I2`: north 2, then
+  a curve in every cell to (3,0), north 2 to the goal. Return: the same text.
+  No straight between the curves: nothing corrects the robot's position
+  there, so each curve's error carries into the next (issue 1).
 
 ## Every wall at a glance
 
-Only the positions that hold a wall in some layout; the other 7 internal
+Only the positions that hold a wall in some layout; the other 6 internal
 positions are always open.
 
-| Wall | A | B | C | D |
-|---|:-:|:-:|:-:|:-:|
-| east of (0,0) | X | X | X | X |
-| east of (2,1) | X | X | X | X |
-| north of (2,1) |  | X | X | X |
-| north of (2,0) | X | X |  |  |
-| east of (0,1) | X |  |  | X |
-| east of (1,1) |  |  | X | X |
-| north of (0,1) |  |  | X |  |
-| north of (1,1) |  | X |  |  |
-| east of (1,2) | X |  |  |  |
-| east of (2,2) | X |  |  |  |
-| walls | 6 | 5 | 5 | 5 |
+| Wall | A | B | C | D | E |
+|---|:-:|:-:|:-:|:-:|:-:|
+| east of (0,0) | X | X | X | X | X |
+| east of (2,1) | X | X | X | X | X |
+| north of (2,1) |  | X | X | X | X |
+| north of (2,0) | X | X |  |  |  |
+| east of (0,1) | X |  |  | X | X |
+| east of (1,1) |  |  | X | X |  |
+| north of (0,1) |  |  | X |  |  |
+| north of (1,1) |  | X |  |  |  |
+| east of (1,2) | X |  |  |  | X |
+| east of (2,2) | X |  |  |  |  |
+| east of (1,0) |  |  |  |  | X |
+| walls | 6 | 5 | 5 | 5 | 6 |

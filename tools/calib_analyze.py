@@ -561,6 +561,24 @@ def analyze_ir(rec, out):
         out.append("     #define CAL_%s  %.5gf, %.5gf, %.5gf, %.5gf" % (s.upper(), a, b, c, d))
 
 
+def wall_parallel(seen, fwd, rot, base):
+    """Encoder heading (relative to `base`, degrees, > 0 right) along which a
+    straight ran parallel to its walls: the side readings' drift beyond what
+    the encoder heading explains, fitted as a constant (a yawed start, a turn
+    or a curve that turned more or less than the encoders say). `seen`: (sample
+    where the robot was, lateral mm). None if the readings span too little."""
+    if len(seen) < 8 or fwd[seen[-1][0]] - fwd[seen[0][0]] < 100:
+        return None
+    k0 = seen[0][0]
+    integral, acc = {k0: 0.0}, 0.0
+    for k in range(k0 + 1, seen[-1][0] + 1):
+        acc += (fwd[k] - fwd[k - 1]) * math.radians(0.5 * (rot[k] + rot[k - 1]) - base)
+        integral[k] = acc
+    # lateral = L0 - integral - rad(yaw) * s, and parallel = -yaw.
+    slope, _ = fit_line([fwd[k] - fwd[k0] for k, _ in seen], [lat + integral[k] for k, lat in seen])
+    return math.degrees(slope)
+
+
 def analyze_run(rec, out):
     """CAL RUN: a whole continuous move of a run (a speed run to the goal, a
     search leg). Per straight between curves: how far off the centre line
@@ -631,6 +649,10 @@ def analyze_run(rec, out):
                    " centrado pidio %+.1f..%+.1f grados, %+.1f al final"
                    % (seen[0][1], fwd[seen[0][0]] - fwd[a], seen[-1][1], worst[1], fwd[worst[0]] - fwd[a],
                       min(offsets), max(offsets), offsets[-1]))
+        parallel = wall_parallel(seen, fwd, rot, base)
+        if parallel is not None:
+            out.append("    paralelo a las paredes con rumbo de encoders %+.1f grados (%d lecturas en %.0f mm)"
+                       % (parallel, len(seen), fwd[seen[-1][0]] - fwd[seen[0][0]]))
     out.append("  (lateral > 0: a la izquierda del centro; grados > 0: a la derecha)")
     out.append("       s mm   v mm/s  lateral  rumbo pedido  rumbo encoders")
     last = None
