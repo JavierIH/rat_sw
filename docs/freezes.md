@@ -34,13 +34,18 @@ store until a power cycle (a wedged flash then costs ~0.5 s once, not 200 s;
 the map stays in RAM). Only the boot erases (compacts), after a power-on or
 a good probe. Plus: one save per run, only if the map changed; writes wait
 for the motors off 1 s and the UART quiet; RESET refuses once blocked.
-After a slow halfword the HSI is restarted and one more halfword timed: if
-that one is fast, the HSI was the culprit.
+Since 09-27 (after the wedge below, which a restart of the HSI cleared):
+the first slow halfword restarts the HSI and the write goes on; only a
+second slow one (or a failed one) blocks the store. If the slow halfword
+landed wrong, storage.c writes the record again into the next erased slot.
+The probe before a compaction does the same.
 
 To confirm on the robot: normal writes show "1a ~56 us" in STATUS; a
-wedge shows "!! flash: escritura LENTA, cortada" within a second, the
-robot carries on, and the "tras reiniciar el HSI" line says which part
-failed.
+wedge shows "!! flash: 2 bytes en N us (dato bien|MAL): HSI reiniciado;
+despues, peor M us" within a second, and the robot carries on. M ~56 means
+the restart cleared it (the save completes, STATUS counts "HSI reiniciado
+n"); a slow M adds "escritura LENTA, cortada" and blocks the store as
+before.
 
 Validated on the robot (09-26 16:15, layout D, right after a power-on, no
 "!!" line): `ERASE` and the search wrote once each (1st halfword 56 us,
@@ -211,3 +216,8 @@ power-on, the 2nd run-end save since then, 1 s after the motors stopped):
 "1a 344891 us" (~6000x slow), cut, store blocked; RCC_CR 030b4d83 before
 and after, SR 00, CR 0080. The HSI restart's check: "2 bytes en 56 us"
 (normal). First evidence that restarting the HSI clears the wedge (n=1).
+Fix (09-27, not yet on the robot): restart the HSI and go on (see the
+summary). Why the HSI at all when the CPU runs on the crystal: the STM32F1's
+flash controller times its program and erase pulses with the HSI, whatever
+drives SYSCLK (RM0008/PM0075: the HSI must be on to program or erase); the
+crystal only clocks the CPU, buses and peripherals.

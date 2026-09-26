@@ -72,13 +72,6 @@ commit when done. Details go in the docs it points to, not here.
    Next:
    charge it; if it goes on, note where the robot and the PC are, try a
    dump next to the PC, and watch `btmon`.
-7. **Flash wedge again** (09-27 00:26, `docs/freezes.md`): L1's run-end
-   save (the 2nd since the power-on) wedged: "1a 344891 us", cut, store
-   blocked; RCC_CR 030b4d83 before and after; "tras reiniciar el HSI, 2
-   bytes en 56 us (normal)": the designed test says the HSI was the
-   culprit (n=1). Robot and runs fine. Next: write it into
-   `docs/freezes.md`; consider (next flash) restarting the HSI and going
-   on instead of blocking the store.
 8. **Minor: `!! el programa estuvo parado 3000 ms`** while mode 4 waited
    for the ERASE confirmation (09-26 23:13, PC in `leds_set_mask` from
    `main`): the stall check flags the UI's own 3 s wait. Silence it there.
@@ -86,6 +79,13 @@ commit when done. Details go in the docs it points to, not here.
    correction on wall edges (posts); short diagonals (low priority).
 
 ## Closed
+
+- 2026-09-27 Flash wedge again (09-27 00:26, `docs/freezes.md`): a restart
+  of the HSI cleared it (n=1), so a slow halfword now restarts the HSI and
+  the write goes on (a bad record is rewritten in the next slot); only a
+  second slow one blocks the store. Goes with the next flash (keeps map and
+  params); if a "!! flash: 2 bytes en ..." line appears, copy it into
+  `docs/freezes.md`.
 
 - 2026-09-26 Search legs on long straights (layout D, 450 mm/s): two
   searches (16:16, 16:23), both identical: 13 actions, the legs 2 N, 3 E,

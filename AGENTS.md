@@ -272,9 +272,10 @@ search leg; the dump comes when the run ends).
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). So nothing erases during runs: the map
   is saved once, at the end of a run, only if it changed, into an erased
-  slot, a halfword at a time, each timed (the first slow one stops it and
-  blocks the store until a power cycle; `RESET` refuses then: it once did
-  not boot); only the boot erases (compacts), after a power-on or a good
+  slot, a halfword at a time, each timed (the flash controller runs on the
+  HSI: the first slow halfword restarts it and the write goes on; a second
+  one stops it and blocks the store until a power cycle; `RESET` refuses
+  then: it once did not boot); only the boot erases (compacts), after a power-on or a good
   probe. Writes also wait for the motors off `FLASH_SETTLE_MS` and the UART
   quiet. Never add an erase to a run.
 - The UART TX queue drops messages when full (never blocks a control loop).
