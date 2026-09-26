@@ -40,6 +40,7 @@ typedef struct {
     float footprint;    // mm the curve advances along each axis
     float pre, post;    // mm straight inside the cell before and after the curve (geometry + tuning)
     float k, k_ramp;    // 1/radius (per mm) and its rate along a ramp (per mm^2): no divisions in SysTick
+    float slip_k;       // deg added to `angle` per (mm/s)^2 of the path's curve speed (0 after curve_setup)
 } curve_t;
 
 // Derives the curve from its shape. The adjustments move the start later

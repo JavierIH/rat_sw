@@ -52,6 +52,7 @@ uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre
     c->radius = radius;
     c->ramp = ramp;
     c->angle = angle;
+    c->slip_k = 0.0f;
     c->k = 1.0f / radius;
     c->k_ramp = c->k / ramp;
     // Each clothoid turns ramp / (2 radius): the arc makes up the rest.
@@ -126,6 +127,8 @@ uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, 
     // followed by a straight or another curve at the same speed.
     const float room = curve->post + 0.5f * cell_mm;
     r->v_curve = fminf(fminf(v_curve, v_straight), sqrtf(2.0f * accel * room));
+    // The faster the curves, the less they really turn for the same encoder angle.
+    r->curve.angle = curve->angle + curve->slip_k * r->v_curve * r->v_curve;
     r->length = r->stop_at = length;
     r->s = r->v = 0.0f;
     r->heading = r->base = 0.0f;

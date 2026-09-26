@@ -1473,6 +1473,30 @@ static void test_path_governor(void){
     CHECK(r.stall_ms > 0 && r.stall_ms < 500);
 }
 
+// The curves slip sideways, turning less than the encoders say, the more
+// the faster (on the robot ~2 deg per curve at 478 mm/s). The path asks the
+// encoders for more at its curve speed: layout C's staircase (1D1I1D2) must
+// come out square, not a curve's worth off as without it.
+static void test_curve_slip(void){
+    static const int8_t stairs[6] = {0, 1, -1, 1, 0, 0};
+    const run_path_t path = {stairs, 6};
+    plant_t p = plant_nominal();
+    p.curve_slip = CURVE_SLIP_DEG;
+    curve_t c = default_curve();
+    const path_result_t raw = sim_path(&p, &path, &c, 900.0f, 480.0f, PARAM_ACCEL);
+    c.slip_k = CURVE_SLIP_DEG / (CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S);
+    const path_result_t fast = sim_path(&p, &path, &c, 900.0f, 480.0f, PARAM_ACCEL);
+    const path_result_t slow = sim_path(&p, &path, &c, 900.0f, 300.0f, PARAM_ACCEL);
+    const int ok = raw.heading_err < -1.5f && fabsf(fast.heading_err) < 0.3f && fabsf(slow.heading_err) < 0.3f
+                && fast.end_err < 5.0f && slow.end_err < 5.0f;
+    if(!ok){
+        printf("  curve slip: heading off %.2f deg uncompensated, %.2f at 480 and %.2f at 300 mm/s compensated"
+               " (end %.1f, %.1f mm)\n", (double)raw.heading_err, (double)fast.heading_err,
+               (double)slow.heading_err, (double)fast.end_err, (double)slow.end_err);
+    }
+    CHECK(ok);
+}
+
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
     printf("recta 540 mm, 15 mm descentrado (KP %.2f KI %.2f):\n", (double)PARAM_KP, (double)PARAM_KI);
@@ -1605,6 +1629,7 @@ int main(int argc, char **argv){
     test_path_grow();
     test_path_tracking();
     test_path_governor();
+    test_curve_slip();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;

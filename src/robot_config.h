@@ -213,6 +213,12 @@
 // Encoder degrees per curve: 90 unless the robot turns more or less than
 // the encoders say while moving (the wheels scrub less than in place).
 #define CURVE_ANGLE_DEG         90.0f
+// ...and the faster they go, the less they turn for the same encoder angle
+// (the wheels slip sideways): on layout C at 478 mm/s the robot needed
+// 92 +- 2 encoder degrees per real 90, at 300 mm/s about 90. A curve at v
+// asks the encoders for CURVE_ANGLE_DEG + CURVE_SLIP_DEG (v / VREF)^2.
+#define CURVE_SLIP_DEG          2.0f
+#define CURVE_SLIP_VREF_MM_S    480.0f
 // Straight before / after the curve beyond the geometric one: > 0 starts it
 // later / reaches the exit edge later. The robot follows the reference a few
 // ms late, so it may need to start earlier (exits displaced to the outside).

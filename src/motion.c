@@ -132,6 +132,7 @@ static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
 static float steer_vref = STEER_VREF_MM_S;      // mm/s
 static float curve_radius = CURVE_RADIUS_MM, curve_ramp = CURVE_RAMP_MM, curve_angle = CURVE_ANGLE_DEG;
+static float curve_slip = CURVE_SLIP_DEG;   // deg more at CURVE_SLIP_VREF_MM_S
 static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
 // Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM
 // the control asks, behind its back, as with a low battery.
@@ -393,7 +394,9 @@ static move_result_t back_up(float traveled){
 }
 
 static uint8_t curve_from_tuning(curve_t *c){
-    return curve_setup(c, curve_radius, curve_ramp, curve_angle, curve_pre, curve_post, CELL_MM);
+    if(!curve_setup(c, curve_radius, curve_ramp, curve_angle, curve_pre, curve_post, CELL_MM)) return 0;
+    c->slip_k = curve_slip / (CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S);
+    return 1;
 }
 
 // Fastest curve the motors can follow: the outer wheel's feedforward where a
@@ -844,6 +847,7 @@ static const tunable_t TUNABLES[] = {
     {"CURVE_R", &curve_radius, 30.0f, 120.0f, 1},
     {"CURVE_RAMP", &curve_ramp, 1.0f, 120.0f, 1},
     {"CURVE_ANGLE", &curve_angle, 80.0f, 100.0f, 2},
+    {"CURVE_SLIP", &curve_slip, 0.0f, 8.0f, 2},
     {"CURVE_PRE", &curve_pre, -40.0f, 40.0f, 1},
     {"CURVE_POST", &curve_post, -40.0f, 40.0f, 1},
     {"MOTOR_SCALE", &motor_scale, 0.5f, 1.0f, 2},
@@ -856,10 +860,11 @@ void motion_curve_info(uint8_t line){
     if(!curve_from_tuning(&c)) return;
     char a[12], b[12], d[12], e[12];
     if(line == 0){
-        print("@D INFO curve_r=%s curve_ramp=%s curve_angle=%s curve_len=%s curve_vmax=%d\n",
+        char f[12];
+        print("@D INFO curve_r=%s curve_ramp=%s curve_angle=%s curve_slip=%s curve_len=%s curve_vmax=%d\n",
               format_fixed(a, sizeof(a), c.radius, 1), format_fixed(b, sizeof(b), c.ramp, 1),
-              format_fixed(d, sizeof(d), c.angle, 2), format_fixed(e, sizeof(e), c.length, 1),
-              (int)curve_speed_limit(&c));
+              format_fixed(d, sizeof(d), c.angle, 2), format_fixed(f, sizeof(f), curve_slip, 2),
+              format_fixed(e, sizeof(e), c.length, 1), (int)curve_speed_limit(&c));
     }
     else{
         print("@D INFO curve_pre=%s curve_post=%s curve_pre_adj=%s curve_post_adj=%s\n",
@@ -899,9 +904,12 @@ void motion_tune_set(const char *name, float value){
         print("%s=%s (hasta reiniciar; en robot_config.h para siempre)\n", t->name,
               format_fixed(v, sizeof(v), value, t->decimals));
         if(shape){
-            char len[12], pre[12], post[12];
-            print("curva: %smm, recta antes %smm y despues %smm\n", format_fixed(len, sizeof(len), c.length, 1),
-                  format_fixed(pre, sizeof(pre), c.pre, 1), format_fixed(post, sizeof(post), c.post, 1));
+            char len[12], pre[12], post[12], deg[12];
+            const float vc = fminf((float)params.curve_speed, curve_speed_limit(&c));
+            print("curva: %smm, recta antes %s y despues %smm, %s grados de encoder a %d mm/s\n",
+                  format_fixed(len, sizeof(len), c.length, 1), format_fixed(pre, sizeof(pre), c.pre, 1),
+                  format_fixed(post, sizeof(post), c.post, 1),
+                  format_fixed(deg, sizeof(deg), c.angle + c.slip_k * vc * vc, 2), (int)vc);
         }
         return;
     }

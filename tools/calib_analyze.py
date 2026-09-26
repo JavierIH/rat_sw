@@ -290,6 +290,13 @@ def analyze_turn_controlled(rec, out):
         out.append("  (anota el angulo real girado con: /nota angulo <grados>, o compara FL-FR con CAL NOISE)")
 
 
+def curve_encoder_angle(rec, speed):
+    """Encoder degrees of each curve: CURVE_ANGLE plus the slip compensation
+    at the curve's speed (curve_slip at 480 mm/s, growing as v^2)."""
+    speed = min(speed, rec.number("curve_vmax", speed))
+    return rec.number("curve_angle", 90.0) + rec.number("curve_slip", 0.0) * (speed / 480.0) ** 2
+
+
 def analyze_curve_controlled(rec, out):
     """CAL CURVE: straight into the next cell, a smooth curve in it, stop at
     the centre of the cell after it."""
@@ -297,7 +304,7 @@ def analyze_curve_controlled(rec, out):
     speed = rec.args[1] if len(rec.args) > 1 else rec.number("curve")
     tpm = rec.number("ticks_per_mm", 9.05)
     mpd = rec.number("turn_ticks", 400) / 90 / tpm
-    angle = rec.number("curve_angle", 90.0)
+    angle = curve_encoder_angle(rec, speed)
     fwd = [t / tpm for t in average_ticks(rec)]
     rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
     ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]
@@ -561,7 +568,7 @@ def analyze_run(rec, out):
     and at worst, and the heading offset the centring asked for."""
     tpm = rec.number("ticks_per_mm", 9.05)
     mpd = rec.number("turn_ticks", 400) / 90 / tpm
-    angle = rec.number("curve_angle", 90.0)
+    angle = curve_encoder_angle(rec, min(rec.number("curve", 480.0), rec.number("fast", 900.0)))
     fwd = [t / tpm for t in average_ticks(rec)]
     rot = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
     ref_f = [v / 10.0 for v in rec.data["ref_fwd"]]

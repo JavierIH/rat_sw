@@ -107,6 +107,17 @@ Read the section you are about to touch; AGENTS.md has the rules.
   run. `TUNE CURVE_R|CURVE_RAMP` change the
   shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
   as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
+- Curve slip: moving, the wheels slip sideways and a curve turns less than
+  the encoders say, the more the faster. Layout C's staircase (1D1I1D2, net
+  one curve) at 478 mm/s, heading the centring had to hold on the last
+  straight (average over it, 2026-09-26): `CURVE_ANGLE` 90 -> +2.4 and
+  +3..+5 deg, 92.5 -> -0.2 and -3.1 (runs after a search start ~8 mm off
+  and yawed); best ~92, +-2 per run. At 300 mm/s single curves matched 90
+  earlier. So a curve at v asks for `CURVE_ANGLE` + `CURVE_SLIP` (v/480)^2
+  encoder degrees (2.0; `TUNE CURVE_SLIP`, applied in `path_start()` at the
+  path's curve speed). In the simulator (`curve_slip` of the plant) the
+  staircase comes out -1.9 deg off without it, within 0.2 with it at 480
+  and 300 mm/s.
 - Search legs (`motion_explore()`, `explore_next()`, `CONT ON`): each leg
   starts from rest and grows a cell at a time (`path_grow()`, SysTick
   masked) as the search decides each next cell, straight on or stop. The

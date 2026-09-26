@@ -257,7 +257,7 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         const float ref_before = rot.pos;
         pr.lag = c.fwd_error;
         path_step(&pr, &fwd, &rot, dt);
-        const double ref_mid = 0.5 * (ref_before + rot.pos) * 90.0 / curve->angle * rad;
+        const double ref_mid = 0.5 * (ref_before + rot.pos) * 90.0 / pr.curve.angle * rad;
         rx += fwd.delta * sin(ref_mid);
         ry += fwd.delta * cos(ref_mid);
         path_x[points] = rx;
@@ -273,7 +273,11 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         wheels_step(&ml, &mr, c.pwm_l, c.pwm_r, p->yaw_friction, p->yaw_stiction, dt);
         xl += ml.v * dt;
         xr += mr.v * dt;
-        const double v = 0.5 * (ml.v + mr.v), w = 0.5 * (ml.v - mr.v) / k.mm_per_deg;
+        const double v = 0.5 * (ml.v + mr.v);
+        // Turning while moving, the wheels slip sideways: the robot turns
+        // less than the encoders say, the more the faster (~ v^2).
+        const double vr = v / (double)CURVE_SLIP_VREF_MM_S;
+        const double w = 0.5 * (ml.v - mr.v) / k.mm_per_deg * 90.0 / (90.0 + (double)p->curve_slip * vr * vr);
         const double mid = (yaw + 0.5 * w * dt) * rad;
         x += v * sin(mid) * dt;
         y += v * cos(mid) * dt;
@@ -302,6 +306,6 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
     }
     r.scale_min = pr.scale_min;
     r.end_err = (float)hypot(x - rx, y - ry);
-    r.heading_err = (float)(yaw - pr.heading * 90.0 / curve->angle);
+    r.heading_err = (float)(yaw - pr.heading * 90.0 / pr.curve.angle);
     return r;
 }

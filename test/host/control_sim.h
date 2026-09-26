@@ -23,6 +23,7 @@ typedef struct {
     float y0;                   // start: mm left of the centre line
     float yaw0;                 // start: deg to the right of the corridor
     float wall_error_mm;        // each wall of each cell off by up to this much (a real maze: ~3, up to 7)
+    float curve_slip;           // deg a 90 deg curve at CURVE_SLIP_VREF_MM_S turns less than the encoders say (~v^2)
     uint32_t seed;
 } plant_t;
 
