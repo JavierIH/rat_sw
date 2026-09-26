@@ -828,24 +828,6 @@ static void test_practice_maze(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-static void test_wall_followers(void){
-    maze_set_goal(7, 7, 8, 8);
-    int ok = 0, runs = 0;
-    for(uint32_t m = 1; m <= 40; m++){
-        truth_generate(m * 40503u, 0);     // perfect maze: wall following reaches every cell
-        for(uint8_t left = 0; left < 2; left++){
-            maze_init();
-            sim_reset(0.0, m);
-            runs++;
-            run_result_t r = search_wall_follow(left);
-            ok += r == RUN_OK && maze_is_goal(sim_x, sim_y) && sim_stats.crashes == 0 && sim_stats.blocked == 0;
-        }
-    }
-    printf("wall followers: %d/%d reached the goal\n", ok, runs);
-    CHECK_EQ(ok, runs);
-    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
-}
-
 static void test_run_control(void){
     maze_set_goal(7, 7, 8, 8);
     truth_generate(12345u, 30);
@@ -1727,7 +1709,6 @@ int main(int argc, char **argv){
     test_run_control();
     test_fast_run_surprise_wall();
     test_search_modes();
-    test_wall_followers();
     test_practice_maze();
     test_competition_mazes();
     test_profile();

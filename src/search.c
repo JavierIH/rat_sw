@@ -521,39 +521,6 @@ run_result_t search_fast_run(void){
     return finish_at_start(steps);
 }
 
-run_result_t search_wall_follow(uint8_t left_hand){
-    const int8_t near_turn = left_hand ? -1 : 1;
-    uint16_t steps = 0;
-
-    pose_reset();
-    ready = 0;
-    telemetry_activity(TM_FOLLOW);
-    print("== SEGUIDOR DE PARED %s ==\n", left_hand ? "IZQUIERDA" : "DERECHA");
-    while(!maze_is_goal(pose.x, pose.y)){
-        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");
-        if(++steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
-        wall_sense_t w;
-        move_result_t r = sense_here(&w, 0);
-        if(r != MOVE_OK) return fail_move(r, "sensado");
-
-        // Decide on the map, which now holds this sighting plus the border.
-        heading_t near_side = left_hand ? heading_left(pose.h) : heading_right(pose.h);
-        heading_t far_side = heading_back(near_side);
-        int8_t q;
-        if(maze_wall(pose.x, pose.y, near_side) != WALL_PRESENT) q = near_turn;
-        else if(maze_wall(pose.x, pose.y, pose.h) != WALL_PRESENT) q = 0;
-        else if(maze_wall(pose.x, pose.y, far_side) != WALL_PRESENT) q = (int8_t)-near_turn;
-        else q = 2;
-
-        r = turn_by(q);
-        if(r == MOVE_OK) r = forward(1, params.search_speed);
-        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
-    }
-    print("Meta alcanzada (seguidor) en (%u,%u) tras %u acciones\n", pose.x, pose.y, steps);
-    motion_indicate(IND_GOAL);
-    return RUN_OK;
-}
-
 // ---- Reports ---------------------------------------------------------------------------
 
 uint16_t search_fast_path_cost(void){

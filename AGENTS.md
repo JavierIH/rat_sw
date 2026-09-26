@@ -118,7 +118,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   OPTIM -> VUELTA; at rest it senses, plans and turns in place, and every
   move forward is a leg decided cell by cell in `explore_next()`), `search_fast_run()` (the whole verified route in one
   move, replanned at every stop, falls back to exploring if the map proves
-  wrong), `search_wall_follow()`. Also `search_print_map()` (ASCII map).
+  wrong). Also `search_print_map()` (ASCII map).
 - `control.c/.h` (pure): the speed control. Trapezoidal motion profiles, two
   position loops (forward mm, rotation deg) with a motor-model feedforward,
   settling integrals against static friction, and the wall centring
@@ -167,15 +167,16 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `tools/dashboard.py`: live panel for `diag_test`.
 
 ## Operating the robot
-- SELECT cycles the mode (LED n = mode n): 1 search, 2 speed run, 3/4 left/
-  right wall follower, 5 sensor monitor (motors off), 6 erase map (confirm with
-  a second START within 3 s). START launches it after a 2 s countdown.
+- SELECT cycles the mode (LED n = mode n): 1 search, 2 speed run, 3 sensor
+  monitor (motors off), 4 erase map (confirm with a second START within 3 s).
+  START launches it after a 2 s countdown. (The wall followers, modes 3/4
+  until 2026-09-26, were removed to save flash.)
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).
 - The map survives resets and reflashes (up to five saves per power-on;
   then `SAVE` compacts). Boot prints whether one was loaded:
-  send `ERASE` (or run mode 6) when moving to a different maze. A firmware
+  send `ERASE` (or run mode 4) when moving to a different maze. A firmware
   with new parameter defaults keeps the map and goal but starts from its own
   defaults; one built for another maze (default goal) or with another record
   layout (`STORE_VERSION`) ignores the saved record: tell the user before

@@ -485,7 +485,7 @@ static void cmd_reset(const char *args){
 static const command_t COMMANDS[] = {
     {"HELP",     cmd_help,     1, "esta ayuda"},
     {"STATUS",   cmd_status,   0, "estado, parametros y mapa"},
-    {"MODE",     cmd_mode,     1, "n: 1 busqueda 2 rapida 3 seg.izq 4 seg.der 5 sensores 6 borrar"},
+    {"MODE",     cmd_mode,     1, "n: 1 busqueda 2 rapida 3 sensores 4 borrar"},
     {"START",    cmd_start,    0, "lanza el modo seleccionado (como el boton)"},
     {"STOP",     cmd_stop,     0, "detiene el run (como START durante el run)"},
     {"PAUSE",    cmd_pause,    0, "frena y espera"},

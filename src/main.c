@@ -19,7 +19,7 @@
 #include "uart.h"
 
 static const char *const MODE_NAME[MODE_COUNT + 1] = {
-    "?", "BUSQUEDA", "CARRERA RAPIDA", "SEGUIDOR IZQ", "SEGUIDOR DER", "SENSORES", "BORRAR MAPA",
+    "?", "BUSQUEDA", "CARRERA RAPIDA", "SENSORES", "BORRAR MAPA",
 };
 
 static uint8_t mode = MODE_SEARCH;
@@ -174,8 +174,6 @@ static void run_mode(uint8_t m){
             switch(m){
                 case MODE_SEARCH:       r = search_explore(); break;
                 case MODE_FAST:         r = search_fast_run(); break;
-                case MODE_FOLLOW_LEFT:  r = search_wall_follow(1); break;
-                case MODE_FOLLOW_RIGHT: r = search_wall_follow(0); break;
                 default: break;
             }
             motion_stop();

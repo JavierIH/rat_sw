@@ -32,7 +32,6 @@ typedef enum {
     TM_TO_START  = 'H',
     TM_FAST      = 'F',
     TM_RETURN    = 'R',
-    TM_FOLLOW    = 'W',
     TM_SENSORS   = 'S',
     TM_ERASE     = 'E',
     TM_CALIBRATE = 'K',

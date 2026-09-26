@@ -19,11 +19,10 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 | SELECT | cambia de modo (LED n encendido = modo n) | — |
 | START | lanza el modo tras 2 s de cuenta atrás | detiene el run |
 
-Modos: 1 búsqueda, 2 carrera rápida, 3/4 seguidor de pared izquierda/derecha,
-5 monitor de sensores (motores apagados; paredes en los LEDs), 6 borrar mapa
-(pide pulsar START otra vez en 3 s).
+Modos: 1 búsqueda, 2 carrera rápida, 3 monitor de sensores (motores apagados;
+paredes en los LEDs), 4 borrar mapa (pide pulsar START otra vez en 3 s).
 
-Flujo de competición: `ERASE` (o modo 6) si el laberinto es nuevo → modo 1 →
+Flujo de competición: `ERASE` (o modo 4) si el laberinto es nuevo → modo 1 →
 modo 2 tantas veces como quieras (subiendo `FAST` entre carreras).
 
 LEDs: modo seleccionado (con un parpadeo por segundo = vivo); durante las

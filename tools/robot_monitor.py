@@ -50,11 +50,10 @@ UNKNOWN, WALL, OPEN_ONCE, OPEN_VERIFIED = range(4)
 CELL_CODE = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 WALL_CHAR = {"?": UNKNOWN, "#": WALL, ".": OPEN_ONCE, "o": OPEN_VERIFIED}
 
-MODE_NAME = {1: "BUSQUEDA", 2: "CARRERA RAPIDA", 3: "SEGUIDOR IZQ", 4: "SEGUIDOR DER",
-             5: "SENSORES", 6: "BORRAR MAPA"}
+MODE_NAME = {1: "BUSQUEDA", 2: "CARRERA RAPIDA", 3: "SENSORES", 4: "BORRAR MAPA"}
 ACTIVITY_NAME = {"I": "parado", "C": "cuenta atras", "G": "explorando hacia la meta",
                  "O": "optimizando la ruta", "H": "explorando hacia la salida",
-                 "F": "carrera rapida", "R": "volviendo a la salida", "W": "siguiendo la pared",
+                 "F": "carrera rapida", "R": "volviendo a la salida",
                  "S": "monitor de sensores", "E": "borrando el mapa", "K": "calibrando"}
 RUNNING = set("CGOHFRWK")
 MIN_ROWS, MIN_COLS = 12, 44
