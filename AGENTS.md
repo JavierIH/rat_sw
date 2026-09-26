@@ -172,7 +172,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset), `CLOCK [HSI]` (clock source;
 HSI switches to the internal one),
-`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP`.
+`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`RUN` arms the recorder
+for the next continuous move of a run: the speed run to the goal, or a
+search leg; the dump comes when the run ends).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
@@ -237,11 +239,20 @@ HSI switches to the internal one),
   passage, stops the move at the centre of the cell before it (`fin=PARED`).
 - Centring (`steer_step()`): the heading offset is proportional to the
   lateral error (`KP` deg per mm), so it converges over the same distance at
-  any speed; above `STEER_VREF_MM_S` KP scales as 1/speed (it weaved at 700).
-  `KI` learns the heading misalignment a turn leaves, only within
-  `STEER_BIAS_WINDOW_MM` of the centre (it overshot otherwise). The encoders'
-  sideways motion since the reading is added to it (a Smith predictor for the
-  IR delay). Readings are slew-limited (posts and wall edges jump), averaged
+  any speed; above `STEER_VREF_MM_S` KP scales as 1/speed (it weaved at 700;
+  `TUNE STEER_VREF 900` on a speed run swung it into a wall). The bias (the
+  encoder heading that is parallel to the walls: the misalignment a turn
+  leaves) is learned by an observer: the encoders predict how the readings
+  should move, and what they do beyond that, per mm travelled, is bias still
+  missing (`KI`, the same units as before, and `STEER_OBSERVER_MM`, how
+  slowly the prediction follows the readings; a new wall restarts it). An
+  off-centre robot moving parallel teaches it nothing. The old integral of
+  the lateral error (`TUNE OBSERVER 0`, within `STEER_BIAS_WINDOW_MM`) took
+  a start 8-12 mm off-centre for ~5 deg of bias in the first cell of a speed
+  run, carried it through the curves and aimed the last straight at the
+  wall (layout C: it arrived yawed 5.5 deg and 24 mm off, and once scraped
+  and wedged). The encoders' sideways motion since the reading is added to
+  the lateral error (a Smith predictor for the IR delay). Readings are slew-limited (posts and wall edges jump), averaged
   over a sensor period and referred to `SIDE_CENTER_L/R_MM` (89/76: SL reads
   long and SR short; measured with 180 deg turns, which mirror the robot
   across the centre line). With both walls their average is used, unless one
@@ -263,7 +274,9 @@ HSI switches to the internal one),
   the robot (rotates in place by (FL - FR - `FRONT_SQUARE_OFFSET_MM`) /
   `SQUARE_MM_PER_DEG` when beyond `SQUARE_TOL_MM`), which resets the heading
   error moves leave behind, then corrects the distance if it is off by more
-  than `ALIGN_DEADBAND_MM`.
+  than `ALIGN_DEADBAND_MM`. Only up to `SQUARE_MAX_SKEW_MM` (15, ~12 deg;
+  every squaring in the logs was under 15 mm): a robot arriving far
+  off-centre reads the corner, and at 35 it turned 15 deg into the wall.
 - `TURNTICKS` (405) is the wheel track as the encoders see it in in-place
   turns (the wheels scrub): half the wheel difference of a real 90 deg.
   Calibrated facing a wall with `CAL NOISE`, `CAL TURN 4`, `CAL NOISE`,
@@ -302,8 +315,10 @@ HSI switches to the internal one),
   masked) as the search decides each next cell, straight on or stop. The
   decision comes inside the cell, just before the reference would have to
   start braking for its centre, with its three walls in view: the sides read
-  from `SEARCH_SIDE_FROM_MM` before its entry edge to `SEARCH_SIDE_TO_MM`
-  into it (only unanimous readings count), the front once it reads reliably
+  from `SEARCH_SIDE_FROM_MM` (20) before its entry edge to `SEARCH_SIDE_TO_MM`
+  into it (only unanimous readings count; the angled beams hit ~70 mm ahead,
+  and from 60 mm before the edge they caught its post: 1-cell legs left open
+  sides and border walls doubtful), the front once it reads reliably
   (under ~170 mm). So the search sees the same walls as stopping there and
   explores exactly the same cells; if a wall is in front, or a turn is
   needed, it stops there as an ordinary stop (no hard braking) and turns in
@@ -322,8 +337,8 @@ HSI switches to the internal one),
   (`OPTIMIZE_MAX_STEPS` 400).
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (86.8 %: ~2.7 KB left for the stack) and flash
-  (90.4 % of 63 KB). Keep that headroom: report sizes after every change,
+  builds use the same RAM (86.9 %: ~2.7 KB left for the stack) and flash
+  (91.8 % of 63 KB). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks (`health.c`), for rare failures on the robot: the free
   stack is painted at boot and `STATUS` shows how much was never used
@@ -332,7 +347,17 @@ HSI switches to the internal one),
   `HEALTH_STALL_MS`, SysTick notes the program counter it interrupted and
   the main loop prints "!! el programa estuvo parado N ms en PC=..." when it
   resumes (map the PC with `arm-none-eabi-addr2line -e firmware.elf`); the
-  banner says why the last reset happened.
+  banner says why the last reset happened. Until 0221cd6 that report was
+  only printed in mode 5 (it had gone into the sensor monitor's loop), so
+  earlier logs saying nothing about stalls prove nothing. `health_alive()`
+  also watches the oscillator bits of RCC->CR against those the clock setup
+  left (`health_clock_baseline()` after every intended change): a change is
+  reported ("!! osciladores cambiados sin pedirlo") and the HSI turned back
+  on. Every flash write checks the HSI (the flash needs it to erase and
+  program) and starts it if stopped, times itself with the DWT cycle
+  counter and SysTick, and prints "!! flash: ..." with RCC_CR, FLASH_SR and
+  FLASH_CR when slow (> 200 ms), failed, HSI stopped or flagged; `STATUS`
+  shows those registers and the last write's duration.
 - Clock (`sysclock.c`): crystal x 9 = 72 MHz. If it does not start at boot
   the robot runs on the internal oscillator / 2 x 16 = 64 MHz (+-1 %) and the
   banner says so; before, `Error_Handler` ran before the LEDs and UART were
@@ -395,11 +420,27 @@ PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
 stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
 the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
 
-Search legs (straight on without stopping, the default): verified in the
-simulator only. The earlier version with curves ran on the practice maze
-(15.2 s against 20.7 s stopping, map right) and its first robot run hit the
-unexplained incident above. Still to validate on the robot: the decision
-point and the front-wall classification at 450 mm/s, long straights.
+Search legs (straight on without stopping, the default): on the robot on
+the practice maze and on layouts B and C (the 4x3 rearranged; goal (3,2)):
+maps right; layout B 7.4 s against 8.5 s stopping in every cell, its speed
+runs 1.48-1.69 s and clean, IR stops within 3.5 mm of the plan. 1-cell
+legs left some sides doubtful (fixed by `SEARCH_SIDE_FROM_MM` 20, not yet
+on the robot). Still to validate: long straights.
+
+Layout C (2026-09-26; route 1D1I1D2, a staircase of three curves in
+consecutive cells, then 2 cells along the north border): the speed run
+drifted onto the north wall on the last straight, scraped it, and wedged
+turning at the goal. Reproduced in step mode (IR at the goal): it arrived
+yawed 5.5 deg and 24 mm off-centre. Cause: the start was 8-12 mm off-centre
+(where the search's final 180 turn left it) and the centring's integral
+learned that as ~5 deg of bias in the first cell (the simulator reproduces
+3.3 deg for 10 mm), then aimed the last straight at the wall. With
+`TUNE BIAS_WIN 0` (no integral) the same run arrived square, 17 mm off.
+Fixed by the bias observer (not yet on the robot). Also measured: single
+curves at 478 mm/s turn ~2.4 deg less than the encoders say (4.9 for a
+right plus a left; single measurements scatter +-3 deg), and one exited
+12 mm wide; at 300 mm/s they matched. Not compensated yet: re-measure with
+`CAL RUN` on the staircase once the observer is on the robot.
 
 ## Freezes (open investigation, 2026-09-25, resume here)
 Symptom: the whole robot freezes for ~200 s (no output, no reply, LEDs all
@@ -423,9 +464,11 @@ Occurrences:
    estuvo parado") and no crystal report.
 
 What this says:
-- No stall report means SysTick did not run during the freeze: the whole
-  CPU stopped, not a software loop (the detector only sees the latter). No
-  crystal report: the clock security system did not see the HSE fail.
+- CORRECTED 2026-09-26: the stall report was only printed in mode 5 (see
+  Health checks), so its absence says nothing; the ~50 s per flash
+  operation matches the HAL flash timeout, which counts SysTick ticks, so
+  the CPU most likely kept running, stuck in the HAL's wait for the flash.
+  No crystal report: the clock security system did not see the HSE fail.
 - A CPU that stops for minutes and then resumes, plus flash operations that
   take ~50 s each (the HAL flash timeout) and fail, and a reset that cannot
   boot, all fit the CPU stalling on flash reads while the flash controller
@@ -443,13 +486,13 @@ What this says:
   never used right after boot); nothing in the legs code writes outside RAM
   that I could find (`grow_path()` masks IRQs only around `path_grow()`).
 
-Update 2026-09-26:
+Update 2026-09-26 (evening notes, some superseded by the correction above):
 - During freeze 2 the robot was already facing north (the user saw it): it
   had made the final turn and froze in the map save that follows; the log
   lines came late only because the stalled CPU could not send them. So all
   four freezes coincide with flash writes (save at the goal, two saves at
   the end, `SAVE` at rest), each lasting about 4 x 50 s, the HAL flash
-  timeout, with the CPU stalled (no SysTick: no stall report).
+  timeout (the "CPU stalled" reading was wrong: see the correction).
 - LED 2 blinking afterwards was just the idle heartbeat of mode 2.
 - After a power cycle the user ran several searches (straight legs, the
   default) and speed runs, saves included: no freeze.
@@ -485,6 +528,12 @@ Plan (the user must disassemble the robot to flash: keep flashes minimal):
    fix, not yet on the robot; `CLOCK HSI` still untested) and add to
    STATUS/boot: FLASH->SR, FLASH->CR, RCC->CR, RCC->CFGR, to see the flash
    controller's state after a freeze.
+
+2026-09-26 morning session (same firmware as freeze 2, powered on at
+~09:25): ~12 map saves in searches and speed runs over two hours, no
+freeze. The diagnostics of step 4 (the HSI check and timing of every flash
+write, the RCC watch, stall reports from the main loop) are committed
+(0221cd6, 0d75630) for the next flash.
 
 Test battery status: steps 1 (soft reset boots fine) and 3 (search, speed
 run) done; step 2 (`CLOCK HSI`) failed on the argument bug; step 4 (layout
