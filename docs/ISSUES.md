@@ -6,20 +6,16 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-10. **Next flash** (built, not flashed; keeps map, goal and params): the
-   wall followers (modes 2/3) drive straights without stopping like the
-   search (`drive_leg()` shared with it; `CONT OFF` stops in every cell);
-   host: same cells, 36 % fewer stops. Also: after boot the LEDs sweep
-   until SELECT picks mode 1 (START ignored until then). After it: check
-   the sweep and SELECT, then modes 2 and 3 on E (no follower runs before
-   this flash, the user's request). Also pending, low
-   priority: `TURN_CARRY` 1 would need its own in-place scale (TURNTICKS
-   398 for turns, 403 for curves); no clear gain on D, carry stays 0.
 6. **Roadmap, not started:** side-sensor calibration. Dropped by the user
    (2026-09-27): longitudinal correction on wall edges (too fine for our
    precision) and diagonals.
 
 ## Closed
+
+- 2026-09-27 Flash of the followers' straights and the boot sweep (issue
+  10): sweep and SELECT OK; on E mode 2 reached the goal in 9 actions,
+  mode 3 in 11 (dead end at (1,0) included), 2-cell legs, no "!!".
+  `TURN_CARRY` stays 0 (would need its own in-place scale; no gain on D).
 
 - 2026-09-27 Flash of the new modes (issue 9): LEDs and SELECT OK, mode 2
   to the goal (9 actions), modes 4 and 5 on E clean both ways (route
