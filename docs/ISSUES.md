@@ -9,9 +9,12 @@ commit when done. Details go in the docs it points to, not here.
 1. **Speed run: heading error after a staircase of curves.** Measured
    on layout C at 478 mm/s: best `CURVE_ANGLE` ~92 (+-2 per run). On the
    robot since the 14:30 build of 09-26 (e9bd652): 90 + `CURVE_SLIP`
-   (v/480)^2, 2.0 deg, `TUNE CURVE_SLIP`; not validated yet (issue 3 first).
-   Next: speed runs with `CAL RUN` on layout D (one curve then 3 cells): the
-   centring's heading on the last straight should average ~0.
+   (v/480)^2, 2.0 deg, `TUNE CURVE_SLIP`. 4 runs with `CAL RUN` on layout
+   D (09-26 16:17-16:19, CSVs in `tools/calib_data/`): the centring's mean
+   heading is -1.3 deg on the straight after the curve and -1.2 on the one
+   before it, so the curve adds ~0 (slip compensation right); the robot
+   exits the curve ~10 mm wide (+8.5..+12 mm left, peak +17 at 97 mm).
+   Next: find the -1.2 deg bias of plain straights and the wide exit.
 2. **Bluetooth drops** (2026-09-26 ~11:00, battery freshly charged): the
    link fell 6 times in 8 min, 3 of them during `@D` dumps (lost; `CAL DUMP`
    resends), with the robot at rest; no kernel errors on the PC. Hours of
@@ -19,7 +22,10 @@ commit when done. Details go in the docs it points to, not here.
    robot and the PC are, try a dump next to the PC, and watch `btmon`.
 5. **Search legs on long straights.** Layout D (`docs/mazes.md`, set up
    now): route N 2 cells, E 3 to the goal.
-   Check the decision point and the front wall at 450 mm/s.
+   Check the decision point and the front wall at 450 mm/s. First search
+   (09-26 16:16): both legs (2 N, 3 E) decided the next cell in time and
+   stopped on the front wall ~0.5 mm short, err <= 1.7 mm. Next: one more
+   search; if as clean, close.
 6. **Roadmap, not started:** side-sensor calibration; longitudinal
    correction on wall edges (posts); short diagonals (low priority).
 
