@@ -39,7 +39,7 @@ Goal configuration:
 - Practice maze 4x3: goal = cell (3,2), the `practice` environment
   (`-DPRACTICE_MAZE=1`; `pio run -e practice -t upload`).
 - `GOAL` changes it at runtime (saved with the map); `ERASE` / mode 3 put
-  the build's default goal back.
+  the build's default goal and parameters back (a factory reset).
 
 ## Hardware
 - The robot is 72 mm wide. No IMU/gyro: the heading comes only from the
@@ -280,7 +280,7 @@ search leg; the dump comes when the run ends).
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
   builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash
-  (94.6 % of 62 KB, 3.3 KB left). Keep that headroom: report sizes after every change,
+  (94.7 % of 62 KB, 3.3 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's

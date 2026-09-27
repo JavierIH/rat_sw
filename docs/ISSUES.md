@@ -30,6 +30,8 @@ commit when done. Details go in the docs it points to, not here.
   Flashed 09-27 (50b4be9), checked on the desk: boot goal (7,7)-(8,8);
   `GOAL 3 2` + `SAVE`, `ERASE` -> (7,7)-(8,8), still so after `RESET`.
   To practise on the 4x3 with it: `GOAL 3 2`, then `ERASE` when done.
+  Next flash: `ERASE` / mode 3 also reset the parameters (the user
+  expected it; the flashed one keeps them: `DEFAULTS` + `SAVE`).
   To look at: a search with the goal unreachable (7,7 on the 4x3, log
   2026-09-27_19-11-58 t=129) had a decision on the way of 149 ms (2001
   pops, 2 late): the map repair's replans inside a leg?

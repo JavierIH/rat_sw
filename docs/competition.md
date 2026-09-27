@@ -97,7 +97,9 @@ min more of search in them (the other 517 finish under 400). Set to 800
   `pio run -e practice`). A flash with another default goal ignores the
   saved record (the map and parameters go).
 - `ERASE` (or mode 3) before the first search in the competition maze: it
-  also puts the goal back to 7 7 8 8 (after any `GOAL` used to practise).
+  also puts the goal back to 7 7 8 8 (after any `GOAL` used to practise)
+  and the parameters to their defaults (firmware after 50b4be9: until
+  then, `DEFAULTS` + `SAVE`).
   `STATUS` must show `meta (7,7)-(8,8)`.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
 - `IR` at the start with nothing around the nose: FL/FR ~230 and SL/SR
