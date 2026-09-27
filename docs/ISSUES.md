@@ -14,7 +14,16 @@ commit when done. Details go in the docs it points to, not here.
   search + 20 races 2.4/2.5 clean, no pace drop; found each race switch
   spent a flash slot (FAST/CURVE saved with the map): fixed in a6d42d2,
   for the next flash (keeps map and params). Next: 2 floor straights,
-  4 goal block (layout H). Ask: spare walls for 3? OPTIM 400 or 800?
+  4 goal block (layout H), 3 on the ring (layout I, no spare walls).
+  OPTIM budget set to 800 (8685fe4, next flash).
+
+- Issue 14, centring on straights: the user sees it weave a little at
+  times and converge slowly at others. No flash needed (KP, KI, `TUNE
+  STEER_VREF`/`OBSERVER` live). Plan: layout I; from (0,0) facing E,
+  `CAL STRAIGHT 3` at 300/450/600/800, centred and ~10 mm off, then
+  `calib_analyze.py` (centrado: inicio, 2a mitad +- sd, cruces/s) against
+  `host_tests --control` (540 mm, 15 mm off: sim converges, <= 1 crossing).
+  Then sweep KP (0.5/0.7/0.9) and STEER_VREF where it is worst.
 
 ## Closed
 

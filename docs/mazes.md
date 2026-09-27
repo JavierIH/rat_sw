@@ -187,6 +187,27 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
     +---+---+---+---+
 ```
 
+## I: a closed ring, straights of 4 and 3 cells (proposed 09-27, centring)
+
+```
+      0   1   2   3
+    +---+---+---+---+
+  2 |               |
+    +   +---+---+   +
+  1 |   |       |   |
+    +   +---+---+   +
+  0 |               |
+    +---+---+---+---+
+```
+
+- Walls (4): east of (0,1) and (2,1); north of (1,0), (2,0), (1,1), (2,1)
+  (6 pieces; east of (1,1) makes no difference, inside the island).
+- A corridor with walls on both sides everywhere: rows 0 and 2 are
+  straights of 4 cells (3 cell lengths, 540 mm between corner centres, the
+  simulator's `--control` straight), columns 0 and 3 of 3 cells. For `CAL
+  STRAIGHT` (issue 14) and a race's long straight into a curve (issue 11,
+  test 3). The start (0,0) is open to the east.
+
 ## Every wall at a glance
 
 Only the positions that hold a wall in some layout; the other 6 internal
