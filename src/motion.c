@@ -214,7 +214,7 @@ void motion_tick_1ms(void){
                 steer_restart(&steer);
                 steer_blind = 0;
             }
-            const float ds = 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM;
+            const float ds = 0.5f * fabsf((float)(dl + dr)) / control_cfg.ticks_per_mm;
             // Heading since the move started, relative to the corridor (the reference's turns taken out).
             const float to_corridor = ctl.steer_prev - ctl.rot_error;
             heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), ds, to_corridor, steer_gain);
@@ -246,7 +246,7 @@ static void control_begin(uint8_t steering){
     move_id++;
     steer_cfg.average_steps = (uint8_t)steer_average;
     steer_cfg.delay_steps = (uint8_t)(ir_delay + steer_average / 2);  // the averaging delays by half its window
-    control_cfg.mm_per_deg = (float)params.turn_ticks / 90.0f / WHEEL_TICKS_PER_MM;
+    control_cfg.mm_per_deg = (float)params.turn_ticks / 90.0f / control_cfg.ticks_per_mm;
     steer_cfg.kp = params.kp;
     steer_cfg.ki = params.ki * 0.001f;     // per m travelled -> per mm
     profile_reset(&fwd);
@@ -444,6 +444,10 @@ typedef struct {
 static struct {
     uint32_t decisions, late, max_us, max_pops;
 } leg_timing;
+
+float motion_ticks_per_mm(void){
+    return control_cfg.ticks_per_mm;
+}
 
 void motion_leg_timing_reset(void){
     memset(&leg_timing, 0, sizeof(leg_timing));
@@ -747,7 +751,7 @@ move_result_t motion_turn(int8_t quarter_turns){
         const float dl = (float)(encoder_total(ENCODER_L) - g.l0), dr = (float)(encoder_total(ENCODER_R) - g.r0);
         char turned[12];
         print("giro %s: %sdeg de %d fin=%s TURNTICKS=%d", quarter_turns > 0 ? "der" : "izq",
-              format_fixed2(turned, sizeof(turned), 0.5f * (dl - dr) / WHEEL_TICKS_PER_MM / control_cfg.mm_per_deg),
+              format_fixed2(turned, sizeof(turned), 0.5f * (dl - dr) / control_cfg.ticks_per_mm / control_cfg.mm_per_deg),
               (int)deg, r == MOVE_OK ? "OK" : move_result_name(r), params.turn_ticks);
         print_errors(&g);
     }
@@ -890,6 +894,7 @@ static const tunable_t TUNABLES[] = {
     {"FRONT_TRACK", &front_track, 100.0f, 250.0f, 0},
     {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
     {"WHEEL_DIFF", &control_cfg.wheel_diff, -0.05f, 0.05f, 3},
+    {"TICKS_MM", &control_cfg.ticks_per_mm, 8.5f, 9.6f, 3},
     {"SENSE_SETTLE", &sense_settle, 0.0f, 200.0f, 0},
     {"LATE_MARGIN", &late_margin, 0.0f, 60.0f, 0},
     {"CURVE_R", &curve_radius, 30.0f, 120.0f, 1},

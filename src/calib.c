@@ -166,7 +166,7 @@ static void dump(void){
     {
         char tpm[12], kv_l[12], kv_r[12], tau[12];
         print("@D INFO ticks_per_mm=%s cell_mm=%u turn_ticks=%d kv_l=%s kv_r=%s tau_ms=%s ks=%u\n",
-              format_fixed2(tpm, sizeof(tpm), WHEEL_TICKS_PER_MM), CELL_MM, params.turn_ticks,
+              format_fixed(tpm, sizeof(tpm), motion_ticks_per_mm(), 3), CELL_MM, params.turn_ticks,
               format_fixed2(kv_l, sizeof(kv_l), MOTOR_KV_L), format_fixed2(kv_r, sizeof(kv_r), MOTOR_KV_R),
               format_fixed2(tau, sizeof(tau), MOTOR_TAU_S * 1000.0f), (unsigned)MOTOR_KS_PWM);
     }

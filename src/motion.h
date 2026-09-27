@@ -123,6 +123,7 @@ uint8_t motion_step_mode(void);
 // began (the worst one, its planner pops) and how many came late, with the
 // reference already braking. Printed after a run and in STATUS.
 void motion_leg_timing_reset(void);
+float motion_ticks_per_mm(void);        // WHEEL_TICKS_PER_MM, or TUNE TICKS_MM
 void motion_leg_timing_report(void);
 
 #endif // MOTION_H
