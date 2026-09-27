@@ -161,6 +161,7 @@ static void run_mode(uint8_t m){
         }
         else{
             run_result_t r = RUN_FAILED;
+            motion_leg_timing_reset();
             switch(m){
                 case MODE_SEARCH:       r = search_explore(); break;
                 case MODE_FOLLOW_LEFT:  r = search_wall_follow(1); break;
@@ -170,6 +171,7 @@ static void run_mode(uint8_t m){
                 default: break;
             }
             motion_stop();
+            motion_leg_timing_report();
             static const char *const RESULT[] = {"OK", "ABORTADO", "FALLO"};
             print("Fin: %s | %s\n", RESULT[r],
                   search_ready() ? "robot en la salida, listo" : "coloca el robot en la salida");

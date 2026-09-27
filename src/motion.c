@@ -8,6 +8,7 @@
 #include "encoder.h"
 #include "gpio.h"
 #include "infrared.h"
+#include "maze.h"
 #include "health.h"
 #include "motor.h"
 #include "params.h"
@@ -130,6 +131,7 @@ static float ir_delay = IR_DELAY_MS;            // ms
 static float front_track = FRONT_TRACK_MM;      // mm
 static float front_ref = FRONT_TRACK_REF_MM;    // mm
 static float sense_settle = SENSE_SETTLE_MS;    // ms
+static float late_margin = SEARCH_LATE_MARGIN_MM;   // mm
 static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
 static float steer_vref = STEER_VREF_MM_S;      // mm/s
@@ -439,6 +441,23 @@ typedef struct {
     uint8_t last_l, last_r;         // sighting_t of the sides of the last cell decided
 } explorer_t;
 
+static struct {
+    uint32_t decisions, late, max_us, max_pops;
+} leg_timing;
+
+void motion_leg_timing_reset(void){
+    memset(&leg_timing, 0, sizeof(leg_timing));
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;     // the cycle counter
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+void motion_leg_timing_report(void){
+    if(!leg_timing.decisions) return;
+    print("%sdecisiones en marcha: %lu, la peor %lu us (%lu pops), tarde %lu\n", leg_timing.late ? "!! " : "",
+          (unsigned long)leg_timing.decisions, (unsigned long)leg_timing.max_us, (unsigned long)leg_timing.max_pops,
+          (unsigned long)leg_timing.late);
+}
+
 // Unanimous readings, enough of them, or doubtful.
 static uint8_t sighting(uint8_t samples, uint8_t walls){
     if(samples < SEARCH_MIN_READINGS) return SEEN_DOUBTFUL;
@@ -468,7 +487,7 @@ static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8
     }
     // Due just before the reference must start braking for where it ends
     // now: the cell's centre, or where a wall seen in front moved it.
-    if(!run.done && run.s < run.stop_at - v * v / (2.0f * run.accel) - SEARCH_LATE_MARGIN_MM) return;
+    if(!run.done && run.s < run.stop_at - v * v / (2.0f * run.accel) - late_margin) return;
 
     wall_sense_t w;
     w.left = sighting(ex->samples, ex->walls_l);
@@ -476,7 +495,15 @@ static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8
     const float avg = 0.5f * (ir_mm(IR_FL) + ir_mm(IR_FR));
     w.front = front_seen ? SEEN_PRESENT : avg > SEARCH_FRONT_OPEN_MM ? SEEN_ABSENT : SEEN_DOUBTFUL;
     w.moving = 1;
+    const uint32_t t0 = DWT->CYCCNT, pops0 = maze_plan_pops();
     next_move_t next = ex->decide(&w, ex->ctx);
+    const uint32_t us = (DWT->CYCCNT - t0) / (SystemCoreClock / 1000000u);
+    leg_timing.decisions++;
+    if(us > leg_timing.max_us){
+        leg_timing.max_us = us;
+        leg_timing.max_pops = maze_plan_pops() - pops0;
+    }
+    if(!run.done && run.s >= run.stop_at - v * v / (2.0f * run.accel)) leg_timing.late++;
     ex->last_l = w.left;
     ex->last_r = w.right;
     ex->samples = ex->walls_l = ex->walls_r = 0;
@@ -864,6 +891,7 @@ static const tunable_t TUNABLES[] = {
     {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
     {"WHEEL_DIFF", &control_cfg.wheel_diff, -0.05f, 0.05f, 3},
     {"SENSE_SETTLE", &sense_settle, 0.0f, 200.0f, 0},
+    {"LATE_MARGIN", &late_margin, 0.0f, 60.0f, 0},
     {"CURVE_R", &curve_radius, 30.0f, 120.0f, 1},
     {"CURVE_RAMP", &curve_ramp, 1.0f, 120.0f, 1},
     {"CURVE_ANGLE", &curve_angle, 80.0f, 100.0f, 2},

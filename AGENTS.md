@@ -81,7 +81,10 @@ Commands:
   `--control` prints the speed control's numbers on the simulated robot
   (straights, turns and curves at several speeds), for tuning gains away
   from it; `--costs [FAST CURVE]` times the speed run's routes for several
-  planner costs over random mazes (how `FAST_COST_*` were chosen).
+  planner costs over random mazes (how `FAST_COST_*` were chosen);
+  `--timing` counts the planner's work (states popped) in each decision
+  the search's legs make on the way, on 16x16 and on the practice maze
+  (the robot prints the worst one's time and pops after a run).
 - `python3 -m unittest discover -s tools -p 'test_*.py'`: monitor and
   calibration analysis tests. They replay `--transcript` output, so they also
   check that the monitor's planner makes the same decisions as the firmware.
@@ -265,8 +268,8 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 400 in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (86.9 %: ~2.6 KB left for the stack) and flash
-  (92.6 % of 62 KB, 4.6 KB left). Keep that headroom: report sizes after every change,
+  builds use the same RAM (87.0 %: ~2.6 KB left for the stack) and flash
+  (93.4 % of 62 KB, 4.1 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's

@@ -62,7 +62,7 @@ flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 
 | Comando | Qué hace | Parado |
 |---|---|---|
-| `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura | |
+| `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura; tras una búsqueda, lo que tardó la peor decisión en marcha (también se imprime al acabar el run) | |
 | `MODE n` | elige el modo: 1 búsqueda, 2/3 seguidor izquierda/derecha, 4 rápida 800/300, 5 rápida 900/480, 6 borrar mapa | sí |
 | `START` | lanza el modo elegido tras 2 s (como el botón) | |
 | `STOP` | detiene el run (como START durante el run) | |

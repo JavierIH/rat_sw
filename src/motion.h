@@ -119,5 +119,10 @@ void motion_set_paused(uint8_t paused);
 uint8_t motion_is_paused(void);
 void motion_set_step_mode(uint8_t on);
 uint8_t motion_step_mode(void);
+// The search legs' decisions on the way: their planner time since the run
+// began (the worst one, its planner pops) and how many came late, with the
+// reference already braking. Printed after a run and in STATUS.
+void motion_leg_timing_reset(void);
+void motion_leg_timing_report(void);
 
 #endif // MOTION_H

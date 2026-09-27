@@ -141,6 +141,7 @@ static void cmd_status(const char *args){
           "reiniciado %lu\n", storage_free_slots(), flash_store_blocked() ? ", BLOQUEADA" : "",
           (unsigned long)ft->first_us, (unsigned long)ft->worst_us, (unsigned long)ft->program_ms,
           (unsigned long)ft->erase_ms, (unsigned long)ft->hsi_restarts);
+    motion_leg_timing_report();
     if(app_run_active()) return;    // the planner buffers belong to the run
     uint8_t g[4];
     maze_get_goal(g);
