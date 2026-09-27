@@ -317,8 +317,10 @@
 #define FAST_COST_TURN          1
 // Extra exploration after the goal, looking for a better path. The cheap
 // speed-run turns make more routes tie, and one simulated 16x16 maze in 100
-// needed more than 300 (on average the search got shorter).
-#define OPTIMIZE_MAX_STEPS      400
+// needed more than 300 (on average the search got shorter). 400 left 3 of
+// the 520 real mazes short of the optimum (up to +6.5 %), 800 none: the
+// other 517 finish under 400 anyway (docs/competition.md).
+#define OPTIMIZE_MAX_STEPS      800
 #define SEARCH_MAX_STEPS        2000    // hard budget of actions per run
 #define MAP_MAX_RECOVERIES      3       // "goal unreachable" map repairs allowed per run
 

@@ -19,8 +19,8 @@ crash, with perfect sensing and with 3 % noise; searches 181 s on average
 (simulated). 3 of 520 end on `OPTIMIZE_MAX_STEPS` (400) short of the
 optimum: japan2000 170 vs 168, alljapan-030-2009-exp-fin 163 vs 161,
 uk2026-minos-classic 228 vs 214 (+6.5 %); 800 reaches it in all three, ~1
-min more of search in them (the other 517 finish under 400). Open question
-for the user: 400 or 800.
+min more of search in them (the other 517 finish under 400). Set to 800
+(09-27, next flash).
 
 ## What changes, and the test for each
 

@@ -273,7 +273,7 @@ search leg; the dump comes when the run ends).
   - Search legs decide each cell inside it with its three walls in view, at
     most `SEARCH_LEG_SPEED_MAX` (450); no curves in the search.
   - Planner: `FAST_COST_TURN` 1 (a curve costs half a cell), which needs
-    `OPTIMIZE_MAX_STEPS` 400 in the search's OPTIM phase.
+    `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
   builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash

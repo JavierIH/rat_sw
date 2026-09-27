@@ -255,7 +255,7 @@ Read the section you are about to touch; AGENTS.md has the rules.
   (`FAST_COST_TURN` 1): fastest in `host_tests --costs` at every speed tried,
   0.2-2% faster than pricing it as a stop-and-turn. The cheap turns make
   more routes tie, so the search's OPTIM phase needs a larger budget
-  (`OPTIMIZE_MAX_STEPS` 400).
+  (`OPTIMIZE_MAX_STEPS` 800: 400 left 3 of the 520 real mazes short).
 
 ## Health checks and clock
 
