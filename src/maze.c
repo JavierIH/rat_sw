@@ -123,6 +123,7 @@ void maze_goal_cells(cellset_t *out){
 static uint16_t queue[MAZE_STATES];
 static uint32_t queued[MAZE_STATES / 32];
 static uint16_t q_head, q_count;
+static uint32_t pops;
 
 static void queue_reset(void){
     q_head = 0;
@@ -142,6 +143,7 @@ static uint16_t queue_pop(void){
     uint16_t s = queue[q_head];
     q_head = (uint16_t)((q_head + 1) % MAZE_STATES);
     q_count--;
+    pops++;
     queued[s >> 5] &= ~(1u << (s & 31u));
     return s;
 }
@@ -161,6 +163,10 @@ static uint8_t passable(uint8_t x, uint8_t y, heading_t dir, plan_mode_t mode){
 
 static void cost_fill(uint16_t *cost){
     for(uint16_t s = 0; s < MAZE_STATES; s++) cost[s] = PLAN_INF;
+}
+
+uint32_t maze_plan_pops(void){
+    return pops;
 }
 
 void maze_plan_to(const cellset_t *targets, plan_mode_t mode, plan_costs_t costs, uint16_t *cost){

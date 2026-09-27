@@ -7,6 +7,9 @@
 
 // Simulated robot in a known "true" maze, implementing motion.h.
 
+#define SIM_POPS_BUCKETS      16
+#define SIM_POPS_BUCKET_SIZE  1024u
+
 typedef struct {
     uint32_t senses, quarter_turns, forward_moves, forward_cells;
     uint32_t paths, curves;     // motion_run_path() calls and the curves driven in them
@@ -15,6 +18,8 @@ typedef struct {
     uint32_t actions;
     uint32_t legs, stops;   // motion_explore() calls; moves that ended at rest (any kind)
     uint32_t wall_stops;    // search legs that stopped at a front wall seen on the way (expected)
+    uint32_t decides, decide_pops, decide_pops_max;     // search legs' decisions on the way: planner work
+    uint32_t decide_hist[SIM_POPS_BUCKETS];             // ... how many took pops / SIM_POPS_BUCKET_SIZE
     double seconds;         // estimated robot time of every move and stop (see sim.c)
 } sim_stats_t;
 

@@ -225,7 +225,14 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         w.left = side_on_the_way(truth_wall(sim_x, sim_y, heading_left(sim_h)));
         w.right = side_on_the_way(truth_wall(sim_x, sim_y, heading_right(sim_h)));
         w.moving = 1;
+        const uint32_t pops0 = maze_plan_pops();
         const next_move_t next = decide(&w, ctx);
+        const uint32_t pops = maze_plan_pops() - pops0;
+        sim_stats.decides++;
+        sim_stats.decide_pops += pops;
+        if(pops > sim_stats.decide_pops_max) sim_stats.decide_pops_max = pops;
+        const uint32_t bucket = pops / SIM_POPS_BUCKET_SIZE;
+        sim_stats.decide_hist[bucket < SIM_POPS_BUCKETS ? bucket : SIM_POPS_BUCKETS - 1]++;
         (*entered)++;
         if(next == NEXT_STOP){
             stopped(drive_seconds(*entered * CELL_MM, speed));

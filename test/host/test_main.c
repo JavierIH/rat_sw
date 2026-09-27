@@ -1914,6 +1914,69 @@ static void costs_report(float v_fast, float v_curve){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// host_tests --timing: the planner's work (states popped) in each decision a
+// search leg makes on the way, over 16x16 searches. The robot must decide
+// within SEARCH_LATE_MARGIN_MM of travel; the pops are converted to time
+// with the robot's measured cost per pop (STATUS).
+static void timing_report(void){
+    maze_set_goal(7, 7, 8, 8);
+    cellset_t goal;
+    maze_goal_cells(&goal);
+    maze_init();
+    uint32_t p0 = maze_plan_pops();
+    maze_plan_to(&goal, PLAN_OPTIMISTIC, (plan_costs_t){SEARCH_COST_CELL, SEARCH_COST_TURN}, cost);
+    printf("un plan sobre el 16x16 vacio: %u pops (%u estados)\n", maze_plan_pops() - p0, MAZE_STATES);
+    const struct { const char *name; uint16_t openings; double noise, doubt; } suites[] = {
+        {"perfectos", 0, 0.0, 0.0},
+        {"con bucles", 40, 0.0, 0.0},
+        {"abiertos", 150, 0.0, 0.0},
+        {"bucles + 20% laterales dudosos", 40, 0.0, 0.2},
+        {"bucles + 3% ruido", 40, 0.03, 0.0},
+    };
+    for(size_t i = 0; i < sizeof(suites) / sizeof(suites[0]); i++){
+        uint64_t decides = 0, sum = 0;
+        uint32_t max = 0, hist[SIM_POPS_BUCKETS] = {0};
+        for(uint32_t m = 1; m <= 100; m++){
+            truth_generate(m * 2654435761u + (uint32_t)i, suites[i].openings);
+            maze_init();
+            params_reset();
+            fake_flash_wipe();
+            sim_reset(suites[i].noise, m + 1000u * (uint32_t)i);
+            sim_side_doubt(suites[i].doubt);
+            search_set_home();
+            search_explore();
+            decides += sim_stats.decides;
+            sum += sim_stats.decide_pops;
+            if(sim_stats.decide_pops_max > max) max = sim_stats.decide_pops_max;
+            for(int b = 0; b < SIM_POPS_BUCKETS; b++) hist[b] += sim_stats.decide_hist[b];
+        }
+        printf("  %-32s %6llu decisiones en marcha, media %5.0f pops, max %5u | por %uk:",
+               suites[i].name, (unsigned long long)decides, decides ? (double)sum / (double)decides : 0.0, max,
+               SIM_POPS_BUCKET_SIZE / 1024u);
+        for(int b = 0; b < SIM_POPS_BUCKETS; b++) printf(" %u", hist[b]);
+        printf("\n");
+    }
+    // The practice maze, to compare with the robot: its map is 16x16 too.
+    maze_set_goal(3, 2, 3, 2);
+    uint32_t max = 0;
+    uint64_t decides = 0, sum = 0;
+    for(uint32_t m = 1; m <= 100; m++){
+        practice_truth(m, (uint16_t)(m % 3));
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        search_set_home();
+        search_explore();
+        decides += sim_stats.decides;
+        sum += sim_stats.decide_pops;
+        if(sim_stats.decide_pops_max > max) max = sim_stats.decide_pops_max;
+    }
+    printf("  %-32s %6llu decisiones en marcha, media %5.0f pops, max %5u\n", "practica 4x3, meta (3,2)",
+           (unsigned long long)decides, decides ? (double)sum / (double)decides : 0.0, max);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 int main(int argc, char **argv){
     host_verbose = argc > 1 && strcmp(argv[1], "-v") == 0;
     fake_flash_wipe();
@@ -1927,6 +1990,10 @@ int main(int argc, char **argv){
     }
     if(argc > 1 && strcmp(argv[1], "--costs") == 0){
         costs_report(argc > 3 ? (float)atof(argv[2]) : PARAM_FAST_SPEED, argc > 3 ? (float)atof(argv[3]) : PARAM_CURVE_SPEED);
+        return 0;
+    }
+    if(argc > 1 && strcmp(argv[1], "--timing") == 0){
+        timing_report();
         return 0;
     }
     if(argc > 3 && strcmp(argv[1], "--transcript") == 0){

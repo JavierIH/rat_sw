@@ -82,6 +82,8 @@ typedef enum { ACT_NONE, ACT_FORWARD, ACT_TURN_LEFT, ACT_TURN_RIGHT, ACT_TURN_AR
 void maze_plan_to(const cellset_t *targets, plan_mode_t mode, plan_costs_t costs, uint16_t *cost);
 // Cost from the state (x, y, h) to every state.
 void maze_plan_from(uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_costs_t costs, uint16_t *cost);
+// States popped by every plan so far (the planner's work; wraps).
+uint32_t maze_plan_pops(void);
 
 // Best next action at (x, y, h) following a maze_plan_to() result computed
 // with the same mode and costs. ACT_NONE when at a target or unreachable.
