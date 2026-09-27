@@ -98,6 +98,9 @@ min more of search in them (the other 517 finish under 400). Set to 800
   default goal ignores the saved record (the map and parameters go).
 - `ERASE` (or mode 3) before the first search in the competition maze.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
+- `IR` at the start with nothing around the nose: FL/FR ~230 and SL/SR
+  far. A reflective floor reads as walls (a room floor gave FR ~70 and SL
+  40-60 in patches, a phantom wall the centring follows).
 - Flash firmware older than a6d42d2: each switch between races 2.4/2.5/2.6
   spends a flash slot (six; `STATUS` shows them free). Keep one preset per
   power-on, or power-cycle (the boot compacts) before switching.

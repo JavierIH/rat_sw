@@ -18,8 +18,13 @@ commit when done. Details go in the docs it points to, not here.
   2.9 deg. The first two saved (the goal's walls' evidence +1 -> +3), the
   third did not despite the preset switch (test_races_settle_map). Test 4
   (goal block, layout H) done: search 11 actions, races 2.4 and 2.5 clean
-  (`2D2` into (2,2), `fin=ENC`, err <= 2.8 mm / 4.0 deg). Robot left with
-  `GOAL 2 1 3 2`, flash full (power-cycle). Next: 2 floor straights.
+  (`2D2` into (2,2), `fin=ENC`, err <= 2.8 mm / 4.0 deg). Test 2 on the
+  room floor along a baseboard (SR, 2 x `CAL STRAIGHT 10 300`): this floor
+  reflects into FR (~70 mm always) and SL (40-60 in patches), a phantom
+  left wall that swayed the centring; to the baseboard alone -8..+16 mm.
+  The user wants oscillations checked, not the distance. Robot left on
+  defaults, goal (3,2), map erased. Next, if repeated: baseboard on the
+  left (SL on it; SR stayed clean there), 300/450/600/800.
 
 ## Closed
 
