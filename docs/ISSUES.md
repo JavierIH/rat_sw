@@ -27,7 +27,9 @@ commit when done. Details go in the docs it points to, not here.
   left (SL on it; SR stayed clean there), 300/450/600/800.
   09-27: the default build is now the 16x16 one (goal 7 7 8 8; 4x3 =
   `pio run -e practice`), and `ERASE` / mode 3 restore the build's goal.
-  Flash pending: it drops the saved map and parameters (new signature).
+  Flashed 09-27 (50b4be9), checked on the desk: boot goal (7,7)-(8,8);
+  `GOAL 3 2` + `SAVE`, `ERASE` -> (7,7)-(8,8), still so after `RESET`.
+  To practise on the 4x3 with it: `GOAL 3 2`, then `ERASE` when done.
 
 ## Closed
 
