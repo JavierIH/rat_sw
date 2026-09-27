@@ -20,6 +20,21 @@ commit when done. Details go in the docs it points to, not here.
   shorten (track from farther, `FRONT_LATE_MAX_MM`); realign on the goal's
   front wall before the return; a safer return (curves at 300, or legs).
   In a 16x16 most curves have no wall ahead: the drift matters more there.
+  09-27 11:26 `CAL RUN` outbound on G (`calib_data/..._11-25-59_run.csv`
+  mode 4, `..._11-28-25_run.csv` mode 5), s + front IR on the walls ahead:
+  same up to the wall E of (2,1); after the left curve in (2,0) mode 5 is
+  25 mm behind and 34 mm S of centre (by the wall), at the goal 77 mm behind
+  (s+FL 1294 vs 1217). Not the encoders: the curves at 480 slide outwards
+  and the two left ones in a row add up (the simulator models only the
+  heading loss, not this). `CURVE_PRE_SLIP` 7 (tuned on E's alternating
+  staircase) starts each curve 7 mm later = further out: suspect.
+  Decision (user): 480 is at the grip limit (3.3 m/s^2 lateral), not
+  repeatable without a gyro; mode 5 goes to the fastest repeatable curve.
+  11:35 mode 5 outbound at `CURVE 400` (`..._11-35-29_run.csv`): at the goal
+  s+FL 1254, minus the planned extra of `CURVE_PRE_SLIP` (4 x 3.5 mm) 23 mm
+  behind mode 4 (480: 53), `fin=IR` FL 83 (as mode 4), lateral <= 12 mm.
+  Next: full mode 5 cycle (return included) at `CURVE 400` on G; if clean,
+  `FAST_FULL_CURVE` 400 in the next flash.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
