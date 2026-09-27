@@ -221,3 +221,9 @@ summary). Why the HSI at all when the CPU runs on the crystal: the STM32F1's
 flash controller times its program and erase pulses with the HSI, whatever
 drives SYSCLK (RM0008/PM0075: the HSI must be on to program or erase); the
 crystal only clocks the CPU, buses and peripherals.
+
+The fix on the robot (09-27 ~12:55, layout G, firmware 67461bf, first
+run-end save after a power-on, race 2.3): "!! flash: 2 bytes en 447518 us
+(dato bien): HSI reiniciado; despues, peor 63 us (normal ~56)", then "Mapa
+guardado" and the robot carried on. Second time a HSI restart cleared the
+wedge (n=2), the first with the write completing by itself.

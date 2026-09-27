@@ -6,49 +6,6 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- Issue 13, new mode menu (user, 09-27): mode 1 search (LEDs 1-2), 2 race
-  (3-4), 3 erase (5-6). START on 2 opens the race menu (a reset leaves it):
-  SELECT cycles 1 left follower, 1-2 right follower, 1-3 no curves (verified
-  path, straights at FAST, turns in place, return at SPD), 1-4 FAST 800
-  CURVE 300, 1-5 900/400, 1-6 900/480. Countdown: every LED blinking fast.
-  Implemented, not flashed: host tests (20/20 races without curves there and
-  back), flash 94.4 % (3.4 KB left). Console `MODE 2 k`; `@M` keeps 1-6, adds
-  7 (no curves) and 8 (900/400). Flashed 09-27, menu checked on the robot.
-  Then (user): the followers no longer stop at the goal, they go on until
-  STOP (a report and a 200 ms flash at the first stop past it; no action
-  budget); host tests 80/80, not flashed yet. Next: flash, a follower past
-  the goal on G, race 2.3, then issue 12's test at 2.5.
-
-- Issue 12, mode 5 crashed on layout G (`docs/mazes.md`, 09-27 ~12:50):
-  the run to the goal (`1D2D1I1I2`, 4 curves at 479) ended `fin=ENC` with
-  FL 132 FR 174 (mode 4: `fin=IR` 83/103): ~50 mm short of the goal's
-  centre, unnoticed (FR over `FRONT_TRACK_MM` 170, then `FRONT_LATE_MAX_MM`
-  30 would not reach). The return took its first curve, in (3,0), ~50 mm
-  late into the south wall (`OBSTACULO`, lost). On E the 9-cell route's IR
-  stops at 900/479 came at encoder distances 1442-1505 mm: the encoders
-  drift +-30 mm or more over curves at 479, E always landed long (the IR
-  cut it), G short. Mode 4 on G clean both ways. Do not use mode 5 until
-  fixed. Directions: find where the distance goes (`CAL RUN` of mode 4 and
-  a mode 5 outbound, STOP at the goal); let the IR end extend as well as
-  shorten (track from farther, `FRONT_LATE_MAX_MM`); realign on the goal's
-  front wall before the return; a safer return (curves at 300, or legs).
-  In a 16x16 most curves have no wall ahead: the drift matters more there.
-  09-27 11:26 `CAL RUN` outbound on G (`calib_data/..._11-25-59_run.csv`
-  mode 4, `..._11-28-25_run.csv` mode 5), s + front IR on the walls ahead:
-  same up to the wall E of (2,1); after the left curve in (2,0) mode 5 is
-  25 mm behind and 34 mm S of centre (by the wall), at the goal 77 mm behind
-  (s+FL 1294 vs 1217). Not the encoders: the curves at 480 slide outwards
-  and the two left ones in a row add up (the simulator models only the
-  heading loss, not this). `CURVE_PRE_SLIP` 7 (tuned on E's alternating
-  staircase) starts each curve 7 mm later = further out: suspect.
-  Decision (user): 480 is at the grip limit (3.3 m/s^2 lateral), not
-  repeatable without a gyro; mode 5 goes to the fastest repeatable curve.
-  11:35 mode 5 outbound at `CURVE 400` (`..._11-35-29_run.csv`): at the goal
-  s+FL 1254, minus the planned extra of `CURVE_PRE_SLIP` (4 x 3.5 mm) 23 mm
-  behind mode 4 (480: 53), `fin=IR` FL 83 (as mode 4), lateral <= 12 mm.
-  Next: full mode 5 cycle (return included) at `CURVE 400` on G; if clean,
-  `FAST_FULL_CURVE` 400 in the next flash.
-
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
   pop (1024 pops 4493 us on E, 3072 13001 us on G), so the 16x16 worst
@@ -59,6 +16,22 @@ commit when done. Details go in the docs it points to, not here.
   OPTIM budget 400 or 800?
 
 ## Closed
+
+- 2026-09-27 Race 2.5/2.6 curves and the goal on G (issue 12): the curves
+  at 480 slide outwards (grip limit, ~3.3 m/s^2 lateral) and two left ones
+  in a row left mode 5 77 mm short of the goal, then crashed on the return.
+  At 400 (race 2.5, `FAST_MID_*` 900/400) two full cycles on G clean both
+  ways, every end `fin=IR` (goal: FL 96/FR 122 squared and aligned, then
+  85/103), distances +-18 mm between runs, absorbed by the IR. Race 2.6
+  (900/480) stays in the menu at the grip limit: not repeatable, use it
+  knowing that.
+
+- 2026-09-27 New mode menu (issue 13): 1 search, 2 races (2.1/2.2 left/right
+  followers, 2.3 no curves, 2.4 800/300, 2.5 900/400, 2.6 900/480), 3 erase.
+  Validated on G: the left follower reported the goal after 11 actions and
+  went on 17 legs until STOP (no "!!"); race 2.3 there and back clean (5 + 5
+  legs, all `fin=IR`, err <= 3 mm). Its save hit the flash wedge and the HSI
+  restart cleared it (`docs/freezes.md`, n=2).
 
 - 2026-09-27 Side-sensor calibration (issue 6, roadmap): no flash needed.
   `calib_analyze.py` now fits rounds of `CAL NOISE` + `CAL TURN 1` x4 (the

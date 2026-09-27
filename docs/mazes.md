@@ -171,7 +171,8 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
 - Search: goal after 11 actions, start after 27; at (2,2) on the way back
   the OPTIM phase ends and the return is planned in one decision (3 full
   plans, 3072 pops): 13.0 ms on the robot. Speed run `1D2D1I1I2`, return
-  `2D1D1I2I1`. Mode 4 clean; mode 5 crashed on the return (issue 12).
+  `2D1D1I2I1`. Mode 4 clean; mode 5 (480) crashed on the return (issue 12);
+  race 2.5 (900/400) clean both ways, twice.
 
 ## H: the goal as a 2x2 block (proposed, not built yet)
 
