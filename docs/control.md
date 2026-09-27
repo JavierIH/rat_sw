@@ -58,6 +58,15 @@ Read the section you are about to touch; AGENTS.md has the rules.
   curves follow the sideways motion. A 180 deg pair is only valid with the
   robot centred front to back: 12-17 mm off, the beams of the heading facing
   the near wall land by the post and read up to 1.5x the true motion).
+  Convergence (issue 14, layout I, 09-27, `CAL STRAIGHT 3` after a 180,
+  `calib_analyze.py` error every 45 mm): no weave at 300-600; the error
+  that lingered (-1.5..-3 mm to the end of 3 cells) was the yaw left by the
+  turn, learned by the observer over ~300 mm (with `STEER_OBSERVER_MM` 40,
+  KI 8 is ~critically damped, time constant ~85 mm) and held at yaw/KP. KI
+  16 (damping ~0.75): ~0 from the second cell in 4 runs; 24 weaved (up to
+  +5.5 deg). At 800 `STEER_VREF` 400/500/600 made no difference beyond the
+  run-to-run spread; the one repeated feature is a 2-4 mm step where two
+  walls hand over to one (the post), not a growing weave.
   With both walls their average is used, unless one
   reading is implausible: the angled beams catch posts and walls ahead
   (`STEER_ERROR_MAX_MM`), which once swerved the robot 35 deg. The offset is

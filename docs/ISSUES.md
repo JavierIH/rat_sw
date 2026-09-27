@@ -15,17 +15,17 @@ commit when done. Details go in the docs it points to, not here.
   spent a flash slot (FAST/CURVE saved with the map): fixed in a6d42d2,
   for the next flash (keeps map and params). Next: 2 floor straights,
   4 goal block (layout H), 3 on the ring (layout I, no spare walls).
-  OPTIM budget set to 800 (8685fe4, next flash).
-
-- Issue 14, centring on straights: the user sees it weave a little at
-  times and converge slowly at others. No flash needed (KP, KI, `TUNE
-  STEER_VREF`/`OBSERVER` live). Plan: layout I; from (0,0) facing E,
-  `CAL STRAIGHT 3` at 300/450/600/800, centred and ~10 mm off, then
-  `calib_analyze.py` (centrado: inicio, 2a mitad +- sd, cruces/s) against
-  `host_tests --control` (540 mm, 15 mm off: sim converges, <= 1 crossing).
-  Then sweep KP (0.5/0.7/0.9) and STEER_VREF where it is worst.
+  OPTIM budget set to 800 (8685fe4, next flash). Test 3 with `KI 16`
+  (new default, f95a56d; races were validated with 8).
 
 ## Closed
+
+- 2026-09-27 Centring on straights (issue 14, layout I): no weave at
+  300-600; the slow convergence was the observer learning a turn's yaw
+  (KI 8: -1.5..-3 mm to the end of 3 cells). KI 16 is the new default
+  (f95a56d, next flash; until then send `KI 16` after a reset): ~0 from the
+  second cell; 24 weaved. At 800 `STEER_VREF` 400-600 no difference; a 2-4
+  mm step at the two-wall to one-wall post. `docs/control.md`, centring.
 
 - 2026-09-27 Race 2.5/2.6 curves and the goal on G (issue 12): the curves
   at 480 slide outwards (grip limit, ~3.3 m/s^2 lateral) and two left ones
