@@ -16,8 +16,10 @@ commit when done. Details go in the docs it points to, not here.
   I) done: search 13 actions, 0 "!!", worst decision 4473 us; races 2.4,
   2.5, 2.4 route `2D3` in one leg both ways, `fin=IR`, err <= 3.8 mm /
   2.9 deg. The first two saved (the goal's walls' evidence +1 -> +3), the
-  third did not despite the preset switch (test_races_settle_map). Next:
-  2 floor straights, 4 goal block (layout H).
+  third did not despite the preset switch (test_races_settle_map). Test 4
+  (goal block, layout H) done: search 11 actions, races 2.4 and 2.5 clean
+  (`2D2` into (2,2), `fin=ENC`, err <= 2.8 mm / 4.0 deg). Robot left with
+  `GOAL 2 1 3 2`, flash full (power-cycle). Next: 2 floor straights.
 
 ## Closed
 

@@ -63,6 +63,16 @@ min more of search in them (the other 517 finish under 400). Set to 800
    On the 4x3: a layout with a 2x2 block without its inner walls (and without its centre post, if it
    comes out), one way in, `GOAL x0 y0 x1 y1` on it. Tests sensing and
    centring with no side walls, the 4-cell goal and the speed run into it.
+   Done 09-27 (layout H, `GOAL 2 1 3 2`, centre post in): the search
+   reached (2,2) after 5 actions, verified the path from there without
+   entering the block and was back in 11 (8 decisions on the way, worst
+   4474 us, none late). Races 2.4 and 2.5 there and back: `2D2` in one leg,
+   the stop in (2,2) on the encoders with only the north border in view
+   (err 2.7/2.8 mm, 4.0/3.0 deg; the 180 turn absorbs it), the return
+   `fin=IR`, err <= 2.3 mm / 3.6 deg. No "!!" except "flash sin hueco" (no
+   power cycle after `ERASE`: the map stayed in RAM). The speed run stops
+   in the goal's first cell, so the open interior is only seen, never
+   driven, as it will be in the 16x16.
 
 5. **Endurance.** A 16x16 session drives 3-4 min (search, speed runs,
    returns). On the practice maze: a search, then races 2.4 and 2.5 back to
