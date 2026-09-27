@@ -68,6 +68,18 @@ for the user: 400 or 800.
    returns). On the practice maze: a search, then races 2.4 and 2.5 back to
    back for 5 min without touching the robot: "!!" lines, tracking error
    at the stops, the pace of the runs as the battery drops.
+   Done 09-27 on G (12:54-13:04, a 4 min pause in the middle): a search
+   (23 actions, 14 decisions on the way, none late) and 20 races alternating
+   2.4/2.5, all `Fin: OK`, every stop `fin=IR`, err <= 2.8 mm / 3.5 deg, no
+   stall or clock line, stack 1316 B never used. No pace drop: 2.5 to the
+   goal 2.58-2.87 s, 2.4 3.14-3.38 s, the first and the last alike. Found:
+   selecting a race sets FAST/CURVE, saved in the map's record, so each
+   switch of race wrote a record: the six slots were gone after three
+   races ("!! flash sin hueco", harmless: the map stays in RAM). Fixed in
+   a6d42d2 (not flashed yet): the run's end writes only a changed map.
+   Until then, one race preset per power-on (the boot compacts). One flash
+   wedge on those writes, cleared by the HSI restart (`docs/freezes.md`,
+   n=3).
 
 ## Competition day checklist
 
@@ -76,6 +88,9 @@ for the user: 400 or 800.
   default goal ignores the saved record (the map and parameters go).
 - `ERASE` (or mode 3) before the first search in the competition maze.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
+- Flash firmware older than a6d42d2: each switch between races 2.4/2.5/2.6
+  spends a flash slot (six; `STATUS` shows them free). Keep one preset per
+  power-on, or power-cycle (the boot compacts) before switching.
 - `CONT ON` (default). Mode 1, then race 2.4 (FAST 800 CURVE 300) and only
   with it clean 2.5 (FAST 900 CURVE 400); 2.6 (CURVE 480) is not safe
   (issue 12). Race 2.3 (no curves) if the curves fail.

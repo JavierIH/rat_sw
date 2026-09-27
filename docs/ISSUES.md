@@ -10,10 +10,11 @@ commit when done. Details go in the docs it points to, not here.
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
   pop (1024 pops 4493 us on E, 3072 13001 us on G), so the 16x16 worst
   (5144) ~21.6 ms vs 17.8: ~4 ms late, which only dips the leg ~12 mm/s
-  (the path grows while braking); kept. Next (tests of
-  `docs/competition.md`): 2 floor straights, 4 goal block (layout H),
-  5 endurance (modes 1 and 4 only until issue 12). Ask: spare walls for 3?
-  OPTIM budget 400 or 800?
+  (the path grows while braking); kept. Test 5 endurance done 09-27 on G:
+  search + 20 races 2.4/2.5 clean, no pace drop; found each race switch
+  spent a flash slot (FAST/CURVE saved with the map): fixed in a6d42d2,
+  for the next flash (keeps map and params). Next: 2 floor straights,
+  4 goal block (layout H). Ask: spare walls for 3? OPTIM 400 or 800?
 
 ## Closed
 

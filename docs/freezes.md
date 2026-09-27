@@ -227,3 +227,9 @@ run-end save after a power-on, race 2.3): "!! flash: 2 bytes en 447518 us
 (dato bien): HSI reiniciado; despues, peor 63 us (normal ~56)", then "Mapa
 guardado" and the robot carried on. Second time a HSI restart cleared the
 wedge (n=2), the first with the write completing by itself.
+
+Third time (09-27 ~12:56, same power-on, layout G, the endurance test of
+issue 11: the save after race 2.4's return, the second save since the
+power-on): "!! flash: 2 bytes en 310190 us (dato bien): HSI reiniciado;
+despues, peor 63 us (normal ~56)", then "Mapa guardado" and the next race
+went on. n=3; two wedges in one power-on, ~4 min apart, both cleared.
