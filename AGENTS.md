@@ -84,7 +84,11 @@ Commands:
   planner costs over random mazes (how `FAST_COST_*` were chosen);
   `--timing` counts the planner's work (states popped) in each decision
   the search's legs make on the way, on 16x16 and on the practice maze
-  (the robot prints the worst one's time and pops after a run).
+  (the robot prints the worst one's time and pops after a run);
+  `--mazefile <files>` runs the whole cycle on real competition mazes
+  (text files of github.com/micromouseonline/mazefiles, cloned outside the
+  repo: 520 classic 16x16). `tools/plan_cycles.py` runs the firmware ELF's
+  planner on an emulated M3 (unicorn): cycles per pop without the robot.
 - `python3 -m unittest discover -s tools -p 'test_*.py'`: monitor and
   calibration analysis tests. They replay `--transcript` output, so they also
   check that the monitor's planner makes the same decisions as the firmware.
@@ -269,7 +273,7 @@ search leg; the dump comes when the run ends).
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
   builds use the same RAM (87.0 %: ~2.6 KB left for the stack) and flash
-  (93.4 % of 62 KB, 4.1 KB left). Keep that headroom: report sizes after every change,
+  (93.6 % of 62 KB, 4.0 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's

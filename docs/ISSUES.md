@@ -6,16 +6,15 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- Issue 11, 16x16 competition readiness: do the search legs' decisions
-  on the way fit in `SEARCH_LATE_MARGIN_MM` (8 mm = 17.8 ms at 450) on the
-  robot? Host (`host_tests --timing`): a plan pops each state ~once (1024
-  on the empty 16x16); the worst decision (OPTIM, 3 plans) 3811 pops on
-  16x16, 3072 on the practice maze. Disassembly: ~150-200 cycles a pop,
-  so 5-11 ms (estimate). Firmware (not flashed): the worst decision's us
-  and pops and the late ones printed after a run and in `STATUS`;
-  `TUNE LATE_MARGIN` mm. Next: flash, one search on the practice maze,
-  read us/pops -> cycles a pop -> 16x16 worst; then the competition
-  checklist (goal, `ERASE`, stack).
+- Issue 11, 16x16 competition readiness (plan and results:
+  `docs/competition.md`). Done off the robot: 520 real competition mazes
+  pass in the sim; competition-goal suites; the planner 43 % faster (worst
+  decision ~17 -> ~9.5 ms of 17.8, emulated M3). Firmware not flashed:
+  worst decision time printed after a run and in `STATUS`, `TUNE
+  LATE_MARGIN`, `TUNE TICKS_MM`, the faster planner (keeps map and
+  params). Next: flash, then the battery in `docs/competition.md` (tests
+  1, 2, 4, 5); ask the user: spare walls for test 3? OPTIM budget 400 or
+  800?
 
 ## Closed
 
