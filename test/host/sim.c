@@ -99,6 +99,64 @@ void truth_generate(uint32_t seed, uint16_t extra_openings){
     }
 }
 
+// Competition goal: the centre 2x2 open inside, closed around but for one
+// entrance; cells cut off by closing it are joined to the rest again.
+void truth_competition_goal(uint32_t seed){
+    rng_state = seed ? seed : 1;
+    const uint8_t g0 = MAZE_SIZE / 2 - 1, g1 = MAZE_SIZE / 2;
+    for(uint8_t x = g0; x <= g1; x++){
+        for(uint8_t y = g0; y <= g1; y++){
+            for(uint8_t h = 0; h < 4; h++){
+                const int nx = x + heading_dx((heading_t)h), ny = y + heading_dy((heading_t)h);
+                const uint8_t inside = nx >= g0 && nx <= g1 && ny >= g0 && ny <= g1;
+                truth_set_wall(x, y, (heading_t)h, !inside);
+            }
+        }
+    }
+    // One of the 8 outer walls opens: cell (x, y) of the block, side h.
+    const uint8_t k = (uint8_t)(sim_rand() % 8u);
+    const uint8_t ex = (uint8_t)(g0 + ((k >> 1) & 1u)), ey = (uint8_t)(g0 + ((k >> 2) & 1u));
+    const heading_t eh = (heading_t)(k & 1u ? (ex == g0 ? WEST : EAST) : (ey == g0 ? SOUTH : NORTH));
+    truth_set_wall(ex, ey, eh, 0);
+    // Rejoin: open a wall between a reached and an unreached cell (never the
+    // goal's) until the start reaches every cell.
+    static uint8_t reached[MAZE_SIZE][MAZE_SIZE];
+    static uint8_t qx[MAZE_SIZE * MAZE_SIZE], qy[MAZE_SIZE * MAZE_SIZE];
+    for(;;){
+        memset(reached, 0, sizeof(reached));
+        int head = 0, tail = 0;
+        qx[tail] = 0;
+        qy[tail++] = 0;
+        reached[0][0] = 1;
+        while(head < tail){
+            const uint8_t x = qx[head], y = qy[head++];
+            for(uint8_t h = 0; h < 4; h++){
+                if(truth_wall(x, y, (heading_t)h)) continue;
+                const uint8_t nx = (uint8_t)(x + heading_dx((heading_t)h)), ny = (uint8_t)(y + heading_dy((heading_t)h));
+                if(reached[nx][ny]) continue;
+                reached[nx][ny] = 1;
+                qx[tail] = nx;
+                qy[tail++] = ny;
+            }
+        }
+        if(tail == MAZE_SIZE * MAZE_SIZE) return;
+        uint8_t joined = 0;
+        for(uint8_t x = 0; x < MAZE_SIZE && !joined; x++){
+            for(uint8_t y = 0; y < MAZE_SIZE && !joined; y++){
+                if(!reached[x][y] || (x >= g0 && x <= g1 && y >= g0 && y <= g1)) continue;
+                for(uint8_t h = 0; h < 4 && !joined; h++){
+                    const int nx = x + heading_dx((heading_t)h), ny = y + heading_dy((heading_t)h);
+                    if(!in_maze(nx, ny) || reached[nx][ny]) continue;
+                    if(nx >= g0 && nx <= g1 && ny >= g0 && ny <= g1) continue;
+                    truth_set_wall(x, y, (heading_t)h, 0);
+                    joined = 1;
+                }
+            }
+        }
+        if(!joined) return;     // cannot happen: the block has its entrance
+    }
+}
+
 void truth_load_into_map(void){
     maze_init();
     for(uint8_t x = 0; x < MAZE_SIZE; x++){

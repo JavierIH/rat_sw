@@ -34,6 +34,8 @@ uint8_t truth_wall(uint8_t x, uint8_t y, heading_t h);
 // Random perfect maze (DFS) with `extra_openings` walls knocked out to create
 // loops. The start cell (0,0) keeps its east wall, as in competition mazes.
 void truth_generate(uint32_t seed, uint16_t extra_openings);
+// The centre 2x2 as in competition: open inside, one entrance (after truth_generate).
+void truth_competition_goal(uint32_t seed);
 // Loads the full truth into maze.c (for computing the true optimum).
 void truth_load_into_map(void);
 

@@ -700,18 +700,23 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
 static void test_competition_mazes(void){
     printf("simulation (16x16, goal (7,7)-(8,8)):\n");
     maze_set_goal(7, 7, 8, 8);
-    const struct { const char *name; uint16_t openings; double noise, doubt; } suites[] = {
-        {"perfect mazes", 0, 0.0, 0.0},
-        {"mazes with loops", 40, 0.0, 0.0},
-        {"open mazes (many loops)", 150, 0.0, 0.0},
-        {"loops + 20% doubtful sides", 40, 0.0, 0.2},
-        {"loops + 1% sensor noise", 40, 0.01, 0.0},
-        {"loops + 3% sensor noise", 40, 0.03, 0.0},
+    // `goal`: the centre as in competition, open inside with one entrance.
+    const struct { const char *name; uint16_t openings; double noise, doubt; uint8_t goal; } suites[] = {
+        {"perfect mazes", 0, 0.0, 0.0, 0},
+        {"mazes with loops", 40, 0.0, 0.0, 0},
+        {"open mazes (many loops)", 150, 0.0, 0.0, 0},
+        {"loops + 20% doubtful sides", 40, 0.0, 0.2, 0},
+        {"loops + 1% sensor noise", 40, 0.01, 0.0, 0},
+        {"loops + 3% sensor noise", 40, 0.03, 0.0, 0},
+        {"perfect, competition goal", 0, 0.0, 0.0, 1},
+        {"loops, competition goal", 40, 0.0, 0.0, 1},
+        {"loops, comp. goal, 3% noise", 40, 0.03, 0.0, 1},
     };
     for(size_t i = 0; i < sizeof(suites) / sizeof(suites[0]); i++){
         summary_t s = {0};
         for(uint32_t m = 1; m <= 100; m++){
             truth_generate(m * 2654435761u + (uint32_t)i, suites[i].openings);
+            if(suites[i].goal) truth_competition_goal(m);
             run_cycle(&s, suites[i].noise, m + 1000u * (uint32_t)i, suites[i].doubt);
         }
         print_summary(suites[i].name, &s);
@@ -1932,12 +1937,14 @@ static void timing_report(void){
         {"abiertos", 150, 0.0, 0.0},
         {"bucles + 20% laterales dudosos", 40, 0.0, 0.2},
         {"bucles + 3% ruido", 40, 0.03, 0.0},
+        {"bucles, meta de competicion", 40, 0.0, 0.0},
     };
     for(size_t i = 0; i < sizeof(suites) / sizeof(suites[0]); i++){
         uint64_t decides = 0, sum = 0;
         uint32_t max = 0, hist[SIM_POPS_BUCKETS] = {0};
         for(uint32_t m = 1; m <= 100; m++){
             truth_generate(m * 2654435761u + (uint32_t)i, suites[i].openings);
+            if(i == sizeof(suites) / sizeof(suites[0]) - 1) truth_competition_goal(m);
             maze_init();
             params_reset();
             fake_flash_wipe();
