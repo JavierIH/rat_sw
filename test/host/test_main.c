@@ -645,6 +645,7 @@ typedef struct {
     int runs, search_ok, fast_ok, optimal, consistent, back_home;
     long blocked, crashes, search_actions, search_cells, search_senses, fast_cells, fast_curves, fast_turns;
     long search_stops;
+    uint32_t decide_pops_max;   // the searches' worst decision on the way
     double search_seconds;
 } summary_t;
 
@@ -679,6 +680,7 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->search_senses += sim_stats.senses;
     s->search_stops += sim_stats.stops;
     s->search_seconds += sim_stats.seconds;
+    if(sim_stats.decide_pops_max > s->decide_pops_max) s->decide_pops_max = sim_stats.decide_pops_max;
     if(r != RUN_OK || !home) return;
 
     CHECK_EQ(storage_load(), STORAGE_LOADED);   // the search saved its map
@@ -1919,6 +1921,86 @@ static void costs_report(float v_fast, float v_curve){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// A maze file in the text format of github.com/micromouseonline/mazefiles
+// (16x16, 33 lines: 'o' posts, '---' and '|' walls, S start, G goal) as the
+// true maze, the goal where its G are (the centre if none). 0 if unreadable.
+static int mazefile_load(const char *path){
+    FILE *f = fopen(path, "r");
+    if(!f) return 0;
+    char lines[2 * MAZE_SIZE + 1][128];
+    int n = 0;
+    while(n < 2 * MAZE_SIZE + 1 && fgets(lines[n], sizeof(lines[n]), f)){
+        if(lines[n][0] == 'o' || lines[n][0] == '|' || lines[n][0] == '+') n++;
+    }
+    fclose(f);
+    if(n != 2 * MAZE_SIZE + 1) return 0;
+    truth_reset(0);
+    int gx0 = MAZE_SIZE, gy0 = MAZE_SIZE, gx1 = -1, gy1 = -1;
+    for(int y = 0; y < MAZE_SIZE; y++){
+        const char *row = lines[2 * (MAZE_SIZE - 1 - y) + 1], *above = lines[2 * (MAZE_SIZE - 1 - y)];
+        const size_t row_len = strlen(row), above_len = strlen(above);
+        for(int x = 0; x < MAZE_SIZE; x++){
+            if((size_t)(4 * x + 2) < above_len && above[4 * x + 2] != ' ') truth_set_wall((uint8_t)x, (uint8_t)y, NORTH, 1);
+            if((size_t)(4 * x + 4) < row_len && row[4 * x + 4] != ' ' && row[4 * x + 4] != '\n')
+                truth_set_wall((uint8_t)x, (uint8_t)y, EAST, 1);
+            if((size_t)(4 * x + 2) < row_len && row[4 * x + 2] == 'G'){
+                if(x < gx0) gx0 = x;
+                if(y < gy0) gy0 = y;
+                if(x > gx1) gx1 = x;
+                if(y > gy1) gy1 = y;
+            }
+        }
+    }
+    if(gx1 < 0) maze_set_goal(7, 7, 8, 8);
+    else maze_set_goal((uint8_t)gx0, (uint8_t)gy0, (uint8_t)gx1, (uint8_t)gy1);
+    return true_optimum() != PLAN_INF;
+}
+
+// host_tests --mazefile <file>...: the whole cycle on each maze, with perfect
+// sensing and with 3% noise; names the mazes where anything went wrong.
+static void mazefile_report(int count, char **paths){
+    summary_t sums[2] = {{0}};
+    for(int i = 0; i < count; i++){
+        for(int k = 0; k < 2; k++){
+            if(!mazefile_load(paths[i])){
+                if(k == 0) printf("  %s: no leido o sin camino a la meta\n", paths[i]);
+                break;
+            }
+            summary_t one = {0};
+            run_cycle(&one, k ? 0.03 : 0.0, (uint32_t)i + 1u, 0.0);
+            const int bad = one.search_ok != 1 || one.fast_ok != 1 || one.back_home != 1 || one.crashes
+                            || (k == 0 && (one.optimal != 1 || one.consistent != 1 || one.blocked));
+            if(bad){
+                printf("  coste %u, optimo %u |", search_fast_path_cost(), true_optimum());
+                printf("  %s%s: search ok %d optimal %d map ok %d fast ok %d home %d blocked %ld crashes %ld\n",
+                       paths[i], k ? " (3% ruido)" : "", one.search_ok, one.optimal, one.consistent, one.fast_ok,
+                       one.back_home, one.blocked, one.crashes);
+            }
+            summary_t *s = &sums[k];
+            s->runs++;
+            s->search_ok += one.search_ok;
+            s->optimal += one.optimal;
+            s->consistent += one.consistent;
+            s->fast_ok += one.fast_ok;
+            s->back_home += one.back_home;
+            s->blocked += one.blocked;
+            s->crashes += one.crashes;
+            s->search_stops += one.search_stops;
+            s->search_cells += one.search_cells;
+            s->search_seconds += one.search_seconds;
+            s->fast_cells += one.fast_cells;
+            s->fast_curves += one.fast_curves;
+            s->fast_turns += one.fast_turns;
+            if(one.decide_pops_max > s->decide_pops_max) s->decide_pops_max = one.decide_pops_max;
+        }
+    }
+    print_summary("sensado perfecto", &sums[0]);
+    print_summary("3% ruido", &sums[1]);
+    printf("  peor decision en marcha: %u pops\n", sums[0].decide_pops_max > sums[1].decide_pops_max
+                                                   ? sums[0].decide_pops_max : sums[1].decide_pops_max);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 // host_tests --timing: the planner's work (states popped) in each decision a
 // search leg makes on the way, over 16x16 searches. The robot must decide
 // within SEARCH_LATE_MARGIN_MM of travel; the pops are converted to time
@@ -1997,6 +2079,11 @@ int main(int argc, char **argv){
     }
     if(argc > 1 && strcmp(argv[1], "--costs") == 0){
         costs_report(argc > 3 ? (float)atof(argv[2]) : PARAM_FAST_SPEED, argc > 3 ? (float)atof(argv[3]) : PARAM_CURVE_SPEED);
+        return 0;
+    }
+    if(argc > 2 && strcmp(argv[1], "--mazefile") == 0){
+        host_verbose = getenv("HOST_VERBOSE") != NULL;
+        mazefile_report(argc - 2, argv + 2);
         return 0;
     }
     if(argc > 1 && strcmp(argv[1], "--timing") == 0){
