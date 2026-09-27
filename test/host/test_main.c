@@ -1994,11 +1994,11 @@ static void mazefile_report(int count, char **paths){
             if(one.decide_pops_max > s->decide_pops_max) s->decide_pops_max = one.decide_pops_max;
         }
     }
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+    if(!sums[0].runs) return;
     print_summary("sensado perfecto", &sums[0]);
     print_summary("3% ruido", &sums[1]);
-    printf("  peor decision en marcha: %u pops\n", sums[0].decide_pops_max > sums[1].decide_pops_max
-                                                   ? sums[0].decide_pops_max : sums[1].decide_pops_max);
-    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+    printf("  peor decision en marcha: %u pops (perfecto), %u (3%% ruido)\n", sums[0].decide_pops_max, sums[1].decide_pops_max);
 }
 
 // host_tests --timing: the planner's work (states popped) in each decision a
