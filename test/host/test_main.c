@@ -788,8 +788,9 @@ static void test_search_modes(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// Both hands, stopping in every cell and on straight legs (the default): the
-// legs drive the same cells to the goal with fewer stops.
+// Both hands, stopping in every cell and on straight legs (the default):
+// past the goal they go on following the wall until STOP (here after 600
+// cells: a perfect 16x16's lap is 510), the legs with fewer stops.
 static void test_wall_followers(void){
     maze_set_goal(7, 7, 8, 8);
     int ok[2] = {0}, runs = 0;
@@ -801,21 +802,21 @@ static void test_wall_followers(void){
             for(uint8_t left = 0; left < 2; left++){
                 maze_init();
                 sim_reset(0.0, m);
+                sim_abort_after_cells(600);
                 runs += mode == 0;
                 run_result_t r = search_wall_follow(left);
-                ok[mode] += r == RUN_OK && maze_is_goal(sim_x, sim_y) && sim_stats.crashes == 0
-                            && sim_stats.blocked == 0 && sim_stats.wall_stops == 0;
+                ok[mode] += r == RUN_ABORTED && maze_is_visited(7, 7) && sim_stats.forward_cells >= 600
+                            && sim_stats.crashes == 0 && sim_stats.blocked == 0 && sim_stats.wall_stops == 0;
                 cells[mode] += sim_stats.forward_cells;
                 stops[mode] += sim_stats.stops;
             }
         }
     }
-    printf("wall followers: %d/%d reached the goal stopping in every cell (%ld stops), %d/%d on straight legs"
-           " (%ld stops), %ld/%ld cells\n", ok[0], runs, stops[0], ok[1], runs, stops[1], cells[1], cells[0]);
+    printf("wall followers: %d/%d past the goal to STOP stopping in every cell (%ld stops), %d/%d on straight"
+           " legs (%ld stops), %ld/%ld cells\n", ok[0], runs, stops[0], ok[1], runs, stops[1], cells[1], cells[0]);
     CHECK_EQ(ok[0], runs);
     CHECK_EQ(ok[1], runs);
-    CHECK_EQ(cells[1], cells[0]);
-    CHECK(stops[1] < stops[0]);
+    CHECK(stops[1] < stops[0] && cells[1] >= cells[0]);
     search_set_mode(SEARCH_STRAIGHTS);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }

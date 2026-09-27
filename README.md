@@ -21,7 +21,7 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 
 Modos: 1 búsqueda, 2 carrera, 3 borrar mapa (pide pulsar START otra vez en
 3 s). Menú de carreras (parpadea lento; solo se sale con reset): 1 seguidor
-de pared izquierda, 1-2 derecha (hasta la meta), 1-3 sin curvas (camino
+de pared izquierda, 1-2 derecha (pasan por la meta y siguen hasta STOP), 1-3 sin curvas (camino
 verificado, rectas a `FAST` 800, gira parado; ida y vuelta), 1-4 `FAST 800
 CURVE 300`, 1-5 `FAST 900 CURVE 400`, 1-6 `FAST 900 CURVE 480`. Elegir una
 carrera fija `FAST` y `CURVE`; por consola se pueden cambiar antes de START.

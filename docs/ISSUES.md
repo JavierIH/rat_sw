@@ -13,8 +13,11 @@ commit when done. Details go in the docs it points to, not here.
   CURVE 300, 1-5 900/400, 1-6 900/480. Countdown: every LED blinking fast.
   Implemented, not flashed: host tests (20/20 races without curves there and
   back), flash 94.4 % (3.4 KB left). Console `MODE 2 k`; `@M` keeps 1-6, adds
-  7 (no curves) and 8 (900/400). Next: flash (keeps map and params), check
-  the menu's LEDs and buttons, race 2.3 on G, then issue 12's test at 2.5.
+  7 (no curves) and 8 (900/400). Flashed 09-27, menu checked on the robot.
+  Then (user): the followers no longer stop at the goal, they go on until
+  STOP (a report and a 200 ms flash at the first stop past it; no action
+  budget); host tests 80/80, not flashed yet. Next: flash, a follower past
+  the goal on G, race 2.3, then issue 12's test at 2.5.
 
 - Issue 12, mode 5 crashed on layout G (`docs/mazes.md`, 09-27 ~12:50):
   the run to the goal (`1D2D1I1I2`, 4 curves at 479) ended `fin=ENC` with

@@ -181,7 +181,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   cycles the modes (LEDs 1-2, 3-4, 5-6): 1 search, 2 race, 3 erase map
   (confirm with a second START within 3 s). START on mode 2 opens the race
   menu (LEDs 1..n, slow blink; only a reset leaves it), where SELECT cycles:
-  1/2 left/right wall follower (to the goal; straights without stopping
+  1/2 left/right wall follower (past the goal it goes on until STOP;
+  straights without stopping
   like the search, `CONT OFF` stops in every cell), 3 no curves (verified
   path, straights at FAST 800, turns in place, there and back), 4 FAST 800
   CURVE 300, 5 900/400, 6 900/480 (`FAST_SAFE/MID/FULL_*`: set when

@@ -542,7 +542,8 @@ run_result_t search_fast_run(uint8_t curves){
 
 typedef struct {
     uint8_t left_hand;
-    uint16_t steps;
+    uint8_t goal;       // 1 once it passed through the goal, 2 once that was reported
+    uint32_t steps;
 } follow_t;
 
 // The side of the hand the robot follows, from its heading.
@@ -556,7 +557,8 @@ static heading_t follow_near_side(const follow_t *f){
 static next_move_t follow_next(const wall_sense_t *w, void *ctx){
     follow_t *f = ctx;
     leg_enter_cell(w);
-    if(maze_is_goal(pose.x, pose.y) || ++f->steps > SEARCH_MAX_STEPS) return NEXT_STOP;
+    if(!f->goal && maze_is_goal(pose.x, pose.y)) f->goal = 1;
+    f->steps++;
     if(maze_wall(pose.x, pose.y, follow_near_side(f)) == WALL_PRESENT
        && maze_wall(pose.x, pose.y, pose.h) != WALL_PRESENT && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
     f->steps--;     // decided again at rest: one action, not two
@@ -572,9 +574,18 @@ run_result_t search_wall_follow(uint8_t left_hand){
     ready = 0;
     telemetry_activity(TM_FOLLOW);
     print("== SEGUIDOR DE PARED %s ==\n", left_hand ? "IZQUIERDA" : "DERECHA");
-    while(!maze_is_goal(pose.x, pose.y)){
+    // It never ends on its own: past the goal it goes on following the wall
+    // until STOP (or a failed move).
+    for(;;){
+        if(!f.goal && maze_is_goal(pose.x, pose.y)) f.goal = 1;
+        if(f.goal == 1){
+            print("Meta alcanzada (seguidor) en (%u,%u) tras %lu acciones: sigue hasta STOP\n", pose.x, pose.y,
+                  (unsigned long)f.steps);
+            motion_indicate(IND_GOAL);
+            f.goal = 2;
+        }
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");
-        if(++f.steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
+        f.steps++;
         wall_sense_t w;
         move_result_t r = sense_here(&w, sides_recorded);
         sides_recorded = 0;
@@ -602,9 +613,6 @@ run_result_t search_wall_follow(uint8_t left_hand){
         }
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
     }
-    print("Meta alcanzada (seguidor) en (%u,%u) tras %u acciones\n", pose.x, pose.y, f.steps);
-    motion_indicate(IND_GOAL);
-    return RUN_OK;
 }
 
 // ---- Reports ---------------------------------------------------------------------------

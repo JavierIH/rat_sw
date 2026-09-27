@@ -14,6 +14,7 @@ static double side_doubt;
 static uint8_t sides_fresh;     // a straight just ended: sides read on the way in (as motion.c)
 static uint32_t rng_state = 1;
 static uint32_t abort_after;
+static uint32_t abort_after_cells;
 
 uint32_t sim_rand(void){
     // xorshift32
@@ -178,6 +179,7 @@ void sim_reset(double sensor_noise, uint32_t seed){
     noise = sensor_noise;
     rng_state = seed ? seed : 1;
     abort_after = 0;
+    abort_after_cells = 0;
     side_doubt = 0.0;
     sides_fresh = 0;
 }
@@ -188,6 +190,10 @@ void sim_side_doubt(double probability){
 
 void sim_abort_after(uint32_t actions){
     abort_after = actions;
+}
+
+void sim_abort_after_cells(uint32_t cells){
+    abort_after_cells = cells;
 }
 
 // ---- Time model ----------------------------------------------------------------
@@ -346,7 +352,8 @@ move_result_t motion_turn(int8_t quarter_turns){
 void motion_align_front(void){}
 
 uint8_t motion_checkpoint(void){
-    return !(abort_after && sim_stats.actions >= abort_after);
+    return !(abort_after && sim_stats.actions >= abort_after)
+           && !(abort_after_cells && sim_stats.forward_cells >= abort_after_cells);
 }
 
 void motion_indicate(indication_t what){

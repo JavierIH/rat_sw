@@ -26,7 +26,8 @@ typedef enum { SEARCH_STOP_EACH, SEARCH_STRAIGHTS } search_mode_t;
 void search_set_mode(search_mode_t mode);
 search_mode_t search_mode(void);
 
-// Left- or right-hand wall follower until the goal.
+// Left- or right-hand wall follower: past the goal it goes on until STOP
+// (or a failed move), so it ends RUN_ABORTED.
 run_result_t search_wall_follow(uint8_t left_hand);
 
 // 1 while the robot is known to be at the start cell facing north.
