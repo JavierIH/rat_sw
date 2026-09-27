@@ -116,43 +116,29 @@ void maze_goal_cells(cellset_t *out){
 
 // ---- Planner ------------------------------------------------------------------------
 // Label-correcting shortest paths (SPFA): with the small positive integer
-// costs used here each state is relaxed only a few times, so a full 16x16
-// plan takes on the order of a millisecond. Each state is queued at most
-// once at a time, so the ring buffer never overflows.
+// costs used here each state is popped about once (1024 pops for the
+// empty 16x16). The loop is the search legs' decision time (~5000 pops in
+// the worst decision on the way), so it runs on locals with nothing called.
+// Each state is queued at most once at a time: the ring never overflows.
+
+_Static_assert((MAZE_STATES & (MAZE_STATES - 1)) == 0, "the queue ring wraps with a mask");
 
 static uint16_t queue[MAZE_STATES];
 static uint32_t queued[MAZE_STATES / 32];
-static uint16_t q_head, q_count;
+static uint16_t q_count;    // seeded by the callers, then the loop's
 static uint32_t pops;
 
+// State index step to the neighbour cell on each side.
+static const int16_t STEP[4] = {MAZE_SIZE * 4, 4, -MAZE_SIZE * 4, -4};
+
 static void queue_reset(void){
-    q_head = 0;
     q_count = 0;
     memset(queued, 0, sizeof(queued));
 }
 
 static void queue_push(uint16_t s){
-    uint32_t bit = 1u << (s & 31u);
-    if(queued[s >> 5] & bit) return;
-    queued[s >> 5] |= bit;
-    queue[(q_head + q_count) % MAZE_STATES] = s;
-    q_count++;
-}
-
-static uint16_t queue_pop(void){
-    uint16_t s = queue[q_head];
-    q_head = (uint16_t)((q_head + 1) % MAZE_STATES);
-    q_count--;
-    pops++;
-    queued[s >> 5] &= ~(1u << (s & 31u));
-    return s;
-}
-
-static void relax(uint16_t *cost, uint16_t s, uint32_t c){
-    if(c < cost[s]){
-        cost[s] = (uint16_t)c;
-        queue_push(s);
-    }
+    queued[s >> 5] |= 1u << (s & 31u);
+    queue[q_count++] = s;
 }
 
 static uint8_t passable(uint8_t x, uint8_t y, heading_t dir, plan_mode_t mode){
@@ -163,6 +149,53 @@ static uint8_t passable(uint8_t x, uint8_t y, heading_t dir, plan_mode_t mode){
 
 static void cost_fill(uint16_t *cost){
     for(uint16_t s = 0; s < MAZE_STATES; s++) cost[s] = PLAN_INF;
+}
+
+// Side `dir` of (x, y) open for the mode: evidence <= limit, never the border.
+static inline uint8_t open_side(uint8_t x, uint8_t y, heading_t dir, int8_t limit){
+    switch(dir){
+        case NORTH: return y + 1 < MAZE_SIZE && ev_north[x][y] <= limit;
+        case EAST:  return x + 1 < MAZE_SIZE && ev_east[x][y] <= limit;
+        case SOUTH: return y > 0 && ev_north[x][y - 1] <= limit;
+        default:    return x > 0 && ev_east[x - 1][y] <= limit;
+    }
+}
+
+// One edge into state t at cost c: queue it if that is cheaper (and it is
+// not queued already). Inlined: the loop's queue stays in registers.
+static inline __attribute__((always_inline)) void relax(uint16_t *cost, uint32_t t, uint32_t c, uint32_t head,
+                                                         uint32_t *count){
+    if(c >= cost[t]) return;
+    cost[t] = (uint16_t)c;
+    const uint32_t bit = 1u << (t & 31u);
+    if(queued[t >> 5] & bit) return;
+    queued[t >> 5] |= bit;
+    queue[(head + *count) & (MAZE_STATES - 1u)] = (uint16_t)t;
+    (*count)++;
+}
+
+// Pops the queue the callers seeded until it is empty. Each state (x, y, h)
+// has three edges: a cell forward (forward: out of its side h; backward: in
+// from the cell on its side opposite h, with the same heading) and the two
+// quarter turns.
+static void spfa(uint16_t *cost, plan_mode_t mode, plan_costs_t costs, uint8_t backward){
+    const int8_t limit = mode == PLAN_VERIFIED ? -EV_VERIFIED : 0;
+    const uint32_t back = backward ? 2u : 0u, cell = costs.cell, turn = costs.turn;
+    uint32_t head = 0, count = q_count, popped = 0;
+    while(count){
+        const uint32_t s = queue[head];
+        head = (head + 1u) & (MAZE_STATES - 1u);
+        count--;
+        popped++;
+        queued[s >> 5] &= ~(1u << (s & 31u));
+        const uint32_t c = cost[s];
+        const uint32_t side = (s + back) & 3u;
+        if(open_side((uint8_t)((s >> 2) % MAZE_SIZE), (uint8_t)((s >> 2) / MAZE_SIZE), (heading_t)side, limit))
+            relax(cost, (uint32_t)((int32_t)s + STEP[side]), c + cell, head, &count);
+        relax(cost, (s & ~3u) | ((s + 3u) & 3u), c + turn, head, &count);
+        relax(cost, (s & ~3u) | ((s + 1u) & 3u), c + turn, head, &count);
+    }
+    pops += popped;
 }
 
 uint32_t maze_plan_pops(void){
@@ -182,23 +215,7 @@ void maze_plan_to(const cellset_t *targets, plan_mode_t mode, plan_costs_t costs
             }
         }
     }
-    // Walk the edges backwards: which states lead into the popped one?
-    while(q_count){
-        uint16_t s = queue_pop();
-        uint32_t c = cost[s];
-        heading_t h = (heading_t)(s & 3u);
-        uint8_t x = (uint8_t)((s >> 2) % MAZE_SIZE);
-        uint8_t y = (uint8_t)((s >> 2) / MAZE_SIZE);
-        // Driving forward into (x, y) with heading h, from the cell behind.
-        if(passable(x, y, heading_back(h), mode)){
-            uint8_t px = (uint8_t)(x - heading_dx(h));
-            uint8_t py = (uint8_t)(y - heading_dy(h));
-            relax(cost, maze_state(px, py, h), c + costs.cell);
-        }
-        // Turning in place into heading h.
-        relax(cost, maze_state(x, y, heading_left(h)), c + costs.turn);
-        relax(cost, maze_state(x, y, heading_right(h)), c + costs.turn);
-    }
+    spfa(cost, mode, costs, 1);
 }
 
 void maze_plan_from(uint8_t x0, uint8_t y0, heading_t h0, plan_mode_t mode, plan_costs_t costs, uint16_t *cost){
@@ -207,20 +224,7 @@ void maze_plan_from(uint8_t x0, uint8_t y0, heading_t h0, plan_mode_t mode, plan
     uint16_t start = maze_state(x0, y0, h0);
     cost[start] = 0;
     queue_push(start);
-    while(q_count){
-        uint16_t s = queue_pop();
-        uint32_t c = cost[s];
-        heading_t h = (heading_t)(s & 3u);
-        uint8_t x = (uint8_t)((s >> 2) % MAZE_SIZE);
-        uint8_t y = (uint8_t)((s >> 2) / MAZE_SIZE);
-        if(passable(x, y, h, mode)){
-            uint8_t nx = (uint8_t)(x + heading_dx(h));
-            uint8_t ny = (uint8_t)(y + heading_dy(h));
-            relax(cost, maze_state(nx, ny, h), c + costs.cell);
-        }
-        relax(cost, maze_state(x, y, heading_left(h)), c + costs.turn);
-        relax(cost, maze_state(x, y, heading_right(h)), c + costs.turn);
-    }
+    spfa(cost, mode, costs, 0);
 }
 
 action_t maze_best_action(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h,
