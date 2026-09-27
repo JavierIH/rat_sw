@@ -351,7 +351,7 @@
 #define PARAM_TURN_ACCEL        5000    // deg/s^2: a 90 deg turn takes ~0.3 s
 #define PARAM_TURN_TICKS        TICKS_PER_TURN
 #define PARAM_KP                0.7f    // deg of heading per mm off-centre (1.0 weaved with ROT_KP 20; 0.5 left 10 mm per 5 deg of yaw)
-#define PARAM_KI                8.0f    // deg per mm off-centre per m travelled: a turn 5 deg off is centred within ~2 mm in 3 cells
+#define PARAM_KI                16.0f   // deg per mm off-centre per m travelled: how fast the observer learns a yaw. Layout I, 450 mm/s after a 180: 8 left -1.5..-3 mm to the end of 3 cells, 16 ~0 from the 2nd; 24 weaved
 #define PARAM_LOG_LEVEL         2
 #define PARAM_TELEMETRY         1       // '@' lines for tools/robot_monitor.py
 

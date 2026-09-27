@@ -1696,7 +1696,7 @@ static void test_curve_slip(void){
 // final errors of the learned bias, the lateral and the yaw.
 typedef struct { float bias, y, yaw; } lever_stats_t;
 
-static lever_stats_t lever_stats(float mm, float speed){
+static lever_stats_t lever_stats(float mm, float speed, float ki){
     static const float yaws[] = {3.0f, -3.0f, 0.0f, 5.0f}, ys[] = {0.0f, 0.0f, 10.0f, 8.0f};
     lever_stats_t st = {0.0f, 0.0f, 0.0f};
     int n = 0;
@@ -1707,7 +1707,7 @@ static lever_stats_t lever_stats(float mm, float speed){
             p.y0 = ys[c];
             p.wall_error_mm = 3.0f;
             p.seed = seed;
-            const sim_result_t r = sim_straight(&p, mm, speed, PARAM_ACCEL, PARAM_KP, PARAM_KI);
+            const sim_result_t r = sim_straight(&p, mm, speed, PARAM_ACCEL, PARAM_KP, ki);
             st.bias += fabsf(r.bias_end - r.bias_true);
             st.y += fabsf(r.y_end);
             st.yaw += fabsf(r.yaw_end);
@@ -1755,12 +1755,15 @@ static void test_steering_lever(void){
     // Closed loop, the plant with the robot's lever: one- and two-cell
     // straights end with the bias and the lateral closer (1.7 -> 1.3 deg and
     // 0.6 -> 0.4 deg at 450 mm/s; 540 mm: 0.26 -> 0.36, see --control).
+    // With KI 8, where it was measured: with KI 16 (the default since the
+    // centring tests on layout I) the lever helps at 180 mm but leaves
+    // 0.35 -> 0.84 deg at 360, one more reason SIDE_LEVER stays off.
     const float dists[] = {180.0f, 360.0f};
     for(size_t d = 0; d < 2; d++){
         sim_lever = 0.0f;
-        const lever_stats_t without = lever_stats(dists[d], 450.0f);
+        const lever_stats_t without = lever_stats(dists[d], 450.0f, 8.0f);
         sim_lever = 55.0f;
-        const lever_stats_t with = lever_stats(dists[d], 450.0f);
+        const lever_stats_t with = lever_stats(dists[d], 450.0f, 8.0f);
         CHECK(with.bias < 0.85f * without.bias);
         CHECK(with.y < without.y);
     }
@@ -1880,7 +1883,7 @@ static void control_report(void){
             printf("  %3.0f mm a %3.0f mm/s:", (double)lever_dists[d], (double)lever_speeds[v]);
             for(int lever = 0; lever <= 55; lever += 55){
                 sim_lever = (float)lever;
-                const lever_stats_t st = lever_stats(lever_dists[d], lever_speeds[v]);
+                const lever_stats_t st = lever_stats(lever_dists[d], lever_speeds[v], PARAM_KI);
                 printf("  SIDE_LEVER %2d: sesgo %.2f deg, %.1f mm, %.2f deg", lever, (double)st.bias, (double)st.y,
                        (double)st.yaw);
             }
