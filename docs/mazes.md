@@ -174,7 +174,7 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
   `2D1D1I2I1`. Mode 4 clean; mode 5 (480) crashed on the return (issue 12);
   race 2.5 (900/400) clean both ways, twice.
 
-## H: the goal as a 2x2 block (proposed, not built yet)
+## H: the goal as a 2x2 block (built 09-27, test 4 of issue 11)
 
 ```
       0   1   2   3
