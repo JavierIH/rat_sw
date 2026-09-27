@@ -22,7 +22,9 @@ typedef enum {
     STORAGE_FULL,           // no erased slot left until the next boot compacts (or SAVE)
 } storage_save_t;
 
-storage_save_t storage_save(void);    // current map, goal and parameters
+// Current map, goal and parameters. map_only (run ends): nothing written
+// when only the parameters changed.
+storage_save_t storage_save(uint8_t map_only);
 storage_status_t storage_load(void);  // restores what the status says, nothing otherwise
 // Boot (or SAVE when full): frees every slot but the current record's, with
 // at most two page erases. Only with a healthy flash (power-on or probe).

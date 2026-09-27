@@ -281,11 +281,11 @@ static void print_banner(storage_status_t stored){
 }
 
 storage_save_t app_save_now(void){
-    const storage_save_t r = storage_save();
+    const storage_save_t r = storage_save(0);
     if(r != STORAGE_FULL) return r;
     print("flash sin hueco: compactando (borra 2 paginas, ~50 ms)\n");
     if(!flash_store_probe() || !storage_compact()) return STORAGE_FAILED;
-    return storage_save();
+    return storage_save(0);
 }
 
 // The saved records are a log that only grows during runs (storage.c): the

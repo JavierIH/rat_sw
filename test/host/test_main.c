@@ -440,6 +440,29 @@ static void fill_test_map(void){
     maze_observe(12, 12, NORTH, 0);
 }
 
+// A run's end saves only a changed map: switching race presets (FAST,
+// CURVE) spent a flash slot on every run (issue 11, endurance).
+static void test_storage_map_only(void){
+    fake_flash_wipe();
+    params_reset();
+    fill_test_map();
+    CHECK_EQ(storage_save(1), STORAGE_WRITTEN);
+    int programs = fake_flash_programs;
+    params.fast_speed = 777;
+    CHECK_EQ(storage_save(1), STORAGE_UNCHANGED);
+    CHECK_EQ(fake_flash_programs, programs);
+    maze_observe(12, 12, NORTH, 0);
+    CHECK_EQ(storage_save(1), STORAGE_WRITTEN);
+    CHECK_EQ(storage_save(1), STORAGE_UNCHANGED);
+    params.fast_speed = 778;
+    CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
+    CHECK_EQ(storage_free_slots(), 3);
+    params_reset();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK_EQ(params.fast_speed, 778);
+    CHECK_EQ(maze_evidence(12, 12, NORTH), -2);
+}
+
 // The store is a log (docs/freezes.md): saves only program erased slots,
 // the newest valid record wins, pages are erased only by the boot's
 // compaction, and a flash that wedges mid-save loses nothing saved before.
@@ -455,13 +478,13 @@ static void test_storage(void){
     params.turn_ticks = 415;
     params.accel = 4321;
     params.ki = 0.75f;
-    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     uint16_t size;
     memcpy(&size, fake_flash + 6, sizeof(size));
     CHECK(3u * size <= FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE);
     // The same record again: nothing programmed.
     int programs = fake_flash_programs;
-    CHECK_EQ(storage_save(), STORAGE_UNCHANGED);
+    CHECK_EQ(storage_save(0), STORAGE_UNCHANGED);
     CHECK_EQ(fake_flash_programs, programs);
 
     maze_init();
@@ -488,11 +511,11 @@ static void test_storage(void){
     const int erases = fake_flash_erases;
     for(uint8_t i = 0; i < 5; i++){
         maze_mark_visited(i, 9);
-        CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+        CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     }
     CHECK_EQ(storage_free_slots(), 0);
     maze_mark_visited(9, 9);
-    CHECK_EQ(storage_save(), STORAGE_FULL);
+    CHECK_EQ(storage_save(0), STORAGE_FULL);
     CHECK_EQ(fake_flash_erases, erases);
     maze_init();
     CHECK_EQ(storage_load(), STORAGE_LOADED);
@@ -509,7 +532,7 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(4, 9));
     maze_mark_visited(9, 9);
-    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     maze_init();
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(9, 9));
@@ -519,7 +542,7 @@ static void test_storage(void){
     maze_mark_visited(7, 9);
     const uint8_t free_before = storage_free_slots();
     fake_flash_glitch_after = 40;
-    CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+    CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     CHECK(!flash_store_blocked());
     CHECK_EQ(storage_free_slots(), free_before - 2);
     maze_init();
@@ -530,9 +553,9 @@ static void test_storage(void){
     // refuses everything until a power cycle, the previous record loads.
     maze_mark_visited(8, 8);
     fake_flash_fail_after = 40;
-    CHECK_EQ(storage_save(), STORAGE_FAILED);
+    CHECK_EQ(storage_save(0), STORAGE_FAILED);
     CHECK(flash_store_blocked());
-    CHECK_EQ(storage_save(), STORAGE_FAILED);
+    CHECK_EQ(storage_save(0), STORAGE_FAILED);
     maze_init();
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(9, 9) && !maze_is_visited(8, 8));
@@ -547,7 +570,7 @@ static void test_storage(void){
     // (newer) wins, and the next boot finishes the compaction.
     for(uint8_t i = 0; i < 2; i++){
         maze_mark_visited(i, 12);
-        CHECK_EQ(storage_save(), STORAGE_WRITTEN);
+        CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     }
     fake_flash_fail_after = (int)(size / 2u);   // the copy lands, the next erase does not
     CHECK(!storage_compact());
@@ -2135,6 +2158,7 @@ int main(int argc, char **argv){
     test_planner_basics();
     test_planner_against_reference();
     test_storage();
+    test_storage_map_only();
     test_sqrt();
     test_run_control();
     test_fast_run_surprise_wall();

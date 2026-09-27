@@ -136,7 +136,7 @@ static uint8_t put(uint8_t slot){
 
 // ---- Interface --------------------------------------------------------------------------------
 
-storage_save_t storage_save(void){
+storage_save_t storage_save(uint8_t map_only){
     memset(&record, 0, sizeof(record));
     record.magic = STORE_MAGIC;
     record.version = STORE_VERSION;
@@ -149,6 +149,11 @@ storage_save_t storage_save(void){
     record.crc = record_crc(&record);
     // What the current record already holds is not written again.
     if(current >= 0 && memcmp(slot_record((uint8_t)current), &record, sizeof(record)) == 0) return STORAGE_UNCHANGED;
+    // The end of a run saves the map: a race preset changes FAST/CURVE, and
+    // switching races would spend a slot (and a write) on each run.
+    if(map_only && current >= 0 && memcmp(&slot_record((uint8_t)current)->maze, &record.maze, sizeof(record.maze)) == 0){
+        return STORAGE_UNCHANGED;
+    }
     int8_t slot = free_slot();
     if(slot < 0) return STORAGE_FULL;
     if(put((uint8_t)slot)) return STORAGE_WRITTEN;
