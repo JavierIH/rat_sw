@@ -200,8 +200,8 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
     +---+---+---+---+
 ```
 
-- Walls (4): east of (0,1) and (2,1); north of (1,0), (2,0), (1,1), (2,1)
-  (6 pieces; east of (1,1) makes no difference, inside the island).
+- Walls (6): east of (0,1) and (2,1); north of (1,0), (2,0), (1,1) and
+  (2,1). East of (1,1) makes no difference (inside the island).
 - A corridor with walls on both sides everywhere: rows 0 and 2 are
   straights of 4 cells (3 cell lengths, 540 mm between corner centres, the
   simulator's `--control` straight), columns 0 and 3 of 3 cells. For `CAL
