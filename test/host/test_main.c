@@ -203,6 +203,17 @@ static void test_evidence(void){
     CHECK(maze_set_goal(7, 7, 8, 8));
     CHECK(maze_is_goal(8, 7));
     CHECK(!maze_is_goal(9, 7));
+
+    // ERASE: map forgotten and the build's default goal back, whatever GOAL set.
+    maze_set_goal(3, 2, 3, 2);
+    maze_observe(1, 1, NORTH, 1);
+    maze_erase();
+    uint8_t g[4];
+    maze_get_goal(g);
+    CHECK(g[0] == GOAL_X0 && g[1] == GOAL_Y0 && g[2] == GOAL_X1 && g[3] == GOAL_Y1);
+    CHECK_EQ(maze_wall(1, 1, NORTH), WALL_UNKNOWN);
+    CHECK_EQ(maze_visited_count(), 0);
+    maze_set_goal(7, 7, 8, 8);
 }
 
 static void test_side_doubt(void){

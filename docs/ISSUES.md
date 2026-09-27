@@ -25,6 +25,9 @@ commit when done. Details go in the docs it points to, not here.
   The user wants oscillations checked, not the distance. Robot left on
   defaults, goal (3,2), map erased. Next, if repeated: baseboard on the
   left (SL on it; SR stayed clean there), 300/450/600/800.
+  09-27: the default build is now the 16x16 one (goal 7 7 8 8; 4x3 =
+  `pio run -e practice`), and `ERASE` / mode 3 restore the build's goal.
+  Flash pending: it drops the saved map and parameters (new signature).
 
 ## Closed
 

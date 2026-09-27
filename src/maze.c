@@ -99,6 +99,11 @@ uint8_t maze_set_goal(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1){
     return 1;
 }
 
+void maze_erase(void){
+    maze_init();
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 void maze_get_goal(uint8_t out[4]){
     memcpy(out, goal, sizeof(goal));
 }

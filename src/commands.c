@@ -352,9 +352,9 @@ static void cmd_save(const char *args){
 
 static void cmd_erase(const char *args){
     (void)args;
-    maze_init();
+    maze_erase();
     print(app_save_now() == STORAGE_FAILED ? "mapa borrado en RAM; !! error escribiendo la flash\n"
-                                           : "mapa borrado (RAM y flash)\n");
+                                           : "mapa borrado (RAM y flash), meta por defecto\n");
     app_telemetry_sync();
 }
 

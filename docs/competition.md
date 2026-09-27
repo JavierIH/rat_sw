@@ -93,10 +93,12 @@ min more of search in them (the other 517 finish under 400). Set to 800
 
 ## Competition day checklist
 
-- Goal: a build without `-DPRACTICE_MAZE=1` (default goal 7 7 8 8), or send
-  `GOAL 7 7 8 8` + `SAVE` on the practice build. A flash with another
-  default goal ignores the saved record (the map and parameters go).
-- `ERASE` (or mode 3) before the first search in the competition maze.
+- Goal: the default build is the competition one (goal 7 7 8 8; the 4x3 is
+  `pio run -e practice`). A flash with another default goal ignores the
+  saved record (the map and parameters go).
+- `ERASE` (or mode 3) before the first search in the competition maze: it
+  also puts the goal back to 7 7 8 8 (after any `GOAL` used to practise).
+  `STATUS` must show `meta (7,7)-(8,8)`.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
 - `IR` at the start with nothing around the nose: FL/FR ~230 and SL/SR
   far. A reflective floor reads as walls (a room floor gave FR ~70 and SL

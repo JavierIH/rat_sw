@@ -61,6 +61,9 @@ uint16_t maze_visited_count(void);
 // ---- Goal ------------------------------------------------------------------------
 uint8_t maze_set_goal(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);   // 0 if invalid
 void maze_get_goal(uint8_t goal[4]);
+// ERASE / mode 3: forget the map and go back to the build's default goal, so
+// an erase always leaves the robot ready for the maze it was built for.
+void maze_erase(void);
 uint8_t maze_is_goal(uint8_t x, uint8_t y);
 void maze_goal_cells(cellset_t *out);
 
