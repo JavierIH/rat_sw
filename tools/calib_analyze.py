@@ -316,6 +316,24 @@ def side_errors(rec, upto):
     return out
 
 
+def centring_profile(rec, errors, fwd, step_mm=45, band_mm=1.5):
+    """The lateral error by distance (the mean in every step_mm, placed where
+    the robot was IR_DELAY_MS before the reading) and the zero crossings with
+    a +-band_mm hysteresis: a weave crosses, sensor noise around zero does not."""
+    lag = int(round(IR_DELAY_MS / rec.period))
+    bins = {}
+    for i, e in errors:
+        bins.setdefault(int(fwd[max(i - lag, 0)] // step_mm), []).append(e)
+    crossings, side = 0, 0
+    for _, e in errors:
+        s = 1 if e > band_mm else -1 if e < -band_mm else 0
+        if s and side and s != side:
+            crossings += 1
+        side = s or side
+    return ("por %d mm: %s | cruces >%.1f mm: %d"
+            % (step_mm, " ".join("%+.0f" % mean(bins[k]) for k in sorted(bins)), band_mm, crossings))
+
+
 def analyze_straight_controlled(rec, out):
     cells = rec.args[0] if rec.args else 1
     speed = rec.args[1] if len(rec.args) > 1 else rec.number("spd")
@@ -352,6 +370,7 @@ def analyze_straight_controlled(rec, out):
         seconds = len(values) * rec.period / 1000.0
         out.append("  centrado: inicio %+.1f mm, 2a mitad %+.1f +- %.1f mm, %.1f cruces/s"
                    % (values[0], mean(half), stdev(half), crossings / seconds if seconds else 0))
+        out.append("  " + centring_profile(rec, errors, fwd))
         heading = [ref_r[i] for i, _ in errors]
         out.append("  rumbo pedido por el centrado: %+.1f .. %+.1f grados" % (min(heading), max(heading)))
     out.append("  giro medido por los encoders al final: %+.2f grados" % rot[-1])
