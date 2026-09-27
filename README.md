@@ -6,7 +6,7 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 - **Búsqueda** (modo 1): explora hasta la meta, sigue explorando solo las
   celdas que aún podrían acortar el camino rápido hasta que el mejor camino
   queda verificado, vuelve a la salida explorando y guarda el mapa en flash.
-- **Carrera rápida** (modos 4 y 5): recorre el camino verificado con las rectas
+- **Carrera rápida** (modo 2, carreras 4-6): recorre el camino verificado con las rectas
   fusionadas a velocidad `FAST`, frenando antes de cada giro; vuelve a la
   salida sola.
 - El planificador minimiza **tiempo** (celdas y giros), no solo celdas.
@@ -16,16 +16,18 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 
 | Botón | Parado | Durante un run |
 |---|---|---|
-| SELECT | tras el arranque (LEDs en vaivén) elige el modo 1; luego cambia de modo (LED n = modo n) | — |
-| START | lanza el modo tras 5 s de cuenta atrás (ignorado hasta elegir modo) | detiene el run |
+| SELECT | tras el arranque (LEDs en vaivén) elige el modo 1; luego cambia de modo (1: LEDs 1-2, 2: 3-4, 3: 5-6); en el menú de carreras, cambia de carrera (LEDs 1..n) | — |
+| START | lanza el modo tras 5 s de cuenta atrás, con todos los LEDs parpadeando rápido (ignorado hasta elegir modo); en el modo 2 abre el menú de carreras, y ahí lanza la carrera | detiene el run |
 
-Modos: 1 búsqueda, 2/3 seguidor de pared izquierda/derecha (hasta la meta),
-4 carrera rápida segura (`FAST 800 CURVE 300`), 5 carrera rápida (`FAST 900
-CURVE 480`), 6 borrar mapa (pide pulsar START otra vez en 3 s). Elegir el
-modo 4 o 5 fija `FAST` y `CURVE`; por consola se pueden cambiar antes de START.
+Modos: 1 búsqueda, 2 carrera, 3 borrar mapa (pide pulsar START otra vez en
+3 s). Menú de carreras (parpadea lento; solo se sale con reset): 1 seguidor
+de pared izquierda, 1-2 derecha (hasta la meta), 1-3 sin curvas (camino
+verificado, rectas a `FAST` 800, gira parado; ida y vuelta), 1-4 `FAST 800
+CURVE 300`, 1-5 `FAST 900 CURVE 400`, 1-6 `FAST 900 CURVE 480`. Elegir una
+carrera fija `FAST` y `CURVE`; por consola se pueden cambiar antes de START.
 
-Flujo de competición: `ERASE` (o modo 6) si el laberinto es nuevo → modo 1 →
-modo 4, y modo 5 cuando la 4 salga bien.
+Flujo de competición: `ERASE` (o modo 3) si el laberinto es nuevo → modo 1 →
+carrera 2.4, y las más rápidas cuando la anterior salga bien.
 
 LEDs: modo seleccionado (con un parpadeo por segundo = vivo); durante las
 rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; fallo =
@@ -63,7 +65,7 @@ flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 | Comando | Qué hace | Parado |
 |---|---|---|
 | `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura; tras una búsqueda, lo que tardó la peor decisión en marcha (también se imprime al acabar el run) | |
-| `MODE n` | elige el modo: 1 búsqueda, 2/3 seguidor izquierda/derecha, 4 rápida 800/300, 5 rápida 900/480, 6 borrar mapa | sí |
+| `MODE n [k]` | elige el modo: 1 búsqueda, 2 k carrera k (1/2 seguidor izquierda/derecha, 3 sin curvas, 4 800/300, 5 900/400, 6 900/480), 3 borrar mapa | sí |
 | `START` | lanza el modo elegido tras 2 s (como el botón) | |
 | `STOP` | detiene el run (como START durante el run) | |
 | `PAUSE`, `RESUME` | frena y espera; sigue tras una pausa o un paso | |

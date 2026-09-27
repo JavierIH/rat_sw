@@ -28,7 +28,7 @@ unknown maze, maps it, finds the fastest route and runs it:
    (and at the goal and the end). No curves in the search: the user wants it
    robust before fast; curves are for the speed run. `CONT OFF` makes it stop
    in every cell.
-2. **Speed run** (modes 4 and 5): drive the verified fastest path in one continuous
+2. **Speed run** (races 2.4-2.6; 2.3 turns in place instead): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
    no turning in place). Then return to the start the same way at `SPD` and
    save again.
@@ -178,20 +178,23 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 ## Operating the robot
 - After boot the LEDs sweep 1 -> 6 -> 1 until SELECT picks mode 1 (START
   is ignored until then; console `MODE`/`START` also pick one). Then SELECT
-  cycles the mode (LED n = mode n): 1 search, 2/3 left/right wall
-  follower (to the goal; straights without stopping like the search,
-  `CONT OFF` stops in every cell), 4 speed run with FAST 800
-  CURVE 300, 5 speed run with FAST 900 CURVE 480 (`FAST_SAFE_*`,
-  `FAST_FULL_*`: set when the mode is selected, the console can change them
-  before START), 6 erase map (confirm with a second START within 3 s).
-  START launches it after a 5 s countdown (`CAL` tests: 2 s). The sensor
-  monitor mode was removed on 2026-09-27 (`IR` shows the readings).
+  cycles the modes (LEDs 1-2, 3-4, 5-6): 1 search, 2 race, 3 erase map
+  (confirm with a second START within 3 s). START on mode 2 opens the race
+  menu (LEDs 1..n, slow blink; only a reset leaves it), where SELECT cycles:
+  1/2 left/right wall follower (to the goal; straights without stopping
+  like the search, `CONT OFF` stops in every cell), 3 no curves (verified
+  path, straights at FAST 800, turns in place, there and back), 4 FAST 800
+  CURVE 300, 5 900/400, 6 900/480 (`FAST_SAFE/MID/FULL_*`: set when
+  selected, the console can change them before START). Console: `MODE 1`,
+  `MODE 2 k`, `MODE 3`. Internally (`app_mode_t`, telemetry `@M`) the runs
+  keep the old numbers 1-6, plus 7 no curves and 8 900/400. START launches
+  after a 5 s countdown, every LED blinking fast (`CAL` tests: 2 s).
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).
 - The map survives resets and reflashes (up to five saves per power-on;
   then `SAVE` compacts). Boot prints whether one was loaded:
-  send `ERASE` (or run mode 6) when moving to a different maze. A firmware
+  send `ERASE` (or run mode 3) when moving to a different maze. A firmware
   with new parameter defaults keeps the map and goal but starts from its own
   defaults; one built for another maze (default goal) or with another record
   layout (`STORE_VERSION`) ignores the saved record: tell the user before
@@ -272,8 +275,8 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 400 in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (87.0 %: ~2.6 KB left for the stack) and flash
-  (93.6 % of 62 KB, 4.0 KB left). Keep that headroom: report sizes after every change,
+  builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash
+  (94.4 % of 62 KB, 3.4 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's

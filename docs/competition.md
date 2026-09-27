@@ -65,7 +65,7 @@ for the user: 400 or 800.
    centring with no side walls, the 4-cell goal and the speed run into it.
 
 5. **Endurance.** A 16x16 session drives 3-4 min (search, speed runs,
-   returns). On the practice maze: a search, then modes 4 and 5 back to
+   returns). On the practice maze: a search, then races 2.4 and 2.5 back to
    back for 5 min without touching the robot: "!!" lines, tracking error
    at the stops, the pace of the runs as the battery drops.
 
@@ -74,9 +74,10 @@ for the user: 400 or 800.
 - Goal: a build without `-DPRACTICE_MAZE=1` (default goal 7 7 8 8), or send
   `GOAL 7 7 8 8` + `SAVE` on the practice build. A flash with another
   default goal ignores the saved record (the map and parameters go).
-- `ERASE` (or mode 6) before the first search in the competition maze.
+- `ERASE` (or mode 3) before the first search in the competition maze.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
-- `CONT ON` (default). Mode 1, then mode 4 (FAST 800 CURVE 300) and only
-  with it clean mode 5 (FAST 900 CURVE 480).
+- `CONT ON` (default). Mode 1, then race 2.4 (FAST 800 CURVE 300) and only
+  with it clean 2.5 (FAST 900 CURVE 400); 2.6 (CURVE 480) is not safe
+  (issue 12). Race 2.3 (no curves) if the curves fail.
 - After an abort: the robot at the start facing north, `HOME`, `START` (or
   START on the button).

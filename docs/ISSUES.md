@@ -6,6 +6,16 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
+- Issue 13, new mode menu (user, 09-27): mode 1 search (LEDs 1-2), 2 race
+  (3-4), 3 erase (5-6). START on 2 opens the race menu (a reset leaves it):
+  SELECT cycles 1 left follower, 1-2 right follower, 1-3 no curves (verified
+  path, straights at FAST, turns in place, return at SPD), 1-4 FAST 800
+  CURVE 300, 1-5 900/400, 1-6 900/480. Countdown: every LED blinking fast.
+  Implemented, not flashed: host tests (20/20 races without curves there and
+  back), flash 94.4 % (3.4 KB left). Console `MODE 2 k`; `@M` keeps 1-6, adds
+  7 (no curves) and 8 (900/400). Next: flash (keeps map and params), check
+  the menu's LEDs and buttons, race 2.3 on G, then issue 12's test at 2.5.
+
 - Issue 12, mode 5 crashed on layout G (`docs/mazes.md`, 09-27 ~12:50):
   the run to the goal (`1D2D1I1I2`, 4 curves at 479) ended `fin=ENC` with
   FL 132 FR 174 (mode 4: `fin=IR` 83/103): ~50 mm short of the goal's
