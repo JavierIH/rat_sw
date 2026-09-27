@@ -153,6 +153,39 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
   same heading; the robot measures FL-FR on the border at (0,2) facing
   north or (0,0) facing south (`docs/control.md`, curve angle on the ring).
 
+## G: E with two walls moved (2026-09-27, planner timing)
+
+```
+          walls
+      0   1   2   3
+    +---+---+---+---+
+  2 |       |     G |
+    +---+   +---+   +
+  1 |           |   |
+    +   +   +   +   +
+  0 | S |   |       |
+    +---+---+---+---+
+```
+
+- From E: the wall east of (0,1) removed, one north of (0,1) added.
+- Search: goal after 11 actions, start after 27; at (2,2) on the way back
+  the OPTIM phase ends and the return is planned in one decision (3 full
+  plans, 3072 pops): 13.0 ms on the robot. Speed run `1D2D1I1I2`, return
+  `2D1D1I2I1`. Mode 4 clean; mode 5 crashed on the return (issue 12).
+
+## H: the goal as a 2x2 block (proposed, not built yet)
+
+```
+      0   1   2   3
+    +---+---+---+---+
+  2 |               |     goal (2,1)-(3,2): GOAL 2 1 3 2
+    +   +   +   +   +     one way in: from (1,2)
+  1 |   |   |       |
+    +   +   +---+---+
+  0 | S |           |
+    +---+---+---+---+
+```
+
 ## Every wall at a glance
 
 Only the positions that hold a wall in some layout; the other 6 internal

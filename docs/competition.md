@@ -35,6 +35,12 @@ for the user: 400 or 800.
    The planner's loop was rewritten (same results: transcripts and the 520
    mazes identical): 133 cycles a pop, ~9.5 ms + the rest of the decision.
    If the robot still reports late ones: `TUNE LATE_MARGIN`.
+   Measured (09-27): 1024 pops 4493 us (layout E), 3072 pops 13001 us
+   (layout G, the OPTIM -> VUELTA decision: 3 plans), so 4.15 us a pop
+   and ~240 us fixed: 2.25x the emulator's model (the 1 ms control
+   interrupt takes a large share of the CPU). The 16x16 worst: ~21.6 ms,
+   ~4 ms late at 450: the reference has begun braking and the leg dips
+   ~12 mm/s before the path grows again. Harmless; kept.
 
 2. **Long straights: the distance scale and the drift.** A 16x16 has
    straights of up to 15 cells (2.7 m); the speed run places each curve by
@@ -53,8 +59,8 @@ for the user: 400 or 800.
    Without them: the longest the board gives, 4 cells along a row then a
    curve.
 
-4. **The 2x2 goal, open inside, one entrance.** On the 4x3: a layout with a
-   2x2 block without its inner walls (and without its centre post, if it
+4. **The 2x2 goal, open inside, one entrance** (layout H, `docs/mazes.md`).
+   On the 4x3: a layout with a 2x2 block without its inner walls (and without its centre post, if it
    comes out), one way in, `GOAL x0 y0 x1 y1` on it. Tests sensing and
    centring with no side walls, the 4-cell goal and the speed run into it.
 

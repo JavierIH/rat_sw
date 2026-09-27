@@ -6,15 +6,29 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
+- Issue 12, mode 5 crashed on layout G (`docs/mazes.md`, 09-27 ~12:50):
+  the run to the goal (`1D2D1I1I2`, 4 curves at 479) ended `fin=ENC` with
+  FL 132 FR 174 (mode 4: `fin=IR` 83/103): ~50 mm short of the goal's
+  centre, unnoticed (FR over `FRONT_TRACK_MM` 170, then `FRONT_LATE_MAX_MM`
+  30 would not reach). The return took its first curve, in (3,0), ~50 mm
+  late into the south wall (`OBSTACULO`, lost). On E the 9-cell route's IR
+  stops at 900/479 came at encoder distances 1442-1505 mm: the encoders
+  drift +-30 mm or more over curves at 479, E always landed long (the IR
+  cut it), G short. Mode 4 on G clean both ways. Do not use mode 5 until
+  fixed. Directions: find where the distance goes (`CAL RUN` of mode 4 and
+  a mode 5 outbound, STOP at the goal); let the IR end extend as well as
+  shorten (track from farther, `FRONT_LATE_MAX_MM`); realign on the goal's
+  front wall before the return; a safer return (curves at 300, or legs).
+  In a 16x16 most curves have no wall ahead: the drift matters more there.
+
 - Issue 11, 16x16 competition readiness (plan and results:
-  `docs/competition.md`). Done off the robot: 520 real competition mazes
-  pass in the sim; competition-goal suites; the planner 43 % faster (worst
-  decision ~17 -> ~9.5 ms of 17.8, emulated M3). Firmware not flashed:
-  worst decision time printed after a run and in `STATUS`, `TUNE
-  LATE_MARGIN`, `TUNE TICKS_MM`, the faster planner (keeps map and
-  params). Next: flash, then the battery in `docs/competition.md` (tests
-  1, 2, 4, 5); ask the user: spare walls for test 3? OPTIM budget 400 or
-  800?
+  `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
+  pop (1024 pops 4493 us on E, 3072 13001 us on G), so the 16x16 worst
+  (5144) ~21.6 ms vs 17.8: ~4 ms late, which only dips the leg ~12 mm/s
+  (the path grows while braking); kept. Next (tests of
+  `docs/competition.md`): 2 floor straights, 4 goal block (layout H),
+  5 endurance (modes 1 and 4 only until issue 12). Ask: spare walls for 3?
+  OPTIM budget 400 or 800?
 
 ## Closed
 
