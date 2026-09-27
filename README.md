@@ -19,7 +19,7 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 | SELECT | tras el arranque (LEDs en vaivén) elige el modo 1; luego cambia de modo (1: LEDs 1-2, 2: 3-4, 3: 5-6); en el menú de carreras, cambia de carrera (LEDs 1..n) | — |
 | START | lanza el modo tras 5 s de cuenta atrás, con todos los LEDs parpadeando rápido (ignorado hasta elegir modo); en el modo 2 abre el menú de carreras, y ahí lanza la carrera | detiene el run |
 
-Modos: 1 búsqueda, 2 carrera, 3 borrar mapa y volver a la meta y parámetros por defecto
+Modos: 1 búsqueda, 2 carrera, 3 borrar mapa y volver a la meta por defecto
 (pide pulsar START otra vez en 3 s). Menú de carreras (parpadea lento; solo se sale con reset): 1 seguidor
 de pared izquierda, 1-2 derecha (pasan por la meta y siguen hasta STOP), 1-3 sin curvas (camino
 verificado, rectas a `FAST` 800, gira parado; ida y vuelta), 1-4 `FAST 800
@@ -88,7 +88,7 @@ flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 | `MAP` | dibuja el mapa ASCII con el camino rápido | sí |
 | `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) | sí |
 | `SAVE` | guarda mapa, meta y parámetros (si la flash no tiene hueco, la compacta) | sí |
-| `ERASE` | borra el mapa en RAM y en flash y vuelve a la meta (16x16: 7 7 8 8) y a los parámetros por defecto de la compilación | sí |
+| `ERASE` | borra el mapa en RAM y en flash y vuelve a la meta por defecto de la compilación (16x16: 7 7 8 8) | sí |
 | `HOME` | "el robot está en la salida mirando al norte" | sí |
 | `SYNC` | reenvía mapa y estado al monitor | sí |
 | `CAL …` | pruebas de calibración (ver abajo) | sí |

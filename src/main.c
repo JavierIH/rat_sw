@@ -165,10 +165,9 @@ static void erase_map_confirmed(void){
         leds_all((uint8_t)(((HAL_GetTick() - start) / 100u) & 1u));
         if(button_take_press(BUTTON_START)){
             maze_erase();
-            params_reset();
             leds_all(0);
             print(app_save_now() == STORAGE_FAILED ? "Mapa borrado en RAM; !! error escribiendo la flash\n"
-                                                   : "Mapa borrado, meta y parametros por defecto\n");
+                                                   : "Mapa borrado, meta por defecto\n");
             sync_telemetry(TM_ERASE);
             return;
         }
