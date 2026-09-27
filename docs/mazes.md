@@ -187,7 +187,7 @@ From E: remove east of (0,0), east of (1,0), east of (1,2) and north of
     +---+---+---+---+
 ```
 
-## I: a closed ring, straights of 4 and 3 cells (proposed 09-27, centring)
+## I: a closed ring, straights of 4 and 3 cells (built 09-27, centring)
 
 ```
       0   1   2   3

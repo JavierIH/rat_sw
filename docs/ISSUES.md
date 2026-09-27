@@ -11,12 +11,13 @@ commit when done. Details go in the docs it points to, not here.
   pop (1024 pops 4493 us on E, 3072 13001 us on G), so the 16x16 worst
   (5144) ~21.6 ms vs 17.8: ~4 ms late, which only dips the leg ~12 mm/s
   (the path grows while braking); kept. Test 5 endurance done 09-27 on G:
-  search + 20 races 2.4/2.5 clean, no pace drop; found each race switch
-  spent a flash slot (FAST/CURVE saved with the map): fixed in a6d42d2,
-  for the next flash (keeps map and params). Next: 2 floor straights,
-  4 goal block (layout H), 3 on the ring (layout I, no spare walls).
-  OPTIM budget set to 800 (8685fe4, next flash). Test 3 with `KI 16`
-  (new default, f95a56d; races were validated with 8).
+  search + 20 races 2.4/2.5 clean, no pace drop. Flashed again 09-27
+  (a6d42d2 map-only saves, OPTIM 800, KI 16): test 3 on the ring (layout
+  I) done: search 13 actions, 0 "!!", worst decision 4473 us; races 2.4,
+  2.5, 2.4 route `2D3` in one leg both ways, `fin=IR`, err <= 3.8 mm /
+  2.9 deg. The first two saved (the goal's walls' evidence +1 -> +3), the
+  third did not despite the preset switch (test_races_settle_map). Next:
+  2 floor straights, 4 goal block (layout H).
 
 ## Closed
 
