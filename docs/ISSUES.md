@@ -6,7 +6,16 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-None.
+- Issue 11, 16x16 competition readiness: do the search legs' decisions
+  on the way fit in `SEARCH_LATE_MARGIN_MM` (8 mm = 17.8 ms at 450) on the
+  robot? Host (`host_tests --timing`): a plan pops each state ~once (1024
+  on the empty 16x16); the worst decision (OPTIM, 3 plans) 3811 pops on
+  16x16, 3072 on the practice maze. Disassembly: ~150-200 cycles a pop,
+  so 5-11 ms (estimate). Firmware (not flashed): the worst decision's us
+  and pops and the late ones printed after a run and in `STATUS`;
+  `TUNE LATE_MARGIN` mm. Next: flash, one search on the practice maze,
+  read us/pops -> cycles a pop -> 16x16 worst; then the competition
+  checklist (goal, `ERASE`, stack).
 
 ## Closed
 
