@@ -463,6 +463,39 @@ static void test_storage_map_only(void){
     CHECK_EQ(maze_evidence(12, 12, NORTH), -2);
 }
 
+// Races there and back on layout I (docs/mazes.md), switching presets as
+// the race menu does: each sees the goal's walls again, so the map changes
+// (and is saved) until their evidence saturates, then no race spends a slot.
+// On the robot (09-27): 2.4 and 2.5 saved, the next 2.4 did not.
+static void test_races_settle_map(void){
+    fake_flash_wipe();
+    params_reset();
+    truth_reset(1);
+    for(uint8_t x = 0; x < 3; x++){
+        truth_set_wall(x, 0, EAST, 0);
+        truth_set_wall(x, 2, EAST, 0);
+    }
+    for(uint8_t y = 0; y < 2; y++){
+        truth_set_wall(0, y, NORTH, 0);
+        truth_set_wall(3, y, NORTH, 0);
+    }
+    maze_init();
+    maze_set_goal(3, 2, 3, 2);
+    sim_reset(0.0, 1);
+    search_set_home();
+    CHECK_EQ(search_explore(), RUN_OK);
+    uint8_t free_after[5];
+    for(int k = 0; k < 5; k++){
+        params.fast_speed = (int16_t)(k & 1 ? 900 : 800);
+        sim_reset(0.0, 10u + (uint32_t)k);
+        CHECK_EQ(search_fast_run(1), RUN_OK);
+        free_after[k] = storage_free_slots();
+    }
+    CHECK_EQ(free_after[4], free_after[2]);
+    CHECK(free_after[2] + 2 >= free_after[0]);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 // The store is a log (docs/freezes.md): saves only program erased slots,
 // the newest valid record wins, pages are erased only by the boot's
 // compaction, and a flash that wedges mid-save loses nothing saved before.
@@ -2162,6 +2195,7 @@ int main(int argc, char **argv){
     test_planner_against_reference();
     test_storage();
     test_storage_map_only();
+    test_races_settle_map();
     test_sqrt();
     test_run_control();
     test_fast_run_surprise_wall();
