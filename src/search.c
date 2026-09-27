@@ -469,7 +469,11 @@ static const char *route_text(char *text){
 // Drives to `targets` over verified passages in one go (straights and
 // smooth curves), sensing at every stop. If the verified map has no route (a
 // wall appeared where it was believed open), explores step by step instead.
-static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char *tag, uint16_t *steps){
+// Drives the verified route to `targets`, replanned at every stop. Without
+// curves every straight ends in the cell where the route turns, and the
+// turn is made there in place, at the next stop.
+static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t curves, const char *tag,
+                             uint16_t *steps){
     uint8_t repairs = 0;
     while(!cellset_has(targets, pose.x, pose.y)){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, tag);
@@ -483,6 +487,11 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
         if(maze_route(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, route_turn, PATH_MAX_CELLS,
                       &route.cells)){
             if(turn == 0 && w.front == SEEN_PRESENT) continue;
+            for(uint8_t i = 0; !curves && i < route.cells; i++){
+                if(!route_turn[i]) continue;
+                route_turn[i] = 0;
+                route.cells = (uint8_t)(i + 1u);
+            }
             if(params.log_level >= 1){
                 char text[ROUTE_TEXT_MAX + 2];
                 print("%s (%u,%u)%c giro %d + ruta %s (%u celdas)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
@@ -506,7 +515,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, const char
     return RUN_OK;
 }
 
-run_result_t search_fast_run(void){
+run_result_t search_fast_run(uint8_t curves){
     cellset_t goal, home;
     maze_goal_cells(&goal);
     start_cell(&home);
@@ -521,12 +530,12 @@ run_result_t search_fast_run(void){
     telemetry_activity(TM_FAST);
     print("== CARRERA RAPIDA (coste %u) ==\n", cost);
     uint16_t steps = 0;
-    run_result_t res = drive_to(&goal, params.fast_speed, "RAPIDA", &steps);
+    run_result_t res = drive_to(&goal, params.fast_speed, curves, "RAPIDA", &steps);
     if(res != RUN_OK) return res;
     print("Meta alcanzada en carrera rapida tras %u tramos\n", steps);
     motion_indicate(IND_GOAL);
     telemetry_activity(TM_RETURN);
-    res = drive_to(&home, params.search_speed, "VUELTA", &steps);
+    res = drive_to(&home, params.search_speed, curves, "VUELTA", &steps);
     if(res != RUN_OK) return res;
     return finish_at_start(steps);
 }

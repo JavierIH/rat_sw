@@ -8,7 +8,7 @@
 // start with '@', are at most 21 bytes and are only sent between actions,
 // never from a control loop. TELEM OFF silences them.
 //
-//   @M<m>                      selected mode, 1-6
+//   @M<m>                      selected run, app_mode_t 1-8
 //   @A<a>                      activity (telemetry_activity_t)
 //   @P<x><y><h>                pose: x, y one hex digit each, h one of NESW
 //   @C<x><y><h><n><e><s><w>    pose after sensing + that cell's four walls:

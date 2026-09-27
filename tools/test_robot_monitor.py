@@ -194,7 +194,7 @@ class TestProtocol(unittest.TestCase):
 
     def test_corrupted_lines_are_counted_not_fatal(self):
         m = rm.MazeModel()
-        for line in ("@P", "@PZZN", "@C00N#", "@R0XYZ", "@G9911", "@M7", "@AQ", "@Q", "@Y", "@C00X####"):
+        for line in ("@P", "@PZZN", "@C00N#", "@R0XYZ", "@G9911", "@M9", "@AQ", "@Q", "@Y", "@C00X####"):
             self.assertTrue(m.apply(line), line)
         self.assertEqual(m.bad_lines, 10)
         self.assertIsNone(m.pose)

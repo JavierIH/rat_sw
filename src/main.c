@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "stm32f1xx_hal.h"
 #include "app.h"
 #include "calib.h"
@@ -20,10 +21,18 @@
 #include "uart.h"
 
 static const char *const MODE_NAME[MODE_COUNT + 1] = {
-    "?", "BUSQUEDA", "SEGUIDOR IZQ", "SEGUIDOR DER", "RAPIDA SEGURA", "RAPIDA", "BORRAR MAPA",
+    "?", "BUSQUEDA", "SEGUIDOR IZQ", "SEGUIDOR DER", "RAPIDA SEGURA", "RAPIDA", "BORRAR MAPA", "SIN CURVAS",
+    "RAPIDA MEDIA",
+};
+// The race menu's order (app.h).
+static const uint8_t RACE_MODE[RACE_COUNT + 1] = {
+    0, MODE_FOLLOW_LEFT, MODE_FOLLOW_RIGHT, MODE_NO_CURVES, MODE_FAST_SAFE, MODE_FAST_MID, MODE_FAST,
 };
 
 static uint8_t mode = MODE_SEARCH;
+static uint8_t menu = MENU_SEARCH;
+static uint8_t race = 1;
+static uint8_t race_menu;           // 1 once START opened it: SELECT cycles the races
 static uint8_t mode_chosen;         // 0 after boot: the LEDs sweep until SELECT (or MODE, START)
 static uint8_t run_active;
 static volatile uint8_t start_requested;
@@ -42,15 +51,22 @@ void app_request_cal(cal_test_t test, int32_t a, int32_t b){
     cal_requested = 1;
 }
 
-uint8_t app_set_mode(uint8_t m){
-    if(m < 1 || m > MODE_COUNT) return 0;
-    mode = m;
+uint8_t app_set_mode(uint8_t m, uint8_t r){
+    if(m < 1 || m > MENU_COUNT || r > RACE_COUNT) return 0;
+    menu = m;
+    if(r) race = r;
+    race_menu = m == MENU_RACE && (r || race_menu);     // MODE 2 n over the console opens it too
+    mode = m == MENU_SEARCH ? MODE_SEARCH : m == MENU_ERASE ? MODE_ERASE : RACE_MODE[race];
     mode_chosen = 1;
-    if(m == MODE_FAST_SAFE){
+    if(mode == MODE_FAST_SAFE || mode == MODE_NO_CURVES){
         params.fast_speed = FAST_SAFE_SPEED;
         params.curve_speed = FAST_SAFE_CURVE;
     }
-    else if(m == MODE_FAST){
+    else if(mode == MODE_FAST_MID){
+        params.fast_speed = FAST_MID_SPEED;
+        params.curve_speed = FAST_MID_CURVE;
+    }
+    else if(mode == MODE_FAST){
         params.fast_speed = FAST_FULL_SPEED;
         params.curve_speed = FAST_FULL_CURVE;
     }
@@ -58,8 +74,11 @@ uint8_t app_set_mode(uint8_t m){
     return 1;
 }
 
-const char *app_mode_name(uint8_t m){
-    return m <= MODE_COUNT ? MODE_NAME[m] : "?";
+const char *app_mode_label(void){
+    static char label[24];
+    if(menu == MENU_RACE) snprintf(label, sizeof(label), "2.%u %s", race, MODE_NAME[mode]);
+    else snprintf(label, sizeof(label), "%u %s", menu, MODE_NAME[mode]);
+    return label;
 }
 
 static void sync_telemetry(telemetry_activity_t activity){
@@ -81,15 +100,37 @@ void app_systick(void){
     calib_tick_1ms();
 }
 
-// Idle: the boot sweep until a mode is chosen, then the selected mode's LED,
-// briefly off twice a second as a heartbeat.
+// Idle: the boot sweep until a mode is chosen, then the mode's pair of LEDs
+// (1-2, 3-4, 5-6), briefly off twice a second as a heartbeat; in the race
+// menu LEDs 1..n for race n, blinking slowly (1-2 is not mode 1).
 static void show_mode(void){
+    const uint32_t t = HAL_GetTick();
     if(!mode_chosen){
-        leds_sweep_frame(HAL_GetTick());
+        leds_sweep_frame(t);
         return;
     }
-    uint8_t on = (HAL_GetTick() % 500u) >= 50u;
-    leds_set_mask(on ? (uint8_t)(1u << (6u - mode)) : 0u);    // bit 5 = LED 1 ... bit 0 = LED 6
+    uint8_t mask, on;       // bit 5 = LED 1 ... bit 0 = LED 6
+    if(race_menu){
+        mask = (uint8_t)((0x3Fu << (6u - race)) & 0x3Fu);
+        on = (t % 1000u) < 600u;
+    }
+    else{
+        mask = (uint8_t)(3u << (6u - 2u * menu));
+        on = (t % 500u) >= 50u;
+    }
+    leds_set_mask(on ? mask : 0u);
+}
+
+// Hands away: every LED blinking fast. 0 if START or STOP cancelled it.
+static uint8_t countdown(uint32_t ms){
+    const uint32_t start = HAL_GetTick();
+    uint8_t go = 1;
+    while(go && HAL_GetTick() - start < ms){
+        leds_all((uint8_t)((((HAL_GetTick() - start) / COUNTDOWN_BLINK_MS) & 1u) ^ 1u));
+        go = motion_wait(5);
+    }
+    leds_all(0);
+    return go;
 }
 
 // The main loops say they are alive and report what the health checks and
@@ -145,17 +186,17 @@ static void run_mode(uint8_t m){
         telemetry_activity(TM_ERASE);
         erase_map_confirmed();
     }
-    else if((m == MODE_FAST || m == MODE_FAST_SAFE) && search_fast_path_cost() == PLAN_INF){
+    else if((m == MODE_FAST || m == MODE_FAST_MID || m == MODE_FAST_SAFE || m == MODE_NO_CURVES)
+            && search_fast_path_cost() == PLAN_INF){
         print("Sin camino verificado salida->meta: haz antes una busqueda (modo 1)\n");
     }
     else{
-        print("Modo %u %s: arranca en %u ms (START o STOP cancela)\n", m, MODE_NAME[m], START_DELAY_MS);
+        print("Modo %s: arranca en %u ms (START o STOP cancela)\n", app_mode_label(), START_DELAY_MS);
         leds_all(1);
         uint32_t countdown_start = HAL_GetTick();
         sync_telemetry(TM_COUNTDOWN);   // the monitor starts the run with the full map
         uint32_t spent = HAL_GetTick() - countdown_start;
-        uint8_t go = motion_wait(spent < START_DELAY_MS ? START_DELAY_MS - spent : 0);   // hands away
-        leds_all(0);
+        uint8_t go = countdown(spent < START_DELAY_MS ? START_DELAY_MS - spent : 0);
         if(!go){
             print("cancelado\n");
         }
@@ -166,8 +207,10 @@ static void run_mode(uint8_t m){
                 case MODE_SEARCH:       r = search_explore(); break;
                 case MODE_FOLLOW_LEFT:  r = search_wall_follow(1); break;
                 case MODE_FOLLOW_RIGHT: r = search_wall_follow(0); break;
+                case MODE_NO_CURVES:    r = search_fast_run(0); break;
                 case MODE_FAST_SAFE:
-                case MODE_FAST:         r = search_fast_run(); break;
+                case MODE_FAST_MID:
+                case MODE_FAST:         r = search_fast_run(1); break;
                 default: break;
             }
             motion_stop();
@@ -197,9 +240,7 @@ static void run_calibration(void){
     uint8_t go = 1;
     if(calib_moves(cal_test)){
         print("CAL: el robot se movera en %u ms (START o STOP cancela)\n", CAL_DELAY_MS);
-        leds_all(1);
-        go = motion_wait(CAL_DELAY_MS);
-        leds_all(0);
+        go = countdown(CAL_DELAY_MS);
     }
     if(go){
         if(calib_moves(cal_test)) search_set_lost();
@@ -218,7 +259,7 @@ static void run_calibration(void){
 static void print_banner(storage_status_t stored){
     uint8_t g[4];
     maze_get_goal(g);
-    print("\nrat_sw %s %s | modo %u %s\n", __DATE__, __TIME__, mode, MODE_NAME[mode]);
+    print("\nrat_sw %s %s | modo %s\n", __DATE__, __TIME__, app_mode_label());
     if(stored == STORAGE_LOADED || stored == STORAGE_NEW_DEFAULTS){
         uint16_t cost = search_fast_path_cost();
         if(cost == PLAN_INF){
@@ -235,7 +276,7 @@ static void print_banner(storage_status_t stored){
     }
     if(sysclock_source() == CLOCK_HSI_BOOT) print("!! el cristal no arranco: reloj interno a 64 MHz\n");
     print("Reinicio: %s\n", health_reset_cause());
-    print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza\n",
+    print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza (en el 2, abre las carreras)\n",
           g[0], g[1], g[2], g[3]);
 }
 
@@ -283,10 +324,17 @@ int main(void){
         report_health();
         commands_poll();
         if(button_take_press(BUTTON_SELECT)){
-            app_set_mode(mode_chosen ? (uint8_t)(mode % MODE_COUNT + 1) : MODE_SEARCH);
-            print("modo %u: %s\n", mode, MODE_NAME[mode]);
+            if(!mode_chosen) app_set_mode(MENU_SEARCH, 0);
+            else if(race_menu) app_set_mode(MENU_RACE, (uint8_t)(race % RACE_COUNT + 1));
+            else app_set_mode((uint8_t)(menu % MENU_COUNT + 1), 0);
+            print("modo %s\n", app_mode_label());
         }
         uint8_t pressed = button_take_press(BUTTON_START) && mode_chosen;    // no mode yet: ignored
+        if(pressed && menu == MENU_RACE && !race_menu){
+            race_menu = 1;      // only a reset leaves it
+            print("carreras: SELECT elige, START lanza | modo %s\n", app_mode_label());
+            pressed = 0;
+        }
         if(pressed) search_set_home();  // someone is at the robot: it stands at the start
         if(pressed || start_requested){
             start_requested = 0;

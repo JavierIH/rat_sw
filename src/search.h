@@ -15,7 +15,8 @@ typedef enum { RUN_OK, RUN_ABORTED, RUN_FAILED } run_result_t;
 run_result_t search_explore(void);
 // Speed run over verified passages with merged straights, then back to the
 // start and save. Refuses without moving if no verified path exists yet.
-run_result_t search_fast_run(void);
+// Without curves it stops where the route turns and turns there in place.
+run_result_t search_fast_run(uint8_t curves);
 // How the search moves forward (CONT OFF / ON, until reset). No curves in
 // the search: those are for the speed run.
 // - SEARCH_STOP_EACH: one cell at a time, stopping in every one;

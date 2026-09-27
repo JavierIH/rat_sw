@@ -51,7 +51,7 @@ CELL_CODE = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 WALL_CHAR = {"?": UNKNOWN, "#": WALL, ".": OPEN_ONCE, "o": OPEN_VERIFIED}
 
 MODE_NAME = {1: "BUSQUEDA", 2: "SEGUIDOR IZQ", 3: "SEGUIDOR DER", 4: "RAPIDA SEGURA",
-             5: "RAPIDA", 6: "BORRAR MAPA"}
+             5: "RAPIDA", 6: "BORRAR MAPA", 7: "SIN CURVAS", 8: "RAPIDA MEDIA"}
 ACTIVITY_NAME = {"I": "parado", "C": "cuenta atras", "G": "explorando hacia la meta",
                  "O": "optimizando la ruta", "H": "explorando hacia la salida",
                  "F": "carrera rapida", "R": "volviendo a la salida",
@@ -693,7 +693,7 @@ HELP_LINES = [
     ("", "  /nota texto  anade una medida al ultimo fichero de calibracion"),
     ("", ""),
     ("head", "ROBOT (todos en README.md, Consola Bluetooth)"),
-    ("", "  MODE n   1 busq 2/3 seg.izq/der 4 rapida 800/300 5 900/480 6 borrar"),
+    ("", "  MODE n   1 busq | 2 k carrera: 1/2 seg.izq/der 3 sin curvas 4 800/300 5 900/400 6 900/480 | 3 borrar"),
     ("", "  START STOP PAUSE RESUME STEP ON|OFF"),
     ("", "  STATUS MAP IR WALLS SYNC TELEM ON|OFF"),
     ("", "  SPD FAST CURVE ACCEL TURN TACCEL TURNTICKS n   KP KI f   LOG 0-2"),

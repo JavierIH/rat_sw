@@ -121,7 +121,7 @@ static void cmd_status(const char *args){
     uint8_t x, y;
     heading_t h;
     search_pose(&x, &y, &h);
-    print("modo %u %s | %s | robot (%u,%u)%c %s\n", app_mode(), app_mode_name(app_mode()),
+    print("modo %s | %s | robot (%u,%u)%c %s\n", app_mode_label(),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
     print("SPD %d FAST %d CURVE %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KI %s LOG %u%s\n",
@@ -156,13 +156,16 @@ static void cmd_status(const char *args){
     }
 }
 
+// MODE 1 | MODE 2 [race 1-6] | MODE 3, as the buttons' menu.
 static void cmd_mode(const char *args){
-    uint32_t m;
-    if(!parse_uint(&args, &m) || !at_end(args) || !app_set_mode((uint8_t)(m > 255u ? 0u : m))){
-        print("MODE 1-%u\n", MODE_COUNT);
+    uint32_t m, r = 0;
+    uint8_t ok = parse_uint(&args, &m);
+    if(ok && !at_end(args)) ok = m == MENU_RACE && parse_uint(&args, &r) && r >= 1;
+    if(!ok || !at_end(args) || !app_set_mode((uint8_t)(m > 255u ? 0u : m), (uint8_t)(r > 255u ? 255u : r))){
+        print("MODE 1 | 2 [1-%u] | 3\n", RACE_COUNT);
         return;
     }
-    print("modo %u: %s\n", app_mode(), app_mode_name(app_mode()));
+    print("modo %s\n", app_mode_label());
 }
 
 static void cmd_start(const char *args){
@@ -176,7 +179,7 @@ static void cmd_start(const char *args){
     }
     else{
         app_request_start();
-        print("START modo %u: %s\n", m, app_mode_name(m));
+        print("START modo %s\n", app_mode_label());
     }
 }
 

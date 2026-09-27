@@ -686,7 +686,7 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     CHECK_EQ(storage_load(), STORAGE_LOADED);   // the search saved its map
     sim_reset(noise, seed ^ 0x9E3779B9u);
     sim_side_doubt(doubt);
-    r = search_fast_run();
+    r = search_fast_run(1);
     if(r == RUN_OK) s->fast_ok++;
     s->back_home += sim_x == START_X && sim_y == START_Y && sim_h == NORTH && search_ready();
     s->blocked += sim_stats.blocked;
@@ -886,7 +886,7 @@ static void test_run_control(void){
     maze_init();
     sim_reset(0.0, 1);
     search_set_home();
-    CHECK_EQ(search_fast_run(), RUN_FAILED);
+    CHECK_EQ(search_fast_run(1), RUN_FAILED);
     CHECK_EQ(sim_stats.actions, 0);
     CHECK(search_ready());
 
@@ -962,7 +962,7 @@ static void test_fast_run_surprise_wall(void){
         if(!placed || true_optimum() == PLAN_INF) continue;
         runs++;
         sim_reset(0.0, m + 1u);
-        run_result_t r = search_fast_run();
+        run_result_t r = search_fast_run(1);
         const int good = r == RUN_OK && sim_stats.blocked == 1 && sim_stats.crashes == 0
                       && maze_wall(x, y, h) == WALL_PRESENT && sim_x == START_X && sim_y == START_Y && search_ready();
         ok += good;
@@ -970,6 +970,34 @@ static void test_fast_run_surprise_wall(void){
                          sim_stats.crashes);
     }
     printf("speed runs with a wall the map had as open: %d/%d finished\n", ok, runs);
+    CHECK(runs >= 10);
+    CHECK_EQ(ok, runs);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
+// Race 2.3: the verified route with every turn made in place, there and
+// back: no curves, every straight whole, home and ready at the end.
+static void test_fast_run_no_curves(void){
+    maze_set_goal(7, 7, 8, 8);
+    int runs = 0, ok = 0;
+    for(uint32_t m = 1; m <= 20; m++){
+        truth_generate(m * 104729u, 40);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        search_set_home();
+        if(search_explore() != RUN_OK) continue;
+        runs++;
+        sim_reset(0.0, m + 1u);
+        const run_result_t r = search_fast_run(0);
+        const int good = r == RUN_OK && sim_stats.curves == 0 && sim_stats.crashes == 0 && sim_stats.quarter_turns > 0
+                      && sim_x == START_X && sim_y == START_Y && sim_h == NORTH && search_ready();
+        ok += good;
+        if(!good) printf("  no curves, maze %u: result %d curves %u crashes %u\n", m, r, sim_stats.curves,
+                         sim_stats.crashes);
+    }
+    printf("speed runs without curves: %d/%d there and back\n", ok, runs);
     CHECK(runs >= 10);
     CHECK_EQ(ok, runs);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
@@ -997,7 +1025,7 @@ static void demo(void){
     search_explore();
     search_print_map();
     sim_reset(0.0, 2);
-    search_fast_run();
+    search_fast_run(1);
     search_print_map();
 }
 
@@ -1086,7 +1114,7 @@ static void transcript(uint32_t seed, uint16_t openings, int practice, int phant
     if(r != RUN_OK) return;
     sim_reset(0.0, seed + 1);
     telemetry_sync(2, TM_COUNTDOWN, 0, 0, NORTH);
-    r = search_fast_run();
+    r = search_fast_run(1);
     telemetry_activity(TM_IDLE);
     printf("#RESULT fast %d\n#CHECK\n", (int)r);
     telemetry_sync(2, TM_IDLE, sim_x, sim_y, sim_h);
@@ -2109,6 +2137,7 @@ int main(int argc, char **argv){
     test_sqrt();
     test_run_control();
     test_fast_run_surprise_wall();
+    test_fast_run_no_curves();
     test_search_modes();
     test_practice_maze();
     test_wall_followers();

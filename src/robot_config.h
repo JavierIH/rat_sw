@@ -285,11 +285,15 @@
 #define MOVE_TIMEOUT_PER_CELL_MS 2000   // ...plus per cell
 #define START_DELAY_MS          5000    // countdown after START of a mode (hands away)
 #define CAL_DELAY_MS            2000    // countdown of a CAL test (sent over Bluetooth)
-// Speed-run presets: selecting mode 4 or 5 sets FAST and CURVE to these
-// (FAST/CURVE over the console can still change them before START).
-#define FAST_SAFE_SPEED         800     // mm/s, mode 4
+#define COUNTDOWN_BLINK_MS      50      // every LED on/off this long during a countdown
+// Speed-run presets: selecting races 2.4-2.6 sets FAST and CURVE to these
+// (FAST/CURVE over the console can still change them before START); 2.3,
+// without curves, sets FAST to FAST_SAFE_SPEED.
+#define FAST_SAFE_SPEED         800     // mm/s, race 2.4
 #define FAST_SAFE_CURVE         300
-#define FAST_FULL_SPEED         900     // mm/s, mode 5
+#define FAST_MID_SPEED          900     // mm/s, race 2.5
+#define FAST_MID_CURVE          400
+#define FAST_FULL_SPEED         900     // mm/s, race 2.6
 #define FAST_FULL_CURVE         480
 #define BUTTON_DEBOUNCE_MS      20
 
