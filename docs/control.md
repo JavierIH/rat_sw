@@ -67,6 +67,10 @@ Read the section you are about to touch; AGENTS.md has the rules.
   +5.5 deg). At 800 `STEER_VREF` 400/500/600 made no difference beyond the
   run-to-run spread; the one repeated feature is a 2-4 mm step where two
   walls hand over to one (the post), not a growing weave.
+  Defaults since 09-27 (evening, races on the 4x3): KP 0.5 KI 20. KP 1.0
+  KI 20 weaved (heading error at the goal 4.9-5.1 deg at 900); KP 0.5 KI 20
+  on a 9-cell, 6-curve route, races 2.5 and 2.6 there and back: end error
+  <= 3.3 mm / 1.9 deg, the user saw no weave.
   With both walls their average is used, unless one
   reading is implausible: the angled beams catch posts and walls ahead
   (`STEER_ERROR_MAX_MM`), which once swerved the robot 35 deg. The offset is
