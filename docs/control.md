@@ -44,7 +44,7 @@ Read the section you are about to touch; AGENTS.md has the rules.
   missing (`KI`, the same units as before, and `STEER_OBSERVER_MM`, how
   slowly the prediction follows the readings; a new wall restarts it). An
   off-centre robot moving parallel teaches it nothing. The old integral of
-  the lateral error (`TUNE OBSERVER 0`, within `STEER_BIAS_WINDOW_MM`) took
+  the lateral error (removed 2026-09-30, with `STEER_BIAS_WINDOW_MM`) took
   a start 8-12 mm off-centre for ~5 deg of bias in the first cell of a speed
   run, carried it through the curves and aimed the last straight at the
   wall (layout C: it arrived yawed 5.5 deg and 24 mm off, and once scraped
@@ -84,8 +84,9 @@ Read the section you are about to touch; AGENTS.md has the rules.
   14, so `sense_here()` then records only "no wall" (those walls were seen
   before the turn anyway). At the start they are trusted: the robot was
   placed centred by hand, and doubting them cost the 16x16 search 33% more
-  actions in the simulator. `SENSE_SETTLE_MS` is 0: the controlled stops do
-  not rock the chassis.
+  actions in the simulator. No pause before sensing: the controlled stops do
+  not rock the chassis (searches with 10 and 0 ms mapped the practice maze
+  alike; `SENSE_SETTLE_MS` was removed 2026-09-30).
 - After a move that ends facing a wall, `motion_align_front()` first squares
   the robot (rotates in place by (FL - FR - `FRONT_SQUARE_OFFSET_MM`) /
   `SQUARE_MM_PER_DEG` when beyond `SQUARE_TOL_MM`), which resets the heading
@@ -104,6 +105,9 @@ Read the section you are about to touch; AGENTS.md has the rules.
   right after the 180 at the start (the "-1.2 deg" the centring held on every
   straight; fitted from the side walls along the first straight, constant,
   not growing with distance: no wheel mismatch). At 403: +0.8 and -0.5.
+  Handing that rest to the next move (`TURN_CARRY`) made 90+90 turn as a
+  180 in the simulator (179.85 vs 179.62 deg), but gave no gain on the
+  robot (layout D) and would need its own `TURNTICKS`: removed 2026-09-30.
 - Smooth curves (`path.c`, speed run only; search moves still stop in every
   cell). A curve enters its cell on the centre line and leaves on the centre
   line through the side edge: `pre` mm straight, the clothoid-arc-clothoid
@@ -204,6 +208,10 @@ Read the section you are about to touch; AGENTS.md has the rules.
   at the nose, `SIDE_LEVER_MM`): the firmware's observer ignores it, so
   every turn of the centring looks like a lateral surprise and moves the
   bias against it (the heading a move ends with is that bias).
+  Compensating it (`SIDE_LEVER` 55) gave no clear gain on the robot, and
+  in the simulator with KI 20 it helped 1-cell straights a little (bias
+  0.83 -> 0.80 deg at 450) but left 2- and 3-cell ones worse (0.35 ->
+  1.02, 0.32 -> 1.09 deg): removed 2026-09-30.
   At 400 and 480 (21:06-21:22, centring on: KP 0.7 KI 8, CURVE_ANGLE 90,
   CURVE_SLIP 2.0; one right and one left loop each, same moves; every
   move OK, tracking <= 2.1 mm / 2.7 deg, <= ~10 mm off-centre at the

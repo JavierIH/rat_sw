@@ -120,9 +120,8 @@ static steer_config_t steer_cfg = {
     .track_mm = SIDE_WALL_TRACK_MM,
     .center_l_mm = SIDE_CENTER_L_MM,
     .center_r_mm = SIDE_CENTER_R_MM,
-    .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = STEER_BIAS_WINDOW_MM,
+    .error_max_mm = STEER_ERROR_MAX_MM,
     .observer_mm = STEER_OBSERVER_MM,
-    .lever_mm = SIDE_LEVER_MM,
     // average_steps, delay_steps: set per move (TUNE STEER_AVG, IR_DELAY)
 };
 
@@ -130,7 +129,6 @@ static steer_config_t steer_cfg = {
 static float ir_delay = IR_DELAY_MS;            // ms
 static float front_track = FRONT_TRACK_MM;      // mm
 static float front_ref = FRONT_TRACK_REF_MM;    // mm
-static float sense_settle = SENSE_SETTLE_MS;    // ms
 static float late_margin = SEARCH_LATE_MARGIN_MM;   // mm
 static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
@@ -140,10 +138,6 @@ static float curve_slip = CURVE_SLIP_DEG;   // deg more at CURVE_SLIP_VREF_MM_S
 static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
 static float curve_pre_slip = CURVE_PRE_SLIP_MM;    // mm more `pre` at CURVE_SLIP_VREF_MM_S...
 static float curve_pre_v0 = CURVE_PRE_V0_MM_S;      // ...and none up to this speed
-static float turn_carry = TURN_CARRY;   // 1: the next move finishes what an in-place turn left
-// Encoder degrees the last in-place rotation stopped short of its target
-// (> 0: short of a right turn); the next move takes it (TURN_CARRY).
-static float rot_carry;
 // Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM
 // the control asks, behind its back, as with a low battery.
 static float motor_scale = 1.0f;
@@ -252,11 +246,6 @@ static void control_begin(uint8_t steering){
     profile_reset(&fwd);
     profile_reset(&rot);
     control_reset(&ctl);
-    // The last turn stopped within SETTLE_DEG of its target: its rest is
-    // this move's first job, or it stays as yaw (and a TURNTICKS fitted to
-    // 90s absorbs it, over-turning 180s).
-    if(turn_carry > 0.5f) control_carry_rot(&ctl, rot_carry);
-    rot_carry = 0.0f;
     steer_reset(&steer);
     steer_gain = 1.0f;
     steer_on = steering;
@@ -734,9 +723,7 @@ static move_result_t rotate(float deg, float speed, guard_t *g){
     control_begin(0);
     profile_start(&rot, deg, speed, 0.0f, (float)params.turn_accel);
     guard_start(g, MOVE_TIMEOUT_BASE_MS);
-    const move_result_t r = run_to_end(g);
-    if(r == MOVE_OK) rot_carry = fmaxf(fminf(ctl.rot_error, ROT_CARRY_MAX_DEG), -ROT_CARRY_MAX_DEG);
-    return r;
+    return run_to_end(g);
 }
 
 move_result_t motion_turn(int8_t quarter_turns){
@@ -771,7 +758,6 @@ static void square_to_front(void){
     if(fabsf(skew) <= SQUARE_TOL_MM || fabsf(skew) > SQUARE_MAX_SKEW_MM) return;
     guard_t g;
     const float deg = skew / SQUARE_MM_PER_DEG;     // FL farther: yawed left, rotate right
-    rot_carry = 0.0f;       // the wall measured the whole yaw, the last turn's rest included
     move_result_t r = rotate(deg, (float)params.turn_speed / SQUARE_SPEED_DIV, &g);
     if(params.log_level >= 2){
         char a[12];
@@ -805,9 +791,6 @@ void motion_align_front(void){
 // ---- Sensing and signalling ----------------------------------------------------------------------
 
 move_result_t motion_sense_walls(wall_sense_t *out){
-    // Let the chassis stop rocking first: sampling right at the stop was a
-    // source of phantom walls.
-    if(!motion_wait((uint32_t)sense_settle)) return MOVE_ABORTED;
     uint8_t votes[IR_COUNT] = {0};
     float sum[IR_COUNT] = {0.0f};
     for(uint8_t i = 0; i < WALL_SAMPLES; i++){
@@ -881,13 +864,10 @@ static const tunable_t TUNABLES[] = {
     {"STEER_MAX", &steer_cfg.max_deg, 0.0f, 30.0f, 1},
     {"STEER_CURVE", &steer_cfg.curve_deg, 0.01f, 5.0f, 2},
     {"STEER_AVG", &steer_average, 1.0f, STEER_AVERAGE_MAX, 0},
-    {"BIAS_WIN", &steer_cfg.bias_window_mm, 0.0f, 30.0f, 1},
-    {"OBSERVER", &steer_cfg.observer_mm, 0.0f, 500.0f, 0},
-    {"SIDE_LEVER", &steer_cfg.lever_mm, 0.0f, 150.0f, 0},
+    {"OBSERVER", &steer_cfg.observer_mm, 1.0f, 500.0f, 0},
     {"STEER_VREF", &steer_vref, 100.0f, 3000.0f, 0},
     {"SETTLE_MM", &settle_mm, 0.1f, 5.0f, 2},
     {"SETTLE_DEG", &settle_deg, 0.1f, 5.0f, 2},
-    {"TURN_CARRY", &turn_carry, 0.0f, 1.0f, 0},
     {"CENTER_L", &steer_cfg.center_l_mm, 40.0f, 130.0f, 1},
     {"CENTER_R", &steer_cfg.center_r_mm, 40.0f, 130.0f, 1},
     {"IR_DELAY", &ir_delay, 0.0f, IR_DELAY_MAX, 0},
@@ -895,7 +875,6 @@ static const tunable_t TUNABLES[] = {
     {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
     {"WHEEL_DIFF", &control_cfg.wheel_diff, -0.05f, 0.05f, 3},
     {"TICKS_MM", &control_cfg.ticks_per_mm, 8.5f, 9.6f, 3},
-    {"SENSE_SETTLE", &sense_settle, 0.0f, 200.0f, 0},
     {"LATE_MARGIN", &late_margin, 0.0f, 60.0f, 0},
     {"CURVE_R", &curve_radius, 30.0f, 120.0f, 1},
     {"CURVE_RAMP", &curve_ramp, 1.0f, 120.0f, 1},
@@ -922,8 +901,8 @@ void motion_curve_info(uint8_t line){
               format_fixed(e, sizeof(e), c.length, 1), (int)curve_speed_limit(&c));
     }
     else if(line == 2){
-        print("@D INFO curve_pre_slip=%s curve_pre_v0=%d turn_carry=%d side_lever=%d\n",
-              format_fixed(a, sizeof(a), curve_pre_slip, 1), (int)curve_pre_v0, (int)turn_carry, (int)steer_cfg.lever_mm);
+        print("@D INFO curve_pre_slip=%s curve_pre_v0=%d\n", format_fixed(a, sizeof(a), curve_pre_slip, 1),
+              (int)curve_pre_v0);
     }
     else{
         // WHEEL_DIFF in millionths: format_fixed() stops at 3 decimals.

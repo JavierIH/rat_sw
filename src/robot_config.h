@@ -47,12 +47,6 @@
 // yawed +1.1..+2.0 deg right after its 180 at the start (layout D, 5 runs).
 // 403 (2026-09-26): +0.8 and -0.5; 90s now ~0.4 short.
 #define TICKS_PER_TURN          403
-// Default of TUNE TURN_CARRY: 1 = the move after an in-place turn starts
-// with what the turn left undone (control_carry_rot()), so the turns end
-// on target and TURNTICKS no longer absorbs the ~0.78 deg: ~401.5 then
-// (405 fitted to 90s x 89.22 / 90). 0 until tested on the robot.
-#define TURN_CARRY              0
-#define ROT_CARRY_MAX_DEG       2.0f    // more left undone is not a turn's rest
 
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
@@ -120,10 +114,6 @@
 #define SEARCH_LEG_SPEED_MAX    450
 #define SEARCH_MIN_READINGS     3
 #define SEARCH_FRONT_OPEN_MM    205.0f   // inside the cell at the decision: no wall in front above this
-// Pause before sensing at a stop. The old stop-and-coast rocked the chassis
-// (30 ms); the controlled stops do not: searches at 10 and 0 ms mapped the
-// practice maze exactly, with no doubtful wall.
-#define SENSE_SETTLE_MS         0
 // The side sensors sit at the nose, angled 15 deg forward. Stopped too far
 // forward or yawed, their beam leaves the cell next to the post and hits the
 // post or the front wall: a phantom side wall. With something in front, the
@@ -208,21 +198,10 @@
 #define STEER_VREF_MM_S         500.0f
 #define STEER_SLEW_MM_PER_MS    0.5f    // lateral error change accepted per ms (posts, wall edges jump more)
 #define STEER_ERROR_MAX_MM      25      // wall error clamp: beyond it the reading is a transient, not the robot
-// KI learns only this close to the centre (no overshoot after big
-// corrections). At 5 mm a turn that left the robot 5 deg off kept it 12 mm
-// off-centre for a whole straight (KP 0.5 alone: 10 mm per 5 deg).
-#define STEER_BIAS_WINDOW_MM    12.0f
 // The bias (the encoder heading parallel to the walls) learned from how the
 // readings move against what the encoders predict (steer_step()), following
-// the readings over this distance. 0: the old integral of the lateral error
-// (within STEER_BIAS_WINDOW_MM), which took an off-centre start for a heading
-// error.
+// the readings over this distance.
 #define STEER_OBSERVER_MM       40.0f
-// Default of TUNE SIDE_LEVER: the side readings move ~55 mm per radian of
-// yaw (sensors at the nose; fitted on the ring, calib_analyze.py), which the
-// observer must expect, or it takes the centring's own turns for sideways
-// motion. 0 (ignored) until tested on the robot.
-#define SIDE_LEVER_MM           0.0f
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------
 // The speed run turns without stopping: a 90 deg clothoid-arc-clothoid inside

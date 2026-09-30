@@ -19,10 +19,8 @@ typedef struct {
 static uint32_t rng;
 float sim_average = STEER_AVERAGE_MS;       // experiments: side IR averaging, ms
 float sim_curve = STEER_CURVE_DEG_PER_MM;   // experiments: centring curvature limit
-float sim_window = STEER_BIAS_WINDOW_MM;    // experiments: KI learning window
-float sim_observer = STEER_OBSERVER_MM;     // experiments: bias observer (0: the old integral)
+float sim_observer = STEER_OBSERVER_MM;     // experiments: bias observer distance
 float sim_vref = STEER_VREF_MM_S;           // experiments: speed above which KP falls as 1/speed
-float sim_lever = SIDE_LEVER_MM;            // experiments: the observer's side lever
 
 static float uniform(void){
     rng = rng * 1664525u + 1013904223u;
@@ -117,8 +115,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
         .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .bias_window_mm = sim_window, .observer_mm = sim_observer,
-        .lever_mm = sim_lever, .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
+        .error_max_mm = STEER_ERROR_MAX_MM, .observer_mm = sim_observer,
+        .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
         .average_steps = (uint8_t)sim_average,
     };
     profile_t fwd, rot;
@@ -128,7 +126,6 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     profile_reset(&fwd);
     profile_reset(&rot);
     control_reset(&c);
-    if(p->rot_carry != 0.0f) control_carry_rot(&c, p->rot_carry);
     steer_reset(&s);
     // The model gives PWM = KV * v, so the true gain is 1 / KV (scaled).
     motor_init(&ml, p->gain_l / MOTOR_KV_L, p);

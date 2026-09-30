@@ -25,7 +25,6 @@ typedef struct {
     float wall_error_mm;        // each wall of each cell off by up to this much (a real maze: ~3, up to 7)
     float curve_slip;           // deg a 90 deg curve at CURVE_SLIP_VREF_MM_S turns less than the encoders say (~v^2)
     float side_lever_mm;        // side readings' shift per radian of yaw (sensors at the nose, angled beams)
-    float rot_carry;            // deg the last turn left undone, handed to this move (TURN_CARRY)
     uint32_t seed;
 } plant_t;
 
@@ -60,11 +59,9 @@ typedef struct {
 } path_result_t;
 
 extern float sim_average;       // side IR averaging, ms (default STEER_AVERAGE_MS)
-extern float sim_window;        // KI learning window, mm (default STEER_BIAS_WINDOW_MM)
 extern float sim_curve;         // centring curvature limit, deg/mm (default STEER_CURVE_DEG_PER_MM)
-extern float sim_observer;      // bias observer distance, mm (default STEER_OBSERVER_MM; 0: the old integral)
+extern float sim_observer;      // bias observer distance, mm (default STEER_OBSERVER_MM)
 extern float sim_vref;          // KP falls as 1/speed above this, mm/s (default STEER_VREF_MM_S)
-extern float sim_lever;         // the observer's side lever, mm per rad (default SIDE_LEVER_MM)
 
 plant_t plant_nominal(void);
 sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki);
