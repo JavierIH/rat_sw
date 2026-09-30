@@ -112,7 +112,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 
 - `robot_config.h`: every compile-time constant with its unit (geometry,
   calibration, thresholds, planner costs) and the defaults of the runtime
-  parameters.
+  parameters, one line each; the measurements behind them are in
+  `docs/control.md`.
 - `params.c/.h`: runtime parameters in physical units (`SPD`, `FAST`,
   `CURVE`, `ACCEL`, `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KI`, `LOG`,
   `TELEM`), persisted with the map.
@@ -226,6 +227,15 @@ search leg; the dump comes when the run ends).
   in scanf/printf. Print floats with `format_fixed()` / `format_fixed2()`.
 
 ## Conventions / hard-won gotchas
+- Keep it simple (the user's rule since 2026-09-30, when the code had grown
+  too complicated): a new constant or `TUNE` knob goes in only with a
+  measurement that justifies it, written in `docs/control.md`. One that stays
+  at its neutral value after its test is deleted (code, `TUNE` entry, dump
+  fields); its history stays in the docs. Look for the cause before stacking
+  another correction on the same effect, and delete superseded code paths
+  instead of keeping them switchable. `robot_config.h` keeps one line per
+  constant (value, unit, the reason in a sentence): dates, measurements and
+  experiment histories go to `docs/control.md`.
 - `stm32f1xx_hal_conf.h` needs `board_build.stm32cube.custom_config_header =
   yes`, or the framework silently uses its own copy.
 - Keep strategy and control code (`maze`, `search`, `storage`, `params`,

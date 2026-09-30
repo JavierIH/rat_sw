@@ -31,7 +31,8 @@ commit when done. Details go in the docs it points to, not here.
   `GOAL 3 2` + `SAVE`, `ERASE` -> (7,7)-(8,8), still so after `RESET`.
   To practise on the 4x3 with it: `GOAL 3 2`, then `ERASE` when done.
   Next flash: defaults KP 0.5 KI 20 (validated on races 2.5/2.6 09-27;
-  until then they are in the saved record, `SAVE` after setting them).
+  until then they are in the saved record, `SAVE` after setting them),
+  and the options removed on 09-30 (issue 16: no test needed).
   The 149 ms decision on the way (goal unreachable, log
   2026-09-27_19-11-58) is the map repair inside a leg: explore_next ->
   plan_explore -> telemetry_map(), whose uart_wait_space() waits ~140 ms
@@ -50,6 +51,16 @@ commit when done. Details go in the docs it points to, not here.
   CURVE and RUN missing).
 
 ## Closed
+
+- 2026-09-30 Simplification (issue 16; the user found the code too
+  complicated): removed `TURN_CARRY`, `SIDE_LEVER`, the old centring
+  integral (`TUNE OBSERVER 0`, `BIAS_WIN`) and `SENSE_SETTLE`, all neutral
+  after their tests (4ceda32: host transcripts identical, RAM -200 B,
+  flash -544 B; next flash, keeps map and parameters). `robot_config.h`
+  one line per constant (9c0ff65: 358 -> 157 lines, firmware identical
+  but the build time), measurements in `docs/control.md`; the rule for
+  new knobs in AGENTS.md. `CURVE_PRE`/`CURVE_POST` stay: `calib_analyze.py`
+  suggests them after `CAL CURVE` (a new floor).
 
 - 2026-09-27 Centring on straights (issue 14, layout I): no weave at
   300-600; the slow convergence was the observer learning a turn's yaw
