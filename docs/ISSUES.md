@@ -32,9 +32,22 @@ commit when done. Details go in the docs it points to, not here.
   To practise on the 4x3 with it: `GOAL 3 2`, then `ERASE` when done.
   Next flash: defaults KP 0.5 KI 20 (validated on races 2.5/2.6 09-27;
   until then they are in the saved record, `SAVE` after setting them).
-  To look at: a search with the goal unreachable (7,7 on the 4x3, log
-  2026-09-27_19-11-58 t=129) had a decision on the way of 149 ms (2001
-  pops, 2 late): the map repair's replans inside a leg?
+  The 149 ms decision on the way (goal unreachable, log
+  2026-09-27_19-11-58) is the map repair inside a leg: explore_next ->
+  plan_explore -> telemetry_map(), whose uart_wait_space() waits ~140 ms
+  for the 9600-baud UART (the 2001 pops are ~8 ms). Fix: issue 15 (a).
+
+- Issue 15, review 2026-09-30 (nothing changed in code yet). Firmware, for
+  the next flash (keeps the map): (a) no map repair on the way: an
+  unreachable plan in a leg returns NEXT_STOP, the repair runs at rest;
+  (b) STATUS "flash:" line is ~130 chars when blocked: print() cuts it at
+  119 and drops the newline; (c) ideas: cap the race return's curve speed
+  (it uses the preset's 400/480), a SysTick stop if the following error
+  runs away while the main loop blocks, measure the SysTick load (DWT).
+  No flash: calib_analyze.py must unwrap the int16 columns (CAL TURN 4
+  wraps ref_rot past 327.67 deg: "giro 4 ... 656 grados"; long CAL RUN
+  wraps ref_fwd/enc past ~3.3 m); README CAL table (STRAIGHT takes mm/s;
+  CURVE and RUN missing).
 
 ## Closed
 
