@@ -137,8 +137,9 @@ static void cmd_status(const char *args){
     print("chip CPUID=%08lx IDCODE=%08lx %u KB\n", (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE,
           *(const volatile uint16_t *)FLASHSIZE_BASE);
     const flash_timing_t *ft = flash_store_timing();
-    print("flash: %u huecos libres%s | ultima escritura: 1a %lu us, peor %lu us, %lu ms | borrado %lu ms | HSI "
-          "reiniciado %lu\n", storage_free_slots(), flash_store_blocked() ? ", BLOQUEADA" : "",
+    // Under print()'s 119 characters even blocked, with a wedge's 6-digit times.
+    print("flash: %u huecos%s | escritura 1a %lu us, peor %lu us, %lu ms | borrado %lu ms | HSI %lu\n",
+          storage_free_slots(), flash_store_blocked() ? ", BLOQUEADA" : "",
           (unsigned long)ft->first_us, (unsigned long)ft->worst_us, (unsigned long)ft->program_ms,
           (unsigned long)ft->erase_ms, (unsigned long)ft->hsi_restarts);
     motion_leg_timing_report();
