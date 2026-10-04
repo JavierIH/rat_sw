@@ -53,7 +53,7 @@ WALL_CHAR = {"?": UNKNOWN, "#": WALL, ".": OPEN_ONCE, "o": OPEN_VERIFIED}
 MODE_NAME = {1: "BUSQUEDA", 2: "SEGUIDOR IZQ", 3: "SEGUIDOR DER", 4: "RAPIDA SEGURA",
              5: "RAPIDA", 6: "BORRAR MAPA", 7: "SIN CURVAS", 8: "RAPIDA MEDIA"}
 ACTIVITY_NAME = {"I": "parado", "C": "cuenta atras", "G": "explorando hacia la meta",
-                 "O": "optimizando la ruta", "H": "explorando hacia la salida",
+                 "O": "optimizando la ruta", "H": "explorando hacia la salida",   # H: firmware before 2026-10-04
                  "F": "carrera rapida", "R": "volviendo a la salida",
                  "W": "siguiendo la pared", "E": "borrando el mapa", "K": "calibrando"}
 RUNNING = set("CGOHFRWK")

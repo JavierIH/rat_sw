@@ -96,8 +96,8 @@ class TranscriptChecker:
             self.test.assertEqual(self.model.pose, (x, y, h), line)
             if phase == "META":
                 targets = self.model.goal_cells()
-            elif phase == "VUELTA":
-                targets = {self.planner.start}
+            elif phase == "VUELTA":     # back to the goal
+                targets = self.model.goal_cells()
             else:
                 targets = self.planner.candidates(self.model)
             costs = self.planner.plan_to(self.model, targets, False, self.planner.search)
@@ -278,14 +278,15 @@ class TestRender(unittest.TestCase):
         for y in (1, 3, 5):
             self.assertEqual(rows[y][0], "│", drawing)
         self.assertTrue(rows[6].startswith("└───"), drawing)
-        self.assertEqual(rows[5][2], "▲", drawing)       # back at the start (0,0), facing north
-        # Goal (3,2), top right: the speed-run path ends there, drawn in the goal colour.
-        self.assertEqual((rows[1][14], cv.styles[1][14]), ("•", "goal"), drawing)
+        self.assertEqual(rows[5][2], "S", drawing)       # the start (0,0)
+        # Goal (3,2), top right: the search ends there, facing north (the
+        # speed-run path ends there too, under the robot).
+        self.assertEqual((rows[1][14], cv.styles[1][14]), ("▲", "robot"), drawing)
         # Every post of the grid is drawn (a junction, or a dot where no known wall meets).
         for y in (0, 2, 4, 6):
             for x in range(5):
                 self.assertNotEqual(rows[y][x * 4], " ", drawing)
-        self.assertEqual(drawing.count("•"), len(planner.overlay(model).fast_path), drawing)
+        self.assertEqual(drawing.count("•"), len(planner.overlay(model).fast_path) - 1, drawing)
 
     def test_log_scroll_and_help(self):
         model, planner = practice_model()

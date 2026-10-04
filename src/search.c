@@ -8,7 +8,7 @@
 
 typedef struct { uint8_t x, y; heading_t h; } pose_t;
 
-typedef enum { PH_TO_GOAL, PH_OPTIMIZE, PH_TO_START } phase_t;
+typedef enum { PH_TO_GOAL, PH_OPTIMIZE, PH_BACK_TO_GOAL } phase_t;
 
 typedef enum { REPLAN_OK, REPLAN_UNREACHABLE } replan_t;
 
@@ -293,6 +293,7 @@ typedef struct {
     cellset_t targets;
     uint8_t reached;        // cells of the last leg the robot got to (it stopped in the last one)
     uint8_t failed;         // planning failed on the way: handled at rest
+    uint16_t saved_steps;   // e.steps when the map was saved
 } explore_t;
 
 typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
@@ -300,7 +301,7 @@ typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
 // Phase changes at the robot's cell, and the targets of the phase. The goal
 // is announced and the map saved at rest (writing flash stalls the CPU), so
 // on the way (`stopped` = 0) getting to the goal, verifying the speed run's
-// path or getting back to the start only asks for a stop.
+// path or getting back to the goal only asks for a stop.
 static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
         if(!stopped) return PHASE_STOP;
@@ -313,20 +314,20 @@ static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_OPTIMIZE){
         uint8_t budget_left = e->optimize_steps < OPTIMIZE_MAX_STEPS;
         if(!budget_left || !optimize_candidates(&e->targets)){
-            // Saved now, before the return: the return only explores, so the
-            // robot may be picked up instead, and a failed return loses
+            // Saved now, before the way back to the goal: it only explores,
+            // so the robot may be picked up instead, and a failed one loses
             // nothing (the end saves again if it learned something).
             if(!stopped) return PHASE_STOP;
-            print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
-                              : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
+            print(budget_left ? "Camino rapido optimo verificado: vuelta a la meta\n"
+                              : "Presupuesto de optimizacion agotado: vuelta a la meta\n");
             save_map();
-            e->phase = PH_TO_START;
-            telemetry_activity(TM_TO_START);
+            e->saved_steps = e->steps;
+            e->phase = PH_BACK_TO_GOAL;
+            telemetry_activity(TM_TO_GOAL);
         }
     }
-    if(e->phase == PH_TO_START && pose.x == START_X && pose.y == START_Y) return stopped ? PHASE_DONE : PHASE_STOP;
-    if(e->phase == PH_TO_GOAL) maze_goal_cells(&e->targets);
-    else if(e->phase == PH_TO_START) start_cell(&e->targets);
+    if(e->phase == PH_BACK_TO_GOAL && maze_is_goal(pose.x, pose.y)) return stopped ? PHASE_DONE : PHASE_STOP;
+    if(e->phase != PH_OPTIMIZE) maze_goal_cells(&e->targets);
     return PHASE_GO;
 }
 
@@ -431,9 +432,12 @@ run_result_t search_explore(void){
         sides_recorded = 0;
         if(r != MOVE_OK) return fail_move(r, "sensado");
         if(explore_phase(&e, 1) == PHASE_DONE){
-            const run_result_t res = finish_at_start(e.steps);
-            if(res == RUN_OK) save_map();   // if the return learned something
-            return res;
+            // It stays at the goal (the user picks it up from there).
+            print("Busqueda terminada en la meta (%u,%u) tras %u acciones\n", pose.x, pose.y, e.steps);
+            uint16_t cost = search_fast_path_cost();
+            if(cost != PLAN_INF) print("Camino rapido verificado: coste %u\n", cost);
+            if(e.steps != e.saved_steps) save_map();   // the way back learned something
+            return RUN_OK;
         }
         action_t a;
         if(!explore_plan(&e, &w, &a)){
