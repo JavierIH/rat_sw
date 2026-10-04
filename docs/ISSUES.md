@@ -27,8 +27,15 @@ commit when done. Details go in the docs it points to, not here.
   the map ("Mapa en flash: 44 celdas, coste 106"). Flash healthy: 56-62
   us a halfword, 9 ms a record, 22 ms an erase, no HSI restart, no other
   "!!"; stack 1064 B never used. The boot banner is lost after a power-on
-  (the HC-05 connects later): `STATUS` then. Next: flash the real
-  firmware back (ST-Link), `ERASE`.
+  (the HC-05 connects later): `STATUS` then. Again with the wheels
+  turning on a stand (`TUNE RUEDAS 1`, 41679c6, flashed 20:55): 3 cycles
+  of ERASE + search + races 2.4/2.6 and `RESET`s in the way back of a
+  search and of a race: 14 writes right after motor work, 4 compactions,
+  8 runs OK, every boot with the map; no "!!", no stall, worst halfword
+  69 us, 10 ms a record, 22 ms an erase, no HSI restart. No wedge
+  reproduced (wheels in the air draw little current; the competition's
+  cause stays unproven). Next: flash the real firmware back (ST-Link),
+  `ERASE`.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
