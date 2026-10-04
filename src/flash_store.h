@@ -30,7 +30,7 @@ uint8_t flash_store_blocked(void);
 typedef struct {
     uint32_t first_us, worst_us;    // the last program: its first halfword and its slowest one
     uint32_t program_ms, erase_ms;  // the last program and the last erase, whole
-    uint32_t hsi_restarts;          // slow halfwords met by restarting the HSI, since the boot
+    uint32_t hsi_restarts;          // slow halfwords met by restarting the HSI again, since the boot
 } flash_timing_t;
 
 const flash_timing_t *flash_store_timing(void);
