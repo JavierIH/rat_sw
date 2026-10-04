@@ -9,13 +9,12 @@ commit when done. Details go in the docs it points to, not here.
 - Issue 17, competition 2026-10-04 (`docs/freezes.md`, last entry): the
   search's map never reached the flash (likely a wedge: the reset button
   did not boot), so a power cycle after race 2.4 crashed lost it. Done in
-  code, not flashed: the search saves when its path is verified (stopped,
-  before the way back), then goes back to the goal and stays there (no
-  return to the start: the user's rule), a race saves at the goal only
-  (never back at the start), save results on the LEDs (3 slow = in flash, 3 fast
-  = only in RAM), START refused for lack of a verified path blinks fast.
-  Next: flash with issue 15 (a)(b); check on the 4x3 (`GOAL 3 2`) that the
-  verification stop saves and blinks. Open: why no race would start after
+  code, not flashed (the user's rules): the search saves at the goal and
+  back at the start only if it learned something; a race saves at the goal
+  only, never back at the start; save results on the LEDs (3 slow = in
+  flash, 3 fast = only in RAM); START refused for lack of a verified path
+  blinks fast. Next: a test firmware that saves for real on the robot's
+  chip without moving it (being designed); flash with issue 15 (a)(b). Open: why no race would start after
   the crash (a wall marked on the verified path?), and the crash itself
   (the user will bring it up).
 

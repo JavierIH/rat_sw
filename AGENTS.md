@@ -20,13 +20,11 @@
 "rat": micromouse firmware for an STM32F103 "Blue Pill" robot. It explores an
 unknown maze, maps it, finds the fastest route and runs it:
 
-1. **Search** (mode 1): explore to the goal, keep exploring the cells that
-   could still shorten the speed-run path until the best path is verified,
-   save the map then (stopped; so the robot can be picked up and a failed
-   way back loses nothing), go back to the goal exploring on the way and
-   stay there (the user's rule: no return to the start; the user carries
-   it there and presses START), saving again if the way back changed the
-   map. It
+1. **Search** (mode 1): explore to the goal and save the map there
+   (stopped; the user's rule: a failed way back must lose nothing), keep
+   exploring the cells that could still shorten the speed-run path until
+   the best path is verified, return to the start exploring on the way,
+   face north, save again if the map changed. It
    drives straight stretches without stopping, deciding each cell on the
    way with the walls it would see stopped there, and stops to turn in place
    (and at the goal and the end). No curves in the search: the user wants it
@@ -204,9 +202,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   failed run, START refused (no verified path) or a save that failed (the
   map only in RAM: no reset, no power cycle).
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
-  finished a race back at the start; after a search (it ends at the goal)
-  or an abort, place it at the start facing north and press START (or send
-  `HOME`, then `START`).
+  finished a run back at the start; after an abort, place it at the start
+  facing north and press START (or send `HOME`, then `START`).
 - The map survives resets and reflashes (up to five saves per power-on;
   then `SAVE` compacts). Boot prints whether one was loaded:
   send `ERASE` (or run mode 3) when moving to a different maze. A firmware
@@ -311,8 +308,8 @@ search leg; the dump comes when the run ends).
 - Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). So nothing erases during runs: the map
-  is saved at rest (the search once its path is verified and at its end; a
-  race at the goal), only if it changed, into an erased
+  is saved at rest (the search at the goal and at its end; a race at the
+  goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
   HSI: the first slow halfword restarts it and the write goes on; a second
   one stops it and blocks the store until a power cycle; `RESET` refuses

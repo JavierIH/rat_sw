@@ -29,6 +29,7 @@ typedef enum {
     TM_COUNTDOWN = 'C',
     TM_TO_GOAL   = 'G',
     TM_OPTIMIZE  = 'O',
+    TM_TO_START  = 'H',
     TM_FAST      = 'F',
     TM_RETURN    = 'R',
     TM_FOLLOW    = 'W',

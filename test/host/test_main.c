@@ -736,8 +736,8 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->runs++;
 
     run_result_t r = search_explore();
-    int at_goal = maze_is_goal(sim_x, sim_y);
-    if(r == RUN_OK && at_goal) s->search_ok++;
+    int home = sim_x == START_X && sim_y == START_Y && sim_h == NORTH;
+    if(r == RUN_OK && home && search_ready()) s->search_ok++;
     s->optimal += search_fast_path_cost() == true_optimum();
     s->consistent += map_matches_truth();
     s->blocked += sim_stats.blocked;
@@ -748,7 +748,7 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->search_stops += sim_stats.stops;
     s->search_seconds += sim_stats.seconds;
     if(sim_stats.decide_pops_max > s->decide_pops_max) s->decide_pops_max = sim_stats.decide_pops_max;
-    if(r != RUN_OK || !at_goal) return;
+    if(r != RUN_OK || !home) return;
 
     CHECK_EQ(storage_load(), STORAGE_LOADED);   // the search saved its map
     sim_reset(noise, seed ^ 0x9E3779B9u);
@@ -967,6 +967,37 @@ static void test_run_control(void){
     CHECK(!search_ready());
     CHECK_EQ(storage_load(), STORAGE_EMPTY);    // nothing half-done was saved
 
+    // STOP on the way back: the map was saved at the goal.
+    maze_init();
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    CHECK_EQ(search_explore(), RUN_OK);
+    const uint32_t actions = sim_stats.actions;
+    const uint16_t path_cost = search_fast_path_cost();
+    maze_init();
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    sim_abort_after(actions - 1);
+    CHECK_EQ(search_explore(), RUN_ABORTED);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(path_cost != PLAN_INF);
+    CHECK(search_fast_path_cost() != PLAN_INF);     // at least the way it drove
+
+    // A race saves at the goal: STOP there (its route is one leg) loses nothing.
+    maze_init();
+    sim_reset(0.0, 1);
+    CHECK_EQ(search_explore(), RUN_OK);
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    search_set_home();
+    sim_abort_after_cells(1);
+    CHECK_EQ(search_fast_run(1), RUN_ABORTED);
+    CHECK(maze_is_goal(sim_x, sim_y));
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK_EQ(search_fast_path_cost(), path_cost);
+
     // A phantom wall sealing off the goal is repaired, not fatal.
     maze_init();
     sim_reset(0.0, 2);
@@ -991,43 +1022,6 @@ static void test_run_control(void){
     CHECK_EQ(search_explore(), RUN_OK);
     CHECK(map_matches_truth());
     CHECK_EQ(sim_stats.crashes, 0);
-    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
-}
-
-// The search saves once its path is verified, before the way back to the
-// goal, and a race at the goal: a STOP after either loses nothing.
-static void test_save_points(void){
-    maze_set_goal(7, 7, 8, 8);
-    truth_generate(2u, 30);     // verified away from the goal
-
-    maze_init();
-    fake_flash_wipe();
-    sim_reset(0.0, 1);
-    CHECK_EQ(search_explore(), RUN_OK);
-    CHECK(maze_is_goal(sim_x, sim_y));      // it stays at the goal
-    const uint32_t actions = sim_stats.actions;
-    const uint16_t path_cost = search_fast_path_cost();
-    CHECK(path_cost != PLAN_INF);
-    maze_init();
-    fake_flash_wipe();
-    sim_reset(0.0, 1);
-    sim_abort_after(actions - 1);
-    CHECK_EQ(search_explore(), RUN_ABORTED);
-    CHECK(!maze_is_goal(sim_x, sim_y));     // on the way back to the goal
-    maze_init();
-    CHECK_EQ(storage_load(), STORAGE_LOADED);
-    CHECK_EQ(search_fast_path_cost(), path_cost);
-
-    // STOP at the goal of a race, before its return (its route is one leg).
-    fake_flash_wipe();
-    sim_reset(0.0, 1);
-    search_set_home();
-    sim_abort_after_cells(1);
-    CHECK_EQ(search_fast_run(1), RUN_ABORTED);
-    CHECK(maze_is_goal(sim_x, sim_y));
-    maze_init();
-    CHECK_EQ(storage_load(), STORAGE_LOADED);
-    CHECK_EQ(search_fast_path_cost(), path_cost);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
@@ -2099,7 +2093,6 @@ int main(int argc, char **argv){
     test_races_settle_map();
     test_sqrt();
     test_run_control();
-    test_save_points();
     test_fast_run_surprise_wall();
     test_fast_run_no_curves();
     test_search_modes();
