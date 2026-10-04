@@ -162,8 +162,10 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
 // the store itself: n rounds of halfword writes timed with the cycle counter while the
 // wheels turn, right after a hard stop, through a reversal or a turn in place, and the
 // pages erased right after the wheels stop (the conditions of the old wedges). Robot on
-// a stand, TUNE RUEDAS 1. Stops at the first slow operation, after one HSI restart and
-// one more halfword (as flash_store.c does). START stops it between rounds.
+// a stand, TUNE RUEDAS 1. Stops at the first slow operation, leaving the HSI alone, and
+// times one more halfword 1 s later: does the flash stay slow? START stops it between
+// rounds. TUNE INVERSION n: hard reversals with no flash operation, then 1 s at rest
+// and one timed halfword (the store only writes at rest). TUNE HSI 1 restarts the HSI.
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
 #define STRESS_ROUND_HW 64u             // halfwords a round: 8 rounds fill a page
 #define STRESS_SLOW_US  1000u           // a halfword normally takes ~56 us
@@ -212,7 +214,7 @@ static void flash_stress(uint32_t rounds){
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     abort_flag = 0;
     uint32_t worst_us = 0, worst_round = 0, sum_us = 0, count = 0, worst_erase_ms = 0;
-    uint8_t restarted = 0, failed = 0;
+    uint8_t failed = 0;
     for(uint32_t r = 0; r < rounds && !failed && !abort_flag; r++){
         const uint32_t page = STRESS_PAGE + ((r / 8u) % 2u) * FLASH_PAGE_SIZE;
         const uint32_t base = page + (r % 8u) * STRESS_ROUND_HW * 2u;
@@ -254,15 +256,22 @@ static void flash_stress(uint32_t rounds){
             }
             if(ok && us <= STRESS_SLOW_US) continue;
             stress_report(ok ? "escritura lenta (us)" : "escritura fallida (us)", r, us);
-            // Restart the HSI once and go on: the next halfword tells if that cured it.
-            if(restarted || !stress_hsi_restart()) failed = 1;
-            else print("!! estres: HSI reiniciado, sigo\n");
-            restarted = 1;
+            failed = 1;
+            // Still slow 1 s later, the wheels stopped? The HSI is left alone.
+            HAL_FLASH_Lock();
+            wheels_now(0, 0);
+            motion_wait(1000);
+            if(i + 1u < STRESS_ROUND_HW){
+                HAL_FLASH_Unlock();
+                const uint32_t t1 = DWT->CYCCNT;
+                HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, base + 2u * (i + 1u), 0x1234u);
+                stress_report("1 s despues, otra escritura (us)", r, stress_us(t1));
+            }
         }
         HAL_FLASH_Lock();
         wheels_now(0, 0);
         const volatile uint16_t *hw = (const volatile uint16_t *)base;
-        for(uint32_t i = 0; i < STRESS_ROUND_HW; i++){
+        for(uint32_t i = 0; i < STRESS_ROUND_HW && !failed; i++){
             if(hw[i] == (uint16_t)((r * STRESS_ROUND_HW + i) ^ 0xA5A5u)) continue;
             stress_report("dato mal escrito (indice)", r, i);
             break;
@@ -281,6 +290,61 @@ static void flash_stress(uint32_t rounds){
     abort_flag = 0;
 }
 
+static void reversal_stress(uint32_t blocks){
+    const uint32_t page = STRESS_PAGE + FLASH_PAGE_SIZE;
+    if(!wheels || blocks == 0 || blocks > FLASH_PAGE_SIZE / 2u){
+        print("inversion: TUNE RUEDAS 1 antes (robot en alto); TUNE INVERSION bloques (1-512)\n");
+        return;
+    }
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    abort_flag = 0;
+    wheels_now(0, 0);
+    FLASH_EraseInitTypeDef erase = {.TypeErase = FLASH_TYPEERASE_PAGES, .Banks = FLASH_BANK_1,
+                                    .PageAddress = page, .NbPages = 1};
+    uint32_t page_error = 0;
+    const uint32_t t0 = DWT->CYCCNT;
+    HAL_FLASH_Unlock();
+    HAL_FLASHEx_Erase(&erase, &page_error);
+    HAL_FLASH_Lock();
+    const uint32_t erase_ms = stress_us(t0) / 1000u;
+    if(erase_ms > STRESS_SLOW_MS){
+        stress_report("borrado previo lento (ms)", 0, erase_ms);
+        return;
+    }
+    uint32_t worst_us = 0;
+    uint8_t failed = 0;
+    for(uint32_t b = 0; b < blocks && !failed && !abort_flag; b++){
+        for(uint8_t k = 0; k < 10u; k++){
+            wheels_now(STRESS_PWM, STRESS_PWM);
+            motion_wait(150);
+            wheels_now(-STRESS_PWM, -STRESS_PWM);
+            motion_wait(150);
+        }
+        wheels_now(0, 0);
+        motion_wait(1000);
+        HAL_FLASH_Unlock();
+        const uint32_t t1 = DWT->CYCCNT;
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, page + 2u * b, (uint16_t)(b ^ 0x5A5Au));
+        const uint32_t us = stress_us(t1);
+        HAL_FLASH_Lock();
+        if(us > worst_us) worst_us = us;
+        if(us > STRESS_SLOW_US){
+            print("!! inversion: escritura lenta tras %lu bloques de 10 inversiones: %lu us | RCC_CR=%08lx\n",
+                  (unsigned long)(b + 1u), (unsigned long)us, (unsigned long)RCC->CR);
+            failed = 1;
+        }
+        else if((b + 1u) % 10u == 0 || b + 1u == blocks){
+            print("inversion %lu/%lu: peor %lu us\n", (unsigned long)(b + 1u), (unsigned long)blocks,
+                  (unsigned long)worst_us);
+        }
+    }
+    wheels_now(0, 0);
+    print("inversion: %s\n", failed ? "PARADO: la flash quedo lenta sin escribir mientras giraban"
+                                     : abort_flag ? "parado con START" : "terminado sin fallos");
+    abort_flag = 0;
+}
+
 void motion_tune_list(void){
     print("ruedas %s (TUNE RUEDAS 1: giran con cada movimiento, solo con el robot en alto; 0: quietas)\n",
           wheels ? "GIRANDO" : "quietas");
@@ -289,6 +353,15 @@ void motion_tune_list(void){
 void motion_tune_set(const char *name, float value){
     if(strcmp(name, "ESTRES") == 0){
         flash_stress(value > 0.0f ? (uint32_t)value : 0u);
+        return;
+    }
+    if(strcmp(name, "INVERSION") == 0){
+        reversal_stress(value > 0.0f ? (uint32_t)value : 0u);
+        return;
+    }
+    if(strcmp(name, "HSI") == 0){     // the cure of a slow flash, by hand
+        const uint8_t ok = stress_hsi_restart();
+        print("HSI %s | RCC_CR=%08lx\n", ok ? "reiniciado" : "NO reiniciado", (unsigned long)RCC->CR);
         return;
     }
     if(strcmp(name, "RUEDAS") == 0){
