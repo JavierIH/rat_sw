@@ -9,8 +9,9 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
   lentos: ya se puede recoger el robot), vuelve a la salida explorando y lo
   guarda otra vez si aprendió algo.
 - **Carrera rápida** (modo 2, carreras 4-6): recorre el camino verificado con las rectas
-  fusionadas a velocidad `FAST`, frenando antes de cada giro; vuelve a la
-  salida sola.
+  fusionadas a velocidad `FAST`, frenando antes de cada giro; en la meta
+  guarda el mapa si cambió (nunca al volver; si no llega a la meta, no
+  guarda) y vuelve a la salida sola.
 - El planificador minimiza **tiempo** (celdas y giros), no solo celdas.
 - El mapa, la meta y los parámetros sobreviven a reinicios.
 

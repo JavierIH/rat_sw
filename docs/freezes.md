@@ -244,5 +244,6 @@ search's save never landed, so the map lived only in RAM (a wedge that the
 HSI restart did not clear, or an earlier one that had blocked the store;
 a full log would also fit). Unconfirmed: no "!!" lines were seen, and the
 LEDs gave no sign of a failed save. Since then (issue 17) the search saves
-as soon as its path is verified, before the return, and a save shows on
-the LEDs: three slow blinks in flash, three fast ones only in RAM.
+as soon as its path is verified, before the return, a race saves at the
+goal (never back at the start), and a save shows on the LEDs: three slow
+blinks in flash, three fast ones only in RAM.

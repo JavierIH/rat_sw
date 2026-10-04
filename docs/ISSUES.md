@@ -10,7 +10,8 @@ commit when done. Details go in the docs it points to, not here.
   search's map never reached the flash (likely a wedge: the reset button
   did not boot), so a power cycle after race 2.4 crashed lost it. Done in
   code, not flashed: the search saves when its path is verified (stopped,
-  before the return), save results on the LEDs (3 slow = in flash, 3 fast
+  before the return), a race saves at the goal only (the user's rule:
+  never back at the start), save results on the LEDs (3 slow = in flash, 3 fast
   = only in RAM), START refused for lack of a verified path blinks fast.
   Next: flash with issue 15 (a)(b); check on the 4x3 (`GOAL 3 2`) that the
   verification stop saves and blinks. Open: why no race would start after

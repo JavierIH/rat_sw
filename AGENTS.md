@@ -32,8 +32,10 @@ unknown maze, maps it, finds the fastest route and runs it:
    in every cell.
 2. **Speed run** (races 2.4-2.6; 2.3 turns in place instead): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
-   no turning in place). Then return to the start the same way at `SPD` and
-   save again.
+   no turning in place). At the goal, stopped, save the map if it changed
+   (never back at the start: a failed return must lose nothing; a race that
+   does not reach the goal saves nothing). Then return to the start the
+   same way at `SPD`.
 
 Goal configuration:
 - Competition 16x16: goal = center 2x2 block, the default build
@@ -306,8 +308,8 @@ search leg; the dump comes when the run ends).
 - Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). So nothing erases during runs: the map
-  is saved at rest (the search once its path is verified; every run at its
-  end), only if it changed, into an erased
+  is saved at rest (the search once its path is verified and at its end; a
+  race at the goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
   HSI: the first slow halfword restarts it and the write goes on; a second
   one stops it and blocks the store until a power cycle; `RESET` refuses
