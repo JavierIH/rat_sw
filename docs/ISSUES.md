@@ -16,19 +16,19 @@ commit when done. Details go in the docs it points to, not here.
   blinks fast. Next: issue 18, then flash with issue 15 (a)(b).
 
 - Issue 18, virtual robot (`env:virtual`, AGENTS.md environments): flashed
-  10-04 20:21 (b1ae6e9), boots ("ROBOT VIRTUAL", the real record ignored,
-  5 free slots). Its maze (seed 2): search ~57 s, goal at ~29 s (8,7), 44
-  cells, cost 106; races ~22 s, each saves at the goal while the walls'
-  evidence still changes (the 3rd after ERASE + search fills the log).
-  Plan on the robot: flash it,
-  `ERASE`, mode 1 (16x16 virtual, real time; watch the save at the goal
-  and at the start: 3 slow blinks, "Mapa guardado"), power cycle -> banner
-  "Mapa en flash"; races 2.4-2.6 (save at the goal only if changed); cut
-  the power during a search's way back and during a race's return; fill
-  the log (FULL -> 3 fast blinks, `SAVE` compacts). Then flash the real
-  firmware back (it ignores the virtual records: `ERASE`). Open: why no race would start after
-  the crash (a wall marked on the verified path?), and the crash itself
-  (the user will bring it up).
+  10-04 20:21 (b1ae6e9). Tested that evening (log 2026-10-04_19-29-11),
+  all as designed: search from an erased map saved at the goal (~28 s),
+  a power cut 13 s into the way back kept it (race 2.4 at once, cost 106,
+  the optimum); full search saves at the goal and at the start; races
+  save at the goal while the walls' evidence changes, then "ya guardado";
+  a full log -> "!! flash sin hueco" at the search's end and at a race's
+  goal (the run goes on from RAM), `SAVE` compacts and saves; `RESET` in
+  the way back of a search and of a race (as a power cut): the boot shows
+  the map ("Mapa en flash: 44 celdas, coste 106"). Flash healthy: 56-62
+  us a halfword, 9 ms a record, 22 ms an erase, no HSI restart, no other
+  "!!"; stack 1064 B never used. The boot banner is lost after a power-on
+  (the HC-05 connects later): `STATUS` then. Next: flash the real
+  firmware back (ST-Link), `ERASE`.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
