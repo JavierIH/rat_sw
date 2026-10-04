@@ -153,7 +153,7 @@ on the PLL; a wedged save stalls it ~1 s at most).
 | 352bce9 | every flash program, erase and probe starts by restarting the HSI (`hsi_fresh()`); the reactive restart on a slow halfword stays | kept: now it starts a stopped HSI |
 | 352bce9 | SystemInit switched to the crystal and restarted the HSI first | **did not work** (reset still dead): reverted in 286a4fd |
 | 286a4fd | `health_alive()`, called by every waiting loop, restarted the HSI every 10 ms; `RESET` restarted it right before resetting | partial evidence: ~470 reversals without a wedge (P of that by chance at the stand's rate ~10%), the reset button booted mid-test. Replaced by the next one |
-| 7a228fd | the HSI stopped except during a flash operation: the clock setup stops it (on the crystal), every operation starts it fresh and stops it when done; nothing else uses it, the chip starts it at every reset and on a crystal failure. A reset always finds it stopped, so it cannot be crawling then | built; robot validation pending: `TUNE INVERSION` with no slow halfword, the same with `TUNE HSI 1` wedging (the test still sees it), a `RESET` mid-test booting |
+| e3c5b21 | the HSI stopped except during a flash operation: the clock setup stops it (on the crystal), every operation starts it fresh and stops it when done; nothing else uses it, the chip starts it at every reset and on a crystal failure. A reset always finds it stopped, so it cannot be crawling then | built; robot validation pending: `TUNE INVERSION` with no slow halfword, the same with `TUNE HSI 1` wedging (the test still sees it), a `RESET` mid-test booting |
 
 Not done, on purpose: limiting the PWM slew (would change the control,
 needs its own measurements).
