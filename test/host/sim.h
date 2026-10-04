@@ -22,11 +22,13 @@ typedef struct {
     uint32_t legs, stops;   // motion_explore() calls; moves that ended at rest (any kind)
     uint32_t wall_stops;    // search legs that stopped at a front wall seen on the way (expected)
     uint32_t decides, decide_pops, decide_pops_max;     // search legs' decisions on the way: planner work
+    uint32_t decide_waits;  // ... and their waits for the UART (must stay 0: the robot is moving)
     uint32_t decide_hist[SIM_POPS_BUCKETS];             // ... how many took pops / SIM_POPS_BUCKET_SIZE
     double seconds;         // estimated robot time of every move and stop (see sim.c)
 } sim_stats_t;
 
 extern sim_stats_t sim_stats;
+extern uint32_t sim_uart_waits;     // uart_wait_space() calls (host_io.c counts them)
 extern uint8_t sim_x, sim_y;
 extern heading_t sim_h;
 

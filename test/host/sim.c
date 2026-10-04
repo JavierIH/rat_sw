@@ -5,6 +5,7 @@
 #include "robot_config.h"
 
 sim_stats_t sim_stats;
+uint32_t sim_uart_waits;
 uint8_t sim_x, sim_y;
 heading_t sim_h;
 
@@ -308,9 +309,10 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         w.left = side_on_the_way(truth_wall(sim_x, sim_y, heading_left(sim_h)));
         w.right = side_on_the_way(truth_wall(sim_x, sim_y, heading_right(sim_h)));
         w.moving = 1;
-        const uint32_t pops0 = maze_plan_pops();
+        const uint32_t pops0 = maze_plan_pops(), waits0 = sim_uart_waits;
         const next_move_t next = decide(&w, ctx);
         const uint32_t pops = maze_plan_pops() - pops0;
+        sim_stats.decide_waits += sim_uart_waits - waits0;
         sim_stats.decides++;
         sim_stats.decide_pops += pops;
         if(pops > sim_stats.decide_pops_max) sim_stats.decide_pops_max = pops;

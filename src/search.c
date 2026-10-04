@@ -228,17 +228,21 @@ static run_result_t finish_at_start(uint16_t steps){
 
 // Plans towards `targets` over the optimistic map into cost_a. If a phantom
 // wall sealed the targets off, forgets doubtful walls (first those seen only
-// once, then all) instead of giving up: the position is still trusted, so
-// the robot simply re-learns them.
-static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs){
+// once, but not this cell's, just seen: forgetting a real wall seen once from
+// here only made the robot see it again, repair again and give up; then all)
+// instead of giving up: the position is still trusted, so the robot simply
+// re-learns them. Only at rest (`at_rest`): on the way the
+// search just stops there, since the repair resends the whole map (~140 ms
+// of waiting for the UART) and the walls are seen once more at the stop.
+static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs, uint8_t at_rest){
     maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     if(cost_a[pose_state()] != PLAN_INF) return REPLAN_OK;
-    if(*repairs >= MAP_MAX_RECOVERIES) return REPLAN_UNREACHABLE;
+    if(!at_rest || *repairs >= MAP_MAX_RECOVERIES) return REPLAN_UNREACHABLE;
     (*repairs)++;
-    uint16_t forgotten = maze_forget_walls(1);
+    uint16_t forgotten = maze_forget_walls(1, pose.x, pose.y);
     maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     if(cost_a[pose_state()] == PLAN_INF){
-        forgotten = (uint16_t)(forgotten + maze_forget_walls(INT8_MAX));
+        forgotten = (uint16_t)(forgotten + maze_forget_walls(INT8_MAX, MAZE_SIZE, MAZE_SIZE));
         maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     }
     print("!! destino inalcanzable segun el mapa: olvido %u paredes dudosas (reparacion %u/%u)\n",
@@ -328,8 +332,8 @@ static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
 
 // Best action from the pose, logged with what was seen. 0 if the targets
 // cannot be reached or the action budget ran out (e->failed says which).
-static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a){
-    if(plan_explore(&e->targets, &e->repairs) == REPLAN_UNREACHABLE){
+static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a, uint8_t at_rest){
+    if(plan_explore(&e->targets, &e->repairs, at_rest) == REPLAN_UNREACHABLE){
         e->failed = 1;
         return 0;
     }
@@ -403,7 +407,7 @@ static next_move_t explore_next(const wall_sense_t *w, void *ctx){
     leg_enter_cell(w);
     if(explore_phase(e, 0) != PHASE_GO) return NEXT_STOP;
     action_t a;
-    if(!explore_plan(e, w, &a)) return NEXT_STOP;
+    if(!explore_plan(e, w, &a, 0)) return NEXT_STOP;
     if(a == ACT_FORWARD && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
     // It stops here and decides again at rest: one action, not two (the
     // optimisation budget counts them).
@@ -432,7 +436,7 @@ run_result_t search_explore(void){
             return res;
         }
         action_t a;
-        if(!explore_plan(&e, &w, &a)){
+        if(!explore_plan(&e, &w, &a, 1)){
             return fail_plan(e.failed == 2 ? "presupuesto de acciones agotado" : "destino inalcanzable");
         }
         // The map may still believe in a passage the sensors now see closed:
@@ -508,7 +512,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t cu
             if(r == MOVE_OK && route.cells) r = run_route(speed);
         }
         else{
-            if(plan_explore(targets, &repairs) == REPLAN_UNREACHABLE) return fail_plan("destino inalcanzable");
+            if(plan_explore(targets, &repairs, 1) == REPLAN_UNREACHABLE) return fail_plan("destino inalcanzable");
             action_t a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
             if(params.log_level >= 1){
                 print("%s (%u,%u)%c sin camino verificado -> %s\n", tag, pose.x, pose.y,

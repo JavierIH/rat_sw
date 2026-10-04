@@ -184,10 +184,12 @@ static void test_evidence(void){
     maze_observe(2, 2, NORTH, 1);
     maze_observe(2, 2, NORTH, 1);
     maze_observe(4, 4, NORTH, 0);
-    CHECK_EQ(maze_forget_walls(1), 1);
+    maze_observe(6, 6, WEST, 1);
+    CHECK_EQ(maze_forget_walls(1, 6, 6), 1);           // (6,6) keeps its walls
     CHECK_EQ(maze_wall(1, 1, NORTH), WALL_UNKNOWN);
     CHECK_EQ(maze_wall(2, 2, NORTH), WALL_PRESENT);
-    CHECK_EQ(maze_forget_walls(INT8_MAX), 1);
+    CHECK_EQ(maze_wall(5, 6, EAST), WALL_PRESENT);     // the same wall as (6,6) WEST
+    CHECK_EQ(maze_forget_walls(INT8_MAX, MAZE_SIZE, MAZE_SIZE), 2);
     CHECK_EQ(maze_wall(4, 4, NORTH), WALL_ABSENT);      // open passages are kept
 
     maze_init();
@@ -1188,6 +1190,25 @@ static void phantom_walls(void){
     }
 }
 
+// A leg finds the goal sealed off on the way (the map believed in phantom
+// walls around it and the one entrance it left is really closed): the robot
+// stops there and repairs the map at rest. Never on the way: the repair
+// resends the whole map, ~140 ms of waiting for the UART while moving.
+static void test_repair_at_rest(void){
+    maze_set_goal(7, 7, 8, 8);
+    truth_reset(0);
+    truth_set_wall(7, 7, SOUTH, 1);     // the entrance the map left
+    maze_init();
+    phantom_walls();
+    maze_mark_crossed(7, 7, SOUTH);     // believed open
+    sim_reset(0.0, 1);
+    search_set_home();
+    CHECK_EQ(search_explore(), RUN_OK);
+    CHECK_EQ(sim_stats.decide_waits, 0);
+    CHECK(maze_wall(7, 7, SOUTH) == WALL_PRESENT);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 static void transcript(uint32_t seed, uint16_t openings, int practice, int phantom){
     host_verbose = 1;
     if(practice){
@@ -2093,6 +2114,7 @@ int main(int argc, char **argv){
     test_races_settle_map();
     test_sqrt();
     test_run_control();
+    test_repair_at_rest();
     test_fast_run_surprise_wall();
     test_fast_run_no_curves();
     test_search_modes();

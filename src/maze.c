@@ -66,12 +66,15 @@ wall_state_t maze_wall(uint8_t x, uint8_t y, heading_t dir){
     return WALL_UNKNOWN;
 }
 
-uint16_t maze_forget_walls(int8_t max_evidence){
+uint16_t maze_forget_walls(int8_t max_evidence, uint8_t keep_x, uint8_t keep_y){
     uint16_t count = 0;
     for(uint8_t x = 0; x < MAZE_SIZE; x++){
         for(uint8_t y = 0; y < MAZE_SIZE; y++){
-            if(ev_north[x][y] > 0 && ev_north[x][y] <= max_evidence){ ev_north[x][y] = 0; count++; }
-            if(ev_east[x][y] > 0 && ev_east[x][y] <= max_evidence){ ev_east[x][y] = 0; count++; }
+            // ev_north[x][y] is also the south wall of (x, y + 1); ev_east, the west of (x + 1, y).
+            const uint8_t keep_n = x == keep_x && (y == keep_y || y + 1 == keep_y);
+            const uint8_t keep_e = y == keep_y && (x == keep_x || x + 1 == keep_x);
+            if(!keep_n && ev_north[x][y] > 0 && ev_north[x][y] <= max_evidence){ ev_north[x][y] = 0; count++; }
+            if(!keep_e && ev_east[x][y] > 0 && ev_east[x][y] <= max_evidence){ ev_east[x][y] = 0; count++; }
         }
     }
     return count;

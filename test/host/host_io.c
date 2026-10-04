@@ -1,6 +1,7 @@
 // Host stand-ins for the console functions search.c uses.
 #include <stdarg.h>
 #include <stdio.h>
+#include "sim.h"
 #include "uart.h"
 
 int host_verbose;
@@ -16,4 +17,5 @@ void print(const char *format, ...){
 
 void uart_wait_space(uint32_t timeout_ms){
     (void)timeout_ms;
+    sim_uart_waits++;
 }

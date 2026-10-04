@@ -51,8 +51,9 @@ void maze_mark_crossed(uint8_t x, uint8_t y, heading_t dir);   // drove through 
 void maze_mark_blocked(uint8_t x, uint8_t y, heading_t dir);   // hit an obstacle there: surely closed
 wall_state_t maze_wall(uint8_t x, uint8_t y, heading_t dir);
 int8_t maze_evidence(uint8_t x, uint8_t y, heading_t dir);     // 3 for the border
-// Forgets walls with evidence in [1, max_evidence]. Returns how many.
-uint16_t maze_forget_walls(int8_t max_evidence);
+// Forgets walls with evidence in [1, max_evidence], but the four of cell
+// (keep_x, keep_y) (MAZE_SIZE: none). Returns how many.
+uint16_t maze_forget_walls(int8_t max_evidence, uint8_t keep_x, uint8_t keep_y);
 
 void maze_mark_visited(uint8_t x, uint8_t y);   // all four walls of the cell have been seen
 uint8_t maze_is_visited(uint8_t x, uint8_t y);
