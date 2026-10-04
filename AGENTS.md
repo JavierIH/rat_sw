@@ -75,6 +75,15 @@ Environments in `platformio.ini` (`default_envs = bluepill_f103c8`):
 - `uart_test`, `diag_test`: hardware smoke tests (UART loopback; LED + IR +
   encoder panel for `tools/dashboard.py`). They exclude the app modules
   (`[common] app_sources`).
+- `virtual`: the robot firmware on the real chip with the motors never
+  driven (`MOTORS_ENABLED=0`) and `motion.c`/`control.c`/`path.c` replaced
+  by `src/test_virtual.c`, which builds `test/host/sim.c` in
+  (`SIM_ON_ROBOT`): every move is resolved cell by cell in a built-in 16x16
+  maze (`VIRTUAL_SEED`) and takes its simulated time for real; each run
+  starts with the virtual robot at the start. Console, LEDs, menus and the
+  store on the real flash are the robot's: for testing saves (power cuts,
+  full logs, compaction) without a maze. Its records carry another maze
+  signature, so the real firmware ignores them (and the boot erases them).
 
 Commands:
 - `pio run` builds the robot firmware; `pio run -e <env>` any other.

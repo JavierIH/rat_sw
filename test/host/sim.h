@@ -5,7 +5,10 @@
 #include "maze.h"
 #include "motion.h"
 
-// Simulated robot in a known "true" maze, implementing motion.h.
+// Simulated robot in a known "true" maze, implementing motion.h. Also built
+// into the virtual robot firmware (src/test_virtual.c, SIM_ON_ROBOT), which
+// replaces motion_checkpoint() and motion_indicate() with the robot's and
+// takes each move's time for real in virtual_elapse().
 
 #define SIM_POPS_BUCKETS      16
 #define SIM_POPS_BUCKET_SIZE  1024u
@@ -44,5 +47,8 @@ void sim_abort_after(uint32_t actions);               // 0 = never
 void sim_abort_after_cells(uint32_t cells);           // STOP at the first stop past that many cells
 void sim_side_doubt(double probability);               // side readings reported doubtful
 uint32_t sim_rand(void);
+#ifdef SIM_ON_ROBOT
+void virtual_elapse(double seconds);
+#endif
 
 #endif // SIM_H

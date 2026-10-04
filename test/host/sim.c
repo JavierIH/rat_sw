@@ -212,8 +212,16 @@ static double drive_seconds(double mm, double v){
     return mm / v + v / a;
 }
 
+// The virtual robot firmware lives the moves' time for real.
+static void elapse(double s){
+    sim_stats.seconds += s;
+#ifdef SIM_ON_ROBOT
+    virtual_elapse(s);
+#endif
+}
+
 static void stopped(double drive_s){
-    sim_stats.seconds += drive_s + SIM_STOP_S;
+    elapse(drive_s + SIM_STOP_S);
     sim_stats.stops++;
 }
 
@@ -344,13 +352,14 @@ move_result_t motion_turn(int8_t quarter_turns){
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.quarter_turns += (uint32_t)(quarter_turns < 0 ? -quarter_turns : quarter_turns);
-    sim_stats.seconds += SIM_QUARTER_TURN_S * (quarter_turns < 0 ? -quarter_turns : quarter_turns);
+    elapse(SIM_QUARTER_TURN_S * (quarter_turns < 0 ? -quarter_turns : quarter_turns));
     sim_h = (heading_t)((sim_h + quarter_turns + 4) & 3);
     return MOVE_OK;
 }
 
 void motion_align_front(void){}
 
+#ifndef SIM_ON_ROBOT    // the virtual robot has the robot's: START, STOP, step mode, LEDs
 uint8_t motion_checkpoint(void){
     return !(abort_after && sim_stats.actions >= abort_after)
            && !(abort_after_cells && sim_stats.forward_cells >= abort_after_cells);
@@ -359,3 +368,4 @@ uint8_t motion_checkpoint(void){
 void motion_indicate(indication_t what){
     (void)what;
 }
+#endif

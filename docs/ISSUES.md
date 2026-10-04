@@ -13,8 +13,16 @@ commit when done. Details go in the docs it points to, not here.
   back at the start only if it learned something; a race saves at the goal
   only, never back at the start; save results on the LEDs (3 slow = in
   flash, 3 fast = only in RAM); START refused for lack of a verified path
-  blinks fast. Next: a test firmware that saves for real on the robot's
-  chip without moving it (being designed); flash with issue 15 (a)(b). Open: why no race would start after
+  blinks fast. Next: issue 18, then flash with issue 15 (a)(b).
+
+- Issue 18, virtual robot (`env:virtual`, AGENTS.md environments): built,
+  not flashed yet (needs the robot opened). Plan on the robot: flash it,
+  `ERASE`, mode 1 (16x16 virtual, real time; watch the save at the goal
+  and at the start: 3 slow blinks, "Mapa guardado"), power cycle -> banner
+  "Mapa en flash"; races 2.4-2.6 (save at the goal only if changed); cut
+  the power during a search's way back and during a race's return; fill
+  the log (FULL -> 3 fast blinks, `SAVE` compacts). Then flash the real
+  firmware back (its boot ignores and erases the virtual records). Open: why no race would start after
   the crash (a wall marked on the verified path?), and the crash itself
   (the user will bring it up).
 

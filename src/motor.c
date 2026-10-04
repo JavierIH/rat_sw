@@ -20,6 +20,7 @@ void MOTOR_Init(void){
     HAL_GPIO_Init(GPIOA, &gpio);
 }
 
+#if MOTORS_ENABLED
 static void set_direction(motor_t motor, uint8_t forward){
     GPIO_PinState fwd = forward ? GPIO_PIN_SET : GPIO_PIN_RESET;
     GPIO_PinState rev = forward ? GPIO_PIN_RESET : GPIO_PIN_SET;
@@ -32,6 +33,7 @@ static void set_direction(motor_t motor, uint8_t forward){
         HAL_GPIO_WritePin(GPIOA, MOTOR_L_IN2, rev);
     }
 }
+#endif
 
 static volatile int16_t requested[2];
 static volatile uint32_t last_drive_ms;     // HAL tick of the last non-zero duty requested...

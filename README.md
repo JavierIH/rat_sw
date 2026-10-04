@@ -156,5 +156,10 @@ python3 -m unittest discover -s tools -p 'test_*.py'   # monitor y análisis
 ```
 
 Entornos de prueba de hardware: `pio run -e uart_test` y `pio run -e diag_test`
-(este último con `tools/dashboard.py`). Detalles de arquitectura y
+(este último con `tools/dashboard.py`). `pio run -e virtual -t upload`:
+robot virtual, el firmware del robot con los motores siempre apagados y un
+laberinto 16x16 grabado; búsqueda y carreras se recorren en él a velocidad
+real y guardan en la flash de verdad (para probar los guardados sin
+laberinto). Cada carrera empieza con el robot virtual en la salida. Al
+volver al firmware real, su mapa se ignora y se borra en el arranque. Detalles de arquitectura y
 convenciones en [AGENTS.md](AGENTS.md).

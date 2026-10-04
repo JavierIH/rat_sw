@@ -40,10 +40,14 @@ static record_t record;     // static: too big for the stack budget
 static int8_t current = -1; // slot of the current record, -1 if none
 static uint32_t current_seq;
 
-// A firmware built for another maze (its default goal) must not load this
-// map: it would be another maze's.
+// A firmware built for another maze (its default goal, or the virtual
+// robot's maze) must not load this map: it would be another maze's.
 static uint32_t maze_defaults_signature(void){
+#ifdef VIRTUAL_ROBOT
+    static const uint8_t maze[6] = {MAZE_SIZE, GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1, 'V'};
+#else
     static const uint8_t maze[5] = {MAZE_SIZE, GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1};
+#endif
     return crc32_update(0, maze, sizeof(maze));
 }
 
