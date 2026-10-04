@@ -158,8 +158,8 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
 }
 
 void motion_tune_list(void){
-    print("robot virtual: TUNE RUEDAS 1 las hace girar con cada movimiento (solo con el robot en alto), 0 quietas;"
-          " ahora %s\n", wheels ? "giran" : "quietas");
+    print("ruedas %s (TUNE RUEDAS 1: giran con cada movimiento, solo con el robot en alto; 0: quietas)\n",
+          wheels ? "GIRANDO" : "quietas");
 }
 
 void motion_tune_set(const char *name, float value){
