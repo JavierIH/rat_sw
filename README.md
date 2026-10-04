@@ -6,8 +6,9 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 - **Búsqueda** (modo 1): explora hasta la meta, sigue explorando solo las
   celdas que aún podrían acortar el camino rápido hasta que el mejor camino
   queda verificado, guarda entonces el mapa en flash (parado; 3 parpadeos
-  lentos: ya se puede recoger el robot), vuelve a la salida explorando y lo
-  guarda otra vez si aprendió algo.
+  lentos: ya se puede recoger el robot), vuelve a la meta explorando y se
+  queda allí (lo guarda otra vez si aprendió algo). Se lleva a mano a la
+  salida y START lanza la carrera.
 - **Carrera rápida** (modo 2, carreras 4-6): recorre el camino verificado con las rectas
   fusionadas a velocidad `FAST`, frenando antes de cada giro; en la meta
   guarda el mapa si cambió (nunca al volver; si no llega a la meta, no
