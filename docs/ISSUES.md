@@ -34,8 +34,13 @@ commit when done. Details go in the docs it points to, not here.
   8 runs OK, every boot with the map; no "!!", no stall, worst halfword
   69 us, 10 ms a record, 22 ms an erase, no HSI restart. No wedge
   reproduced (wheels in the air draw little current; the competition's
-  cause stays unproven). Next: flash the real firmware back (ST-Link),
-  `ERASE`.
+  cause stays unproven). Then the stress tests (`TUNE ESTRES`, `TUNE
+  INVERSION`) wedged it on demand: hard motor reversals alone wedge the HSI;
+  a reset then does not boot (`docs/freezes.md`, last section). Fix
+  352bce9 (HSI restarted before every flash operation and in SystemInit).
+  Next: power cycle, flash the virtual firmware with the fix, wedge it
+  (`TUNE INVERSION`) and check that `RESET` boots and a `SAVE` writes
+  normally; then flash the real firmware, `ERASE`.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
@@ -69,17 +74,14 @@ commit when done. Details go in the docs it points to, not here.
   plan_explore -> telemetry_map(), whose uart_wait_space() waits ~140 ms
   for the 9600-baud UART (the 2001 pops are ~8 ms). Fix: issue 15 (a).
 
-- Issue 15, review 2026-09-30 (nothing changed in code yet). Firmware, for
-  the next flash (keeps the map): (a) no map repair on the way: an
-  unreachable plan in a leg returns NEXT_STOP, the repair runs at rest;
-  (b) STATUS "flash:" line is ~130 chars when blocked: print() cuts it at
-  119 and drops the newline; (c) ideas: cap the race return's curve speed
-  (it uses the preset's 400/480), a SysTick stop if the following error
-  runs away while the main loop blocks, measure the SysTick load (DWT).
-  No flash: calib_analyze.py must unwrap the int16 columns (CAL TURN 4
-  wraps ref_rot past 327.67 deg: "giro 4 ... 656 grados"; long CAL RUN
-  wraps ref_fwd/enc past ~3.3 m); README CAL table (STRAIGHT takes mm/s;
-  CURVE and RUN missing).
+- Issue 15, review 2026-09-30. (a) and (b) done 10-04, not flashed: map
+  repairs only at rest, and their first pass keeps the walls of the
+  robot's cell (forgetting a real wall seen once from there looped until
+  the search gave up: test_repair_at_rest); STATUS "flash:" line shortened.
+  Left: (c) ideas (cap the race return's curve speed, a SysTick stop if
+  the following error runs away while the main loop blocks, measure the
+  SysTick load), and the no-flash items (calib_analyze.py int16 unwrap,
+  README CAL table).
 
 ## Closed
 

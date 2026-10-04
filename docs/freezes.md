@@ -247,3 +247,32 @@ LEDs gave no sign of a failed save. Since then (issue 17) the search saves
 at the goal (and back at the start if it learned something), a race at
 the goal (never back at the start), and a save shows on the LEDs: three
 slow blinks in flash, three fast ones only in RAM.
+
+## 2026-10-04 evening: the wedge reproduced on a stand (motor transients)
+
+With the virtual robot (`env:virtual`, wheels in the air, log
+2026-10-04_19-29-11) the wedge was produced on demand:
+- `TUNE ESTRES` (halfword writes on scratch pages while the wheels turn,
+  after a hard stop, through a reversal, turning in place): ~13,000 normal
+  halfwords (56-63 us), then two slow ones (2.1 ms), both while the wheels
+  reversed (+700 to -700 PWM); after the second a halfword landed wrong and
+  the flash stayed wedged: the next erase took ~192 s (the CPU stalled, the
+  robot frozen with one LED lit), a store write's first halfword 435 ms, and
+  the store's HSI restart cured it (63 us after; n=4 cures, every one).
+- `TUNE INVERSION` (hard reversals with no flash operation during them, then
+  1 s with the motors off, as the store waits, and one timed halfword): after
+  280 reversals the halfword took 463 ms. So motor transients alone wedge
+  it: the store's settle (motors off 1 s) does not protect, and a save after
+  a run can find the flash wedged.
+- `RESET` with the flash wedged: no boot for over 10 minutes, until a power
+  cycle (the CPU boots on the HSI): the competition's reset button.
+- RCC_CR read 030b4d83 throughout (HSI on and ready): the HSI keeps running,
+  crawling (~9000 times slow), so nothing in the registers shows it.
+
+The competition (10-04) fits: transients during the search wedged the HSI,
+the save at the end was cut (or did not land), the map stayed in RAM, the
+reset button did not boot, the power cycle lost it. Fix (352bce9): every
+flash operation starts on a freshly restarted HSI (the reactive restart on
+a slow halfword stays), and SystemInit runs on the crystal and restarts the
+HSI before anything else, so a reset boots even with the HSI wedged (to be
+confirmed on the robot).

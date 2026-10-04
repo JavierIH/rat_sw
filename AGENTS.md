@@ -321,7 +321,11 @@ search leg; the dump comes when the run ends).
   (at boot, or after a crystal failure; never on purpose).
 - Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
-  erase ~200 s, stalling the CPU). So nothing erases during runs: the map
+  erase ~200 s, stalling the CPU). Hard motor reversals alone cause it (10-04,
+  on a stand): the HSI, which times the flash, crawls until restarted. So
+  every flash operation starts by restarting the HSI, and SystemInit runs on
+  the crystal and restarts it before anything else (a reset could not boot
+  on a crawling HSI). Nothing erases during runs: the map
   is saved at rest (the search at the goal and at its end; a race at the
   goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
