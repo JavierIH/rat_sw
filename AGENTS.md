@@ -22,7 +22,9 @@ unknown maze, maps it, finds the fastest route and runs it:
 
 1. **Search** (mode 1): explore to the goal, keep exploring the cells that
    could still shorten the speed-run path until the best path is verified,
-   return to the start exploring on the way, face north, save the map. It
+   save the map then (stopped; before the return, so the robot can be
+   picked up and a failed return loses nothing), return to the start
+   exploring on the way, face north, save again if the map changed. It
    drives straight stretches without stopping, deciding each cell on the
    way with the walls it would see stopped there, and stops to turn in place
    (and at the goal and the end). No curves in the search: the user wants it
@@ -194,6 +196,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   `MODE 2 k`, `MODE 3`. Internally (`app_mode_t`, telemetry `@M`) the runs
   keep the old numbers 1-6, plus 7 no curves and 8 900/400. START launches
   after a 5 s countdown, every LED blinking fast (`CAL` tests: 2 s).
+  Three slow blinks of every LED: the map is in flash; three fast ones: a
+  failed run, START refused (no verified path) or a save that failed (the
+  map only in RAM: no reset, no power cycle).
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).
@@ -289,8 +294,8 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (87.1 %: ~2.6 KB left for the stack) and flash
-  (94.6 % of 62 KB, 3.3 KB left). Keep that headroom: report sizes after every change,
+  builds use the same RAM (86.2 %: ~2.8 KB left for the stack) and flash
+  (93.8 % of 62 KB, 3.8 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's
@@ -301,7 +306,8 @@ search leg; the dump comes when the run ends).
 - Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). So nothing erases during runs: the map
-  is saved once, at the end of a run, only if it changed, into an erased
+  is saved at rest (the search once its path is verified; every run at its
+  end), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
   HSI: the first slow halfword restarts it and the write goes on; a second
   one stops it and blocks the store until a power cycle; `RESET` refuses

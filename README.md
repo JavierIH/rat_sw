@@ -5,7 +5,9 @@ laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
 
 - **Búsqueda** (modo 1): explora hasta la meta, sigue explorando solo las
   celdas que aún podrían acortar el camino rápido hasta que el mejor camino
-  queda verificado, vuelve a la salida explorando y guarda el mapa en flash.
+  queda verificado, guarda entonces el mapa en flash (parado; 3 parpadeos
+  lentos: ya se puede recoger el robot), vuelve a la salida explorando y lo
+  guarda otra vez si aprendió algo.
 - **Carrera rápida** (modo 2, carreras 4-6): recorre el camino verificado con las rectas
   fusionadas a velocidad `FAST`, frenando antes de cada giro; vuelve a la
   salida sola.
@@ -30,8 +32,10 @@ Flujo de competición: `ERASE` (o modo 3) si el laberinto es nuevo → modo 1 �
 carrera 2.4, y las más rápidas cuando la anterior salga bien.
 
 LEDs: modo seleccionado (con un parpadeo por segundo = vivo); durante las
-rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; fallo =
-3 parpadeos rápidos; parpadeo continuo rápido = `Error_Handler`; parpadeo lento
+rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; mapa
+guardado en flash = 3 parpadeos lentos; fallo = 3 parpadeos rápidos (también:
+START sin camino verificado, o el mapa no se pudo guardar y solo está en RAM:
+no reinicies ni apagues); parpadeo continuo rápido = `Error_Handler`; parpadeo lento
 continuo = fallo grave de CPU (motores parados).
 
 ## Monitor en vivo

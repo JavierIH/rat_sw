@@ -233,3 +233,16 @@ issue 11: the save after race 2.4's return, the second save since the
 power-on): "!! flash: 2 bytes en 310190 us (dato bien): HSI reiniciado;
 despues, peor 63 us (normal ~56)", then "Mapa guardado" and the next race
 went on. n=3; two wedges in one power-on, ~4 min apart, both cleared.
+
+Competition, 2026-10-04 (firmware Sep 30 19:46, no Bluetooth log): the
+search went well and returned to the start (where it saved then); race
+2.4 crashed into a wall; afterwards no race would start, the reset button
+did not boot the robot (the signature of a wedged flash, above) and only
+a power cycle did. After it the flash held a valid record with an empty
+map and the default goal (most likely the `ERASE` before the search): the
+search's save never landed, so the map lived only in RAM (a wedge that the
+HSI restart did not clear, or an earlier one that had blocked the store;
+a full log would also fit). Unconfirmed: no "!!" lines were seen, and the
+LEDs gave no sign of a failed save. Since then (issue 17) the search saves
+as soon as its path is verified, before the return, and a save shows on
+the LEDs: three slow blinks in flash, three fast ones only in RAM.
