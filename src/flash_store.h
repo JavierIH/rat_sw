@@ -35,10 +35,5 @@ typedef struct {
 
 const flash_timing_t *flash_store_timing(void);
 uint8_t flash_store_probe(void);        // one spare halfword programmed and timed: 1 if normal
-// Restarts the HSI (a few us; not while it runs the CPU). Motor transients
-// can leave it crawling, and a reset on a crawling HSI does not boot at all
-// (10-04: no boot in 10 minutes, until a power cycle), so health_alive()
-// restarts it every HEALTH_HSI_REFRESH_MS. Not during a flash operation.
-void flash_store_hsi_refresh(void);
 
 #endif // FLASH_STORE_H

@@ -41,8 +41,11 @@ commit when done. Details go in the docs it points to, not here.
   SystemInit attempt did not boot either, reverted). The virtual firmware
   with them is on the robot: ~470 reversals with no wedge, and the reset
   button booted mid-test (then stopped: battery). Full account:
-  `docs/oshwdem2026.md`. Next (battery charged): `TUNE RUEDAS
-  1`, `TUNE INVERSION 200` (expect no slow halfword), `RESET` right after;
+  `docs/oshwdem2026.md`. Since then the HSI is stopped except during flash
+  operations (replaces the 10 ms refresh). Next (battery charged, short
+  batches): flash the virtual firmware, `TUNE RUEDAS 1`, `TUNE INVERSION 60`
+  (expect no slow halfword); `TUNE HSI 1` + `TUNE INVERSION 60` (expect a
+  wedge: the test still sees it); `TUNE HSI 0`, a `RESET` mid-test (boots);
   then flash the real firmware (every fix of issues 15, 17, 18), `ERASE`.
 
 - Issue 11, 16x16 competition readiness (plan and results:

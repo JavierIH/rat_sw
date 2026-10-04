@@ -463,7 +463,6 @@ static void cmd_reset(const char *args){
     motion_stop();
     print("reiniciando...\n");
     uart_flush(1500);
-    flash_store_hsi_refresh();      // the chip boots on the HSI: never on a crawling one
     NVIC_SystemReset();
 }
 

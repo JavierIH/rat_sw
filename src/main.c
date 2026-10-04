@@ -144,8 +144,8 @@ static void report_health(void){
     }
     uint32_t expected, seen;
     if(health_take_clock_change(&expected, &seen)){
-        print("!! osciladores cambiados sin pedirlo: RCC_CR %08lx -> %08lx%s\n", (unsigned long)expected,
-              (unsigned long)seen, (seen & RCC_CR_HSION) ? "" : " (HSI apagado: encendido otra vez)");
+        print("!! osciladores cambiados sin pedirlo: RCC_CR %08lx -> %08lx\n", (unsigned long)expected,
+              (unsigned long)seen);
     }
     if(sysclock_recover()){
         uart_retime();

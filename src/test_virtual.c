@@ -165,7 +165,10 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
 // a stand, TUNE RUEDAS 1. Stops at the first slow operation, leaving the HSI alone, and
 // times one more halfword 1 s later: does the flash stay slow? START stops it between
 // rounds. TUNE INVERSION n: hard reversals with no flash operation, then 1 s at rest
-// and one timed halfword (the store only writes at rest). TUNE HSI 1 restarts the HSI.
+// and one timed halfword (the store only writes at rest). The HSI is handled as the
+// store does (started fresh for each operation, stopped after) unless TUNE HSI 1 keeps
+// it on all the time, as the firmware did before 10-04: then the motor transients can
+// leave it crawling, which is what the tests detect (a store save stops it again).
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
 #define STRESS_ROUND_HW 64u             // halfwords a round: 8 rounds fill a page
 #define STRESS_SLOW_US  1000u           // a halfword normally takes ~56 us
@@ -187,15 +190,29 @@ static uint32_t stress_us(uint32_t t0){
     return (DWT->CYCCNT - t0) / (SystemCoreClock / 1000000u);
 }
 
-// As flash_store.c: off and on again, not while the HSI runs the CPU.
-static uint8_t stress_hsi_restart(void){
+static uint8_t hsi_kept_on;     // TUNE HSI 1
+
+// The CPU runs on the HSI (the crystal failed): it is left alone then.
+static uint8_t hsi_runs_cpu(void){
     const uint32_t cfgr = RCC->CFGR, sws = cfgr & RCC_CFGR_SWS;
-    if(sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC))) return 0;
+    return sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC));
+}
+
+static void hsi_wait_ready(uint32_t ready){
+    for(uint32_t n = 0; ((RCC->CR & RCC_CR_HSIRDY) != 0) != ready && n < 200000u; n++){}
+}
+
+// Before a scratch page operation: a freshly started HSI, as flash_store.c does.
+static void stress_hsi_start(void){
+    if(hsi_kept_on || hsi_runs_cpu()) return;
     RCC->CR &= ~RCC_CR_HSION;
-    for(uint32_t n = 0; (RCC->CR & RCC_CR_HSIRDY) && n < 200000u; n++){}
+    hsi_wait_ready(0);
     RCC->CR |= RCC_CR_HSION;
-    for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSIRDY) && n < 200000u; n++){}
-    return (RCC->CR & RCC_CR_HSIRDY) != 0;
+    hsi_wait_ready(1);
+}
+
+static void stress_hsi_stop(void){
+    if(!hsi_kept_on && !hsi_runs_cpu()) RCC->CR &= ~RCC_CR_HSION;
 }
 
 static void stress_report(const char *what, uint32_t round, uint32_t value){
@@ -224,6 +241,7 @@ static void flash_stress(uint32_t rounds){
         motion_wait(300);
         if(kind == 1) wheels_now(0, 0);
         else if(kind == 2) wheels_now(-STRESS_PWM, -STRESS_PWM);
+        stress_hsi_start();
         if(r % 8u == 0){
             // A new page: erased with the wheels stopped (a wedged erase stalls the CPU ~200 s).
             wheels_now(0, 0);
@@ -269,6 +287,7 @@ static void flash_stress(uint32_t rounds){
             }
         }
         HAL_FLASH_Lock();
+        stress_hsi_stop();
         wheels_now(0, 0);
         const volatile uint16_t *hw = (const volatile uint16_t *)base;
         for(uint32_t i = 0; i < STRESS_ROUND_HW && !failed; i++){
@@ -285,6 +304,7 @@ static void flash_stress(uint32_t rounds){
         motion_wait(100);
     }
     wheels_now(0, 0);
+    stress_hsi_stop();      // after an erase that failed, still on
     print("estres: %s\n", failed ? "PARADO por un fallo (apaga y enciende si la flash quedo lenta)"
                                   : abort_flag ? "parado con START" : "terminado sin fallos");
     abort_flag = 0;
@@ -303,10 +323,12 @@ static void reversal_stress(uint32_t blocks){
     FLASH_EraseInitTypeDef erase = {.TypeErase = FLASH_TYPEERASE_PAGES, .Banks = FLASH_BANK_1,
                                     .PageAddress = page, .NbPages = 1};
     uint32_t page_error = 0;
+    stress_hsi_start();
     const uint32_t t0 = DWT->CYCCNT;
     HAL_FLASH_Unlock();
     HAL_FLASHEx_Erase(&erase, &page_error);
     HAL_FLASH_Lock();
+    stress_hsi_stop();
     const uint32_t erase_ms = stress_us(t0) / 1000u;
     if(erase_ms > STRESS_SLOW_MS){
         stress_report("borrado previo lento (ms)", 0, erase_ms);
@@ -323,11 +345,13 @@ static void reversal_stress(uint32_t blocks){
         }
         wheels_now(0, 0);
         motion_wait(1000);
+        stress_hsi_start();
         HAL_FLASH_Unlock();
         const uint32_t t1 = DWT->CYCCNT;
         HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, page + 2u * b, (uint16_t)(b ^ 0x5A5Au));
         const uint32_t us = stress_us(t1);
         HAL_FLASH_Lock();
+        stress_hsi_stop();
         if(us > worst_us) worst_us = us;
         if(us > STRESS_SLOW_US){
             print("!! inversion: escritura lenta tras %lu bloques de 10 inversiones: %lu us | RCC_CR=%08lx\n",
@@ -348,6 +372,8 @@ static void reversal_stress(uint32_t blocks){
 void motion_tune_list(void){
     print("ruedas %s (TUNE RUEDAS 1: giran con cada movimiento, solo con el robot en alto; 0: quietas)\n",
           wheels ? "GIRANDO" : "quietas");
+    print("HSI %s (TUNE HSI 1: siempre encendido, como antes del 10-04; 0: solo para la flash)\n",
+          hsi_kept_on ? "SIEMPRE ENCENDIDO" : "solo para la flash");
 }
 
 void motion_tune_set(const char *name, float value){
@@ -359,10 +385,14 @@ void motion_tune_set(const char *name, float value){
         reversal_stress(value > 0.0f ? (uint32_t)value : 0u);
         return;
     }
-    if(strcmp(name, "HSI") == 0){     // the cure of a slow flash, by hand
-        const uint8_t ok = stress_hsi_restart();
-        print("HSI %s | RCC_CR=%08lx\n", ok ? "reiniciado" : "NO reiniciado", (unsigned long)RCC->CR);
-        return;
+    if(strcmp(name, "HSI") == 0){
+        hsi_kept_on = 0;
+        stress_hsi_stop();      // also the cure of a crawling HSI, by hand
+        if(value != 0.0f){
+            RCC->CR |= RCC_CR_HSION;
+            hsi_wait_ready(1);
+            hsi_kept_on = 1;
+        }
     }
     if(strcmp(name, "RUEDAS") == 0){
         wheels = value != 0.0f;

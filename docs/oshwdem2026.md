@@ -32,8 +32,8 @@ host tests.
 
 Fixes (code, all tested on the host; the robot status per fix below):
 saves at the goal (search and races), save results on the LEDs, the HSI
-restarted before every flash operation and every 10 ms while the program
-waits, map repairs only at rest keeping the walls just seen.
+stopped except during flash operations (each starts it fresh), map repairs
+only at rest keeping the walls just seen.
 
 ## 1. What happened at the competition (OSHWDEM 2026, 2026-10-03)
 
@@ -150,9 +150,10 @@ on the PLL; a wedged save stalls it ~1 s at most).
 
 | commit | change | status |
 |---|---|---|
-| 352bce9 | every flash program, erase and probe starts by restarting the HSI (`hsi_fresh()`); the reactive restart on a slow halfword stays | built, flashed in the virtual firmware; robot validation pending (a `SAVE` right after a wedge should show no slow halfword) |
+| 352bce9 | every flash program, erase and probe starts by restarting the HSI (`hsi_fresh()`); the reactive restart on a slow halfword stays | kept: now it starts a stopped HSI |
 | 352bce9 | SystemInit switched to the crystal and restarted the HSI first | **did not work** (reset still dead): reverted in 286a4fd |
-| 286a4fd | `health_alive()`, called by every waiting loop, restarts the HSI every 10 ms (`HEALTH_HSI_REFRESH_MS`, a few us each); `RESET` restarts it right before resetting | partial evidence: ~470 reversals without a wedge (P of that by chance at the stand's rate ~10%), reset button booted mid-test. To complete: >= 2000 reversals, then a `RESET` |
+| 286a4fd | `health_alive()`, called by every waiting loop, restarted the HSI every 10 ms; `RESET` restarted it right before resetting | partial evidence: ~470 reversals without a wedge (P of that by chance at the stand's rate ~10%), the reset button booted mid-test. Replaced by the next one |
+| 7a228fd | the HSI stopped except during a flash operation: the clock setup stops it (on the crystal), every operation starts it fresh and stops it when done; nothing else uses it, the chip starts it at every reset and on a crystal failure. A reset always finds it stopped, so it cannot be crawling then | built; robot validation pending: `TUNE INVERSION` with no slow halfword, the same with `TUNE HSI 1` wedging (the test still sees it), a `RESET` mid-test booting |
 
 Not done, on purpose: limiting the PWM slew (would change the control,
 needs its own measurements).
@@ -166,15 +167,16 @@ an eye on it), ST-Link connected for the flashes, Bluetooth logger running.
    fixes 53320cb, in a worktree (`git worktree add /tmp/rat-53320cb 53320cb`,
    then `pio run -e virtual -t upload` there); for the fixes, the current tree.
 2. `TUNE RUEDAS 1` (the wheels turn; resets to off at every boot).
-3. `TUNE INVERSION 60` (~4 min): without the 10 ms refresh expect
-   "!! inversion: escritura lenta tras N bloques ... ~400000 us" within
-   10-30 blocks; with it, "inversion: terminado sin fallos".
-4. Wedged: `TUNE HSI 1` cures it by hand; or `LOG 1` then `SAVE` shows the
-   store meeting it ("2 bytes en ~435000 us ... HSI reiniciado"; with
-   352bce9 and later, no slow halfword at all).
-5. Wedged, `RESET` (firmware without the refresh): no boot; power cycle.
-   Do not flash while it is wedged (every halfword would take ~0.4 s): power
-   cycle first.
+3. `TUNE INVERSION 60` (~4 min, in short batches for the battery): with
+   the HSI kept on (`TUNE HSI 1`, as every firmware before 10-04; the
+   default on 53320cb) expect "!! inversion: escritura lenta tras N bloques
+   ... ~400000 us" within 10-30 blocks; with the HSI stopped but for the
+   flash (the current default), "inversion: terminado sin fallos".
+4. Wedged with the HSI kept on: `TUNE HSI 0` stops it, which cures it;
+   on 53320cb, `LOG 1` then `SAVE` shows the store meeting it ("2 bytes en
+   ~435000 us ... HSI reiniciado").
+5. Wedged, `RESET`: no boot; power cycle. Do not flash while it is wedged
+   (every halfword would take ~0.4 s): power cycle first.
 6. `TUNE ESTRES 250`: writes during the motor transients (stops at the first
    slow halfword and times another one 1 s later).
 
@@ -235,13 +237,16 @@ ground: the virtual firmware moves them blind.
 
 ## 6. Open
 
-- Complete the refresh's validation: virtual firmware, `TUNE INVERSION`
-  >= 200 blocks with no slow halfword, then a `RESET` right after; a full
-  virtual cycle with the wheels.
+- Validate the stopped HSI (section 2.4) on the stand, then a full virtual
+  cycle with the wheels.
 - Flash the real firmware with every fix, `ERASE`, and check the saves
   (blinks) and STATUS's "HSI" count in a maze.
-- Whether real runs wedge the HSI, and how often, stays unknown: with the
-  refresh a wedge is cured within 10 ms, silently (STATUS "HSI n" counts
-  only the slow halfwords a save still meets). A probe before the refresh
-  could count them, if that ever matters.
+- Whether real runs wedge the HSI, and how often, stays unknown: with it
+  stopped there is nothing left to wedge (STATUS "HSI n" counts only the
+  slow halfwords a save still meets).
+- Hardware, the user's option: the HSI, the PLL and the reset block run on
+  VDDA, tied straight to the 3.3 V rail on the Blue Pill; a ferrite and 1 uF
+  + 100 nF at VDDA, bulk and ceramic capacitors at the H-bridge and across
+  the motors may remove the cause. `TUNE HSI 1` + `TUNE INVERSION` measure
+  the wedge rate before and after.
 - The race 2.4 crash; the slow buttons.

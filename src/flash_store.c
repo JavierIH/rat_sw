@@ -24,15 +24,18 @@ const void *flash_store_data(void){
 // storage.c erases only at boot; runs only program erased space, a halfword at
 // a time, each timed (one slow halfword costs well under a second, not
 // minutes). The flash times its program and erase with the HSI, whatever
-// clock runs the CPU. Motor transients alone can leave the HSI crawling while
-// it still reads ready (10-04, robot on a stand: 280 hard reversals with no
-// flash operation, then a halfword at rest took 463 ms), and restarting it
-// cured every wedge seen: so every operation starts on a freshly restarted
-// HSI; if a halfword is still slow, the HSI is restarted once more and the
-// write goes on; a second slow one or a failed one stops the write, and the
-// store refuses everything after it until a power cycle. The cycle counter
-// times them: it keeps counting while the CPU is stalled on the flash
-// (SysTick does not).
+// clock runs the CPU. Motor transients alone can leave a running HSI crawling
+// while it still reads ready (10-04, robot on a stand: 280 hard reversals with
+// no flash operation, then a halfword at rest took 463 ms), restarting it
+// cured every wedge seen, and a reset on a crawling HSI does not boot (the
+// chip boots on it). So the HSI is off except during a flash operation
+// (sysclock.c stops it after the clock setup): each one starts it fresh and
+// stops it when done, and a reset always finds it stopped (the hardware
+// starts it). If a halfword is still slow, the HSI is restarted once more
+// and the write goes on; a second slow one or a failed one stops the write,
+// and the store refuses everything after it until a power cycle. The cycle
+// counter times them: it keeps counting while the CPU is stalled on the
+// flash (SysTick does not).
 #define HALFWORD_SLOW_US    1000u   // normal: ~56 us
 #define ERASE_SLOW_MS       200u    // normal: ~22 ms
 #define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond FLASH_SETTLE_MS
@@ -83,11 +86,16 @@ static uint8_t hsi_on(void){
     return (RCC->CR & RCC_CR_HSIRDY) != 0;
 }
 
-// Off and on again (a few us). Not while the HSI runs the CPU (the crystal
-// failed): the RCC ignores clearing HSION then.
-static uint8_t hsi_restart(void){
+// The CPU runs on the HSI (the crystal failed): it can be neither stopped
+// nor restarted then (the RCC ignores clearing HSION).
+static uint8_t hsi_runs_cpu(void){
     const uint32_t cfgr = RCC->CFGR, sws = cfgr & RCC_CFGR_SWS;
-    if(sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC))) return 0;
+    return sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC));
+}
+
+// Off (if it was on) and on again: a freshly started HSI, in a few us.
+static uint8_t hsi_restart(void){
+    if(hsi_runs_cpu()) return 0;
     RCC->CR &= ~RCC_CR_HSION;
     hsi_wait(0);
     RCC->CR |= RCC_CR_HSION;
@@ -95,14 +103,14 @@ static uint8_t hsi_restart(void){
     return (RCC->CR & RCC_CR_HSIRDY) != 0;
 }
 
-// Before every operation (see above); running on the HSI, at least on.
+// At the start of every operation (see above); running on the HSI, at least on.
 static uint8_t hsi_fresh(void){
     return hsi_restart() || hsi_on();
 }
 
-void flash_store_hsi_refresh(void){
-    cycle_counter_on();
-    hsi_restart();
+// Off between operations (see above).
+static void hsi_off(void){
+    if(!hsi_runs_cpu()) RCC->CR &= ~RCC_CR_HSION;
 }
 
 static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32_t acr){
@@ -115,7 +123,7 @@ static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32
     print("!! flash bloqueada hasta apagar y encender: el mapa sigue en RAM (no uses RESET)\n");
 }
 
-uint8_t flash_store_erase(uint8_t page){
+static uint8_t erase(uint8_t page){
     if(blocked || page >= FLASH_STORE_PAGES) return 0;
     settle();
     cycle_counter_on();
@@ -151,7 +159,7 @@ static uint32_t program_halfword(uint32_t address, uint16_t value){
     return ok ? us : HALFWORD_FAILED;
 }
 
-uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
+static uint8_t program(uint16_t offset, const void *data, uint16_t len){
     if(blocked || (offset & 1u) || (len & 1u) || (uint32_t)offset + len > FLASH_STORE_SIZE) return 0;
     const volatile uint16_t *dst = (const volatile uint16_t *)(STORE_ADDR + offset);
     for(uint16_t i = 0; i < len / 2u; i++){
@@ -201,7 +209,7 @@ uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
     return 0;
 }
 
-uint8_t flash_store_probe(void){
+static uint8_t probe(void){
     if(blocked) return 0;
     cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
@@ -227,4 +235,23 @@ uint8_t flash_store_probe(void){
         }
     }
     return 0;   // no spare halfword left: cannot tell
+}
+
+// The operations, each between a fresh start of the HSI and its stop.
+uint8_t flash_store_erase(uint8_t page){
+    const uint8_t ok = erase(page);
+    hsi_off();
+    return ok;
+}
+
+uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
+    const uint8_t ok = program(offset, data, len);
+    hsi_off();
+    return ok;
+}
+
+uint8_t flash_store_probe(void){
+    const uint8_t ok = probe();
+    hsi_off();
+    return ok;
 }

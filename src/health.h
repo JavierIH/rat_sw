@@ -8,9 +8,7 @@
 // responding, why the last reset happened.
 
 void health_init(void);         // first thing in main(): paints the free stack, reads the reset cause
-// Main context, in every loop that waits; also keeps the HSI fresh
-// (flash_store_hsi_refresh(), every HEALTH_HSI_REFRESH_MS).
-void health_alive(void);
+void health_alive(void);        // main context, in every loop that waits
 // The reason for the last reset: "encendido", "RESET", "boton"...
 const char *health_reset_cause(void);
 // 1 if the last reset was a power-on (or brown-out): the flash is healthy
@@ -23,15 +21,12 @@ uint32_t health_stack_free(void);
 // address when it was caught).
 uint8_t health_take_stall(uint32_t *ms, uint32_t *pc, uint32_t *lr);
 
-// The oscillators in RCC->CR as the clock setup left them (call after every
-// intended clock change). health_alive() watches them: the freezes all came
-// in flash writes, and the flash needs the HSI on to erase and program. A
-// change nobody asked for turns the HSI back on and is kept (the first one)
-// for the main loop to report.
+// The crystal, PLL and clock security bits of RCC->CR as the clock setup left
+// them (call after every intended clock change). health_alive() watches them
+// and keeps the first change nobody asked for, for the main loop to report.
 void health_clock_baseline(void);
 uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen);
 
 #define HEALTH_STALL_MS 2000u
-#define HEALTH_HSI_REFRESH_MS 10u
 
 #endif // HEALTH_H

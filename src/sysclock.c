@@ -2,15 +2,15 @@
 #include "error.h"
 #include "motor.h"
 
-// The robot runs on the 8 MHz crystal (HSE) x 9 = 72 MHz. The crystal is the
-// weak point: on the robot a failure froze everything for ~200 s at a time
-// and a software reset then hung before the LEDs came up (the HSE never
-// started, Error_Handler could not even blink). So: if it does not start at
-// boot, the internal RC oscillator (HSI, 8 MHz +-1 %) / 2 x 16 = 64 MHz runs
-// the robot instead; and the clock security system watches it while running
-// (see HAL_RCC_CSSCallback). Everything derives its timing from the clocks
-// set here: SysTick (1 ms), the UART baud rate (uart_retime), the ADC. The
-// PWM runs at 64 instead of 72 kHz, which the motors do not notice.
+// The robot runs on the 8 MHz crystal (HSE) x 9 = 72 MHz. If it does not
+// start at boot, the internal RC oscillator (HSI, 8 MHz +-1 %) / 2 x 16 =
+// 64 MHz runs the robot instead, and the clock security system watches the
+// crystal while running (see HAL_RCC_CSSCallback); no crystal failure has
+// ever been seen (the old ~200 s freezes were the flash: docs/freezes.md).
+// On the crystal the HSI is then stopped: only the flash operations need it,
+// and they start it (flash_store.c). Everything derives its timing from the
+// clocks set here: SysTick (1 ms), the UART baud rate (uart_retime), the
+// ADC. The PWM runs at 64 instead of 72 kHz, which the motors do not notice.
 
 static volatile clock_source_t source = CLOCK_HSE;
 static volatile uint8_t crystal_failed;     // CSS fired: the main context must bring the PLL back
@@ -59,7 +59,10 @@ void SystemClock_Config(void){
     else if(pll_from_hsi()) source = CLOCK_HSI_BOOT;
     else Error_Handler();
     if(!clocks_from_pll()) Error_Handler();
-    if(source == CLOCK_HSE) HAL_RCC_EnableCSS();
+    if(source == CLOCK_HSE){
+        HAL_RCC_EnableCSS();
+        __HAL_RCC_HSI_DISABLE();    // a stopped HSI cannot be left crawling: see above
+    }
 }
 
 clock_source_t sysclock_source(void){

@@ -271,9 +271,9 @@ With the virtual robot (`env:virtual`, wheels in the air, log
 
 The competition (OSHWDEM, 10-03) fits: transients during the search wedged the HSI,
 the save at the end was cut (or did not land), the map stayed in RAM, the
-reset button did not boot, the power cycle lost it. Fixes: every flash
-operation starts on a freshly restarted HSI (352bce9; the reactive restart
-on a slow halfword stays), and the HSI is restarted every 10 ms while the
-program waits (286a4fd; restarting it first thing in SystemInit did not
-help: the reset still did not boot). The whole account, with the evidence
-and how to reproduce it: `docs/oshwdem2026.md`.
+reset button did not boot, the power cycle lost it. Fix: the HSI is stopped
+except during a flash operation, which starts it fresh (the reactive
+restart on a slow halfword stays); before that, a restart every 10 ms
+(286a4fd) and a restart first thing in SystemInit (did not help: the reset
+still did not boot). The whole account, with the evidence and how to
+reproduce it: `docs/oshwdem2026.md`.

@@ -327,9 +327,10 @@ search leg; the dump comes when the run ends).
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). Hard motor reversals alone cause it (10-04,
   on a stand): the HSI, which times the flash, crawls until restarted. So
-  every flash operation starts by restarting the HSI, and `health_alive()`
-  restarts it every 10 ms (a reset on a crawling HSI does not boot at all:
-  the CPU boots on it). Nothing erases during runs: the map
+  the HSI is stopped except during a flash operation, which starts it fresh
+  (sysclock.c stops it after the clock setup; a reset always finds it
+  stopped: on a crawling one the chip does not boot at all). Nothing erases
+  during runs: the map
   is saved at rest (the search at the goal and at its end; a race at the
   goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
