@@ -82,8 +82,10 @@ Environments in `platformio.ini` (`default_envs = bluepill_f103c8`):
   maze (`VIRTUAL_SEED`) and takes its simulated time for real; each run
   starts with the virtual robot at the start. Console, LEDs, menus and the
   store on the real flash are the robot's: for testing saves (power cuts,
-  full logs, compaction) without a maze. Its records carry another maze
-  signature, so the real firmware ignores them (and the boot erases them).
+  full logs, compaction) without a maze. STOP ends a run at the end of the
+  current move (a race stopped on its way to the goal still gets there and
+  saves). Its records carry another maze signature: the real firmware
+  ignores them (`ERASE` after flashing it back).
 
 Commands:
 - `pio run` builds the robot firmware; `pio run -e <env>` any other.

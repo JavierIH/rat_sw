@@ -22,7 +22,7 @@ commit when done. Details go in the docs it points to, not here.
   "Mapa en flash"; races 2.4-2.6 (save at the goal only if changed); cut
   the power during a search's way back and during a race's return; fill
   the log (FULL -> 3 fast blinks, `SAVE` compacts). Then flash the real
-  firmware back (its boot ignores and erases the virtual records). Open: why no race would start after
+  firmware back (it ignores the virtual records: `ERASE`). Open: why no race would start after
   the crash (a wall marked on the verified path?), and the crash itself
   (the user will bring it up).
 

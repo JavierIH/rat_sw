@@ -280,15 +280,21 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
     sim_stats.actions++;
     sim_stats.legs++;
     *entered = 0;
+    double cells_s = 0.0;   // spent cell by cell on the way; the rest at the stop
     for(;;){
         // Leaving the current cell through its front: a wall there the robot
         // did not expect (a front read open wrongly) stops it at the centre.
         if(truth_wall(sim_x, sim_y, sim_h)){
-            stopped(drive_seconds(*entered * CELL_MM, speed));
+            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s);
             sim_stats.wall_stops++;
             sides_fresh = *entered > 0;
             return MOVE_BLOCKED;
         }
+        // Into the next cell (its walls and its decision come there, one
+        // cell after another, as on the robot).
+        const double cell_s = CELL_MM / (double)speed;
+        elapse(cell_s);
+        cells_s += cell_s;
         sim_x = (uint8_t)(sim_x + heading_dx(sim_h));
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
@@ -307,7 +313,7 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         sim_stats.decide_hist[bucket < SIM_POPS_BUCKETS ? bucket : SIM_POPS_BUCKETS - 1]++;
         (*entered)++;
         if(next == NEXT_STOP){
-            stopped(drive_seconds(*entered * CELL_MM, speed));
+            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s);
             sides_fresh = 1;
             return MOVE_OK;
         }

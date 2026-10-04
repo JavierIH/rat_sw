@@ -261,6 +261,9 @@ static void print_banner(storage_status_t stored){
     uint8_t g[4];
     maze_get_goal(g);
     print("\nrat_sw %s %s | modo %s\n", __DATE__, __TIME__, app_mode_label());
+#ifdef VIRTUAL_ROBOT
+    print("ROBOT VIRTUAL (env:virtual): motores apagados, laberinto 16x16 simulado; no sirve para competir\n");
+#endif
     if(stored == STORAGE_LOADED || stored == STORAGE_NEW_DEFAULTS){
         uint16_t cost = search_fast_path_cost();
         if(cost == PLAN_INF){

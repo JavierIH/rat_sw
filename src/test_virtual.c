@@ -22,6 +22,7 @@
 static volatile uint8_t abort_flag;
 static volatile uint8_t paused;
 static uint8_t step_mode;
+static uint8_t moved;   // a move ran since the last checkpoint
 static uint8_t maze_built;
 
 void motion_request_abort(void){ abort_flag = 1; }
@@ -39,6 +40,7 @@ void motion_set_step_mode(uint8_t on){
 void motion_clear_abort(void){
     abort_flag = 0;
     paused = 0;
+    moved = 0;
     if(!maze_built){
         truth_generate(VIRTUAL_SEED, VIRTUAL_OPENINGS);
         truth_competition_goal(VIRTUAL_SEED);
@@ -64,16 +66,19 @@ uint8_t motion_wait(uint32_t ms){
 
 uint8_t motion_checkpoint(void){
     poll_inputs();
-    if(step_mode && !abort_flag){
+    if(step_mode && moved && !abort_flag){
         paused = 1;
         print("-- paso completado: RESUME para seguir --\n");
     }
+    moved = 0;
     while(paused && !abort_flag) poll_inputs();
     return !abort_flag;
 }
 
-// The move's time, for real (STOP or START end the run at the next checkpoint).
+// The move's time, for real. STOP or START cut the wait, but the move ends
+// as planned (in the virtual maze): the run stops at the next checkpoint.
 void virtual_elapse(double seconds){
+    moved = 1;
     motion_wait((uint32_t)(seconds * 1000.0));
 }
 
