@@ -6,10 +6,7 @@
 
 // SAFETY KILL-SWITCH: 0 = motor_set() never drives the H-bridge (bench
 // testing on ST-Link/USB power only). 1 = normal operation on battery.
-// The virtual robot firmware (env:virtual) builds with 0.
-#ifndef MOTORS_ENABLED
 #define MOTORS_ENABLED 1
-#endif
 
 typedef enum { MOTOR_R, MOTOR_L } motor_t;
 

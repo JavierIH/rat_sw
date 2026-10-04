@@ -212,16 +212,21 @@ static double drive_seconds(double mm, double v){
     return mm / v + v / a;
 }
 
-// The virtual robot firmware lives the moves' time for real.
-static void elapse(double s){
+// The virtual robot firmware lives the moves' time for real (its wheels can
+// turn meanwhile: forward at `speed` mm/s, or in place, `turn` > 0 right).
+static void elapse(double s, int16_t speed, int8_t turn){
     sim_stats.seconds += s;
 #ifdef SIM_ON_ROBOT
-    virtual_elapse(s);
+    virtual_elapse(s, speed, turn);
+#else
+    (void)speed;
+    (void)turn;
 #endif
 }
 
-static void stopped(double drive_s){
-    elapse(drive_s + SIM_STOP_S);
+static void stopped(double drive_s, int16_t speed){
+    elapse(drive_s, speed, 0);
+    elapse(SIM_STOP_S, 0, 0);
     sim_stats.stops++;
 }
 
@@ -249,7 +254,7 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     sim_stats.forward_moves++;
     for(uint8_t i = 0; i < cells; i++){
         if(truth_wall(sim_x, sim_y, sim_h)){
-            stopped(drive_seconds(i * CELL_MM, cruise_speed));
+            stopped(drive_seconds(i * CELL_MM, cruise_speed), cruise_speed);
             if(i == 0){
                 sim_stats.blocked++;    // the robot's emergency stop + back up
                 return MOVE_BLOCKED;
@@ -261,7 +266,7 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
         sim_stats.forward_cells++;
     }
-    stopped(drive_seconds(cells * CELL_MM, cruise_speed));
+    stopped(drive_seconds(cells * CELL_MM, cruise_speed), cruise_speed);
     sides_fresh = cells > 0;
     return MOVE_OK;
 }
@@ -285,7 +290,7 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         // Leaving the current cell through its front: a wall there the robot
         // did not expect (a front read open wrongly) stops it at the centre.
         if(truth_wall(sim_x, sim_y, sim_h)){
-            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s);
+            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s, speed);
             sim_stats.wall_stops++;
             sides_fresh = *entered > 0;
             return MOVE_BLOCKED;
@@ -293,7 +298,7 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         // Into the next cell (its walls and its decision come there, one
         // cell after another, as on the robot).
         const double cell_s = CELL_MM / (double)speed;
-        elapse(cell_s);
+        elapse(cell_s, speed, 0);
         cells_s += cell_s;
         sim_x = (uint8_t)(sim_x + heading_dx(sim_h));
         sim_y = (uint8_t)(sim_y + heading_dy(sim_h));
@@ -313,7 +318,7 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
         sim_stats.decide_hist[bucket < SIM_POPS_BUCKETS ? bucket : SIM_POPS_BUCKETS - 1]++;
         (*entered)++;
         if(next == NEXT_STOP){
-            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s);
+            stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s, speed);
             sides_fresh = 1;
             return MOVE_OK;
         }
@@ -349,7 +354,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
         }
         *entered = (uint8_t)(i + 1u);
     }
-    stopped(drive_seconds(mm, cruise_speed));
+    stopped(drive_seconds(mm, cruise_speed), cruise_speed);
     sides_fresh = 1;
     return MOVE_OK;
 }
@@ -358,7 +363,8 @@ move_result_t motion_turn(int8_t quarter_turns){
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.quarter_turns += (uint32_t)(quarter_turns < 0 ? -quarter_turns : quarter_turns);
-    elapse(SIM_QUARTER_TURN_S * (quarter_turns < 0 ? -quarter_turns : quarter_turns));
+    elapse(SIM_QUARTER_TURN_S * (quarter_turns < 0 ? -quarter_turns : quarter_turns), 0,
+           (int8_t)(quarter_turns > 0 ? 1 : -1));
     sim_h = (heading_t)((sim_h + quarter_turns + 4) & 3);
     return MOVE_OK;
 }
