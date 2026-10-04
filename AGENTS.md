@@ -7,8 +7,10 @@
   the file alone. One session per issue.
 - Details live in `docs/`: `control.md` (design notes and measurements of
   motion, sensing, curves, search legs), `history.md` (what was validated
-  on the robot), `freezes.md` (the freeze investigation), `mazes.md` (the
-  test layouts A-D, drawn). Read only what the issue needs; keep this file
+  on the robot), `freezes.md` (the freeze investigation),
+  `competition_2026-10-04.md` (the lost map; the flash wedge's cause, motor
+  transients, reproduced and fixed), `mazes.md` (the test layouts A-D,
+  drawn). Read only what the issue needs; keep this file
   to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
   `/dev/rfcomm0`, logs to `tools/logs/`, saves `@D` dumps) and
@@ -259,6 +261,8 @@ search leg; the dump comes when the run ends).
   experiment histories go to `docs/control.md`.
 - `stm32f1xx_hal_conf.h` needs `board_build.stm32cube.custom_config_header =
   yes`, or the framework silently uses its own copy.
+- `src/system_stm32f1xx.c` (vendor file) has CRLF line endings: edit it
+  with a tool that keeps them, or the whole file turns over in the diff.
 - Keep strategy and control code (`maze`, `search`, `storage`, `params`,
   `crc32`, `telemetry`, `control`) free of HAL includes and run `make -C
   test/host` after touching it. Headers used by it (`motion.h`, `uart.h`,
@@ -323,9 +327,9 @@ search leg; the dump comes when the run ends).
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). Hard motor reversals alone cause it (10-04,
   on a stand): the HSI, which times the flash, crawls until restarted. So
-  every flash operation starts by restarting the HSI, and SystemInit runs on
-  the crystal and restarts it before anything else (a reset could not boot
-  on a crawling HSI). Nothing erases during runs: the map
+  every flash operation starts by restarting the HSI, and `health_alive()`
+  restarts it every 10 ms (a reset on a crawling HSI does not boot at all:
+  the CPU boots on it). Nothing erases during runs: the map
   is saved at rest (the search at the goal and at its end; a race at the
   goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the

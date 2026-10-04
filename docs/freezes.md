@@ -271,8 +271,9 @@ With the virtual robot (`env:virtual`, wheels in the air, log
 
 The competition (10-04) fits: transients during the search wedged the HSI,
 the save at the end was cut (or did not land), the map stayed in RAM, the
-reset button did not boot, the power cycle lost it. Fix (352bce9): every
-flash operation starts on a freshly restarted HSI (the reactive restart on
-a slow halfword stays), and SystemInit runs on the crystal and restarts the
-HSI before anything else, so a reset boots even with the HSI wedged (to be
-confirmed on the robot).
+reset button did not boot, the power cycle lost it. Fixes: every flash
+operation starts on a freshly restarted HSI (352bce9; the reactive restart
+on a slow halfword stays), and the HSI is restarted every 10 ms while the
+program waits (286a4fd; restarting it first thing in SystemInit did not
+help: the reset still did not boot). The whole account, with the evidence
+and how to reproduce it: `docs/competition_2026-10-04.md`.

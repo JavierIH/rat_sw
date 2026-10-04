@@ -36,11 +36,14 @@ commit when done. Details go in the docs it points to, not here.
   reproduced (wheels in the air draw little current; the competition's
   cause stays unproven). Then the stress tests (`TUNE ESTRES`, `TUNE
   INVERSION`) wedged it on demand: hard motor reversals alone wedge the HSI;
-  a reset then does not boot (`docs/freezes.md`, last section). Fix
-  352bce9 (HSI restarted before every flash operation and in SystemInit).
-  Next: power cycle, flash the virtual firmware with the fix, wedge it
-  (`TUNE INVERSION`) and check that `RESET` boots and a `SAVE` writes
-  normally; then flash the real firmware, `ERASE`.
+  a reset then does not boot. Fixes: HSI restarted before every flash
+  operation (352bce9) and every 10 ms in health_alive() (286a4fd; the
+  SystemInit attempt did not boot either, reverted). The virtual firmware
+  with them is on the robot: ~470 reversals with no wedge, and the reset
+  button booted mid-test (then stopped: battery). Full account:
+  `docs/competition_2026-10-04.md`. Next (battery charged): `TUNE RUEDAS
+  1`, `TUNE INVERSION 200` (expect no slow halfword), `RESET` right after;
+  then flash the real firmware (every fix of issues 15, 17, 18), `ERASE`.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a
