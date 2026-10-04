@@ -315,7 +315,7 @@ search leg; the dump comes when the run ends).
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
   builds use the same RAM (86.2 %: ~2.8 KB left for the stack) and flash
-  (93.8 % of 62 KB, 3.8 KB left). Keep that headroom: report sizes after every change,
+  (93.9 % of 62 KB, 3.8 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/control.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's

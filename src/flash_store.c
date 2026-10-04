@@ -78,14 +78,6 @@ static void hsi_wait(uint32_t ready){
     for(uint32_t n = 0; ((RCC->CR & RCC_CR_HSIRDY) != 0) != ready && DWT->CYCCNT - t < limit && n < 200000u; n++){}
 }
 
-static uint8_t hsi_on(void){
-    if(RCC->CR & RCC_CR_HSIRDY) return 1;
-    RCC->CR |= RCC_CR_HSION;
-    hsi_wait(1);
-    print("!! flash: el HSI estaba parado: arrancado (%s)\n", (RCC->CR & RCC_CR_HSIRDY) ? "listo" : "NO arranca");
-    return (RCC->CR & RCC_CR_HSIRDY) != 0;
-}
-
 // The CPU runs on the HSI (the crystal failed): it can be neither stopped
 // nor restarted then (the RCC ignores clearing HSION).
 static uint8_t hsi_runs_cpu(void){
@@ -103,9 +95,12 @@ static uint8_t hsi_restart(void){
     return (RCC->CR & RCC_CR_HSIRDY) != 0;
 }
 
-// At the start of every operation (see above); running on the HSI, at least on.
+// At the start of every operation (see above). Running on the HSI it is on
+// already, and stays.
 static uint8_t hsi_fresh(void){
-    return hsi_restart() || hsi_on();
+    if(hsi_runs_cpu() || hsi_restart()) return 1;
+    print("!! flash: el HSI no arranca\n");
+    return 0;
 }
 
 // Off between operations (see above).

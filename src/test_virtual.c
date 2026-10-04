@@ -60,7 +60,6 @@ static uint8_t maze_built;
 
 void motion_request_abort(void){ abort_flag = 1; }
 uint8_t motion_abort_requested(void){ return abort_flag; }
-uint8_t motion_is_paused(void){ return paused; }
 uint8_t motion_step_mode(void){ return step_mode; }
 void motion_set_paused(uint8_t on){ paused = on; }
 

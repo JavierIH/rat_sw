@@ -116,7 +116,6 @@ void motion_request_abort(void);
 void motion_clear_abort(void);
 uint8_t motion_abort_requested(void);
 void motion_set_paused(uint8_t paused);
-uint8_t motion_is_paused(void);
 void motion_set_step_mode(uint8_t on);
 uint8_t motion_step_mode(void);
 // The search legs' decisions on the way: their planner time since the run

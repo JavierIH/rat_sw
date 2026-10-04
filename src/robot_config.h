@@ -33,7 +33,6 @@
 // ---- IR sensors ----------------------------------------------------------------
 #define WALL_DETECT_MM          140     // closer than this = wall present
 #define IR_DELAY_MS             50      // the IR report where the robot was this long ago
-#define IR_PERIOD_MS            16      // a new value this often, in ~2 mm steps at 80 mm (side sensors)
 #define FRONT_TRACK_MM          170     // the front wall ending a straight is tracked from this reading on
 #define FRONT_TRACK_REF_MM      92.0f   // where that tracking aims: the readings settle after the stop (94 ended long)
 #define SIDE_WALL_TRACK_MM      130     // a side wall is used as steering reference only below this
