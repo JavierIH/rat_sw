@@ -234,7 +234,7 @@ power-on): "!! flash: 2 bytes en 310190 us (dato bien): HSI reiniciado;
 despues, peor 63 us (normal ~56)", then "Mapa guardado" and the next race
 went on. n=3; two wedges in one power-on, ~4 min apart, both cleared.
 
-Competition, 2026-10-04 (firmware Sep 30 19:46, no Bluetooth log): the
+OSHWDEM 2026, 2026-10-03 (firmware Sep 30 19:46, no Bluetooth log): the
 search went well and returned to the start (where it saved then); race
 2.4 crashed into a wall; afterwards no race would start, the reset button
 did not boot the robot (the signature of a wedged flash, above) and only
@@ -269,11 +269,11 @@ With the virtual robot (`env:virtual`, wheels in the air, log
 - RCC_CR read 030b4d83 throughout (HSI on and ready): the HSI keeps running,
   crawling (~9000 times slow), so nothing in the registers shows it.
 
-The competition (10-04) fits: transients during the search wedged the HSI,
+The competition (OSHWDEM, 10-03) fits: transients during the search wedged the HSI,
 the save at the end was cut (or did not land), the map stayed in RAM, the
 reset button did not boot, the power cycle lost it. Fixes: every flash
 operation starts on a freshly restarted HSI (352bce9; the reactive restart
 on a slow halfword stays), and the HSI is restarted every 10 ms while the
 program waits (286a4fd; restarting it first thing in SystemInit did not
 help: the reset still did not boot). The whole account, with the evidence
-and how to reproduce it: `docs/competition_2026-10-04.md`.
+and how to reproduce it: `docs/oshwdem2026.md`.

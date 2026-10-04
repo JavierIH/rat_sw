@@ -8,9 +8,9 @@
 - Details live in `docs/`: `control.md` (design notes and measurements of
   motion, sensing, curves, search legs), `history.md` (what was validated
   on the robot), `freezes.md` (the freeze investigation),
-  `competition_2026-10-04.md` (the lost map; the flash wedge's cause, motor
-  transients, reproduced and fixed), `mazes.md` (the test layouts A-D,
-  drawn). Read only what the issue needs; keep this file
+  `oshwdem2026.md` (the competition's lost map; the flash wedge's cause,
+  motor transients, reproduced and fixed), `mazes.md` (the test layouts
+  A-D, drawn). Read only what the issue needs; keep this file
   to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
   `/dev/rfcomm0`, logs to `tools/logs/`, saves `@D` dumps) and

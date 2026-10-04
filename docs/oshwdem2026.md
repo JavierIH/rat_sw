@@ -1,13 +1,13 @@
-# 2026-10-04: the competition's lost map, the flash wedge's cause, and other faults
+# OSHWDEM 2026: the lost map, the flash wedge's cause, and other faults
 
-The competition run lost the map; the investigation that evening, on the
-robot with its wheels in the air, found why and reproduced the fault on
-demand. This document gathers the faults found, the evidence, how it was
+At OSHWDEM 2026 (2026-10-03) the robot lost its map; the investigation the
+next evening (2026-10-04), on the robot with its wheels in the air, found
+why and reproduced the fault on demand. This document gathers the faults found, the evidence, how it was
 reached, how to reproduce each one, the diagnosis and the fixes, with their
 validation status. The earlier history of the flash freezes is in
 `docs/freezes.md`; the open work in `docs/ISSUES.md` (issues 15, 17, 18).
 
-Log of the evening: `tools/logs/2026-10-04_19-29-11.log` (times below are
+Log of the investigation: `tools/logs/2026-10-04_19-29-11.log` (times below are
 its seconds, t=0 at 19:29:11). Every number here comes from it or from the
 host tests.
 
@@ -35,7 +35,7 @@ saves at the goal (search and races), save results on the LEDs, the HSI
 restarted before every flash operation and every 10 ms while the program
 waits, map repairs only at rest keeping the walls just seen.
 
-## 1. What happened at the competition
+## 1. What happened at the competition (OSHWDEM 2026, 2026-10-03)
 
 The user's account (no Bluetooth log was recorded there):
 - Mode 1 search went well; the robot saved the map when it got back to the
@@ -48,8 +48,8 @@ The user's account (no Bluetooth log was recorded there):
 - Vaguely remembered, not sure: after the first search the buttons felt
   slow or needed more than one press.
 
-Evidence read from the robot that evening (firmware built Sep 30 19:46:39,
-commit 6e19649), before touching anything:
+Evidence read from the robot the next evening (firmware built Sep 30
+19:46:39, commit 6e19649), before touching anything:
 - `STATUS`: 0 cells visited, no verified path, 5 of 6 slots free (one
   record), the build's default goal, parameters at their defaults.
 - Boot banner after a console `RESET`: "Mapa en flash: 0 celdas".

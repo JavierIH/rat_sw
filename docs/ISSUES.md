@@ -6,7 +6,7 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- Issue 17, competition 2026-10-04 (`docs/freezes.md`, last entry): the
+- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/oshwdem2026.md`): the
   search's map never reached the flash (likely a wedge: the reset button
   did not boot), so a power cycle after race 2.4 crashed lost it. Done in
   code, not flashed (the user's rules): the search saves at the goal and
@@ -41,7 +41,7 @@ commit when done. Details go in the docs it points to, not here.
   SystemInit attempt did not boot either, reverted). The virtual firmware
   with them is on the robot: ~470 reversals with no wedge, and the reset
   button booted mid-test (then stopped: battery). Full account:
-  `docs/competition_2026-10-04.md`. Next (battery charged): `TUNE RUEDAS
+  `docs/oshwdem2026.md`. Next (battery charged): `TUNE RUEDAS
   1`, `TUNE INVERSION 200` (expect no slow halfword), `RESET` right after;
   then flash the real firmware (every fix of issues 15, 17, 18), `ERASE`.
 
