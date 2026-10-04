@@ -984,6 +984,17 @@ static void test_run_control(void){
     CHECK(path_cost != PLAN_INF);
     CHECK_EQ(search_fast_path_cost(), path_cost);
 
+    // A race saves at the goal: STOP there (its route is one leg) loses nothing.
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    search_set_home();
+    sim_abort_after_cells(1);
+    CHECK_EQ(search_fast_run(1), RUN_ABORTED);
+    CHECK(maze_is_goal(sim_x, sim_y));
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK_EQ(search_fast_path_cost(), path_cost);
+
     // A phantom wall sealing off the goal is repaired, not fatal.
     maze_init();
     sim_reset(0.0, 2);

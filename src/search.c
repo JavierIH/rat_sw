@@ -221,7 +221,6 @@ static run_result_t finish_at_start(uint16_t steps){
     print("En la salida tras %u acciones\n", steps);
     uint16_t cost = search_fast_path_cost();
     if(cost != PLAN_INF) print("Camino rapido verificado: coste %u\n", cost);
-    save_map();
     return RUN_OK;
 }
 
@@ -431,7 +430,11 @@ run_result_t search_explore(void){
         move_result_t r = sense_here(&w, sides_recorded);
         sides_recorded = 0;
         if(r != MOVE_OK) return fail_move(r, "sensado");
-        if(explore_phase(&e, 1) == PHASE_DONE) return finish_at_start(e.steps);
+        if(explore_phase(&e, 1) == PHASE_DONE){
+            const run_result_t res = finish_at_start(e.steps);
+            if(res == RUN_OK) save_map();   // if the return learned something
+            return res;
+        }
         action_t a;
         if(!explore_plan(&e, &w, &a)){
             return fail_plan(e.failed == 2 ? "presupuesto de acciones agotado" : "destino inalcanzable");
@@ -541,7 +544,8 @@ run_result_t search_fast_run(uint8_t curves){
     run_result_t res = drive_to(&goal, params.fast_speed, curves, "RAPIDA", &steps);
     if(res != RUN_OK) return res;
     print("Meta alcanzada en carrera rapida tras %u tramos\n", steps);
-    motion_indicate(IND_GOAL);
+    // Saved here, never back at the start: a failed return loses nothing.
+    save_map();
     telemetry_activity(TM_RETURN);
     res = drive_to(&home, params.search_speed, curves, "VUELTA", &steps);
     if(res != RUN_OK) return res;
