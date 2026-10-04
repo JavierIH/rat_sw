@@ -967,6 +967,23 @@ static void test_run_control(void){
     CHECK(!search_ready());
     CHECK_EQ(storage_load(), STORAGE_EMPTY);    // nothing half-done was saved
 
+    // STOP on the way back: the verified path was saved before the return.
+    maze_init();
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    CHECK_EQ(search_explore(), RUN_OK);
+    const uint32_t actions = sim_stats.actions;
+    const uint16_t path_cost = search_fast_path_cost();
+    maze_init();
+    fake_flash_wipe();
+    sim_reset(0.0, 1);
+    sim_abort_after(actions - 1);
+    CHECK_EQ(search_explore(), RUN_ABORTED);
+    maze_init();
+    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK(path_cost != PLAN_INF);
+    CHECK_EQ(search_fast_path_cost(), path_cost);
+
     // A phantom wall sealing off the goal is repaired, not fatal.
     maze_init();
     sim_reset(0.0, 2);

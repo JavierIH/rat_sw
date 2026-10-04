@@ -189,6 +189,7 @@ static void run_mode(uint8_t m){
     else if((m == MODE_FAST || m == MODE_FAST_MID || m == MODE_FAST_SAFE || m == MODE_NO_CURVES)
             && search_fast_path_cost() == PLAN_INF){
         print("Sin camino verificado salida->meta: haz antes una busqueda (modo 1)\n");
+        motion_indicate(IND_FAIL);  // START did something: no path
     }
     else{
         print("Modo %s: arranca en %u ms (START o STOP cancela)\n", app_mode_label(), START_DELAY_MS);

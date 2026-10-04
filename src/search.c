@@ -200,13 +200,18 @@ static run_result_t fail_plan(const char *why){
     return RUN_FAILED;
 }
 
+// At rest (a flash write stalls the CPU). The LEDs tell whoever is at the
+// robot: three slow blinks, the map is in flash; three fast ones, only in
+// RAM (a reset or a power cycle would lose it).
 static void save_map(void){
-    switch(storage_save(1)){
+    const storage_save_t r = storage_save(1);
+    switch(r){
         case STORAGE_WRITTEN:   print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count()); break;
         case STORAGE_UNCHANGED: print("Mapa ya guardado (sin cambios)\n"); break;
         case STORAGE_FULL:      print("!! flash sin hueco: el mapa sigue en RAM (SAVE lo guarda compactando)\n"); break;
         case STORAGE_FAILED:    print("!! no se pudo guardar el mapa en flash: sigue en RAM\n"); break;
     }
+    motion_indicate(r == STORAGE_WRITTEN || r == STORAGE_UNCHANGED ? IND_DONE : IND_FAIL);
 }
 
 static run_result_t finish_at_start(uint16_t steps){
@@ -214,10 +219,9 @@ static run_result_t finish_at_start(uint16_t steps){
     if(r != MOVE_OK) return fail_move(r, "orientacion");
     ready = 1;
     print("En la salida tras %u acciones\n", steps);
-    save_map();
     uint16_t cost = search_fast_path_cost();
     if(cost != PLAN_INF) print("Camino rapido verificado: coste %u\n", cost);
-    motion_indicate(IND_DONE);
+    save_map();
     return RUN_OK;
 }
 
@@ -296,23 +300,27 @@ typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
 
 // Phase changes at the robot's cell, and the targets of the phase. The goal
 // is announced and the map saved at rest (writing flash stalls the CPU), so
-// on the way (`stopped` = 0) getting to the goal or back to the start only
-// asks for a stop.
+// on the way (`stopped` = 0) getting to the goal, verifying the speed run's
+// path or getting back to the start only asks for a stop.
 static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
         if(!stopped) return PHASE_STOP;
         print("Meta alcanzada en (%u,%u) tras %u acciones\n", pose.x, pose.y, e->steps);
         motion_indicate(IND_GOAL);
-        // No save here: the map is saved once, at the end (a flash write
-        // stalls the robot, and one right after a move once froze it).
+        // No save here: it comes once the speed run's path is verified.
         e->phase = PH_OPTIMIZE;
         telemetry_activity(TM_OPTIMIZE);
     }
     if(e->phase == PH_OPTIMIZE){
         uint8_t budget_left = e->optimize_steps < OPTIMIZE_MAX_STEPS;
         if(!budget_left || !optimize_candidates(&e->targets)){
+            // Saved now, before the return: the return only explores, so the
+            // robot may be picked up instead, and a failed return loses
+            // nothing (the end saves again if it learned something).
+            if(!stopped) return PHASE_STOP;
             print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
                               : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
+            save_map();
             e->phase = PH_TO_START;
             telemetry_activity(TM_TO_START);
         }
