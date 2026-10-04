@@ -1,5 +1,6 @@
 #include "health.h"
 #include "stm32f1xx_hal.h"
+#include "flash_store.h"
 #include "uart.h"
 
 #define STACK_PAINT 0x5AA5C33Cu
@@ -9,6 +10,7 @@ extern uint32_t _ebss;      // linker: end of .bss, where the free RAM (and the 
 static const char *reset_cause = "?";
 static uint8_t power_on;
 static volatile uint32_t alive_ms;
+static uint32_t hsi_refreshed_ms;
 static volatile uint8_t stalled, stall_ready;
 static volatile uint32_t stall_start, stall_ms, stall_pc, stall_lr;
 
@@ -44,6 +46,10 @@ void health_init(void){
 void health_alive(void){
     const uint32_t now = HAL_GetTick();
     alive_ms = now;
+    if(now - hsi_refreshed_ms >= HEALTH_HSI_REFRESH_MS){
+        hsi_refreshed_ms = now;
+        flash_store_hsi_refresh();
+    }
     const uint32_t cr = RCC->CR & RCC_WATCH;
     if(rcc_expected && cr != rcc_expected && !rcc_changed){
         rcc_seen = cr;

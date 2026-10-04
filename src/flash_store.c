@@ -100,6 +100,11 @@ static uint8_t hsi_fresh(void){
     return hsi_restart() || hsi_on();
 }
 
+void flash_store_hsi_refresh(void){
+    cycle_counter_on();
+    hsi_restart();
+}
+
 static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32_t acr){
     blocked = 1;
     print("!! flash: %s | 1a %lu us, peor %lu us, total %lu ms, borrado %lu ms | HAL %lx\n", what,

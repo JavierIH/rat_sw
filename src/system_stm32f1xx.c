@@ -174,24 +174,6 @@ const uint8_t APBPrescTable[8] =  {0, 0, 0, 0, 1, 2, 3, 4};
   */
 void SystemInit (void)
 {
-  /* rat: the CPU boots on the HSI, and motor transients can leave the HSI
-     crawling until it is restarted or the power cycles (docs/freezes.md,
-     10-04: a reset then did not boot). Before anything else: run on the
-     crystal and restart the HSI. Without the crystal, carry on as before.
-     No globals here: .data and .bss are not set up yet. */
-  RCC->CR |= RCC_CR_HSEON;
-  for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSERDY) && n < 0x10000u; n++){}
-  if(RCC->CR & RCC_CR_HSERDY){
-    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_HSE;
-    for(uint32_t n = 0; (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSE && n < 0x10000u; n++){}
-    if((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_HSE){
-      RCC->CR &= ~RCC_CR_HSION;
-      for(uint32_t n = 0; (RCC->CR & RCC_CR_HSIRDY) && n < 0x10000u; n++){}
-      RCC->CR |= RCC_CR_HSION;
-      for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSIRDY) && n < 0x10000u; n++){}
-    }
-  }
-
   /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
   /* Set HSION bit */
   RCC->CR |= (uint32_t)0x00000001;

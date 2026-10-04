@@ -8,7 +8,9 @@
 // responding, why the last reset happened.
 
 void health_init(void);         // first thing in main(): paints the free stack, reads the reset cause
-void health_alive(void);        // main context, in every loop that waits
+// Main context, in every loop that waits; also keeps the HSI fresh
+// (flash_store_hsi_refresh(), every HEALTH_HSI_REFRESH_MS).
+void health_alive(void);
 // The reason for the last reset: "encendido", "RESET", "boton"...
 const char *health_reset_cause(void);
 // 1 if the last reset was a power-on (or brown-out): the flash is healthy
@@ -30,5 +32,6 @@ void health_clock_baseline(void);
 uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen);
 
 #define HEALTH_STALL_MS 2000u
+#define HEALTH_HSI_REFRESH_MS 10u
 
 #endif // HEALTH_H
