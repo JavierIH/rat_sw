@@ -15,8 +15,12 @@ commit when done. Details go in the docs it points to, not here.
   flash, 3 fast = only in RAM); START refused for lack of a verified path
   blinks fast. Next: issue 18, then flash with issue 15 (a)(b).
 
-- Issue 18, virtual robot (`env:virtual`, AGENTS.md environments): built,
-  not flashed yet (needs the robot opened). Plan on the robot: flash it,
+- Issue 18, virtual robot (`env:virtual`, AGENTS.md environments): flashed
+  10-04 20:21 (b1ae6e9), boots ("ROBOT VIRTUAL", the real record ignored,
+  5 free slots). Its maze (seed 2): search ~57 s, goal at ~29 s (8,7), 44
+  cells, cost 106; races ~22 s, each saves at the goal while the walls'
+  evidence still changes (the 3rd after ERASE + search fills the log).
+  Plan on the robot: flash it,
   `ERASE`, mode 1 (16x16 virtual, real time; watch the save at the goal
   and at the start: 3 slow blinks, "Mapa guardado"), power cycle -> banner
   "Mapa en flash"; races 2.4-2.6 (save at the goal only if changed); cut
