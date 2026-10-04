@@ -81,7 +81,8 @@ commit when done. Details go in the docs it points to, not here.
   Left: (c) ideas (cap the race return's curve speed, a SysTick stop if
   the following error runs away while the main loop blocks, measure the
   SysTick load), and the no-flash items (calib_analyze.py int16 unwrap,
-  README CAL table).
+  README CAL table). Idea (the user's, 10-04), only if flash runs short:
+  console messages as short codes that the monitor expands.
 
 ## Closed
 
