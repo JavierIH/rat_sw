@@ -157,12 +157,140 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
     *move_id = 0;
 }
 
+// ---- Flash stress (TUNE ESTRES n) -------------------------------------------------------
+// Tries to wedge the flash (docs/freezes.md) on two scratch pages under the store, never
+// the store itself: n rounds of halfword writes timed with the cycle counter while the
+// wheels turn, right after a hard stop, through a reversal or a turn in place, and the
+// pages erased right after the wheels stop (the conditions of the old wedges). Robot on
+// a stand, TUNE RUEDAS 1. Stops at the first slow operation, after one HSI restart and
+// one more halfword (as flash_store.c does). START stops it between rounds.
+#define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
+#define STRESS_ROUND_HW 64u             // halfwords a round: 8 rounds fill a page
+#define STRESS_SLOW_US  1000u           // a halfword normally takes ~56 us
+#define STRESS_SLOW_MS  200u            // an erase ~22 ms
+#define STRESS_PWM      700
+
+extern uint32_t _sidata, _sdata, _edata;    // linker: the image ends at _sidata + .data
+
+static const char *const STRESS_KIND[4] = {"girando", "tras frenazo", "invirtiendo", "girando en sitio"};
+
+static void wheels_now(int16_t left, int16_t right){
+    wheel_target[MOTOR_L] = wheel_pwm[MOTOR_L] = left;
+    wheel_target[MOTOR_R] = wheel_pwm[MOTOR_R] = right;
+    motor_set(MOTOR_L, left);
+    motor_set(MOTOR_R, right);
+}
+
+static uint32_t stress_us(uint32_t t0){
+    return (DWT->CYCCNT - t0) / (SystemCoreClock / 1000000u);
+}
+
+// As flash_store.c: off and on again, not while the HSI runs the CPU.
+static uint8_t stress_hsi_restart(void){
+    const uint32_t cfgr = RCC->CFGR, sws = cfgr & RCC_CFGR_SWS;
+    if(sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC))) return 0;
+    RCC->CR &= ~RCC_CR_HSION;
+    for(uint32_t n = 0; (RCC->CR & RCC_CR_HSIRDY) && n < 200000u; n++){}
+    RCC->CR |= RCC_CR_HSION;
+    for(uint32_t n = 0; !(RCC->CR & RCC_CR_HSIRDY) && n < 200000u; n++){}
+    return (RCC->CR & RCC_CR_HSIRDY) != 0;
+}
+
+static void stress_report(const char *what, uint32_t round, uint32_t value){
+    print("!! estres: %s en la ronda %lu (%s): %lu | RCC_CR=%08lx SR=%02lx CR=%04lx\n", what,
+          (unsigned long)round, STRESS_KIND[round % 4u], (unsigned long)value, (unsigned long)RCC->CR,
+          (unsigned long)FLASH->SR, (unsigned long)FLASH->CR);
+}
+
+static void flash_stress(uint32_t rounds){
+    const uint32_t image_end = (uint32_t)&_sidata + ((uint32_t)&_edata - (uint32_t)&_sdata);
+    if(!wheels || image_end > STRESS_PAGE || rounds == 0){
+        print("estres: TUNE RUEDAS 1 antes (robot en alto); TUNE ESTRES rondas\n");
+        return;
+    }
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    abort_flag = 0;
+    uint32_t worst_us = 0, worst_round = 0, sum_us = 0, count = 0, worst_erase_ms = 0;
+    uint8_t restarted = 0, failed = 0;
+    for(uint32_t r = 0; r < rounds && !failed && !abort_flag; r++){
+        const uint32_t page = STRESS_PAGE + ((r / 8u) % 2u) * FLASH_PAGE_SIZE;
+        const uint32_t base = page + (r % 8u) * STRESS_ROUND_HW * 2u;
+        const uint8_t kind = (uint8_t)(r % 4u);
+        if(kind == 3) wheels_now(STRESS_PWM, -STRESS_PWM);
+        else wheels_now(STRESS_PWM, STRESS_PWM);
+        motion_wait(300);
+        if(kind == 1) wheels_now(0, 0);
+        else if(kind == 2) wheels_now(-STRESS_PWM, -STRESS_PWM);
+        if(r % 8u == 0){
+            // A new page: erased with the wheels stopped (a wedged erase stalls the CPU ~200 s).
+            wheels_now(0, 0);
+            FLASH_EraseInitTypeDef erase = {.TypeErase = FLASH_TYPEERASE_PAGES, .Banks = FLASH_BANK_1,
+                                            .PageAddress = page, .NbPages = 1};
+            uint32_t page_error = 0;
+            const uint32_t t0 = DWT->CYCCNT, tick0 = HAL_GetTick();
+            HAL_FLASH_Unlock();
+            const uint8_t ok = HAL_FLASHEx_Erase(&erase, &page_error) == HAL_OK;
+            HAL_FLASH_Lock();
+            const uint32_t ms = stress_us(t0) / 1000u;
+            if(ms > worst_erase_ms) worst_erase_ms = ms;
+            if(!ok || ms > STRESS_SLOW_MS || HAL_GetTick() - tick0 > STRESS_SLOW_MS){
+                stress_report(ok ? "borrado lento (ms)" : "borrado fallido (ms)", r, ms);
+                failed = 1;
+                break;
+            }
+        }
+        HAL_FLASH_Unlock();
+        for(uint32_t i = 0; i < STRESS_ROUND_HW && !failed; i++){
+            const uint16_t value = (uint16_t)((r * STRESS_ROUND_HW + i) ^ 0xA5A5u);
+            const uint32_t t0 = DWT->CYCCNT;
+            const uint8_t ok = HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, base + 2u * i, value) == HAL_OK;
+            const uint32_t us = stress_us(t0);
+            sum_us += us;
+            count++;
+            if(us > worst_us){
+                worst_us = us;
+                worst_round = r;
+            }
+            if(ok && us <= STRESS_SLOW_US) continue;
+            stress_report(ok ? "escritura lenta (us)" : "escritura fallida (us)", r, us);
+            // Restart the HSI once and go on: the next halfword tells if that cured it.
+            if(restarted || !stress_hsi_restart()) failed = 1;
+            else print("!! estres: HSI reiniciado, sigo\n");
+            restarted = 1;
+        }
+        HAL_FLASH_Lock();
+        wheels_now(0, 0);
+        const volatile uint16_t *hw = (const volatile uint16_t *)base;
+        for(uint32_t i = 0; i < STRESS_ROUND_HW; i++){
+            if(hw[i] == (uint16_t)((r * STRESS_ROUND_HW + i) ^ 0xA5A5u)) continue;
+            stress_report("dato mal escrito (indice)", r, i);
+            break;
+        }
+        if((r + 1u) % 25u == 0 || r + 1u == rounds){
+            print("estres %lu/%lu: peor %lu us (ronda %lu, %s), media %lu us, borrado peor %lu ms\n",
+                  (unsigned long)(r + 1u), (unsigned long)rounds, (unsigned long)worst_us,
+                  (unsigned long)worst_round, STRESS_KIND[worst_round % 4u],
+                  (unsigned long)(sum_us / count), (unsigned long)worst_erase_ms);
+        }
+        motion_wait(100);
+    }
+    wheels_now(0, 0);
+    print("estres: %s\n", failed ? "PARADO por un fallo (apaga y enciende si la flash quedo lenta)"
+                                  : abort_flag ? "parado con START" : "terminado sin fallos");
+    abort_flag = 0;
+}
+
 void motion_tune_list(void){
     print("ruedas %s (TUNE RUEDAS 1: giran con cada movimiento, solo con el robot en alto; 0: quietas)\n",
           wheels ? "GIRANDO" : "quietas");
 }
 
 void motion_tune_set(const char *name, float value){
+    if(strcmp(name, "ESTRES") == 0){
+        flash_stress(value > 0.0f ? (uint32_t)value : 0u);
+        return;
+    }
     if(strcmp(name, "RUEDAS") == 0){
         wheels = value != 0.0f;
         if(!wheels) wheels_set(0, 0);
