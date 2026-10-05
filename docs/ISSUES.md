@@ -15,38 +15,19 @@ commit when done. Details go in the docs it points to, not here.
   flash, 3 fast = only in RAM); START refused for lack of a verified path
   blinks fast. Next: issue 18, then flash with issue 15 (a)(b).
 
-- Issue 18, virtual robot (`env:virtual`, AGENTS.md environments): flashed
-  10-04 20:21 (b1ae6e9). Tested that evening (log 2026-10-04_19-29-11),
-  all as designed: search from an erased map saved at the goal (~28 s),
-  a power cut 13 s into the way back kept it (race 2.4 at once, cost 106,
-  the optimum); full search saves at the goal and at the start; races
-  save at the goal while the walls' evidence changes, then "ya guardado";
-  a full log -> "!! flash sin hueco" at the search's end and at a race's
-  goal (the run goes on from RAM), `SAVE` compacts and saves; `RESET` in
-  the way back of a search and of a race (as a power cut): the boot shows
-  the map ("Mapa en flash: 44 celdas, coste 106"). Flash healthy: 56-62
-  us a halfword, 9 ms a record, 22 ms an erase, no HSI restart, no other
-  "!!"; stack 1064 B never used. The boot banner is lost after a power-on
-  (the HC-05 connects later): `STATUS` then. Again with the wheels
-  turning on a stand (`TUNE RUEDAS 1`, 41679c6, flashed 20:55): 3 cycles
-  of ERASE + search + races 2.4/2.6 and `RESET`s in the way back of a
-  search and of a race: 14 writes right after motor work, 4 compactions,
-  8 runs OK, every boot with the map; no "!!", no stall, worst halfword
-  69 us, 10 ms a record, 22 ms an erase, no HSI restart. No wedge
-  reproduced (wheels in the air draw little current; the competition's
-  cause stays unproven). Then the stress tests (`TUNE ESTRES`, `TUNE
-  INVERSION`) wedged it on demand: hard motor reversals alone wedge the HSI;
-  a reset then does not boot. Fixes: HSI restarted before every flash
-  operation (352bce9) and every 10 ms in health_alive() (286a4fd; the
-  SystemInit attempt did not boot either, reverted). The virtual firmware
-  with them is on the robot: ~470 reversals with no wedge, and the reset
-  button booted mid-test (then stopped: battery). Full account:
-  `docs/oshwdem2026.md`. Since then the HSI is stopped except during flash
-  operations (replaces the 10 ms refresh). Next (battery charged, short
-  batches): flash the virtual firmware, `TUNE RUEDAS 1`, `TUNE INVERSION 60`
-  (expect no slow halfword); `TUNE HSI 1` + `TUNE INVERSION 60` (expect a
-  wedge: the test still sees it); `TUNE HSI 0`, a `RESET` mid-test (boots);
-  then flash the real firmware (every fix of issues 15, 17, 18), `ERASE`.
+- Issue 18, virtual robot and the flash wedge: done. The wedge reproduced on
+  a stand (motor reversals leave the HSI crawling; a reset then does not
+  boot) and fixed by stopping the HSI except during flash operations
+  (e3c5b21), validated 10-05: control (HSI kept on) wedged after 20
+  reversals, stopped 600 reversals clean, `RESET` boots, saves and the boot
+  erase normal. Full account: `docs/oshwdem2026.md`. The competition
+  firmware with every fix flashed 10-05; its smoke test in the air needs
+  ~30 cm clear around the sensors (they saw the stand at 3-5 cm and the
+  search rightly gave up), then `ERASE`.
+
+- Issue 19, work plan of the review (`docs/review.md`): 8 items, by gain for
+  the effort; first a test on a large stretch of maze, then deleting the
+  flash defences the stopped HSI supersedes.
 
 - Issue 11, 16x16 competition readiness (plan and results:
   `docs/competition.md`). Flashed 09-27. Decision time measured: 4.15 us a

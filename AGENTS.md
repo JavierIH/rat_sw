@@ -9,7 +9,8 @@
   motion, sensing, curves, search legs), `history.md` (what was validated
   on the robot), `freezes.md` (the freeze investigation),
   `oshwdem2026.md` (the competition's lost map; the flash wedge's cause,
-  motor transients, reproduced and fixed), `mazes.md` (the test layouts
+  motor transients, reproduced and fixed), `review.md` (outside review of
+  the project and the work plan it suggests), `mazes.md` (the test layouts
   A-D, drawn). Read only what the issue needs; keep this file
   to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds

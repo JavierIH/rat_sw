@@ -153,7 +153,7 @@ on the PLL; a wedged save stalls it ~1 s at most).
 | 352bce9 | every flash program, erase and probe starts by restarting the HSI (`hsi_fresh()`); the reactive restart on a slow halfword stays | kept: now it starts a stopped HSI |
 | 352bce9 | SystemInit switched to the crystal and restarted the HSI first | **did not work** (reset still dead): reverted in 286a4fd |
 | 286a4fd | `health_alive()`, called by every waiting loop, restarted the HSI every 10 ms; `RESET` restarted it right before resetting | partial evidence: ~470 reversals without a wedge (P of that by chance at the stand's rate ~10%), the reset button booted mid-test. Replaced by the next one |
-| e3c5b21 | the HSI stopped except during a flash operation: the clock setup stops it (on the crystal), every operation starts it fresh and stops it when done; nothing else uses it, the chip starts it at every reset and on a crystal failure. A reset always finds it stopped, so it cannot be crawling then | built; robot validation pending: `TUNE INVERSION` with no slow halfword, the same with `TUNE HSI 1` wedging (the test still sees it), a `RESET` mid-test booting |
+| e3c5b21 | the HSI stopped except during a flash operation: the clock setup stops it (on the crystal), every operation starts it fresh and stops it when done; nothing else uses it, the chip starts it at every reset and on a crystal failure. A reset always finds it stopped, so it cannot be crawling then | **validated 10-05** (virtual firmware, log 2026-10-05_19-26-38): with the HSI kept on (`TUNE HSI 1`, control) wedged after 20 reversals (497 ms); stopped, 600 reversals with no slow halfword (worst 57 us); `RESET` right after booted at once; ERASE + search + race saved normally (56-63 us, 9 ms) and the boot's compaction erased in 22 ms, the HSI off after every operation (RCC_CR ...80) |
 
 Not done, on purpose: limiting the PWM slew (would change the control,
 needs its own measurements).
@@ -237,8 +237,8 @@ ground: the virtual firmware moves them blind.
 
 ## 6. Open
 
-- Validate the stopped HSI (section 2.4) on the stand, then a full virtual
-  cycle with the wheels.
+- Delete the flash defences the stopped HSI supersedes (`docs/review.md`,
+  plan item 2).
 - Flash the real firmware with every fix, `ERASE`, and check the saves
   (blinks) and STATUS's "HSI" count in a maze.
 - Whether real runs wedge the HSI, and how often, stays unknown: with it
