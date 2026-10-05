@@ -91,12 +91,12 @@ void motion_indicate(indication_t what);
 static inline const char *move_result_name(move_result_t r){
     switch(r){
         case MOVE_OK:      return "OK";
-        case MOVE_BLOCKED: return "BLOQUEADO";
-        case MOVE_ABORTED: return "ABORTADO";
+        case MOVE_BLOCKED: return "BLOCKED";
+        case MOVE_ABORTED: return "ABORTED";
         case MOVE_TIMEOUT: return "TIMEOUT";
-        case MOVE_STALLED: return "ATASCADO";
-        case MOVE_SLIPPED: return "DESLIZAMIENTO";
-        case MOVE_LOST:    return "PERDIDO";
+        case MOVE_STALLED: return "STALLED";
+        case MOVE_SLIPPED: return "SLIPPED";
+        case MOVE_LOST:    return "LOST";
     }
     return "?";
 }

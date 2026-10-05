@@ -101,7 +101,7 @@ uint8_t motion_checkpoint(void){
     poll_inputs();
     if(step_mode && moved && !abort_flag){
         paused = 1;
-        print("-- paso completado: RESUME para seguir --\n");
+        print("-- step done: RESUME to go on --\n");
     }
     moved = 0;
     while(paused && !abort_flag) poll_inputs();
@@ -176,7 +176,7 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
 
 extern uint32_t _sidata, _sdata, _edata;    // linker: the image ends at _sidata + .data
 
-static const char *const STRESS_KIND[4] = {"girando", "tras frenazo", "invirtiendo", "girando en sitio"};
+static const char *const STRESS_KIND[4] = {"turning", "after braking", "reversing", "turning in place"};
 
 static void wheels_now(int16_t left, int16_t right){
     wheel_target[MOTOR_L] = wheel_pwm[MOTOR_L] = left;
@@ -215,7 +215,7 @@ static void stress_hsi_stop(void){
 }
 
 static void stress_report(const char *what, uint32_t round, uint32_t value){
-    print("!! estres: %s en la ronda %lu (%s): %lu | RCC_CR=%08lx SR=%02lx CR=%04lx\n", what,
+    print("!! stress: %s in round %lu (%s): %lu | RCC_CR=%08lx SR=%02lx CR=%04lx\n", what,
           (unsigned long)round, STRESS_KIND[round % 4u], (unsigned long)value, (unsigned long)RCC->CR,
           (unsigned long)FLASH->SR, (unsigned long)FLASH->CR);
 }
@@ -223,7 +223,7 @@ static void stress_report(const char *what, uint32_t round, uint32_t value){
 static void flash_stress(uint32_t rounds){
     const uint32_t image_end = (uint32_t)&_sidata + ((uint32_t)&_edata - (uint32_t)&_sdata);
     if(!wheels || image_end > STRESS_PAGE || rounds == 0){
-        print("estres: TUNE RUEDAS 1 antes (robot en alto); TUNE ESTRES rondas\n");
+        print("stress: TUNE WHEELS 1 first (robot on a stand); TUNE STRESS rounds\n");
         return;
     }
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -254,7 +254,7 @@ static void flash_stress(uint32_t rounds){
             const uint32_t ms = stress_us(t0) / 1000u;
             if(ms > worst_erase_ms) worst_erase_ms = ms;
             if(!ok || ms > STRESS_SLOW_MS || HAL_GetTick() - tick0 > STRESS_SLOW_MS){
-                stress_report(ok ? "borrado lento (ms)" : "borrado fallido (ms)", r, ms);
+                stress_report(ok ? "slow erase (ms)" : "failed erase (ms)", r, ms);
                 failed = 1;
                 break;
             }
@@ -272,7 +272,7 @@ static void flash_stress(uint32_t rounds){
                 worst_round = r;
             }
             if(ok && us <= STRESS_SLOW_US) continue;
-            stress_report(ok ? "escritura lenta (us)" : "escritura fallida (us)", r, us);
+            stress_report(ok ? "slow write (us)" : "failed write (us)", r, us);
             failed = 1;
             // Still slow 1 s later, the wheels stopped? The HSI is left alone.
             HAL_FLASH_Lock();
@@ -282,7 +282,7 @@ static void flash_stress(uint32_t rounds){
                 HAL_FLASH_Unlock();
                 const uint32_t t1 = DWT->CYCCNT;
                 HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, base + 2u * (i + 1u), 0x1234u);
-                stress_report("1 s despues, otra escritura (us)", r, stress_us(t1));
+                stress_report("1 s later, another write (us)", r, stress_us(t1));
             }
         }
         HAL_FLASH_Lock();
@@ -291,11 +291,11 @@ static void flash_stress(uint32_t rounds){
         const volatile uint16_t *hw = (const volatile uint16_t *)base;
         for(uint32_t i = 0; i < STRESS_ROUND_HW && !failed; i++){
             if(hw[i] == (uint16_t)((r * STRESS_ROUND_HW + i) ^ 0xA5A5u)) continue;
-            stress_report("dato mal escrito (indice)", r, i);
+            stress_report("data written wrong (index)", r, i);
             break;
         }
         if((r + 1u) % 25u == 0 || r + 1u == rounds){
-            print("estres %lu/%lu: peor %lu us (ronda %lu, %s), media %lu us, borrado peor %lu ms\n",
+            print("stress %lu/%lu: worst %lu us (round %lu, %s), mean %lu us, worst erase %lu ms\n",
                   (unsigned long)(r + 1u), (unsigned long)rounds, (unsigned long)worst_us,
                   (unsigned long)worst_round, STRESS_KIND[worst_round % 4u],
                   (unsigned long)(sum_us / count), (unsigned long)worst_erase_ms);
@@ -304,15 +304,15 @@ static void flash_stress(uint32_t rounds){
     }
     wheels_now(0, 0);
     stress_hsi_stop();      // after an erase that failed, still on
-    print("estres: %s\n", failed ? "PARADO por un fallo (apaga y enciende si la flash quedo lenta)"
-                                  : abort_flag ? "parado con START" : "terminado sin fallos");
+    print("stress: %s\n", failed ? "STOPPED by a failure (power cycle if the flash stayed slow)"
+                                  : abort_flag ? "stopped with START" : "finished with no failure");
     abort_flag = 0;
 }
 
 static void reversal_stress(uint32_t blocks){
     const uint32_t page = STRESS_PAGE + FLASH_PAGE_SIZE;
     if(!wheels || blocks == 0 || blocks > FLASH_PAGE_SIZE / 2u){
-        print("inversion: TUNE RUEDAS 1 antes (robot en alto); TUNE INVERSION bloques (1-512)\n");
+        print("reversal: TUNE WHEELS 1 first (robot on a stand); TUNE REVERSAL blocks (1-512)\n");
         return;
     }
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -330,7 +330,7 @@ static void reversal_stress(uint32_t blocks){
     stress_hsi_stop();
     const uint32_t erase_ms = stress_us(t0) / 1000u;
     if(erase_ms > STRESS_SLOW_MS){
-        stress_report("borrado previo lento (ms)", 0, erase_ms);
+        stress_report("slow erase before (ms)", 0, erase_ms);
         return;
     }
     uint32_t worst_us = 0;
@@ -353,34 +353,34 @@ static void reversal_stress(uint32_t blocks){
         stress_hsi_stop();
         if(us > worst_us) worst_us = us;
         if(us > STRESS_SLOW_US){
-            print("!! inversion: escritura lenta tras %lu bloques de 10 inversiones: %lu us | RCC_CR=%08lx\n",
+            print("!! reversal: slow write after %lu blocks of 10 reversals: %lu us | RCC_CR=%08lx\n",
                   (unsigned long)(b + 1u), (unsigned long)us, (unsigned long)RCC->CR);
             failed = 1;
         }
         else if((b + 1u) % 10u == 0 || b + 1u == blocks){
-            print("inversion %lu/%lu: peor %lu us\n", (unsigned long)(b + 1u), (unsigned long)blocks,
+            print("reversal %lu/%lu: worst %lu us\n", (unsigned long)(b + 1u), (unsigned long)blocks,
                   (unsigned long)worst_us);
         }
     }
     wheels_now(0, 0);
-    print("inversion: %s\n", failed ? "PARADO: la flash quedo lenta sin escribir mientras giraban"
-                                     : abort_flag ? "parado con START" : "terminado sin fallos");
+    print("reversal: %s\n", failed ? "STOPPED: the flash went slow with no write while they turned"
+                                     : abort_flag ? "stopped with START" : "finished with no failure");
     abort_flag = 0;
 }
 
 void motion_tune_list(void){
-    print("ruedas %s (TUNE RUEDAS 1: giran con cada movimiento, solo con el robot en alto; 0: quietas)\n",
-          wheels ? "GIRANDO" : "quietas");
-    print("HSI %s (TUNE HSI 1: siempre encendido, como antes del 10-04; 0: solo para la flash)\n",
-          hsi_kept_on ? "SIEMPRE ENCENDIDO" : "solo para la flash");
+    print("wheels %s (TUNE WHEELS 1: they turn with every move, robot on a stand only; 0: still)\n",
+          wheels ? "TURNING" : "still");
+    print("HSI %s (TUNE HSI 1: always on, as before 10-04; 0: for the flash only)\n",
+          hsi_kept_on ? "ALWAYS ON" : "for the flash only");
 }
 
 void motion_tune_set(const char *name, float value){
-    if(strcmp(name, "ESTRES") == 0){
+    if(strcmp(name, "STRESS") == 0){
         flash_stress(value > 0.0f ? (uint32_t)value : 0u);
         return;
     }
-    if(strcmp(name, "INVERSION") == 0){
+    if(strcmp(name, "REVERSAL") == 0){
         reversal_stress(value > 0.0f ? (uint32_t)value : 0u);
         return;
     }
@@ -393,7 +393,7 @@ void motion_tune_set(const char *name, float value){
             hsi_kept_on = 1;
         }
     }
-    if(strcmp(name, "RUEDAS") == 0){
+    if(strcmp(name, "WHEELS") == 0){
         wheels = value != 0.0f;
         if(!wheels) wheels_set(0, 0);
     }

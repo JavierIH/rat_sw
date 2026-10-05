@@ -31,10 +31,10 @@ void health_init(void){
     const uint32_t csr = RCC->CSR;
     reset_cause = (csr & RCC_CSR_IWDGRSTF) ? "watchdog"
                 : (csr & RCC_CSR_SFTRSTF) ? "RESET (software)"
-                : (csr & RCC_CSR_PORRSTF) ? "encendido"
-                : (csr & RCC_CSR_LPWRRSTF) ? "bajo consumo"
-                : (csr & RCC_CSR_WWDGRSTF) ? "watchdog de ventana"
-                : (csr & RCC_CSR_PINRSTF) ? "boton de reset"
+                : (csr & RCC_CSR_PORRSTF) ? "power-on"
+                : (csr & RCC_CSR_LPWRRSTF) ? "low power"
+                : (csr & RCC_CSR_WWDGRSTF) ? "window watchdog"
+                : (csr & RCC_CSR_PINRSTF) ? "reset button"
                 : "?";
     power_on = (csr & RCC_CSR_PORRSTF) != 0;
     RCC->CSR |= RCC_CSR_RMVF;

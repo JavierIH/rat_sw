@@ -99,7 +99,7 @@ static uint8_t hsi_restart(void){
 // already, and stays.
 static uint8_t hsi_fresh(void){
     if(hsi_runs_cpu() || hsi_restart()) return 1;
-    print("!! flash: el HSI no arranca\n");
+    print("!! flash: the HSI does not start\n");
     return 0;
 }
 
@@ -110,12 +110,12 @@ static void hsi_off(void){
 
 static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32_t acr){
     blocked = 1;
-    print("!! flash: %s | 1a %lu us, peor %lu us, total %lu ms, borrado %lu ms | HAL %lx\n", what,
+    print("!! flash: %s | 1st %lu us, worst %lu us, total %lu ms, erase %lu ms | HAL %lx\n", what,
           (unsigned long)timing.first_us, (unsigned long)timing.worst_us, (unsigned long)timing.program_ms,
           (unsigned long)timing.erase_ms, (unsigned long)hal_error);
-    print("!! flash: antes RCC_CR=%08lx ACR=%02lx | despues RCC_CR=%08lx SR=%02lx CR=%04lx\n", (unsigned long)rcc_cr,
+    print("!! flash: before RCC_CR=%08lx ACR=%02lx | after RCC_CR=%08lx SR=%02lx CR=%04lx\n", (unsigned long)rcc_cr,
           (unsigned long)acr, (unsigned long)RCC->CR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR);
-    print("!! flash bloqueada hasta apagar y encender: el mapa sigue en RAM (no uses RESET)\n");
+    print("!! flash blocked until a power cycle: the map is only in RAM (do not use RESET)\n");
 }
 
 static uint8_t erase(uint8_t page){
@@ -140,7 +140,7 @@ static uint8_t erase(uint8_t page){
     const volatile uint32_t *w = (const volatile uint32_t *)erase.PageAddress;
     for(uint16_t i = 0; ok && i < FLASH_STORE_PAGE_SIZE / 4u; i++) ok = w[i] == 0xFFFFFFFFu;
     if(!ok || timing.erase_ms > ERASE_SLOW_MS || HAL_GetTick() - tick0 > ERASE_SLOW_MS){
-        report(ok ? "borrado lento" : "borrado fallido", hal_error, rcc_cr, acr);
+        report(ok ? "slow erase" : "failed erase", hal_error, rcc_cr, acr);
         return 0;
     }
     return 1;
@@ -192,15 +192,15 @@ static uint8_t program(uint16_t offset, const void *data, uint16_t len){
     timing.program_ms = (DWT->CYCCNT - t0) / (cycles_per_us() * 1000u);
     const uint8_t right = memcmp((const void *)dst, data, len) == 0;
     if(restarted){
-        print("!! flash: 2 bytes en %lu us (dato %s): HSI reiniciado; despues, peor %lu us (normal ~56)\n",
-              (unsigned long)slow_us, slow_right ? "bien" : "MAL", (unsigned long)after_us);
+        print("!! flash: 2 bytes in %lu us (data %s): HSI restarted; then worst %lu us (normal ~56)\n",
+              (unsigned long)slow_us, slow_right ? "right" : "WRONG", (unsigned long)after_us);
     }
     if(ok && right) return 1;
     // The slow halfword landed wrong but the restart cured the flash: the
     // store goes on (storage.c tries the next slot).
     if(ok && restarted) return 0;
-    report(timing.worst_us == HALFWORD_FAILED ? "escritura fallida" : ok ? "verificacion fallida"
-           : "escritura LENTA, cortada", hal_error, rcc_cr, acr);
+    report(timing.worst_us == HALFWORD_FAILED ? "failed write" : ok ? "failed verify"
+           : "SLOW write, cut", hal_error, rcc_cr, acr);
     return 0;
 }
 
@@ -221,12 +221,12 @@ static uint8_t probe(void){
             timing.first_us = timing.worst_us = us;
             if(us <= HALFWORD_SLOW_US) return 1;
             if(us == HALFWORD_FAILED || restarted || !hsi_restart()){
-                report("prueba LENTA", hal_error, rcc_cr, acr);
+                report("SLOW probe", hal_error, rcc_cr, acr);
                 return 0;
             }
             timing.hsi_restarts++;
             restarted = 1;
-            print("!! flash: prueba lenta (%lu us): HSI reiniciado, otra\n", (unsigned long)us);
+            print("!! flash: slow probe (%lu us): HSI restarted, another\n", (unsigned long)us);
         }
     }
     return 0;   // no spare halfword left: cannot tell

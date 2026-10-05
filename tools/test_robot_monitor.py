@@ -29,10 +29,10 @@ import robot_monitor as rm  # noqa: E402
 HOST_DIR = os.path.join(ROOT, "test", "host")
 HOST_TESTS = os.path.join(HOST_DIR, "build", "host_tests")
 MONITOR = os.path.join(HERE, "robot_monitor.py")
-ACTION_NAME = {"F": "AVANZA", "L": "IZQ", "R": "DER", "U": "MEDIA VUELTA", None: "-"}
-DECISION = re.compile(r"^(META|OPTIM|VUELTA) \((\d+),(\d+)\)([NESW]) F[01?] I[01?] D[01?] coste=(\d+) -> (.+)$")
-ROUTE = re.compile(r"^(RAPIDA|VUELTA) \((\d+),(\d+)\)([NESW]) giro (-?\d+) \+ ruta ([0-9DI]*\+?) \((\d+) celdas\)$")
-FAST_COST = re.compile(r"^Camino rapido verificado: coste (\d+)$")
+ACTION_NAME = {"F": "FORWARD", "L": "LEFT", "R": "RIGHT", "U": "U-TURN", None: "-"}
+DECISION = re.compile(r"^(GOAL|OPTIM|RETURN) \((\d+),(\d+)\)([NESW]) F[01?] L[01?] R[01?] cost=(\d+) -> (.+)$")
+ROUTE = re.compile(r"^(FAST|RETURN) \((\d+),(\d+)\)([NESW]) turn (-?\d+) \+ route ([0-9RL]*\+?) \((\d+) cells\)$")
+FAST_COST = re.compile(r"^Fast path verified: cost (\d+)$")
 
 _built = False
 
@@ -94,9 +94,9 @@ class TranscriptChecker:
             phase, x, y, h, cost, action = m.groups()
             x, y, h = int(x), int(y), rm.HEADINGS.index(h)
             self.test.assertEqual(self.model.pose, (x, y, h), line)
-            if phase == "META":
+            if phase == "GOAL":
                 targets = self.model.goal_cells()
-            elif phase == "VUELTA":
+            elif phase == "RETURN":
                 targets = {self.planner.start}
             else:
                 targets = self.planner.candidates(self.model)
@@ -111,7 +111,7 @@ class TranscriptChecker:
             tag, x, y, h, turn, text, cells = m.groups()
             x, y, h = int(x), int(y), rm.HEADINGS.index(h)
             self.test.assertEqual(self.model.pose, (x, y, h), line)
-            targets = self.model.goal_cells() if tag == "RAPIDA" else {self.planner.start}
+            targets = self.model.goal_cells() if tag == "FAST" else {self.planner.start}
             costs = self.planner.plan_to(self.model, targets, True, self.planner.fast)
             first, turns = self.planner.route(self.model, costs, x, y, h, True, self.planner.fast)
             self.test.assertEqual((first, rm.route_text(turns), len(turns)), (int(turn), text, int(cells)), line)
@@ -147,10 +147,10 @@ class TestAgainstFirmware(unittest.TestCase):
         for seed in range(1, 6):
             with self.subTest(seed=seed):
                 lines = firmware_transcript(seed, 1, practice=True, phantom=True)
-                self.assertTrue(any("reparacion" in line for line in lines))
+                self.assertTrue(any("repair" in line for line in lines))
                 TranscriptChecker(self).run(lines)
                 lines = firmware_transcript(seed * 31, 40, phantom=True)
-                self.assertTrue(any("reparacion" in line for line in lines))
+                self.assertTrue(any("repair" in line for line in lines))
                 TranscriptChecker(self).run(lines)
 
     def test_competition_mazes(self):

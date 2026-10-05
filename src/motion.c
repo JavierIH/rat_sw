@@ -83,7 +83,7 @@ uint8_t motion_checkpoint(void){
     poll_inputs();
     if(step_mode && moved && !abort_flag){
         paused = 1;
-        print("-- paso completado: RESUME para seguir --\n");
+        print("-- step done: RESUME to go on --\n");
     }
     moved = 0;
     while(paused && !abort_flag) poll_inputs();
@@ -381,7 +381,7 @@ static move_result_t back_up(float traveled){
     move_result_t r = drive(-traveled, ALIGN_SPEED, &g);
     move_result_t result = r == MOVE_OK ? MOVE_BLOCKED : r == MOVE_ABORTED ? MOVE_ABORTED : MOVE_LOST;
     char mm[12];
-    print("obstaculo delante: marcha atras %s (%smm)\n", result == MOVE_BLOCKED ? "OK" : move_result_name(result),
+    print("obstacle ahead: backing up %s (%smm)\n", result == MOVE_BLOCKED ? "OK" : move_result_name(result),
           format_fixed2(mm, sizeof(mm), traveled));
     return result;
 }
@@ -435,7 +435,7 @@ void motion_leg_timing_reset(void){
 
 void motion_leg_timing_report(void){
     if(!leg_timing.decisions) return;
-    print("%sdecisiones en marcha: %lu, la peor %lu us (%lu pops), tarde %lu\n", leg_timing.late ? "!! " : "",
+    print("%sdecisions on the way: %lu, worst %lu us (%lu pops), late %lu\n", leg_timing.late ? "!! " : "",
           (unsigned long)leg_timing.decisions, (unsigned long)leg_timing.max_us, (unsigned long)leg_timing.max_pops,
           (unsigned long)leg_timing.late);
 }
@@ -517,7 +517,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
     if(!curve_from_tuning(&curve)
        || !path_start(&run, path, &curve, CELL_MM, (float)cruise_speed,
                       fminf((float)curve_speed, curve_speed_limit(&curve)), (float)params.accel)){
-        print("!! ruta no valida\n");
+        print("!! invalid route\n");
         return MOVE_LOST;
     }
     moved = 1;
@@ -587,7 +587,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
                 if(!short_stop && path_straight_centre(&run, end, 1, &stop_cell, &centre) && centre >= soonest){
                     planned_end = run.stop_at = centre;
                     short_stop = 1;
-                    stop = "PARED";
+                    stop = "WALL";
                     if(ex) ex->stopping = 1;
                 }
             }
@@ -625,7 +625,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
     if(ex && (result == MOVE_OK || result == MOVE_BLOCKED)){
         if(result == MOVE_OK && run.path.cells > ex->decided){
             result = MOVE_LOST;     // stopped in a cell the search never decided: cannot happen in time
-            stop = "SIN DECIDIR";
+            stop = "UNDECIDED";
         }
         // The sides of the cell it stopped in, as read on the way in.
         side_pass.valid = *entered == ex->decided && *entered > 0
@@ -642,16 +642,16 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         format_fixed2(dist, sizeof(dist), at);
         format_fixed2(end, sizeof(end), run.stop_at);
         if(path->turn){
-            print("ruta %u celdas, %u curvas: fin=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) lados=%s", run.path.cells,
+            print("route %u cells, %u curves: end=%s dist=%s/%smm v=%d/%d IR(FL=%d FR=%d) sides=%s", run.path.cells,
                   run.curves, stop, dist, end, (int)vmax, (int)run.v_curve, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), sides);
         }
         else{
-            print("%s %u: fin=%s dist=%smm obj=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) lados=%s",
-                  ex ? "exploracion" : "avance", run.path.cells,
+            print("%s %u: end=%s dist=%smm target=%smm vmax=%dmm/s IR(FL=%d FR=%d SL=%d SR=%d) sides=%s",
+                  ex ? "explore" : "forward", run.path.cells,
                   stop, dist, end, (int)vmax, (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
                   (int)ir_mm(IR_SR), sides);
         }
-        if(run.scale_min < 0.995f) print(" ritmo=%d%%", (int)(100.0f * run.scale_min + 0.5f));
+        if(run.scale_min < 0.995f) print(" pace=%d%%", (int)(100.0f * run.scale_min + 0.5f));
         print_errors(&g);
     }
     calib_path_end(move_result_name(result));
@@ -723,7 +723,7 @@ move_result_t motion_turn(int8_t quarter_turns){
         // Angle the encoders saw: exactly the target unless it failed.
         const float dl = (float)(encoder_total(ENCODER_L) - g.l0), dr = (float)(encoder_total(ENCODER_R) - g.r0);
         char turned[12];
-        print("giro %s: %sdeg de %d fin=%s TURNTICKS=%d", quarter_turns > 0 ? "der" : "izq",
+        print("turn %s: %sdeg of %d end=%s TURNTICKS=%d", quarter_turns > 0 ? "right" : "left",
               format_fixed2(turned, sizeof(turned), 0.5f * (dl - dr) / control_cfg.ticks_per_mm / control_cfg.mm_per_deg),
               (int)deg, r == MOVE_OK ? "OK" : move_result_name(r), params.turn_ticks);
         print_errors(&g);
@@ -747,7 +747,7 @@ static void square_to_front(void){
     move_result_t r = rotate(deg, (float)params.turn_speed / SQUARE_SPEED_DIV, &g);
     if(params.log_level >= 2){
         char a[12];
-        print("escuadrado: sesgo=%dmm giro=%sdeg -> %dmm%s%s", (int)skew, format_fixed2(a, sizeof(a), deg),
+        print("squared: skew=%dmm turn=%sdeg -> %dmm%s%s", (int)skew, format_fixed2(a, sizeof(a), deg),
               (int)front_skew(), r == MOVE_OK ? "" : " ", r == MOVE_OK ? "" : move_result_name(r));
         print_errors(&g);
     }
@@ -768,7 +768,7 @@ void motion_align_front(void){
     move_result_t r = drive(error_mm, ALIGN_SPEED, &g);     // farther than expected: forward
     if(params.log_level >= 2){
         char e[12];
-        print("alineado frontal: err=%smm%s%s", format_fixed2(e, sizeof(e), error_mm),
+        print("front aligned: err=%smm%s%s", format_fixed2(e, sizeof(e), error_mm),
               r == MOVE_OK ? "" : " ", r == MOVE_OK ? "" : move_result_name(r));
         print_errors(&g);
     }
@@ -919,21 +919,21 @@ void motion_tune_set(const char *name, float value){
         const uint8_t shape = strncmp(name, "CURVE", 5) == 0;
         if(shape && !curve_from_tuning(&c)){
             *t->value = old;
-            print("%s: la curva no cabe en la celda (se queda en %s)\n", t->name,
+            print("%s: the curve does not fit in the cell (stays at %s)\n", t->name,
                   format_fixed(v, sizeof(v), old, t->decimals));
             return;
         }
-        print("%s=%s (hasta reiniciar; en robot_config.h para siempre)\n", t->name,
+        print("%s=%s (until reset; robot_config.h for good)\n", t->name,
               format_fixed(v, sizeof(v), value, t->decimals));
         if(shape){
             char len[12], pre[12], post[12], deg[12];
             const float vc = fminf((float)params.curve_speed, curve_speed_limit(&c));
-            print("curva: %smm, recta antes %s y despues %smm, %s grados de encoder a %d mm/s\n",
+            print("curve: %smm, straight before %s and after %smm, %s encoder deg at %d mm/s\n",
                   format_fixed(len, sizeof(len), c.length, 1), format_fixed(pre, sizeof(pre), c.pre + c.pre_k * fmaxf(vc * vc - c.pre_v0 * c.pre_v0, 0.0f), 1),
                   format_fixed(post, sizeof(post), c.post, 1),
                   format_fixed(deg, sizeof(deg), c.angle + c.slip_k * vc * vc, 2), (int)vc);
         }
         return;
     }
-    print("TUNE: %s no existe (TUNE solo: lista)\n", name);
+    print("TUNE: no %s (TUNE alone: list)\n", name);
 }

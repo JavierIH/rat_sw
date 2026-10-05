@@ -1812,21 +1812,21 @@ static void test_curve_pre_slip(void){
 
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
-    printf("recta 540 mm, 15 mm descentrado (KP %.2f KD %.2f):\n", (double)PARAM_KP, (double)PARAM_KD);
+    printf("straight 540 mm, 15 mm off-centre (KP %.2f KD %.2f):\n", (double)PARAM_KP, (double)PARAM_KD);
     const float speeds[] = {300.0f, 500.0f, 800.0f, 1000.0f};
     for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
         plant_t p = plant_nominal();
         p.y0 = 15.0f;
         sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KD);
-        printf("  %4.0f mm/s: %4u ms, recorrido %.2f mm, error max %.2f mm / %.2f deg, y 2a mitad %.2f mm,"
-               " final %+.2f mm %+.2f deg, cruces %d, PWM max %d\n", (double)speeds[i], r.ms, (double)r.travelled,
+        printf("  %4.0f mm/s: %4u ms, travelled %.2f mm, error max %.2f mm / %.2f deg, y 2nd half %.2f mm,"
+               " end %+.2f mm %+.2f deg, crossings %d, PWM max %d\n", (double)speeds[i], r.ms, (double)r.travelled,
                (double)r.fwd_err_max, (double)r.rot_err_max, (double)r.y_late, (double)r.y_end, (double)r.yaw_end,
                r.crossings, r.pwm_max);
     }
     // A turn left the robot yawed (in place: up to ~4.5 deg): how far the
     // straight after it goes before the walls centre it (GitHub issue #1).
-    printf("recta 720 mm tras un giro (guinada +-4 deg, centrado, paredes +-2 mm; media de 16):"
-           " |y| mm / |guinada| deg a 90, 180 ... 630 mm\n");
+    printf("straight 720 mm after a turn (yaw +-4 deg, centred, walls +-2 mm; mean of 16):"
+           " |y| mm / |yaw| deg at 90, 180 ... 630 mm\n");
     const float after_turn[] = {300.0f, 450.0f, 600.0f, 800.0f, 900.0f};
     for(size_t i = 0; i < sizeof(after_turn) / sizeof(after_turn[0]); i++){
         float y[SIM_SAMPLES] = {0}, yaw[SIM_SAMPLES] = {0};
@@ -1845,28 +1845,28 @@ static void control_report(void){
         }
         printf("  %4.0f mm/s:", (double)after_turn[i]);
         for(int j = 0; j < SIM_SAMPLES; j++) printf(" %4.1f/%3.1f", (double)y[j], (double)yaw[j]);
-        printf(", cruces %.1f\n", (double)crossings / 16.0);
+        printf(", crossings %.1f\n", (double)crossings / 16.0);
     }
     const float angles[] = {90.0f, 180.0f};
     for(size_t i = 0; i < 2; i++){
         plant_t p = plant_nominal();
         sim_result_t r = sim_turn(&p, angles[i], PARAM_TURN_SPEED, PARAM_TURN_ACCEL);
-        printf("giro %.0f: %u ms, girado %.2f deg, error max %.2f deg, desplazamiento %.2f mm\n", (double)angles[i],
+        printf("turn %.0f: %u ms, turned %.2f deg, error max %.2f deg, displacement %.2f mm\n", (double)angles[i],
                r.ms, (double)r.turned, (double)r.rot_err_max, (double)r.travelled);
     }
     const curve_t c = default_curve();
-    printf("curvas (radio %.0f, rampas %.0f: %.1f mm, recta antes/despues %.1f mm), FAST %d:\n",
+    printf("curves (radius %.0f, ramps %.0f: %.1f mm, straight before/after %.1f mm), FAST %d:\n",
            (double)c.radius, (double)c.ramp, (double)c.length, (double)c.pre, PARAM_FAST_SPEED);
     static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
     const struct { const char *name; run_path_t path; } paths[] = {
-        {"esquina", {corner, 3}}, {"escalera", {stairs, 7}}, {"media vuelta", {u_turn, 4}},
+        {"corner", {corner, 3}}, {"staircase", {stairs, 7}}, {"u-turn", {u_turn, 4}},
     };
     const float curve_speeds[] = {300.0f, 400.0f, 500.0f, 600.0f, 700.0f};
     for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
         for(size_t j = 0; j < sizeof(curve_speeds) / sizeof(curve_speeds[0]); j++){
             const plant_t p = plant_nominal();
             const path_result_t r = sim_path(&p, &paths[i].path, &c, PARAM_FAST_SPEED, curve_speeds[j], PARAM_ACCEL);
-            printf("  %-12s %3.0f mm/s: %4u ms, final a %.2f mm y %+.2f deg, fuera de la ruta %.2f mm,"
+            printf("  %-12s %3.0f mm/s: %4u ms, end %.2f mm and %+.2f deg, off the route %.2f mm,"
                    " error max %.2f mm / %.2f deg, PWM max %d\n", paths[i].name, (double)curve_speeds[j], r.ms,
                    (double)r.end_err, (double)r.heading_err, (double)r.cross_err_max, (double)r.fwd_err_max,
                    (double)r.rot_err_max, r.pwm_max);
@@ -1878,7 +1878,7 @@ static void control_report(void){
     static const int8_t layout_e[9] = {0, 1, 1, -1, 1, -1, -1, 0, 0};
     const run_path_t e = {layout_e, 9};
     const plant_t base = plant_nominal();
-    printf("laberinto E (2D1D1I1D1I1I2), lateral tras la ultima curva (> 0 a la derecha):\n");
+    printf("layout E (2R1R1L1R1L1L2), lateral after the last curve (> 0 to the right):\n");
     const float e_speeds[] = {300.0f, 400.0f, 480.0f};
     const struct { float slip, v0; } laws[] = {{0.0f, 0.0f}, {4.0f, 0.0f}, {7.0f, 0.0f}, {7.0f, 300.0f}, {10.0f, 0.0f}};
     for(size_t k = 0; k < sizeof(laws) / sizeof(laws[0]); k++){
@@ -1905,7 +1905,7 @@ static void costs_report(float v_fast, float v_curve){
     const size_t n_pairs = sizeof(pairs) / sizeof(pairs[0]);
     const uint16_t openings[] = {0, 40, 150};
     int8_t turns[PATH_MAX_CELLS];
-    printf("carrera rapida FAST %.0f, curvas %.0f mm/s, ACCEL %d: segundos medios salida->meta (celdas, curvas)\n",
+    printf("speed run FAST %.0f, curves %.0f mm/s, ACCEL %d: mean seconds start->goal (cells, curves)\n",
            (double)v_fast, (double)v_curve, PARAM_ACCEL);
     maze_set_goal(7, 7, 8, 8);
     cellset_t goal;
@@ -1931,9 +1931,9 @@ static void costs_report(float v_fast, float v_curve){
             }
             for(size_t k = 0; k < n_pairs; k++) best_count[k] += t[k] <= best + 0.001f;
         }
-        printf("  %3u aberturas extra:\n", openings[o]);
+        printf("  %3u extra openings:\n", openings[o]);
         for(size_t k = 0; k < n_pairs; k++){
-            printf("    celda %u giro %u: %.3f s (%.1f celdas, %.1f curvas), el mejor en %d de %d\n", pairs[k].cell,
+            printf("    cell %u turn %u: %.3f s (%.1f cells, %.1f curves), the best in %d of %d\n", pairs[k].cell,
                    pairs[k].turn, seconds[k] / mazes, cells_sum[k] / mazes, curves_sum[k] / mazes, best_count[k], mazes);
         }
     }
@@ -1982,7 +1982,7 @@ static void mazefile_report(int count, char **paths){
     for(int i = 0; i < count; i++){
         for(int k = 0; k < 2; k++){
             if(!mazefile_load(paths[i])){
-                if(k == 0) printf("  %s: no leido o sin camino a la meta\n", paths[i]);
+                if(k == 0) printf("  %s: not read or no path to the goal\n", paths[i]);
                 break;
             }
             summary_t one = {0};
@@ -1990,9 +1990,9 @@ static void mazefile_report(int count, char **paths){
             const int bad = one.search_ok != 1 || one.fast_ok != 1 || one.back_home != 1 || one.crashes
                             || (k == 0 && (one.optimal != 1 || one.consistent != 1 || one.blocked));
             if(bad){
-                printf("  coste %u, optimo %u |", search_fast_path_cost(), true_optimum());
+                printf("  cost %u, optimum %u |", search_fast_path_cost(), true_optimum());
                 printf("  %s%s: search ok %d optimal %d map ok %d fast ok %d home %d blocked %ld crashes %ld\n",
-                       paths[i], k ? " (3% ruido)" : "", one.search_ok, one.optimal, one.consistent, one.fast_ok,
+                       paths[i], k ? " (3% noise)" : "", one.search_ok, one.optimal, one.consistent, one.fast_ok,
                        one.back_home, one.blocked, one.crashes);
             }
             summary_t *s = &sums[k];
@@ -2015,9 +2015,9 @@ static void mazefile_report(int count, char **paths){
     }
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
     if(!sums[0].runs) return;
-    print_summary("sensado perfecto", &sums[0]);
-    print_summary("3% ruido", &sums[1]);
-    printf("  peor decision en marcha: %u pops (perfecto), %u (3%% ruido)\n", sums[0].decide_pops_max, sums[1].decide_pops_max);
+    print_summary("perfect sensing", &sums[0]);
+    print_summary("3% noise", &sums[1]);
+    printf("  worst decision on the way: %u pops (perfect), %u (3%% noise)\n", sums[0].decide_pops_max, sums[1].decide_pops_max);
 }
 
 // host_tests --timing: the planner's work (states popped) in each decision a
@@ -2031,14 +2031,14 @@ static void timing_report(void){
     maze_init();
     uint32_t p0 = maze_plan_pops();
     maze_plan_to(&goal, PLAN_OPTIMISTIC, (plan_costs_t){SEARCH_COST_CELL, SEARCH_COST_TURN}, cost);
-    printf("un plan sobre el 16x16 vacio: %u pops (%u estados)\n", maze_plan_pops() - p0, MAZE_STATES);
+    printf("one plan over the empty 16x16: %u pops (%u states)\n", maze_plan_pops() - p0, MAZE_STATES);
     const struct { const char *name; uint16_t openings; double noise, doubt; } suites[] = {
-        {"perfectos", 0, 0.0, 0.0},
-        {"con bucles", 40, 0.0, 0.0},
-        {"abiertos", 150, 0.0, 0.0},
-        {"bucles + 20% laterales dudosos", 40, 0.0, 0.2},
-        {"bucles + 3% ruido", 40, 0.03, 0.0},
-        {"bucles, meta de competicion", 40, 0.0, 0.0},
+        {"perfect", 0, 0.0, 0.0},
+        {"with loops", 40, 0.0, 0.0},
+        {"open", 150, 0.0, 0.0},
+        {"loops + 20% doubtful sides", 40, 0.0, 0.2},
+        {"loops + 3% noise", 40, 0.03, 0.0},
+        {"loops, competition goal", 40, 0.0, 0.0},
     };
     for(size_t i = 0; i < sizeof(suites) / sizeof(suites[0]); i++){
         uint64_t decides = 0, sum = 0;
@@ -2058,7 +2058,7 @@ static void timing_report(void){
             if(sim_stats.decide_pops_max > max) max = sim_stats.decide_pops_max;
             for(int b = 0; b < SIM_POPS_BUCKETS; b++) hist[b] += sim_stats.decide_hist[b];
         }
-        printf("  %-32s %6llu decisiones en marcha, media %5.0f pops, max %5u | por %uk:",
+        printf("  %-32s %6llu decisions on the way, mean %5.0f pops, max %5u | per %uk:",
                suites[i].name, (unsigned long long)decides, decides ? (double)sum / (double)decides : 0.0, max,
                SIM_POPS_BUCKET_SIZE / 1024u);
         for(int b = 0; b < SIM_POPS_BUCKETS; b++) printf(" %u", hist[b]);
@@ -2080,7 +2080,7 @@ static void timing_report(void){
         sum += sim_stats.decide_pops;
         if(sim_stats.decide_pops_max > max) max = sim_stats.decide_pops_max;
     }
-    printf("  %-32s %6llu decisiones en marcha, media %5.0f pops, max %5u\n", "practica 4x3, meta (3,2)",
+    printf("  %-32s %6llu decisions on the way, mean %5.0f pops, max %5u\n", "practice 4x3, goal (3,2)",
            (unsigned long long)decides, decides ? (double)sum / (double)decides : 0.0, max);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }

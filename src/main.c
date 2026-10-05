@@ -21,8 +21,8 @@
 #include "uart.h"
 
 static const char *const MODE_NAME[MODE_COUNT + 1] = {
-    "?", "BUSQUEDA", "SEGUIDOR IZQ", "SEGUIDOR DER", "RAPIDA SEGURA", "RAPIDA", "BORRAR MAPA", "SIN CURVAS",
-    "RAPIDA MEDIA",
+    "?", "SEARCH", "LEFT FOLLOWER", "RIGHT FOLLOWER", "SAFE RACE", "RACE", "ERASE MAP", "NO CURVES",
+    "MID RACE",
 };
 // The race menu's order (app.h).
 static const uint8_t RACE_MODE[RACE_COUNT + 1] = {
@@ -139,25 +139,25 @@ static void report_health(void){
     health_alive();
     uint32_t stall_ms, stall_pc, stall_lr;
     if(health_take_stall(&stall_ms, &stall_pc, &stall_lr)){
-        print("!! el programa estuvo parado %lu ms en PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
+        print("!! the program stalled %lu ms at PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
               (unsigned long)stall_pc, (unsigned long)stall_lr);
     }
     uint32_t expected, seen;
     if(health_take_clock_change(&expected, &seen)){
-        print("!! osciladores cambiados sin pedirlo: RCC_CR %08lx -> %08lx\n", (unsigned long)expected,
+        print("!! oscillators changed unasked: RCC_CR %08lx -> %08lx\n", (unsigned long)expected,
               (unsigned long)seen);
     }
     if(sysclock_recover()){
         uart_retime();
         health_clock_baseline();
-        print("!! fallo del cristal: run abortado, reloj interno a 64 MHz\n");
+        print("!! crystal failure: run aborted, internal clock at 64 MHz\n");
     }
 }
 
 // Erasing needs a second START press within 3 s, so a mis-selected mode
 // cannot wipe a map by accident.
 static void erase_map_confirmed(void){
-    print("BORRAR MAPA: pulsa START otra vez en 3 s para confirmar\n");
+    print("ERASE MAP: press START again within 3 s to confirm\n");
     uint32_t start = HAL_GetTick();
     while(HAL_GetTick() - start < 3000u){
         report_health();    // the wait is the UI's, not a stall
@@ -166,15 +166,15 @@ static void erase_map_confirmed(void){
         if(button_take_press(BUTTON_START)){
             maze_erase();
             leds_all(0);
-            print(app_save_now() == STORAGE_FAILED ? "Mapa borrado en RAM; !! error escribiendo la flash\n"
-                                                   : "Mapa borrado, meta por defecto\n");
+            print(app_save_now() == STORAGE_FAILED ? "Map erased in RAM; !! error writing the flash\n"
+                                                   : "Map erased, default goal\n");
             sync_telemetry(TM_ERASE);
             return;
         }
         if(button_take_press(BUTTON_SELECT) || motion_abort_requested()) break;
     }
     leds_all(0);
-    print("borrado cancelado\n");
+    print("erase cancelled\n");
 }
 
 static void run_mode(uint8_t m){
@@ -188,18 +188,18 @@ static void run_mode(uint8_t m){
     }
     else if((m == MODE_FAST || m == MODE_FAST_MID || m == MODE_FAST_SAFE || m == MODE_NO_CURVES)
             && search_fast_path_cost() == PLAN_INF){
-        print("Sin camino verificado salida->meta: haz antes una busqueda (modo 1)\n");
+        print("No verified start-goal path: run a search first (mode 1)\n");
         motion_indicate(IND_FAIL);  // START did something: no path
     }
     else{
-        print("Modo %s: arranca en %u ms (START o STOP cancela)\n", app_mode_label(), START_DELAY_MS);
+        print("Mode %s: starts in %u ms (START or STOP cancels)\n", app_mode_label(), START_DELAY_MS);
         leds_all(1);
         uint32_t countdown_start = HAL_GetTick();
         sync_telemetry(TM_COUNTDOWN);   // the monitor starts the run with the full map
         uint32_t spent = HAL_GetTick() - countdown_start;
         uint8_t go = countdown(spent < START_DELAY_MS ? START_DELAY_MS - spent : 0);
         if(!go){
-            print("cancelado\n");
+            print("cancelled\n");
         }
         else{
             run_result_t r = RUN_FAILED;
@@ -216,9 +216,9 @@ static void run_mode(uint8_t m){
             }
             motion_stop();
             motion_leg_timing_report();
-            static const char *const RESULT[] = {"OK", "ABORTADO", "FALLO"};
-            print("Fin: %s | %s\n", RESULT[r],
-                  search_ready() ? "robot en la salida, listo" : "coloca el robot en la salida");
+            static const char *const RESULT[] = {"OK", "ABORTED", "FAILED"};
+            print("End: %s | %s\n", RESULT[r],
+                  search_ready() ? "robot at the start, ready" : "place the robot at the start");
         }
     }
     motion_stop();
@@ -240,7 +240,7 @@ static void run_calibration(void){
     telemetry_activity(TM_CALIBRATE);
     uint8_t go = 1;
     if(calib_moves(cal_test)){
-        print("CAL: el robot se movera en %u ms (START o STOP cancela)\n", CAL_DELAY_MS);
+        print("CAL: the robot moves in %u ms (START or STOP cancels)\n", CAL_DELAY_MS);
         go = countdown(CAL_DELAY_MS);
     }
     if(go){
@@ -248,7 +248,7 @@ static void run_calibration(void){
         calib_run(cal_test, cal_a, cal_b);
     }
     else{
-        print("cancelado\n");
+        print("cancelled\n");
     }
     motion_stop();
     run_active = 0;
@@ -260,34 +260,34 @@ static void run_calibration(void){
 static void print_banner(storage_status_t stored){
     uint8_t g[4];
     maze_get_goal(g);
-    print("\nrat_sw %s %s | modo %s\n", __DATE__, __TIME__, app_mode_label());
+    print("\nrat_sw %s %s | mode %s\n", __DATE__, __TIME__, app_mode_label());
 #ifdef VIRTUAL_ROBOT
-    print("ROBOT VIRTUAL: laberinto 16x16 simulado, no sirve para competir\n");
+    print("VIRTUAL ROBOT: simulated 16x16 maze, not for competing\n");
 #endif
     if(stored == STORAGE_LOADED || stored == STORAGE_NEW_DEFAULTS){
         uint16_t cost = search_fast_path_cost();
         if(cost == PLAN_INF){
-            print("Mapa en flash: %u celdas, sin camino rapido (ERASE si es otro laberinto)\n", maze_visited_count());
+            print("Map in flash: %u cells, no fast path (ERASE if it is another maze)\n", maze_visited_count());
         }
         else{
-            print("Mapa en flash: %u celdas, camino rapido coste %u (ERASE si es otro laberinto)\n",
+            print("Map in flash: %u cells, fast path cost %u (ERASE if it is another maze)\n",
                   maze_visited_count(), cost);
         }
-        if(stored == STORAGE_NEW_DEFAULTS) print("Parametros: los nuevos por defecto del firmware (los guardados, no)\n");
+        if(stored == STORAGE_NEW_DEFAULTS) print("Parameters: the firmware's new defaults (not the saved ones)\n");
     }
     else{
         print("Flash: %s\n", storage_status_name(stored));
     }
-    if(sysclock_source() == CLOCK_HSI_BOOT) print("!! el cristal no arranco: reloj interno a 64 MHz\n");
-    print("Reinicio: %s\n", health_reset_cause());
-    print("Meta (%u,%u)-(%u,%u). SELECT cambia de modo, START lo lanza (en el 2, abre las carreras)\n",
+    if(sysclock_source() == CLOCK_HSI_BOOT) print("!! the crystal did not start: internal clock at 64 MHz\n");
+    print("Reset: %s\n", health_reset_cause());
+    print("Goal (%u,%u)-(%u,%u). SELECT changes mode, START launches it (on 2, opens the races)\n",
           g[0], g[1], g[2], g[3]);
 }
 
 storage_save_t app_save_now(void){
     const storage_save_t r = storage_save(0);
     if(r != STORAGE_FULL) return r;
-    print("flash sin hueco: compactando (borra 2 paginas, ~50 ms)\n");
+    print("flash full: compacting (erases 2 pages, ~50 ms)\n");
     if(!flash_store_probe() || !storage_compact()) return STORAGE_FAILED;
     return storage_save(0);
 }
@@ -299,11 +299,11 @@ storage_save_t app_save_now(void){
 static void compact_store(void){
     if(!storage_needs_compact()) return;
     if(!health_power_on() && !flash_store_probe()){
-        print("!! flash: no compacto (sin probar tras un reinicio): apaga y enciende; quedan %u huecos\n",
+        print("!! flash: not compacting (untested after a reset): power cycle; %u slots left\n",
               storage_free_slots());
         return;
     }
-    if(!storage_compact()) print("!! flash: no se pudo compactar\n");
+    if(!storage_compact()) print("!! flash: could not compact\n");
 }
 
 int main(void){
@@ -331,12 +331,12 @@ int main(void){
             if(!mode_chosen) app_set_mode(MENU_SEARCH, 0);
             else if(race_menu) app_set_mode(MENU_RACE, (uint8_t)(race % RACE_COUNT + 1));
             else app_set_mode((uint8_t)(menu % MENU_COUNT + 1), 0);
-            print("modo %s\n", app_mode_label());
+            print("mode %s\n", app_mode_label());
         }
         uint8_t pressed = button_take_press(BUTTON_START) && mode_chosen;    // no mode yet: ignored
         if(pressed && menu == MENU_RACE && !race_menu){
             race_menu = 1;      // only a reset leaves it
-            print("carreras: SELECT elige, START lanza | modo %s\n", app_mode_label());
+            print("races: SELECT picks, START launches | mode %s\n", app_mode_label());
             pressed = 0;
         }
         if(pressed) search_set_home();  // someone is at the robot: it stands at the start

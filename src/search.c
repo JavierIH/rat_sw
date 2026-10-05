@@ -15,8 +15,8 @@ typedef enum { REPLAN_OK, REPLAN_UNREACHABLE } replan_t;
 static const plan_costs_t SEARCH_COSTS = {SEARCH_COST_CELL, SEARCH_COST_TURN};
 static const plan_costs_t FAST_COSTS = {FAST_COST_CELL, FAST_COST_TURN};
 static const char HEADING_CHAR[4] = {'N', 'E', 'S', 'W'};
-static const char *const PHASE_TAG[3] = {"META", "OPTIM", "VUELTA"};
-static const char *const ACTION_NAME[5] = {"-", "AVANZA", "IZQ", "DER", "MEDIA VUELTA"};
+static const char *const PHASE_TAG[3] = {"GOAL", "OPTIM", "RETURN"};
+static const char *const ACTION_NAME[5] = {"-", "FORWARD", "LEFT", "RIGHT", "U-TURN"};
 
 static pose_t pose = {START_X, START_Y, NORTH};
 static uint8_t ready = 1;               // pose is the start facing north, for real
@@ -184,10 +184,10 @@ static move_result_t face(heading_t h){
 static run_result_t fail_move(move_result_t r, const char *what){
     ready = 0;
     if(r == MOVE_ABORTED){
-        print("Run detenido en (%u,%u)%c\n", pose.x, pose.y, HEADING_CHAR[pose.h]);
+        print("Run stopped at (%u,%u)%c\n", pose.x, pose.y, HEADING_CHAR[pose.h]);
         return RUN_ABORTED;
     }
-    print("!! %s: %s en (%u,%u)%c. Posicion no fiable: lleva el robot a la salida\n",
+    print("!! %s: %s at (%u,%u)%c. Position lost: take the robot to the start\n",
           what, move_result_name(r), pose.x, pose.y, HEADING_CHAR[pose.h]);
     motion_indicate(IND_FAIL);
     return RUN_FAILED;
@@ -195,7 +195,7 @@ static run_result_t fail_move(move_result_t r, const char *what){
 
 static run_result_t fail_plan(const char *why){
     ready = 0;
-    print("!! %s en (%u,%u)%c\n", why, pose.x, pose.y, HEADING_CHAR[pose.h]);
+    print("!! %s at (%u,%u)%c\n", why, pose.x, pose.y, HEADING_CHAR[pose.h]);
     motion_indicate(IND_FAIL);
     return RUN_FAILED;
 }
@@ -206,21 +206,21 @@ static run_result_t fail_plan(const char *why){
 static void save_map(void){
     const storage_save_t r = storage_save(1);
     switch(r){
-        case STORAGE_WRITTEN:   print("Mapa guardado (%u celdas visitadas)\n", maze_visited_count()); break;
-        case STORAGE_UNCHANGED: print("Mapa ya guardado (sin cambios)\n"); break;
-        case STORAGE_FULL:      print("!! flash sin hueco: el mapa sigue en RAM (SAVE lo guarda compactando)\n"); break;
-        case STORAGE_FAILED:    print("!! no se pudo guardar el mapa en flash: sigue en RAM\n"); break;
+        case STORAGE_WRITTEN:   print("Map saved (%u cells visited)\n", maze_visited_count()); break;
+        case STORAGE_UNCHANGED: print("Map already saved (unchanged)\n"); break;
+        case STORAGE_FULL:      print("!! flash full: the map is only in RAM (SAVE compacts and saves it)\n"); break;
+        case STORAGE_FAILED:    print("!! could not save the map to flash: it is only in RAM\n"); break;
     }
     motion_indicate(r == STORAGE_WRITTEN || r == STORAGE_UNCHANGED ? IND_DONE : IND_FAIL);
 }
 
 static run_result_t finish_at_start(uint16_t steps){
     move_result_t r = face(NORTH);
-    if(r != MOVE_OK) return fail_move(r, "orientacion");
+    if(r != MOVE_OK) return fail_move(r, "facing north");
     ready = 1;
-    print("En la salida tras %u acciones\n", steps);
+    print("At the start after %u actions\n", steps);
     uint16_t cost = search_fast_path_cost();
-    if(cost != PLAN_INF) print("Camino rapido verificado: coste %u\n", cost);
+    if(cost != PLAN_INF) print("Fast path verified: cost %u\n", cost);
     return RUN_OK;
 }
 
@@ -245,7 +245,7 @@ static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs, uint8_t
         forgotten = (uint16_t)(forgotten + maze_forget_walls(INT8_MAX, MAZE_SIZE, MAZE_SIZE));
         maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     }
-    print("!! destino inalcanzable segun el mapa: olvido %u paredes dudosas (reparacion %u/%u)\n",
+    print("!! target unreachable on the map: forgetting %u doubtful walls (repair %u/%u)\n",
           forgotten, *repairs, MAP_MAX_RECOVERIES);
     telemetry_map();    // the forgotten walls can be anywhere: resend the whole map
     return cost_a[pose_state()] != PLAN_INF ? REPLAN_OK : REPLAN_UNREACHABLE;
@@ -308,7 +308,7 @@ typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
 static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
         if(!stopped) return PHASE_STOP;
-        print("Meta alcanzada en (%u,%u) tras %u acciones\n", pose.x, pose.y, e->steps);
+        print("Goal reached at (%u,%u) after %u actions\n", pose.x, pose.y, e->steps);
         // Saved here, not only back at the start: a failed way back loses
         // nothing (the end saves again if it learned something).
         save_map();
@@ -318,8 +318,8 @@ static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_OPTIMIZE){
         uint8_t budget_left = e->optimize_steps < OPTIMIZE_MAX_STEPS;
         if(!budget_left || !optimize_candidates(&e->targets)){
-            print(budget_left ? "Camino rapido optimo verificado: vuelta a la salida\n"
-                              : "Presupuesto de optimizacion agotado: vuelta a la salida\n");
+            print(budget_left ? "Optimal fast path verified: returning to the start\n"
+                              : "Optimization budget spent: returning to the start\n");
             e->phase = PH_TO_START;
             telemetry_activity(TM_TO_START);
         }
@@ -339,7 +339,7 @@ static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a, ui
     }
     *a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
     if(params.log_level >= 1){
-        print("%s (%u,%u)%c F%c I%c D%c coste=%u -> %s\n", PHASE_TAG[e->phase], pose.x, pose.y,
+        print("%s (%u,%u)%c F%c L%c R%c cost=%u -> %s\n", PHASE_TAG[e->phase], pose.x, pose.y,
               HEADING_CHAR[pose.h], SIGHTING_CHAR[w->front], SIGHTING_CHAR[w->left], SIGHTING_CHAR[w->right],
               cost_a[pose_state()], ACTION_NAME[*a]);
     }
@@ -423,13 +423,13 @@ run_result_t search_explore(void){
     pose_reset();
     ready = 0;
     telemetry_activity(TM_TO_GOAL);
-    print("== BUSQUEDA ==\n");
+    print("== SEARCH ==\n");
     for(;;){
-        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "busqueda");
+        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "search");
         wall_sense_t w;
         move_result_t r = sense_here(&w, sides_recorded);
         sides_recorded = 0;
-        if(r != MOVE_OK) return fail_move(r, "sensado");
+        if(r != MOVE_OK) return fail_move(r, "sensing");
         if(explore_phase(&e, 1) == PHASE_DONE){
             const run_result_t res = finish_at_start(e.steps);
             if(res == RUN_OK) save_map();   // if the return learned something
@@ -437,7 +437,7 @@ run_result_t search_explore(void){
         }
         action_t a;
         if(!explore_plan(&e, &w, &a, 1)){
-            return fail_plan(e.failed == 2 ? "presupuesto de acciones agotado" : "destino inalcanzable");
+            return fail_plan(e.failed == 2 ? "action budget spent" : "target unreachable");
         }
         // The map may still believe in a passage the sensors now see closed:
         // never drive into it. The sighting already raised its evidence, so
@@ -445,12 +445,12 @@ run_result_t search_explore(void){
         if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
         if(a == ACT_FORWARD && mode != SEARCH_STOP_EACH){
             r = drive_leg(explore_next, &e, &e.reached);
-            if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
+            if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "move");
             sides_recorded = e.reached > 0;
             continue;
         }
         r = do_action(a);
-        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
+        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "move");
     }
 }
 
@@ -470,7 +470,7 @@ static const char *route_text(char *text){
         if(run >= 100) text[n++] = (char)('0' + run / 100);
         if(run >= 10) text[n++] = (char)('0' + run / 10 % 10);
         text[n++] = (char)('0' + run % 10);
-        if(route_turn[i]) text[n++] = route_turn[i] > 0 ? 'D' : 'I';
+        if(route_turn[i]) text[n++] = route_turn[i] > 0 ? 'R' : 'L';
         run = 0;
     }
     text[n] = '\0';
@@ -488,10 +488,10 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t cu
     uint8_t repairs = 0;
     while(!cellset_has(targets, pose.x, pose.y)){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, tag);
-        if(++*steps > SEARCH_MAX_STEPS) return fail_plan("presupuesto de acciones agotado");
+        if(++*steps > SEARCH_MAX_STEPS) return fail_plan("action budget spent");
         wall_sense_t w;
         move_result_t r = sense_here(&w, 0);
-        if(r != MOVE_OK) return fail_move(r, "sensado");
+        if(r != MOVE_OK) return fail_move(r, "sensing");
 
         maze_plan_to(targets, PLAN_VERIFIED, FAST_COSTS, cost_a);
         int8_t turn;
@@ -505,17 +505,17 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t cu
             }
             if(params.log_level >= 1){
                 char text[ROUTE_TEXT_MAX + 2];
-                print("%s (%u,%u)%c giro %d + ruta %s (%u celdas)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
+                print("%s (%u,%u)%c turn %d + route %s (%u cells)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
                       route_text(text), route.cells);
             }
             r = turn_by(turn);
             if(r == MOVE_OK && route.cells) r = run_route(speed);
         }
         else{
-            if(plan_explore(targets, &repairs, 1) == REPLAN_UNREACHABLE) return fail_plan("destino inalcanzable");
+            if(plan_explore(targets, &repairs, 1) == REPLAN_UNREACHABLE) return fail_plan("target unreachable");
             action_t a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
             if(params.log_level >= 1){
-                print("%s (%u,%u)%c sin camino verificado -> %s\n", tag, pose.x, pose.y,
+                print("%s (%u,%u)%c no verified path -> %s\n", tag, pose.x, pose.y,
                       HEADING_CHAR[pose.h], ACTION_NAME[a]);
             }
             if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
@@ -534,20 +534,20 @@ run_result_t search_fast_run(uint8_t curves){
 
     uint16_t cost = search_fast_path_cost();
     if(cost == PLAN_INF){
-        print("Sin camino verificado salida->meta: haz antes una busqueda (modo 1)\n");
+        print("No verified start-goal path: run a search first (mode 1)\n");
         return RUN_FAILED;  // nothing moved: still ready
     }
     ready = 0;
     telemetry_activity(TM_FAST);
-    print("== CARRERA RAPIDA (coste %u) ==\n", cost);
+    print("== SPEED RUN (cost %u) ==\n", cost);
     uint16_t steps = 0;
-    run_result_t res = drive_to(&goal, params.fast_speed, curves, "RAPIDA", &steps);
+    run_result_t res = drive_to(&goal, params.fast_speed, curves, "FAST", &steps);
     if(res != RUN_OK) return res;
-    print("Meta alcanzada en carrera rapida tras %u tramos\n", steps);
+    print("Goal reached in the speed run after %u legs\n", steps);
     // Saved here, never back at the start: a failed return loses nothing.
     save_map();
     telemetry_activity(TM_RETURN);
-    res = drive_to(&home, params.search_speed, curves, "VUELTA", &steps);
+    res = drive_to(&home, params.search_speed, curves, "RETURN", &steps);
     if(res != RUN_OK) return res;
     return finish_at_start(steps);
 }
@@ -585,23 +585,23 @@ run_result_t search_wall_follow(uint8_t left_hand){
     pose_reset();
     ready = 0;
     telemetry_activity(TM_FOLLOW);
-    print("== SEGUIDOR DE PARED %s ==\n", left_hand ? "IZQUIERDA" : "DERECHA");
+    print("== WALL FOLLOWER %s ==\n", left_hand ? "LEFT" : "RIGHT");
     // It never ends on its own: past the goal it goes on following the wall
     // until STOP (or a failed move).
     for(;;){
         if(!f.goal && maze_is_goal(pose.x, pose.y)) f.goal = 1;
         if(f.goal == 1){
-            print("Meta alcanzada (seguidor) en (%u,%u) tras %lu acciones: sigue hasta STOP\n", pose.x, pose.y,
+            print("Goal reached (follower) at (%u,%u) after %lu actions: going on until STOP\n", pose.x, pose.y,
                   (unsigned long)f.steps);
             motion_indicate(IND_GOAL);
             f.goal = 2;
         }
-        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "seguidor");
+        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "follower");
         f.steps++;
         wall_sense_t w;
         move_result_t r = sense_here(&w, sides_recorded);
         sides_recorded = 0;
-        if(r != MOVE_OK) return fail_move(r, "sensado");
+        if(r != MOVE_OK) return fail_move(r, "sensing");
 
         // Decide on the map, which now holds this sighting plus the border.
         heading_t near_side = follow_near_side(&f);
@@ -623,7 +623,7 @@ run_result_t search_wall_follow(uint8_t left_hand){
                 r = forward(1, params.search_speed);
             }
         }
-        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "movimiento");
+        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "move");
     }
 }
 
@@ -740,5 +740,5 @@ void search_print_map(void){
     uart_wait_space(500);
     print("%s\n", line);
     uart_wait_space(500);
-    print("S salida G meta * camino rapido ? sin visitar ^>v< robot  ...: pared dudosa\n");
+    print("S start G goal * fast path ? unvisited ^>v< robot  ...: doubtful wall\n");
 }

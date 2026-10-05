@@ -402,7 +402,7 @@ def route_text(turns, limit=ROUTE_TEXT_MAX):
             continue
         if len(text) + 5 > limit:
             return text + "+"
-        text += str(run) + ("D" if t > 0 else "I" if t < 0 else "")
+        text += str(run) + ("R" if t > 0 else "L" if t < 0 else "")
         run = 0
     return text
 
@@ -665,11 +665,11 @@ def draw_maze(cv, top, left, height, width, model, ov, glyphs, full, start):
 
 LOG_STYLES = (
     (lambda t: t.startswith("!!"), "bad"),
-    (lambda t: "Meta alcanzada" in t or t.startswith("Fin: OK"), "ok"),
+    (lambda t: "Goal reached" in t or t.startswith("End: OK"), "ok"),
     (lambda t: t.startswith("=="), "head"),
-    (lambda t: t.startswith("Fin:") or t.startswith("? "), "warn"),
+    (lambda t: t.startswith("End:") or t.startswith("? "), "warn"),
     (lambda t: t.startswith("--"), "info"),
-    (lambda t: t.startswith(("avance", "ruta", "exploracion", "giro", "alineado", "IR mm")), "dim"),
+    (lambda t: t.startswith(("forward", "route", "explore", "turn", "front aligned", "squared", "IR mm")), "dim"),
 )
 
 

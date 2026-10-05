@@ -121,14 +121,14 @@ static void cmd_status(const char *args){
     uint8_t x, y;
     heading_t h;
     search_pose(&x, &y, &h);
-    print("modo %s | %s | robot (%u,%u)%c %s\n", app_mode_label(),
-          app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
-          search_ready() ? "en la salida" : "fuera de la salida");
+    print("mode %s | %s | robot (%u,%u)%c %s\n", app_mode_label(),
+          app_run_active() ? "RUNNING" : "stopped", x, y, "NESW"[h],
+          search_ready() ? "at the start" : "away from the start");
     print("SPD %d FAST %d CURVE %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KD %s LOG %u%s\n",
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
-          format_fixed2(kd, sizeof(kd), params.kd), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
-    print("pila: %lu bytes sin usar nunca | reinicio: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
+          format_fixed2(kd, sizeof(kd), params.kd), params.log_level, motion_step_mode() ? " | STEP MODE" : "");
+    print("stack: %lu bytes never used | reset: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
           (unsigned long)FLASH->ACR, (unsigned long)FLASH->OBR, (unsigned long)FLASH->WRPR);
@@ -138,8 +138,8 @@ static void cmd_status(const char *args){
           *(const volatile uint16_t *)FLASHSIZE_BASE);
     const flash_timing_t *ft = flash_store_timing();
     // Under print()'s 119 characters even blocked, with a wedge's 6-digit times.
-    print("flash: %u huecos%s | escritura 1a %lu us, peor %lu us, %lu ms | borrado %lu ms | HSI %lu\n",
-          storage_free_slots(), flash_store_blocked() ? ", BLOQUEADA" : "",
+    print("flash: %u slots%s | write 1st %lu us, worst %lu us, %lu ms | erase %lu ms | HSI %lu\n",
+          storage_free_slots(), flash_store_blocked() ? ", BLOCKED" : "",
           (unsigned long)ft->first_us, (unsigned long)ft->worst_us, (unsigned long)ft->program_ms,
           (unsigned long)ft->erase_ms, (unsigned long)ft->hsi_restarts);
     motion_leg_timing_report();
@@ -148,11 +148,11 @@ static void cmd_status(const char *args){
     maze_get_goal(g);
     uint16_t cost = search_fast_path_cost();
     if(cost == PLAN_INF){
-        print("meta (%u,%u)-(%u,%u) | %u celdas visitadas | sin camino rapido verificado\n",
+        print("goal (%u,%u)-(%u,%u) | %u cells visited | no verified fast path\n",
               g[0], g[1], g[2], g[3], maze_visited_count());
     }
     else{
-        print("meta (%u,%u)-(%u,%u) | %u celdas visitadas | camino rapido coste %u\n",
+        print("goal (%u,%u)-(%u,%u) | %u cells visited | fast path cost %u\n",
               g[0], g[1], g[2], g[3], maze_visited_count(), cost);
     }
 }
@@ -166,28 +166,28 @@ static void cmd_mode(const char *args){
         print("MODE 1 | 2 [1-%u] | 3\n", RACE_COUNT);
         return;
     }
-    print("modo %s\n", app_mode_label());
+    print("mode %s\n", app_mode_label());
 }
 
 static void cmd_start(const char *args){
     (void)args;
     uint8_t m = app_mode();
     if(app_run_active()){
-        print("ya hay un run en marcha\n");
+        print("a run is already going\n");
     }
     else if(m != MODE_ERASE && !search_ready()){
-        print("START rechazado: el robot no esta en la salida. Colocalo mirando al norte y manda HOME\n");
+        print("START refused: the robot is not at the start. Place it facing north and send HOME\n");
     }
     else{
         app_request_start();
-        print("START modo %s\n", app_mode_label());
+        print("START mode %s\n", app_mode_label());
     }
 }
 
 static void cmd_stop(const char *args){
     (void)args;
     if(!app_run_active()){
-        print("nada que parar\n");
+        print("nothing to stop\n");
         return;
     }
     motion_request_abort();
@@ -197,13 +197,13 @@ static void cmd_stop(const char *args){
 static void cmd_pause(const char *args){
     (void)args;
     motion_set_paused(1);
-    print("pausa (RESUME para seguir)\n");
+    print("paused (RESUME to go on)\n");
 }
 
 static void cmd_resume(const char *args){
     (void)args;
     motion_set_paused(0);
-    print("sigue\n");
+    print("going on\n");
 }
 
 static void cmd_step(const char *args){
@@ -213,13 +213,13 @@ static void cmd_step(const char *args){
         return;
     }
     motion_set_step_mode(on);
-    print(on ? "paso a paso ON: pausa tras cada accion, RESUME para seguir\n" : "paso a paso OFF\n");
+    print(on ? "step mode ON: a pause after every action, RESUME to go on\n" : "step mode OFF\n");
 }
 
 static void set_value(const char *args, int16_t *dst, int32_t min, int32_t max, const char *name, const char *unit){
     uint32_t v;
     if(!parse_uint(&args, &v) || !at_end(args) || v < (uint32_t)min || v > (uint32_t)max){
-        print("%s %ld-%ld %s (ahora %d)\n", name, (long)min, (long)max, unit, *dst);
+        print("%s %ld-%ld %s (now %d)\n", name, (long)min, (long)max, unit, *dst);
         return;
     }
     *dst = (int16_t)v;      // single aligned store: a move reads it once, at its start
@@ -230,7 +230,7 @@ static void set_gain(const char *args, float *dst, float max, const char *name){
     float v;
     char buf[12];
     if(!parse_decimal(&args, &v) || !at_end(args) || v > max){
-        print("%s 0-%s (decimales con punto)\n", name, format_fixed2(buf, sizeof(buf), max));
+        print("%s 0-%s (decimals with a point)\n", name, format_fixed2(buf, sizeof(buf), max));
         return;
     }
     *dst = v;   // single aligned 32-bit store: the SysTick controller never sees half of it
@@ -244,13 +244,13 @@ static void cmd_curve(const char *args){
 }
 static void cmd_accel(const char *args){ set_value(args, &params.accel, ACCEL_MIN, ACCEL_MAX, "ACCEL", "mm/s2"); }
 static void cmd_turn(const char *args){
-    set_value(args, &params.turn_speed, TURN_SPEED_MIN, TURN_SPEED_MAX, "TURN", "grados/s");
+    set_value(args, &params.turn_speed, TURN_SPEED_MIN, TURN_SPEED_MAX, "TURN", "deg/s");
 }
 static void cmd_taccel(const char *args){
-    set_value(args, &params.turn_accel, TURN_ACCEL_MIN, TURN_ACCEL_MAX, "TACCEL", "grados/s2");
+    set_value(args, &params.turn_accel, TURN_ACCEL_MIN, TURN_ACCEL_MAX, "TACCEL", "deg/s2");
 }
 static void cmd_turnticks(const char *args){
-    set_value(args, &params.turn_ticks, 300, 600, "TURNTICKS", "ticks por 90 grados (SAVE para guardarlo)");
+    set_value(args, &params.turn_ticks, 300, 600, "TURNTICKS", "ticks per 90 deg (SAVE keeps it)");
 }
 
 static void cmd_kp(const char *args){ set_gain(args, &params.kp, 100.0f, "KP"); }
@@ -267,7 +267,7 @@ static void cmd_tune(const char *args){
     size_t len = strcspn(p, " ");
     float v;
     if(len >= sizeof(name)){
-        print("TUNE: nombre desconocido\n");
+        print("TUNE: unknown name\n");
         return;
     }
     memcpy(name, p, len);
@@ -277,7 +277,7 @@ static void cmd_tune(const char *args){
     const uint8_t negative = *p == '-';
     if(negative) p++;
     if(!parse_decimal(&p, &v) || !at_end(p)){
-        print("TUNE nombre valor (TUNE solo: lista)\n");
+        print("TUNE name value (TUNE alone: list)\n");
         return;
     }
     motion_tune_set(name, negative ? -v : v);
@@ -286,7 +286,7 @@ static void cmd_tune(const char *args){
 static void cmd_log(const char *args){
     uint32_t v;
     if(!parse_uint(&args, &v) || !at_end(args) || v > 2u){
-        print("LOG 0-2 (0 eventos, 1 decisiones, 2 telemetria)\n");
+        print("LOG 0-2 (0 events, 1 decisions, 2 move details)\n");
         return;
     }
     params.log_level = (uint8_t)v;
@@ -296,7 +296,7 @@ static void cmd_log(const char *args){
 static void cmd_defaults(const char *args){
     (void)args;
     params_reset();
-    print("parametros por defecto (SAVE para guardarlos)\n");
+    print("default parameters (SAVE keeps them)\n");
 }
 
 static void cmd_ir(const char *args){
@@ -311,11 +311,11 @@ static void cmd_walls(const char *args){
     (void)args;
     wall_sense_t w;
     if(motion_sense_walls(&w) != MOVE_OK){
-        print("cancelado\n");
+        print("cancelled\n");
         return;
     }
     static const char SIGHTING[3] = {'0', '1', '?'};
-    print("paredes: frente=%c izq=%c der=%c (? = lateral dudoso, no se apunta)\n",
+    print("walls: front=%c left=%c right=%c (? = doubtful side, not recorded)\n",
           SIGHTING[w.front], SIGHTING[w.left], SIGHTING[w.right]);
 }
 
@@ -337,7 +337,7 @@ static void cmd_goal(const char *args){
         print("GOAL x y | GOAL x0 y0 x1 y1 (0-%u)\n", MAZE_SIZE - 1);
         return;
     }
-    print("meta (%lu,%lu)-(%lu,%lu) (SAVE para guardarla)\n", (unsigned long)v[0], (unsigned long)v[1],
+    print("goal (%lu,%lu)-(%lu,%lu) (SAVE keeps it)\n", (unsigned long)v[0], (unsigned long)v[1],
           (unsigned long)v[2], (unsigned long)v[3]);
     app_telemetry_sync();
 }
@@ -345,24 +345,24 @@ static void cmd_goal(const char *args){
 static void cmd_save(const char *args){
     (void)args;
     switch(app_save_now()){
-        case STORAGE_WRITTEN:   print("guardado: mapa, meta y parametros (%u huecos libres)\n", storage_free_slots()); break;
-        case STORAGE_UNCHANGED: print("ya estaba guardado\n"); break;
-        default:                print("!! error escribiendo la flash: el mapa sigue en RAM\n"); break;
+        case STORAGE_WRITTEN:   print("saved: map, goal and parameters (%u free slots)\n", storage_free_slots()); break;
+        case STORAGE_UNCHANGED: print("already saved\n"); break;
+        default:                print("!! error writing the flash: the map is only in RAM\n"); break;
     }
 }
 
 static void cmd_erase(const char *args){
     (void)args;
     maze_erase();
-    print(app_save_now() == STORAGE_FAILED ? "mapa borrado en RAM; !! error escribiendo la flash\n"
-                                           : "mapa borrado (RAM y flash), meta por defecto\n");
+    print(app_save_now() == STORAGE_FAILED ? "map erased in RAM; !! error writing the flash\n"
+                                           : "map erased (RAM and flash), default goal\n");
     app_telemetry_sync();
 }
 
 static void cmd_home(const char *args){
     (void)args;
     search_set_home();
-    print("robot en la salida mirando al norte: listo\n");
+    print("robot at the start facing north: ready\n");
 }
 
 static void cmd_sync(const char *args){
@@ -377,8 +377,8 @@ static void cmd_cont(const char *args){
         print("CONT ON|OFF\n");
         return;
     }
-    print(search_mode() == SEARCH_STRAIGHTS ? "busqueda: rectas sin parar, giros parado (CONT ON)\n"
-                                            : "busqueda: parando en cada celda (CONT OFF)\n");
+    print(search_mode() == SEARCH_STRAIGHTS ? "search: straights without stopping, turns stopped (CONT ON)\n"
+                                            : "search: stopping in every cell (CONT OFF)\n");
 }
 
 static void cmd_telem(const char *args){
@@ -388,7 +388,7 @@ static void cmd_telem(const char *args){
         return;
     }
     params.telemetry = on;
-    print(on ? "telemetria ON\n" : "telemetria OFF\n");
+    print(on ? "telemetry ON\n" : "telemetry OFF\n");
     if(on && !app_run_active()) app_telemetry_sync();
 }
 
@@ -446,7 +446,7 @@ static void cmd_cal(const char *args){
         }
     }
     if(!ok || !at_end(p)){
-        print("CAL NOISE [ms] | STRAIGHT [celdas] [mm/s] | TURN [+-cuartos] | CURVE [+-1] [mm/s] | STEP [pwm] [ms]"
+        print("CAL NOISE [ms] | STRAIGHT [cells] [mm/s] | TURN [+-quarters] | CURVE [+-1] [mm/s] | STEP [pwm] [ms]"
               " | IR [mm] | DUMP | RUN\n");
         return;
     }
@@ -457,11 +457,11 @@ static void cmd_reset(const char *args){
     (void)args;
     if(flash_store_blocked()){
         // After a wedged write a software reset once did not boot at all.
-        print("!! flash bloqueada: un RESET puede no arrancar. Apaga y enciende el robot\n");
+        print("!! flash blocked: a RESET may not boot. Power the robot off and on\n");
         return;
     }
     motion_stop();
-    print("reiniciando...\n");
+    print("resetting...\n");
     uart_flush(1500);
     NVIC_SystemReset();
 }
@@ -523,8 +523,8 @@ void commands_poll(void){
             break;
         }
     }
-    if(!cmd) print("? %s (comandos: README.md)\n", name);
-    else if(cmd->idle_only && app_run_active()) print("%s: solo con el robot parado\n", cmd->name);
+    if(!cmd) print("? %s (commands: README.md)\n", name);
+    else if(cmd->idle_only && app_run_active()) print("%s: only with the robot stopped\n", cmd->name);
     else cmd->run(name + len);
     busy = 0;
 }

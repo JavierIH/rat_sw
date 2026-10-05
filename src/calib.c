@@ -36,7 +36,7 @@ static int32_t enc_l0, enc_r0;
 static float ref_fwd0, ref_rot0, ref_fwd_last, ref_rot_last;
 static uint8_t ref_id;
 static char description[32];
-static const char *outcome = "sin datos";
+static const char *outcome = "no data";
 static uint8_t run_armed;               // CAL RUN: 1 armed, 2 recording a run's move, 3 to dump
 static volatile uint16_t coast_left;    // ms still to record after that move
 
@@ -131,10 +131,10 @@ void calib_run_finished(void){
     if(run_armed < 2) return;
     record_stop();
     coast_left = 0;
-    if(run_armed == 2) outcome = "ABORTADO";
+    if(run_armed == 2) outcome = "ABORTED";
     run_armed = 0;
-    print("CAL run: %s, %u muestras cada %u ms%s\n", outcome, count, period_ms,
-          full ? " (buffer lleno: solo el principio)" : "");
+    print("CAL run: %s, %u samples every %u ms%s\n", outcome, count, period_ms,
+          full ? " (buffer full: the start only)" : "");
     dump();
 }
 
@@ -153,7 +153,7 @@ static uint8_t wait_slot(void){
 static void dump(void){
     char kp[12], kd[12];
     if(!count){
-        print("CAL: no hay datos grabados\n");
+        print("CAL: no data recorded\n");
         return;
     }
     // Every constant the analysis may need, so each file stands on its own.
@@ -206,14 +206,14 @@ static void dump(void){
     }
     if(!wait_slot()) goto interrupted;
     print("@D END result=%s samples=%u\n", outcome, count);
-    print("CAL: %u muestras enviadas (%s)\n", count, description);
+    print("CAL: %u samples sent (%s)\n", count, description);
     return;
 
 interrupted:
     // The queue is usually full right now (that is what the dump was waiting
     // for): wait for room, or this message would be dropped.
     uart_wait_space(1000);
-    print("CAL: envio interrumpido (CAL DUMP lo repite)\n");
+    print("CAL: sending interrupted (CAL DUMP repeats it)\n");
 }
 
 // ---- Experiments -----------------------------------------------------------------------
@@ -276,14 +276,14 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
             return;
         case CAL_RUN:
             run_armed = 1;
-            print("CAL RUN: se grabara el proximo movimiento continuo del run\n");
+            print("CAL RUN: the run's next continuous move will be recorded\n");
             return;
     }
     motion_stop();
     if(calib_moves(test) && r != MOVE_ABORTED) motion_wait(CAL_COAST_MS);     // coasting, overshoot
     record_stop();
     outcome = move_result_name(r);
-    print("CAL %s: %s, %u muestras cada %u ms%s\n", description, outcome, count, period_ms,
-          full ? " (buffer lleno: prueba mas corta)" : "");
+    print("CAL %s: %s, %u samples every %u ms%s\n", description, outcome, count, period_ms,
+          full ? " (buffer full: try a shorter test)" : "");
     dump();
 }

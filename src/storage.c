@@ -224,11 +224,11 @@ uint8_t storage_free_slots(void){
 
 const char *storage_status_name(storage_status_t status){
     switch(status){
-        case STORAGE_LOADED:  return "cargado";
-        case STORAGE_NEW_DEFAULTS: return "mapa cargado, parametros por defecto nuevos";
-        case STORAGE_EMPTY:   return "vacio";
-        case STORAGE_CORRUPT: return "corrupto (ignorado)";
-        case STORAGE_STALE:   return "de otro firmware (ignorado)";
+        case STORAGE_LOADED:  return "loaded";
+        case STORAGE_NEW_DEFAULTS: return "map loaded, new default parameters";
+        case STORAGE_EMPTY:   return "empty";
+        case STORAGE_CORRUPT: return "corrupt (ignored)";
+        case STORAGE_STALE:   return "from another firmware (ignored)";
     }
     return "?";
 }
