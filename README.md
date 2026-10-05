@@ -1,166 +1,148 @@
 # rat_sw
 
-Firmware de micromouse para un robot con STM32F103: explora un
-laberinto desconocido, lo mapea, calcula la ruta más rápida y la recorre.
+Micromouse firmware for an STM32F103 robot: it explores an unknown maze,
+maps it, works out the fastest route and runs it.
 
-- **Búsqueda** (modo 1): explora hasta la meta y, al llegar, guarda el mapa
-  en flash (3 parpadeos lentos: guardado); sigue explorando solo las celdas
-  que aún podrían acortar el camino rápido hasta que el mejor camino queda
-  verificado, vuelve a la salida explorando y, si aprendió algo, lo guarda
-  otra vez.
-- **Carrera rápida** (modo 2, carreras 4-6): recorre el camino verificado con las rectas
-  fusionadas a velocidad `FAST`, frenando antes de cada giro; en la meta
-  guarda el mapa si cambió (nunca al volver; si no llega a la meta, no
-  guarda) y vuelve a la salida sola.
-- El planificador minimiza **tiempo** (celdas y giros), no solo celdas.
-- El mapa, la meta y los parámetros sobreviven a reinicios.
+- **Search** (mode 1): explores to the goal and saves the map in flash there
+  (3 slow blinks: saved); keeps exploring only the cells that could still
+  shorten the fast path until the best one is verified, returns to the start
+  exploring on the way and saves again if it learnt something.
+- **Speed run** (mode 2, races 4-6): drives the verified path in one move,
+  straights at `FAST` and every turn a smooth curve at `CURVE`; at the goal
+  it saves the map if it changed (never on the way back; a race that does
+  not reach the goal saves nothing) and returns to the start by itself.
+- The planner minimises **time** (cells and turns), not just cells.
+- The map, the goal and the parameters survive resets.
 
-## Uso
+## Use
 
-| Botón | Parado | Durante un run |
+| Button | Stopped | During a run |
 |---|---|---|
-| SELECT | tras el arranque (LEDs en vaivén) elige el modo 1; luego cambia de modo (1: LEDs 1-2, 2: 3-4, 3: 5-6); en el menú de carreras, cambia de carrera (LEDs 1..n) | — |
-| START | lanza el modo tras 5 s de cuenta atrás, con todos los LEDs parpadeando rápido (ignorado hasta elegir modo); en el modo 2 abre el menú de carreras, y ahí lanza la carrera | detiene el run |
+| SELECT | after boot (LEDs sweeping) picks mode 1; then cycles the modes (1: LEDs 1-2, 2: 3-4, 3: 5-6); in the race menu, cycles the races (LEDs 1..n) | — |
+| START | launches the mode after a 5 s countdown, every LED blinking fast (ignored until a mode is picked); on mode 2 it opens the race menu, and there it launches the race | stops the run |
 
-Modos: 1 búsqueda, 2 carrera, 3 borrar mapa y volver a la meta por defecto
-(pide pulsar START otra vez en 3 s). Menú de carreras (parpadea lento; solo se sale con reset): 1 seguidor
-de pared izquierda, 1-2 derecha (pasan por la meta y siguen hasta STOP), 1-3 sin curvas (camino
-verificado, rectas a `FAST` 800, gira parado; ida y vuelta), 1-4 `FAST 800
-CURVE 300`, 1-5 `FAST 900 CURVE 400`, 1-6 `FAST 900 CURVE 480`. Elegir una
-carrera fija `FAST` y `CURVE`; por consola se pueden cambiar antes de START.
+Modes: 1 search, 2 race, 3 erase the map and go back to the build's default
+goal (press START again within 3 s). The race menu (slow blink; only a reset
+leaves it): 1 left wall follower, 2 right wall follower (past the goal they
+go on until STOP), 3 no curves (verified path, straights at `FAST` 800,
+turns in place; there and back), 4 `FAST 800 CURVE 300`, 5 `FAST 900 CURVE
+400`, 6 `FAST 900 CURVE 480`. Picking a race sets `FAST` and `CURVE`; the
+console can change them before START.
 
-Flujo de competición: `ERASE` (o modo 3) si el laberinto es nuevo → modo 1 →
-carrera 2.4, y las más rápidas cuando la anterior salga bien.
+At a competition: `ERASE` (or mode 3) if the maze is new → mode 1 → race
+2.4, and the faster ones once the previous one goes well.
 
-LEDs: modo seleccionado (con un parpadeo por segundo = vivo); durante las
-rectas, 1-3 = centrando con la pared izquierda, 4-6 = con la derecha; mapa
-guardado en flash = 3 parpadeos lentos; fallo = 3 parpadeos rápidos (también:
-START sin camino verificado, o el mapa no se pudo guardar y solo está en RAM:
-no reinicies ni apagues); parpadeo continuo rápido = `Error_Handler`; parpadeo lento
-continuo = fallo grave de CPU (motores parados).
+LEDs: the mode picked (a blink a second = alive); on the straights, 1-3 =
+centring on the left wall, 4-6 = on the right one; map saved in flash = 3
+slow blinks; failure = 3 fast blinks (also: START with no verified path, or
+the map could not be saved and is only in RAM: do not reset or power off);
+continuous fast blink = `Error_Handler`; continuous slow blink = CPU fault
+(motors stopped).
 
-## Monitor en vivo
+## Live monitor
 
 ```
-python3 tools/robot_monitor.py                 # /dev/rfcomm0 a 9600 baudios
-python3 tools/robot_monitor.py --replay tools/logs/<sesion>.log --speed 4
+python3 tools/robot_monitor.py                 # /dev/rfcomm0 at 9600 baud
+python3 tools/robot_monitor.py --replay tools/logs/<session>.log --speed 4
 ```
 
-Dibuja el laberinto mientras el robot lo explora: paredes confirmadas y
-dudosas, celdas visitadas (en amarillo las de este run), el robot con su
-orientación, la **ruta que va a seguir** (calculada con el mismo planificador
-y costes que el firmware), las celdas candidatas mientras optimiza y, parado,
-el camino rápido verificado. Al lado, el log con colores y la consola.
+Draws the maze while the robot explores it: confirmed and doubtful walls,
+visited cells (this run's in yellow), the robot and its heading, the **route
+it is about to take** (worked out with the firmware's own planner and
+costs), the candidate cells while it optimises and, stopped, the verified
+fast path. Next to it, the coloured log and the console.
 
-- Teclas: Enter envía, ↑/↓ historial, RePág/AvPág desplazan el log, Tab
-  muestra la ayuda, **Ctrl+X manda STOP**, Esc sale. Locales: `/full`
-  (16x16 siempre), `/ascii`, `/clear`, `/nota`.
-- Cada sesión se graba en `tools/logs/` y se puede reproducir con `--replay`.
-- El robot envía la telemetría (líneas `@…` de ~20 bytes) solo entre
-  acciones; el monitor solo transmite cuando escribes (más un `SYNC` al
-  conectar). No frena al robot. `TELEM OFF` la desactiva.
-- Abre el puerto en exclusiva: si otro programa lo usa, lo dice.
+- Keys: Enter sends, Up/Down history, PgUp/PgDn scroll the log, Tab shows
+  the help, **Ctrl+X sends STOP**, Esc quits. Local commands: `/full` (always
+  16x16), `/ascii`, `/clear`, `/note`.
+- Every session is recorded in `tools/logs/` and can be replayed with
+  `--replay`.
+- The robot sends its telemetry (`@...` lines of ~20 bytes) only between
+  actions; the monitor only transmits when you type (plus a `SYNC` on
+  connecting). It does not slow the robot down. `TELEM OFF` turns it off.
+- It opens the port exclusively: if another program holds it, it says so.
 
-## Consola Bluetooth
+## Bluetooth console
 
-Un comando por línea (en el monitor o en cualquier terminal serie), en
-mayúsculas o minúsculas. El firmware no trae ayuda (`HELP`) para ahorrar
-flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
+One command per line (in the monitor or any serial terminal), upper or
+lower case. The firmware has no `HELP` (it saves flash): this table is the
+reference. "Stopped" = refused during a run.
 
-| Comando | Qué hace | Parado |
+| Command | What it does | Stopped |
 |---|---|---|
-| `STATUS` | estado, parámetros, pila, causa del reinicio, registros de reloj y flash, chip, huecos libres de la flash y tiempos de su última escritura; tras una búsqueda, lo que tardó la peor decisión en marcha (también se imprime al acabar el run) | |
-| `MODE n [k]` | elige el modo: 1 búsqueda, 2 k carrera k (1/2 seguidor izquierda/derecha, 3 sin curvas, 4 800/300, 5 900/400, 6 900/480), 3 borrar mapa | sí |
-| `START` | lanza el modo elegido tras 2 s (como el botón) | |
-| `STOP` | detiene el run (como START durante el run) | |
-| `PAUSE`, `RESUME` | frena y espera; sigue tras una pausa o un paso | |
-| `STEP ON\|OFF` (o `DEBUG`) | paso a paso: pausa tras cada acción | |
-| `SPD n` | mm/s de crucero en la búsqueda y en la vuelta de la carrera rápida | |
-| `FAST n` | mm/s de crucero en las rectas de la carrera rápida | |
-| `CURVE n` | mm/s en las curvas de la carrera rápida (los motores lo limitan a ~480) | |
-| `ACCEL n` | mm/s² de aceleración y frenada en recta | |
-| `TURN n`, `TACCEL n` | grados/s máximos y grados/s² de los giros en el sitio | |
-| `TURNTICKS n` | ticks de encoder de un giro de 90° (menos = gira menos) | |
-| `KP f` | centrado: grados/s de giro por mm descentrado | |
-| `KD f` | centrado: amortiguación (grados de giro por mm que cambia el error) | |
-| `TUNE [nombre valor]` | ajusta en vivo una constante del control (no se guarda); `TUNE` solo las lista | |
-| `LOG 0-2` | detalle del log | |
-| `TELEM ON\|OFF` | líneas `@` para el mapa en vivo del monitor | |
-| `CONT ON\|OFF` | búsqueda con rectas sin parar (ON, por defecto) o parando en cada celda; hasta reiniciar | sí |
-| `DEFAULTS` | vuelve a los parámetros por defecto | |
-| `IR` | sensores en mm y crudos, y encoders | |
-| `WALLS` | detecta las paredes ahora mismo | sí |
-| `MAP` | dibuja el mapa ASCII con el camino rápido | sí |
-| `GOAL x y [x1 y1]` | celdas meta (p. ej. `GOAL 7 7 8 8` para 16x16) | sí |
-| `SAVE` | guarda mapa, meta y parámetros (si la flash no tiene hueco, la compacta) | sí |
-| `ERASE` | borra el mapa en RAM y en flash y vuelve a la meta por defecto de la compilación (16x16: 7 7 8 8) | sí |
-| `HOME` | "el robot está en la salida mirando al norte" | sí |
-| `SYNC` | reenvía mapa y estado al monitor | sí |
-| `CAL …` | pruebas de calibración (ver abajo) | sí |
-| `RESET` | reinicia el micro (se niega si la flash está bloqueada: apaga y enciende) | |
+| `STATUS` | state, parameters, stack, reset cause, clock and flash registers, chip, the flash's free slots and its last write's times; after a search, the worst decision on the way (also printed when the run ends) | |
+| `MODE n [k]` | picks the mode: 1 search, 2 k race k (1/2 left/right follower, 3 no curves, 4 800/300, 5 900/400, 6 900/480), 3 erase map | yes |
+| `START` | launches the mode picked after 2 s (as the button) | |
+| `STOP` | stops the run (as START during a run) | |
+| `PAUSE`, `RESUME` | brakes and waits; goes on after a pause or a step | |
+| `STEP ON\|OFF` (or `DEBUG`) | step mode: a pause after every action | |
+| `SPD n` | mm/s cruise of the search and of the speed run's return | |
+| `FAST n` | mm/s cruise of the speed run's straights | |
+| `CURVE n` | mm/s through the speed run's curves (the motors cap it at ~480) | |
+| `ACCEL n` | mm/s² speeding up and braking on straights | |
+| `TURN n`, `TACCEL n` | deg/s peak and deg/s² of the turns in place | |
+| `TURNTICKS n` | encoder ticks of a 90° turn (fewer = turns less) | |
+| `KP f` | centring: deg/s of turn per mm off-centre | |
+| `KD f` | centring: damping, deg of turn per mm the error changes | |
+| `TUNE [name value]` | sets a control constant live (not saved); `TUNE` alone lists them | |
+| `LOG 0-2` | log detail | |
+| `TELEM ON\|OFF` | `@` lines for the monitor's live map | |
+| `CONT ON\|OFF` | search with straights without stopping (ON, the default) or stopping in every cell; until reset | yes |
+| `DEFAULTS` | back to the default parameters | |
+| `IR` | sensors in mm and raw, and the encoders | |
+| `WALLS` | senses the walls right now | yes |
+| `MAP` | draws the ASCII map with the fast path | yes |
+| `GOAL x y [x1 y1]` | goal cells (e.g. `GOAL 7 7 8 8` for 16x16) | yes |
+| `SAVE` | saves map, goal and parameters (compacts the flash if it has no free slot) | yes |
+| `ERASE` | erases the map in RAM and flash and goes back to the build's default goal (16x16: 7 7 8 8) | yes |
+| `HOME` | "the robot is at the start facing north" | yes |
+| `SYNC` | sends map and state to the monitor again | yes |
+| `CAL ...` | calibration tests (below) | yes |
+| `RESET` | resets the micro (refused if the flash is blocked: power cycle) | |
 
-## Datos de calibración
+## Calibration data
 
-El robot graba encoders, PWM aplicado y los 4 IR en crudo cada 2-10 ms
-durante una prueba (si no cabe, espacia las muestras en vez de cortar el
-final) y al acabar los vuelca; el monitor los guarda como CSV en
-`tools/calib_data/` con todas las constantes del firmware. Las pruebas que
-mueven el robot esperan 2 s (START o STOP cancelan).
+During a test the robot records the encoders, the PWM applied and the 4 raw
+IR every 2-10 ms (if they do not fit, it spaces the samples out instead of
+cutting the end) and dumps them when it ends; the monitor saves them as CSV
+in `tools/calib_data/` with every firmware constant. The tests that move the
+robot wait 2 s (START or STOP cancel).
 
-| Prueba | Qué hacer | Para calibrar |
+| Test | What to do | Calibrates |
 |---|---|---|
-| `CAL NOISE [ms]` | robot quieto (no se mueve) | ruido de los sensores |
-| `CAL STRAIGHT [celdas] [pwm]` | en un pasillo; luego `/nota medido <mm> mm` | distancia por celda, centrado KP/KD |
-| `CAL TURN [±cuartos]` | en el sitio; luego `/nota angulo <grados>` | `TURNTICKS`, sobregiro |
-| `CAL STEP [pwm] [ms]` | espacio libre delante | modelo del motor, frenada |
-| `CAL IR [mm]` | pegado a una pared de frente; `/nota inicio <mm> mm` | curva de los IR frontales |
-| vueltas de `CAL NOISE` + `CAL TURN 1` (x4) | en una celda cerrada por 3 lados, centrado delante-detrás; una vuelta por posición, moviendo el robot 10-15 mm a cada lado entre vueltas | pendiente y centro (`SIDE_CENTER_L/R_MM`) de los IR laterales |
-| `CAL DUMP` | — | reenviar la última grabación |
+| `CAL NOISE [ms]` | robot still | sensor noise; square to a wall and centred in a cell: `FRONT_SQUARE_OFFSET_MM` |
+| `CAL STRAIGHT [cells] [mm/s]` | in a corridor; then `/note measured <mm> mm` | distance per cell, centring |
+| `CAL TURN [±quarters]` | in place; then `/note angle <deg>` | `TURNTICKS`, overshoot |
+| `CAL CURVE [±1] [mm/s]` | a cell, a smooth curve, a cell | `CURVE_PRE`, `CURVE_POST`, `CURVE_ANGLE` |
+| `CAL STEP [pwm] [ms]` | free space ahead | motor model, braking |
+| `CAL IR [mm]` | against a wall ahead; `/note start <mm> mm` | the front IR curve |
+| `CAL RUN` | before a run | records its next continuous move |
+| rounds of `CAL NOISE` + `CAL TURN 1` (x4) | in a cell closed on 3 sides, centred front to back; a round per position, moving the robot 10-15 mm sideways between rounds | slope and centre (`SIDE_CENTER_L/R_MM`) of the side IR |
+| `CAL DUMP` | — | sends the last recording again |
 
 ```
 python3 tools/calib_analyze.py tools/calib_data/*.csv
 ```
 
-resume cada fichero y, con las notas, propone valores concretos (por
-ejemplo `CELL_TICKS`/`MOVE_EXTRA_TICKS` combinando rectas de 1 y 3 celdas, o
-coeficientes nuevos de los IR listos para `infrared.c`).
+summarises every file and, with the notes, suggests concrete values (for
+example new IR coefficients ready for `infrared.c`).
 
-## Puesta a punto tras el rework
-
-Las calibraciones de siempre se conservan (`src/robot_config.h`). En el
-laberinto real conviene validar, en este orden:
-
-1. `LOG 2` + una búsqueda en el laberinto de práctica: los avances de una
-   celda y los giros usan las mismas fórmulas, velocidades y puntos de parada
-   que antes (la parada por IR se confirma ahora durante 3 ms).
-2. Carrera rápida con `FAST` igual a `SPD` (150): comprueba que las rectas
-   largas terminan centradas en la celda. Si terminan largas o cortas, ajusta
-   el reparto entre `CELL_TICKS` y `MOVE_EXTRA_TICKS`.
-3. Sube `FAST` poco a poco (220 por defecto) y guarda con `SAVE`.
-4. Opcional: `KE 0.5` para mantener el rumbo donde no hay paredes laterales.
-5. Sensores laterales (van en el morro a 15°): si el robot se para
-   demasiado cerca de una pared frontal o torcido, su lectura de "hay pared"
-   en el lado expuesto se marca dudosa (`?` en el log y en `WALLS`) y no se
-   apunta en el mapa. Para que detecte bien el giro, calibra
-   `FRONT_SQUARE_OFFSET_MM`: robot centrado en una celda y recto frente a una
-   pared, `CAL NOISE`, y `calib_analyze.py` te da el valor.
-
-## Compilar, flashear y probar
+## Build, flash and test
 
 ```
-pio run                  # firmware del robot
-pio run -t upload        # flashear (ST-Link con openocd, ver AGENTS.md)
-make -C test/host        # tests en PC: planificador, estrategias y simulador
-test/host/build/host_tests --demo   # log y mapa de una búsqueda simulada
-python3 -m unittest discover -s tools -p 'test_*.py'   # monitor y análisis
+pio run                  # robot firmware
+pio run -t upload        # flash it (ST-Link with openocd, see AGENTS.md)
+make -C test/host        # PC tests: planner, strategies and simulator
+test/host/build/host_tests --demo   # log and map of a simulated search
+python3 -m unittest discover -s tools -p 'test_*.py'   # monitor and analysis
 ```
 
-Entornos de prueba de hardware: `pio run -e uart_test` y `pio run -e diag_test`
-(este último con `tools/dashboard.py`). `pio run -e virtual -t upload`:
-robot virtual, el firmware del robot con un laberinto 16x16 grabado;
-búsqueda y carreras se recorren en él a velocidad real y guardan en la
-flash de verdad (para probar los guardados sin laberinto). Las ruedas no se
-mueven salvo con `TUNE RUEDAS 1` (solo con el robot en alto: giran con cada
-movimiento). Cada carrera empieza con el robot virtual en la salida. Al
-volver al firmware real, su mapa se ignora (manda `ERASE`). Detalles de arquitectura y
-convenciones en [AGENTS.md](AGENTS.md).
+Hardware test environments: `pio run -e uart_test` and `pio run -e
+diag_test` (the latter with `tools/dashboard.py`). `pio run -e virtual -t
+upload`: the virtual robot, the robot firmware with a built-in 16x16 maze;
+search and races run through it at real speed and save to the real flash
+(to test saves without a maze). The wheels stay still unless `TUNE WHEELS 1`
+(robot on a stand only: they turn with every move). Every race starts with
+the virtual robot at the start. Back on the real firmware its map is
+ignored (send `ERASE`). Architecture and conventions: [AGENTS.md](AGENTS.md);
+design notes and investigations: [docs/](docs/).
