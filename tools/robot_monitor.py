@@ -11,7 +11,7 @@ The planned route is recomputed here with the robot's own planner and costs
 
 Sessions are recorded to tools/logs/ (--no-record to disable) and can be
 replayed. Calibration dumps (CAL commands) are saved as CSV files in
-tools/calib_data/; add your own measurements to the last one with /nota.
+tools/calib_data/; add your own measurements to the last one with /note.
 The monitor only talks to the robot when you type a command (plus one SYNC
 on connect), so it does not slow the robot down.
 
@@ -50,12 +50,12 @@ UNKNOWN, WALL, OPEN_ONCE, OPEN_VERIFIED = range(4)
 CELL_CODE = "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 WALL_CHAR = {"?": UNKNOWN, "#": WALL, ".": OPEN_ONCE, "o": OPEN_VERIFIED}
 
-MODE_NAME = {1: "BUSQUEDA", 2: "SEGUIDOR IZQ", 3: "SEGUIDOR DER", 4: "RAPIDA SEGURA",
-             5: "RAPIDA", 6: "BORRAR MAPA", 7: "SIN CURVAS", 8: "RAPIDA MEDIA"}
-ACTIVITY_NAME = {"I": "parado", "C": "cuenta atras", "G": "explorando hacia la meta",
-                 "O": "optimizando la ruta", "H": "explorando hacia la salida",
-                 "F": "carrera rapida", "R": "volviendo a la salida",
-                 "W": "siguiendo la pared", "E": "borrando el mapa", "K": "calibrando"}
+MODE_NAME = {1: "SEARCH", 2: "LEFT FOLLOWER", 3: "RIGHT FOLLOWER", 4: "SAFE RACE",
+             5: "RACE", 6: "ERASE MAP", 7: "NO CURVES", 8: "MID RACE"}
+ACTIVITY_NAME = {"I": "stopped", "C": "countdown", "G": "exploring to the goal",
+                 "O": "optimizing the route", "H": "exploring to the start",
+                 "F": "speed run", "R": "returning to the start",
+                 "W": "following a wall", "E": "erasing the map", "K": "calibrating"}
 RUNNING = set("CGOHFRWK")
 MIN_ROWS, MIN_COLS = 12, 44
 MIN_LOG_COLS = 34
@@ -427,7 +427,7 @@ class CalibrationCapture:
         word, _, rest = body.partition(" ")
         if word == "BEGIN":
             self.active = {"test": rest or "?", "info": [], "cols": None, "rows": []}
-            return "info", "recibiendo datos de calibracion: " + (rest or "?")
+            return "info", "receiving calibration data: " + (rest or "?")
         if self.active is None:
             return None
         if word == "INFO":
@@ -437,13 +437,13 @@ class CalibrationCapture:
         elif word == "END":
             capture, self.active = self.active, None
             if not self.save_files:
-                return "info", "datos de calibracion: %d muestras (reproduccion: no se guardan)" % len(capture["rows"])
+                return "info", "calibration data: %d samples (replay: not saved)" % len(capture["rows"])
             try:
                 path = self._save(capture, rest)
             except OSError as exc:
-                return "bad", "no se pudieron guardar los datos: %s" % exc
+                return "bad", "could not save the data: %s" % exc
             self.last_path = path
-            return "ok", "datos guardados en %s (%d muestras). Anota medidas con /nota <texto>" % (
+            return "ok", "data saved in %s (%d samples). Add measurements with /note <text>" % (
                 os.path.relpath(path), len(capture["rows"]))
         else:
             capture = self.active
@@ -474,17 +474,17 @@ class CalibrationCapture:
 
     def note(self, text):
         if not self.last_path:
-            return "warn", "no hay datos de calibracion a los que anadir la nota"
+            return "warn", "no calibration data to add the note to"
         with open(self.last_path, "r+", encoding="utf-8") as f:
             lines = f.readlines()
             header = 0
             while header < len(lines) and lines[header].startswith("#"):
                 header += 1
-            lines.insert(header, "# nota: %s\n" % text)
+            lines.insert(header, "# note: %s\n" % text)
             f.seek(0)
             f.writelines(lines)
             f.truncate()
-        return "ok", "nota anadida a %s" % os.path.relpath(self.last_path)
+        return "ok", "note added to %s" % os.path.relpath(self.last_path)
 
 
 # ---- Rendering into an off-screen canvas ------------------------------------------------
@@ -647,10 +647,10 @@ def draw_maze(cv, top, left, height, width, model, ov, glyphs, full, start):
             cv.put(bottom, px + 1, glyphs["h_unknown"] * cw, "unknown")
     cv.put(bottom, left + vnx * (cw + 1), *post(vx0 + vnx, vy0))
 
-    items = ["%s robot" % glyphs["robot"][0], "%s ruta" % glyphs["path"], "%s candidata" % glyphs["cand"],
-             "G meta", "%s sin ver" % (glyphs["h_unknown"] * 2)]
+    items = ["%s robot" % glyphs["robot"][0], "%s route" % glyphs["path"], "%s candidate" % glyphs["cand"],
+             "G goal", "%s unseen" % (glyphs["h_unknown"] * 2)]
     if vnx < nx or vny < ny:
-        items.insert(0, "vista %dx%d de %dx%d" % (vnx, vny, nx, ny))
+        items.insert(0, "view %dx%d of %dx%d" % (vnx, vny, nx, ny))
     row, line = bottom + 1, ""
     for item in items:     # wrapped to the panel width, as many rows as fit
         if line and len(line) + 2 + len(item) > width:
@@ -681,31 +681,31 @@ def log_style(text):
 
 
 HELP_LINES = [
-    ("head", "TECLAS"),
-    ("", "  Enter        enviar el comando"),
-    ("", "  Arriba/Abajo historial de comandos"),
-    ("", "  RePag/AvPag  desplazar el log (Inicio/Fin)"),
-    ("", "  Tab          log / esta ayuda"),
-    ("", "  Ctrl+X       STOP inmediato del run"),
-    ("", "  Ctrl+L       repintar la pantalla"),
-    ("", "  Esc          salir"),
-    ("", "  /full /ascii /clear  vista 16x16, simbolos, borrar log"),
-    ("", "  /nota texto  anade una medida al ultimo fichero de calibracion"),
+    ("head", "KEYS"),
+    ("", "  Enter        send the command"),
+    ("", "  Up/Down      command history"),
+    ("", "  PgUp/PgDn    scroll the log (Home/End)"),
+    ("", "  Tab          log / this help"),
+    ("", "  Ctrl+X       immediate STOP of the run"),
+    ("", "  Ctrl+L       redraw the screen"),
+    ("", "  Esc          quit"),
+    ("", "  /full /ascii /clear  16x16 view, symbols, clear the log"),
+    ("", "  /note text   adds a measurement to the last calibration file"),
     ("", ""),
-    ("head", "ROBOT (todos en README.md, Consola Bluetooth)"),
-    ("", "  MODE n   1 busq | 2 k carrera: 1/2 seg.izq/der 3 sin curvas 4 800/300 5 900/400 6 900/480 | 3 borrar"),
+    ("head", "ROBOT (all in README.md, Bluetooth console)"),
+    ("", "  MODE n   1 search | 2 k race: 1/2 left/right follower 3 no curves 4 800/300 5 900/400 6 900/480 | 3 erase"),
     ("", "  START STOP PAUSE RESUME STEP ON|OFF"),
     ("", "  STATUS MAP IR WALLS SYNC TELEM ON|OFF"),
     ("", "  SPD FAST CURVE ACCEL TURN TACCEL TURNTICKS n   KP KD f   LOG 0-2"),
     ("", "  GOAL x y [x1 y1]  SAVE ERASE HOME DEFAULTS RESET"),
-    ("", "  TUNE [nombre valor]  CONT ON|OFF"),
-    ("", "  CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN  calibracion"),
+    ("", "  TUNE [name value]  CONT ON|OFF"),
+    ("", "  CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN  calibration"),
     ("", ""),
-    ("head", "MAPA"),
-    ("", "  robot con su orientacion, ruta prevista, celdas candidatas"),
-    ("", "  G meta, S salida, punto = celda visitada (amarillo: este run)"),
-    ("", "  lineas punteadas = paredes aun sin confirmar"),
-    ("", "  parado: se dibuja el camino rapido verificado"),
+    ("head", "MAP"),
+    ("", "  robot and its heading, planned route, candidate cells"),
+    ("", "  G goal, S start, dot = visited cell (yellow: this run)"),
+    ("", "  dotted lines = walls not confirmed yet"),
+    ("", "  stopped: the verified fast path is drawn"),
 ]
 
 
@@ -731,26 +731,26 @@ def render(rows, cols, model, ov, view, start, now):
     cv = Canvas(rows, cols)
     glyphs = GLYPHS_ASCII if view.ascii else GLYPHS_UNICODE
     if rows < MIN_ROWS or cols < MIN_COLS:
-        cv.put(0, 0, "Terminal demasiado pequena", "warn")
-        cv.put(1, 0, "minimo %dx%d, ahora %dx%d" % (MIN_COLS, MIN_ROWS, cols, rows), "dim")
+        cv.put(0, 0, "Terminal too small", "warn")
+        cv.put(1, 0, "minimum %dx%d, now %dx%d" % (MIN_COLS, MIN_ROWS, cols, rows), "dim")
         return cv, (min(2, rows - 1), 0)
 
     # Header.
     cv.fill(0, 0, 1, cols, " ", "title")
     parts = [" RAT ", (glyphs["dot_on"] if view.connected else glyphs["dot_off"]) + " " + view.source]
     if view.capture:
-        parts.append("recibiendo %s: %d muestras" % view.capture)
+        parts.append("receiving %s: %d samples" % view.capture)
     if model.mode:
         parts.append("%d %s" % (model.mode, MODE_NAME[model.mode]))
     if model.activity:
         parts.append(ACTIVITY_NAME[model.activity])
     if model.pose:
         parts.append("(%d,%d)%s" % (model.pose[0], model.pose[1], HEADINGS[model.pose[2]]))
-    parts.append("%d celdas" % model.visited_count())
+    parts.append("%d cells" % model.visited_count())
     if ov.fast_cost is not None:
-        parts.append("rapida: %d celdas %d giros" % (len(ov.fast_path), ov.fast_turns))
+        parts.append("fast: %d cells %d turns" % (len(ov.fast_path), ov.fast_turns))
     if model.last_telemetry is None:
-        parts.append("sin telemetria")
+        parts.append("no telemetry")
     else:
         age = now - model.last_telemetry
         parts.append("tlm %.1fs" % age if age < 99 else "tlm --")
@@ -779,12 +779,12 @@ def render(rows, cols, model, ov, view, start, now):
     draw_side_panel(cv, *side_box, view, glyphs)
 
     # Input line and key hints.
-    prompt = "(reproduccion) > " if view.replay else "> "
+    prompt = "(replay) > " if view.replay else "> "
     cv.put(rows - 2, 0, prompt, "key")
     room = max(0, cols - len(prompt) - 1)
     visible = view.input[-room:] if room else ""
     cv.put(rows - 2, len(prompt), visible)
-    hints = "Enter enviar  Arriba/Abajo historial  RePag/AvPag log  Tab ayuda  Ctrl+X STOP  Esc salir"
+    hints = "Enter send  Up/Down history  PgUp/PgDn log  Tab help  Ctrl+X STOP  Esc quit"
     cv.put(rows - 1, 0, hints, "dim", cols - 1)
     return cv, (rows - 2, min(cols - 1, len(prompt) + len(visible)))
 
@@ -803,7 +803,7 @@ def draw_side_panel(cv, top, left, height, width, view, glyphs):
     first = max(0, len(lines) - rows - view.scroll)
     title = " LOG "
     if view.scroll:
-        title += "(%s %d lineas mas abajo) " % (glyphs["down"], view.scroll)
+        title += "(%s %d more lines below) " % (glyphs["down"], view.scroll)
     cv.put(top, left, title, "head", width)
     for i, (style, text) in enumerate(lines[first:first + rows]):
         cv.put(top + 1 + i, left + 1, text, style, width - 1)
@@ -815,15 +815,15 @@ def friendly_error(exc):
     text = str(exc)
     low = text.lower()
     if "exclusively lock" in low or "resource temporarily unavailable" in low:
-        return "puerto ocupado por otro programa (otro monitor abierto?)"
+        return "port held by another program (another monitor open?)"
     if "no such file" in low:
-        return "no existe el puerto (rfcomm bind? ver tools/rfcomm_reconnect.sh)"
+        return "no such port (rfcomm bind? see tools/rfcomm_reconnect.sh)"
     if "permission denied" in low:
-        return "sin permiso sobre el puerto (grupo dialout)"
+        return "no permission on the port (dialout group)"
     if "host is down" in low or "connection refused" in low or "no route" in low:
-        return "robot apagado o fuera de alcance"
+        return "robot off or out of range"
     if "readiness to read but returned no data" in low:
-        return "enlace Bluetooth caido"
+        return "Bluetooth link down"
     return text
 
 
@@ -919,7 +919,7 @@ class ReplayLink(threading.Thread):
                 self.on_sent(text)
             elif direction == "!":
                 self.on_sent("-- %s --" % text)
-        self.on_status(False, "fin de la reproduccion de " + name)
+        self.on_status(False, "end of the replay of " + name)
 
     def send(self, text):
         return False
@@ -989,14 +989,14 @@ class Monitor:
 
     def on_status(self, connected, message):
         if self.recorder:   # link events in the recording help diagnose drops later
-            self.recorder.write("!", message or ("conectado" if connected else "desconectado"))
+            self.recorder.write("!", message or ("connected" if connected else "disconnected"))
         with self.lock:
             changed = connected != self.view.connected or message != self.view.link_text
             self.view.connected, self.view.link_text = connected, message
             if changed and message:
                 self.add_log("info" if connected else "bad", "-- " + message + " --")
             elif changed and connected:
-                self.add_log("info", "-- conectado a %s --" % self.view.source)
+                self.add_log("info", "-- connected to %s --" % self.view.source)
             self.dirty = True
 
     def on_connect(self):
@@ -1026,9 +1026,9 @@ class Monitor:
             if ok:
                 self.add_log("sent", "> " + command)
             elif self.view.replay:
-                self.add_log("dim", "> %s (reproduccion: no se envia)" % command)
+                self.add_log("dim", "> %s (replay: not sent)" % command)
             else:
-                self.add_log("bad", "> %s (sin conexion: no enviado)" % command)
+                self.add_log("bad", "> %s (no connection: not sent)" % command)
             self.dirty = True
 
     def local_command(self, command):
@@ -1042,13 +1042,13 @@ class Monitor:
             elif name == "/clear":
                 self.view.log.clear()
                 self.view.scroll = 0
-            elif name == "/nota" and rest.strip():
+            elif name == "/note" and rest.strip():
                 try:
                     self.add_log(*self.capture.note(sanitize(rest.strip())))
                 except OSError as exc:
-                    self.add_log("bad", "no se pudo escribir la nota: %s" % exc)
+                    self.add_log("bad", "could not write the note: %s" % exc)
             else:
-                self.add_log("warn", "comandos locales: /full /ascii /clear /nota <texto>")
+                self.add_log("warn", "local commands: /full /ascii /clear /note <text>")
             self.dirty = True
 
     def submit(self):
@@ -1210,14 +1210,14 @@ def blit(stdscr, cv, styles, cursor):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--port", default="/dev/rfcomm0", help="puerto serie (por defecto /dev/rfcomm0)")
+    parser.add_argument("--port", default="/dev/rfcomm0", help="serial port (default /dev/rfcomm0)")
     parser.add_argument("--baud", type=int, default=9600)
-    parser.add_argument("--replay", metavar="FICHERO", help="reproduce una sesion grabada (o una transcripcion)")
-    parser.add_argument("--speed", type=float, default=1.0, help="velocidad de reproduccion (por defecto 1)")
-    parser.add_argument("--no-record", action="store_true", help="no grabar la sesion")
-    parser.add_argument("--log-dir", default=LOG_DIR, help="carpeta de sesiones grabadas")
-    parser.add_argument("--calib-dir", default=CALIB_DIR, help="carpeta de datos de calibracion")
-    parser.add_argument("--full", action="store_true", help="dibujar siempre el laberinto 16x16 entero")
+    parser.add_argument("--replay", metavar="FILE", help="replay a recorded session (or a transcript)")
+    parser.add_argument("--speed", type=float, default=1.0, help="replay speed (default 1)")
+    parser.add_argument("--no-record", action="store_true", help="do not record the session")
+    parser.add_argument("--log-dir", default=LOG_DIR, help="folder of recorded sessions")
+    parser.add_argument("--calib-dir", default=CALIB_DIR, help="folder of calibration data")
+    parser.add_argument("--full", action="store_true", help="always draw the whole 16x16 maze")
     parser.add_argument("--ascii", action="store_true", help="solo caracteres ASCII")
     return parser.parse_args(argv)
 
@@ -1232,7 +1232,7 @@ def main(argv=None):
     monitor = Monitor(args, read_config())
     curses.wrapper(monitor.run)
     if monitor.recorder:
-        print("Sesion grabada en", os.path.relpath(monitor.recorder.path))
+        print("Session recorded in", os.path.relpath(monitor.recorder.path))
     return 0
 
 

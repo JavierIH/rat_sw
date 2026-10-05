@@ -4,7 +4,7 @@ Holds /dev/rfcomm0 open, records the session to tools/logs/ as
 robot_monitor.py does, saves @D dumps as CSV in tools/calib_data/, and sends
 to the robot every line written to the FIFO $RAT_BT_DIR/bt_in (default
 /tmp/rat_bt). Reconnects by itself when the link drops. Only one program may
-hold the port: close robot_monitor.py first. `/nota <text>` lines annotate
+hold the port: close robot_monitor.py first. `/note <text>` lines annotate
 the last dump."""
 import os
 import select
@@ -43,10 +43,10 @@ def open_port():
     while True:
         try:
             p = serial.Serial("/dev/rfcomm0", 9600, timeout=0)
-            record("!", "conectado")
+            record("!", "connected")
             return p
         except (serial.SerialException, OSError) as exc:
-            record("!", "sin conexion: %s" % exc)
+            record("!", "no connection: %s" % exc)
             time.sleep(1.0)
 
 
@@ -59,7 +59,7 @@ while True:
         try:
             rx += port.read(4096)
         except (serial.SerialException, OSError):
-            record("!", "desconectado")
+            record("!", "disconnected")
             port.close()
             time.sleep(1.0)
             port = open_port()
@@ -79,12 +79,12 @@ while True:
             text = line.decode().strip()
             if not text:
                 continue
-            if text.startswith("/nota "):
+            if text.startswith("/note "):
                 record("!", capture.note(text[6:])[1])
                 continue
             try:
                 port.write((text + "\n").encode())
                 record(">", text)
             except (serial.SerialException, OSError):
-                record("!", "no enviado (desconectado): " + text)
+                record("!", "not sent (disconnected): " + text)
             time.sleep(0.05)

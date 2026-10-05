@@ -11,8 +11,8 @@
 # ir_cal_sl="-0.00000005219f, 0.0002629f, -0.4566f, 325.6f"
 # ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f, 189.0f"
 # end: result=OK samples=153
-# nota: cal straight 2 se pasa 1 o 2mm
-# nota: cal straight 3
+# note: cal straight 2 overshoots 1 or 2 mm
+# note: cal straight 3
 t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr
 0,0,0,0,0,27,220,933,705
 10,0,0,40,40,26,220,932,729

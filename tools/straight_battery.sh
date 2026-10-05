@@ -5,7 +5,7 @@
 # (layout I): the robot shuttles along one 4-cell side.
 cd "$(dirname "$0")/.."
 for v in "$@"; do
-    tools/robot.sh -w "datos guardados" -t 25 "CAL TURN 2" | grep -E "!!"
-    tools/robot.sh -w "datos guardados" -t 25 "CAL STRAIGHT 3 $v" | grep -E "avance|!!"
-    python3 tools/calib_analyze.py "$(ls -t tools/calib_data/*straight*.csv | head -1)" | grep -E "centrado:|por 45"
+    tools/robot.sh -w "data saved" -t 25 "CAL TURN 2" | grep -E "!!"
+    tools/robot.sh -w "data saved" -t 25 "CAL STRAIGHT 3 $v" | grep -E "forward|!!"
+    python3 tools/calib_analyze.py "$(ls -t tools/calib_data/*straight*.csv | head -1)" | grep -E "centring:|per 45"
 done

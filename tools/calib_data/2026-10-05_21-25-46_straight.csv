@@ -1,7 +1,7 @@
 # rat_sw calibration data (tools/calib_analyze.py)
 # captured: 2026-10-05 21:25:46
 # test: straight 3 450
-# period_ms=8 samples=245 capacity=320 result=BLOQUEADO build="Oct  5 2026 21:02:07"
+# period_ms=8 samples=245 capacity=320 result=BLOCKED build="Oct  5 2026 21:02:07"
 # ticks_per_mm=9.050 cell_mm=180 turn_ticks=403 kv_l=1.04 kv_r=1.04 tau_ms=53.00 ks=25
 # spd=600 fast=900 curve=480 accel=3000 turn=500 turn_accel=5000 kp=0.50 ki=20.00
 # curve_r=70.0 curve_ramp=30.0 curve_angle=90.00 curve_slip=2.00 curve_len=140.0 curve_vmax=479
@@ -14,7 +14,7 @@
 # ir_cal_fr="-0.00000003535f, 0.0001995f, -0.3834f, 317.6f"
 # ir_cal_sl="-0.00000005219f, 0.0002629f, -0.4566f, 325.6f"
 # ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f, 189.0f"
-# end: result=BLOQUEADO samples=245
+# end: result=BLOCKED samples=245
 t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr,ref_fwd,ref_rot
 0,0,0,0,0,455,295,31,447,0,0
 8,1,0,183,232,455,295,29,448,1,1

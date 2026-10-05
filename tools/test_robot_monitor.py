@@ -122,7 +122,7 @@ class TranscriptChecker:
             self.test.assertEqual(self.planner.overlay(self.model).fast_cost, int(m.group(1)), line)
             self.fast_costs += 1
             return
-        self.test.assertNotIn("sin camino verificado", line)   # never with perfect sensing
+        self.test.assertNotIn("no verified path", line)   # never with perfect sensing
 
 
 class TestAgainstFirmware(unittest.TestCase):
@@ -198,7 +198,7 @@ class TestProtocol(unittest.TestCase):
             self.assertTrue(m.apply(line), line)
         self.assertEqual(m.bad_lines, 10)
         self.assertIsNone(m.pose)
-        self.assertFalse(m.apply("META (0,0)N ..."))
+        self.assertFalse(m.apply("GOAL (0,0)N ..."))
 
 
 class TestPlanner(unittest.TestCase):
@@ -230,7 +230,7 @@ class TestRender(unittest.TestCase):
         view.source = "/dev/rfcomm0"
         view.connected = True
         for i in range(300):
-            view.log.append(("", rm.sanitize("linea %d \x1b[31m con\tcontrol \x00 y muy larga " % i + "x" * 300)))
+            view.log.append(("", rm.sanitize("line %d \x1b[31m with\tcontrol \x00 and very long " % i + "x" * 300)))
         view.input = "SPD 150" + "9" * 70
         return view
 
@@ -293,7 +293,7 @@ class TestRender(unittest.TestCase):
         view.scroll = 50
         cv, _ = rm.render(30, 120, model, planner.overlay(model), view, (0, 0), time.monotonic())
         screen = "\n".join(cv.row_text(y) for y in range(30))
-        self.assertIn("50 lineas mas abajo", screen)
+        self.assertIn("50 more lines below", screen)
         view.scroll = 10 ** 6       # clamped, never out of range
         rm.render(30, 120, model, planner.overlay(model), view, (0, 0), time.monotonic())
         self.assertLessEqual(view.scroll, len(view.log))
@@ -311,7 +311,7 @@ class TestCalibrationCapture(unittest.TestCase):
             self.assertEqual(messages[0][0], "info")
             self.assertEqual(messages[-1][0], "ok")
             self.assertIsNone(capture.progress())
-            self.assertEqual(capture.note("medido 181 mm")[0], "ok")
+            self.assertEqual(capture.note("measured 181 mm")[0], "ok")
             with open(capture.last_path, encoding="utf-8") as f:
                 content = f.read()
             self.assertTrue(capture.last_path.endswith("_straight.csv"))
@@ -320,7 +320,7 @@ class TestCalibrationCapture(unittest.TestCase):
             header, data = content.split("t_ms,enc_l,enc_r\n")
             self.assertEqual(data, "0,0,0\n5,12,11\n")
             self.assertTrue(all(line.startswith("#") for line in header.splitlines()))
-            self.assertTrue(header.endswith("# nota: medido 181 mm\n"), header)
+            self.assertTrue(header.endswith("# note: measured 181 mm\n"), header)
 
     def test_two_dumps_in_the_same_second_keep_both_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -422,7 +422,7 @@ class TestTerminal(unittest.TestCase):
 
     def test_too_small_terminal(self):
         text = self.run_monitor(self.args, 8, 30)
-        self.assertIn("Terminal demasiado pequena", text)
+        self.assertIn("Terminal too small", text)
 
 
 if __name__ == "__main__":

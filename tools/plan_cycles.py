@@ -1,7 +1,7 @@
 """The planner's cost on the robot's CPU, without the robot: runs the firmware
 ELF's maze_plan_to/from on an emulated Cortex-M3 (unicorn) and counts
 instructions, memory accesses and taken branches per planner pop (the cycles
-are a model: check it against the robot's "decisiones en marcha" line).
+are a model: check it against the robot's "decisions on the way" line).
 Needs: pip install unicorn pyelftools. Maze files: github.com/micromouseonline/mazefiles.
 usage: plan_cycles.py .pio/build/competition/firmware.elf [mazefile]"""
 import sys

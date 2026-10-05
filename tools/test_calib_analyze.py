@@ -113,11 +113,11 @@ class TestCalibAnalyze(unittest.TestCase):
             p = pwm if t < on_ms else 0
             rows.append((pos, pos * 0.99, p, p, 0, 0, 0, 0))
         text = ca.report([save(self.tmp.name, "step %d %d" % (pwm, on_ms), period, rows)])
-        self.assertAlmostEqual(number(r"velocidad estable (\d+) mm/s", text), 400, delta=15)
-        self.assertAlmostEqual(number(r"ganancia ([\d.]+) mm/s", text), 2.0, delta=0.08)
-        self.assertAlmostEqual(number(r"tiempo muerto (\d+) ms", text), 20, delta=6)
-        self.assertAlmostEqual(number(r"constante de tiempo ~(\d+) ms", text), 60, delta=12)
-        self.assertAlmostEqual(number(r"frenada: ([\d.]+) mm", text), 400 * 0.030, delta=3)
+        self.assertAlmostEqual(number(r"steady speed (\d+) mm/s", text), 400, delta=15)
+        self.assertAlmostEqual(number(r"gain ([\d.]+) mm/s", text), 2.0, delta=0.08)
+        self.assertAlmostEqual(number(r"dead time (\d+) ms", text), 20, delta=6)
+        self.assertAlmostEqual(number(r"time constant ~(\d+) ms", text), 60, delta=12)
+        self.assertAlmostEqual(number(r"braking: ([\d.]+) mm", text), 400 * 0.030, delta=3)
         self.assertAlmostEqual(number(r"\(([-+\d.]+)%\)", text), 1.0, delta=0.2)
 
     def test_motor_model_from_steps(self):
@@ -156,17 +156,17 @@ class TestCalibAnalyze(unittest.TestCase):
             sr = fl_raw_for(84 + y)      # the FL curve stands in for SR: only mm matter here
             on = ref < 540.0 or i < n - 20
             rows.append((pos * tpm, pos * tpm, 500 if on else 0, 500 if on else 0, 0, 0, 0, sr, ref * 10, 0))
-        path = save_new(self.tmp.name, "straight 3 500", 2, rows, ["medido 543 mm"])
+        path = save_new(self.tmp.name, "straight 3 500", 2, rows, ["measured 543 mm"])
         with open(path) as f:
             text = f.read().replace('ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f,   189.0f"',
                                     'ir_cal_sr="-0.00000002278f, 0.000132f,  -0.2627f, 237.7f"')
         with open(path, "w") as f:
             f.write(text)
         text = ca.report([path])
-        self.assertIn("con control de velocidad", text)
-        self.assertAlmostEqual(number(r"error de avance max ([\d.]+) mm", text), 0.5, delta=0.1)
-        self.assertAlmostEqual(number(r"inicio ([-+\d.]+) mm", text), 12, delta=1.5)
-        self.assertAlmostEqual(number(r"2a mitad ([-+\d.]+) \+-", text), 0, delta=1.0)
+        self.assertIn("with speed control", text)
+        self.assertAlmostEqual(number(r"forward error max ([\d.]+) mm", text), 0.5, delta=0.1)
+        self.assertAlmostEqual(number(r"start ([-+\d.]+) mm", text), 12, delta=1.5)
+        self.assertAlmostEqual(number(r"2nd half ([-+\d.]+) \+-", text), 0, delta=1.0)
         self.assertAlmostEqual(number(r"WHEEL_TICKS_PER_MM ([\d.]+)", text), 539.5 * tpm / 543, delta=0.02)
 
     def test_controlled_turns(self):
@@ -181,8 +181,8 @@ class TestCalibAnalyze(unittest.TestCase):
             for i in range(20):
                 half = angle * mpd * tpm
                 rows.append((half, -half, 0, 0, 0, 0, 0, 0, 0, angle * 100))
-        text = ca.report([save_new(self.tmp.name, "turn 4", 5, rows, ["angulo 352"])])
-        self.assertEqual(len(re.findall(r"\+90\.00 grados de encoder", text)), 4, text)
+        text = ca.report([save_new(self.tmp.name, "turn 4", 5, rows, ["angle 352"])])
+        self.assertEqual(len(re.findall(r"\+90\.00 encoder deg", text)), 4, text)
         self.assertAlmostEqual(number(r"TURNTICKS (\d+)", text), 400 * 352 / 360, delta=2)
 
     def test_controlled_curve(self):
@@ -243,13 +243,13 @@ class TestCalibAnalyze(unittest.TestCase):
         with open(capture.last_path, "w") as f:
             f.write(text)
         text = ca.report([capture.last_path])
-        self.assertIn("Curva a la derecha a 400 mm/s", text)
-        self.assertAlmostEqual(number(r"de rumbo en la curva max ([\d.]+)", text), 0.0, delta=0.2)   # one tick
-        self.assertAlmostEqual(number(r"curva en (\d+) ms", text), 1000 * length / v, delta=2 * period)
-        self.assertAlmostEqual(number(r"encoders: ([-+\d.]+) grados en la curva", text), 90.0, delta=0.2)
-        self.assertAlmostEqual(number(r"([-+\d.]+) en todo el movimiento", text), 90.0, delta=0.1)
-        self.assertAlmostEqual(number(r"lateral al salir: ([-+\d.]+) mm", text), 5.0, delta=0.6)
-        self.assertIn("por fuera", text)
+        self.assertIn("Curve to the right at 400 mm/s", text)
+        self.assertAlmostEqual(number(r"heading in the curve max ([\d.]+)", text), 0.0, delta=0.2)   # one tick
+        self.assertAlmostEqual(number(r"curve in (\d+) ms", text), 1000 * length / v, delta=2 * period)
+        self.assertAlmostEqual(number(r"encoders: ([-+\d.]+) deg in the curve", text), 90.0, delta=0.2)
+        self.assertAlmostEqual(number(r"([-+\d.]+) over the whole move", text), 90.0, delta=0.1)
+        self.assertAlmostEqual(number(r"lateral on exit: ([-+\d.]+) mm", text), 5.0, delta=0.6)
+        self.assertIn("outside the curve", text)
         self.assertAlmostEqual(number(r"TUNE CURVE_PRE ([-\d.]+)", text), -5.0, delta=0.6)
         self.assertAlmostEqual(number(r"TUNE CURVE_POST ([-\d.]+)", text), -3.0, delta=0.2)
         self.assertAlmostEqual(number(r"TUNE CURVE_ANGLE ([\d.]+)", text), 92.0, delta=0.4)
@@ -312,23 +312,23 @@ class TestCalibAnalyze(unittest.TestCase):
         with open(capture.last_path, "w") as f:
             f.write(text)
         text = ca.report([capture.last_path])
-        self.assertIn("Movimiento continuo (OK)", text)
-        self.assertAlmostEqual(number(r"(\d+) mm en \d+ ms", text), stop, delta=2)
-        self.assertIn("recta 1", text)
-        second = text[text.index("recta 2"):]
-        self.assertIn("rumbo +90", second)
-        self.assertAlmostEqual(number(r"lateral ([-+\d.]+) mm al leer", second), 12.0, delta=1.0)
-        self.assertAlmostEqual(number(r"([-+\d.]+) al final, peor", second), 2.0, delta=1.0)
-        self.assertAlmostEqual(number(r"peor ([-+\d.]+)", second), 12.0, delta=1.0)
-        self.assertNotIn("recta 3", text)
+        self.assertIn("Continuous move (OK)", text)
+        self.assertAlmostEqual(number(r"(\d+) mm in \d+ ms", text), stop, delta=2)
+        self.assertIn("straight 1", text)
+        second = text[text.index("straight 2"):]
+        self.assertIn("heading +90", second)
+        self.assertAlmostEqual(number(r"lateral ([-+\d.]+) mm reading", second), 12.0, delta=1.0)
+        self.assertAlmostEqual(number(r"([-+\d.]+) at the end, worst", second), 2.0, delta=1.0)
+        self.assertAlmostEqual(number(r"worst ([-+\d.]+)", second), 12.0, delta=1.0)
+        self.assertNotIn("straight 3", text)
         # The curve's ramps belong to the curve, not to the straights.
-        self.assertAlmostEqual(number(r"recta 1: 0-(\d+) mm", text), c0, delta=3)
-        self.assertAlmostEqual(number(r"recta 2: (\d+)-", text), c1, delta=3)
-        self.assertIn("pidio +0.0..+0.0 grados", text[:text.index("recta 2")])
+        self.assertAlmostEqual(number(r"straight 1: 0-(\d+) mm", text), c0, delta=3)
+        self.assertAlmostEqual(number(r"straight 2: (\d+)-", text), c1, delta=3)
+        self.assertIn("asked +0.0..+0.0 deg", text[:text.index("straight 2")])
         # Parallel to the walls: straight 2 drifts 10 mm right with the
         # encoders straight; straight 1 is too short to fit it.
-        self.assertNotIn("rumbo de encoders", text[:text.index("recta 2")])
-        self.assertAlmostEqual(number(r"rumbo de encoders ([-+\d.]+)", second),
+        self.assertNotIn("encoder heading", text[:text.index("straight 2")])
+        self.assertAlmostEqual(number(r"encoder heading ([-+\d.]+)", second),
                                math.degrees(-10.0 / (stop - c1)), delta=0.3)
 
     def test_chain_follows_the_heading_across_moves(self):
@@ -376,18 +376,18 @@ class TestCalibAnalyze(unittest.TestCase):
             with open(paths[-1], "w") as f:
                 f.write(text)
         text = ca.chain(paths)
-        straights = [float(v) for v in re.findall(r"recta\s+([-+\d.]+)", text)]
+        straights = [float(v) for v in re.findall(r"walls\s+([-+\d.]+)", text)]
         self.assertEqual(len(straights), 2, text)
         for ahead in straights:
             self.assertAlmostEqual(ahead, 2.0, delta=0.4)
-        self.assertAlmostEqual(number(r"frente\s+([-+\d.]+)", text), 2.0, delta=0.4)
-        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+recta\s+[-+\d.]+\s+frente", text), 2.0, delta=0.1)
+        self.assertAlmostEqual(number(r"front\s+([-+\d.]+)", text), 2.0, delta=0.4)
+        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+walls\s+[-+\d.]+\s+front", text), 2.0, delta=0.1)
         # WHEEL_DIFF weighs the ticks as the firmware does: from the option,
         # or from the dump's wheel_diff_ppm. -0.003 turns each 180 mm
         # straight's encoder heading 0.003 / 2 * 180 / mpd deg to the left.
         trimmed = ca.chain(paths, wheel_diff=-0.003)
         shift = 2 * 0.003 / 2 * 180.0 / mpd
-        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+recta\s+[-+\d.]+\s+frente", trimmed),
+        self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+walls\s+[-+\d.]+\s+front", trimmed),
                                2.0 - shift, delta=0.1)
         for path in paths:
             with open(path) as f:
@@ -406,7 +406,7 @@ class TestCalibAnalyze(unittest.TestCase):
             rows.append((pos + coast * (1 - math.exp(-k / 3.0)),) * 2 + (0, 0, 0, 0, 0, 0))
         final = pos + coast * (1 - math.exp(-29 / 3.0))
         measured = final / true_ticks_per_mm
-        return save(self.tmp.name, "straight %d 150" % cells, 5, rows, ["medido %.1f mm" % measured])
+        return save(self.tmp.name, "straight %d 150" % cells, 5, rows, ["measured %.1f mm" % measured])
 
     def test_straights_split_cell_and_move_calibration(self):
         # Wheels really do 9.5 ticks/mm and coast 60 ticks after braking: to
@@ -416,7 +416,7 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report([one, three])
         self.assertAlmostEqual(number(r"CELL_TICKS ~ (\d+)", text), 1710, delta=3)
         self.assertAlmostEqual(number(r"MOVE_EXTRA_TICKS ~ (-?\d+)", text), -60, delta=6)
-        self.assertAlmostEqual(number(r"\((\d+) ticks de inercia", text), 60, delta=2)
+        self.assertAlmostEqual(number(r"\((\d+) ticks coasting", text), 60, delta=2)
 
     def test_turn_overshoot_and_angle(self):
         rows, rot = [], 0.0
@@ -429,9 +429,9 @@ class TestCalibAnalyze(unittest.TestCase):
             for k in range(1, 31):
                 rows.append((rot + 25 * min(1, k / 5.0),) + (-(rot + 25 * min(1, k / 5.0)),) + (0,) * 6)
             rot += 25
-        text = ca.report([save(self.tmp.name, "turn 4", 5, rows, ["angulo 380"])])
-        self.assertEqual(len(re.findall(r"sobregiro 25\)", text)), 4, text)
-        self.assertAlmostEqual(number(r"TICKS_PER_TURN sugerido (\d+)", text), 90 * 4 * 455 / 380 - 25, delta=3)
+        text = ca.report([save(self.tmp.name, "turn 4", 5, rows, ["angle 380"])])
+        self.assertEqual(len(re.findall(r"overshoot 25\)", text)), 4, text)
+        self.assertAlmostEqual(number(r"TICKS_PER_TURN suggested (\d+)", text), 90 * 4 * 455 / 380 - 25, delta=3)
 
     def test_ir_sweep_recovers_the_curve(self):
         start, rows = 40, []
@@ -439,8 +439,8 @@ class TestCalibAnalyze(unittest.TestCase):
             back = min(200, i * 1.2)
             raw = fl_raw_for(start + back)
             rows.append((-back * 9, -back * 9, -80, -80, raw, raw, 0, 0))
-        text = ca.report([save(self.tmp.name, "ir 200", 10, rows, ["inicio 40 mm"])])
-        self.assertLess(number(r"FL ajuste nuevo: error medio ([\d.]+) mm", text), 1.0)
+        text = ca.report([save(self.tmp.name, "ir 200", 10, rows, ["start 40 mm"])])
+        self.assertLess(number(r"FL new fit: mean error ([\d.]+) mm", text), 1.0)
         self.assertIn("#define CAL_FL", text)
 
     def test_noise_statistics(self):
@@ -449,7 +449,7 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report([save(self.tmp.name, "noise 2000", 10, rows)])
         self.assertAlmostEqual(number(r"FL raw\s+([\d.]+)", text), 1000, delta=1.5)
         self.assertAlmostEqual(number(r"FL raw\s+[\d.]+ \+-\s+([\d.]+)", text), 5, delta=1)
-        self.assertIn("encoders: quietos", text)
+        self.assertIn("encoders: still", text)
 
     def test_square_offset_from_a_wall(self):
         # Facing a wall square: FL reads ~100 mm, FR ~112 mm.
@@ -471,11 +471,11 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report(paths)
         self.assertAlmostEqual(number(r"TUNE CENTER_L ([\d.]+)", text), 88, delta=1)
         self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+)", text), 77, delta=1)
-        self.assertAlmostEqual(number(r"([-+\d.]+) mm segun SR", text), 6, delta=1)
+        self.assertAlmostEqual(number(r"([-+\d.]+) mm by SR", text), 6, delta=1)
         self.assertNotIn("no coinciden", text)
         # Without the turn, or with a wall missing, no centres.
         self.assertNotIn("TUNE CENTER_L", ca.report([paths[0], paths[2]]))
-        self.assertIn("falta una pared", ca.report([paths[0], paths[1], still(94, 150)]))
+        self.assertIn("wall is missing", ca.report([paths[0], paths[1], still(94, 150)]))
 
     def test_side_sensors_from_rounds_of_quarter_turns(self):
         # Centred, SL reads 88 and SR 75, both following the offset x (to
@@ -494,20 +494,20 @@ class TestCalibAnalyze(unittest.TestCase):
                     still(back, 88 - x, 75 + x), turn(), still(94 + x, 150, 150), turn()]
 
         text = ca.report(round_at(-12) + round_at(10))
-        self.assertAlmostEqual(number(r"robot a ([-+\d.]+) mm a la derecha", text), -12, delta=0.7)
+        self.assertAlmostEqual(number(r"robot ([-+\d.]+) mm right of the centre", text), -12, delta=0.7)
         self.assertAlmostEqual(number(r"TUNE CENTER_L ([\d.]+), TUNE CENTER_R", text), 88, delta=1)
-        self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+) \(ahora", text), 75, delta=1)
-        self.assertAlmostEqual(number(r"pendiente SL ([\d.]+)", text), 1, delta=0.05)
-        self.assertAlmostEqual(number(r"pendiente SL [\d.]+, SR ([\d.]+)", text), 1, delta=0.05)
+        self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+) \(now", text), 75, delta=1)
+        self.assertAlmostEqual(number(r"slope SL ([\d.]+)", text), 1, delta=0.05)
+        self.assertAlmostEqual(number(r"slope SL [\d.]+, SR ([\d.]+)", text), 1, delta=0.05)
         # 12 mm towards the back wall: the back heading's beams land by the post.
         text = ca.report(round_at(-12, back=82))
-        self.assertIn("descartado", text)
-        self.assertIn("hacen falta puntos separados", text)
+        self.assertIn("dropped", text)
+        self.assertIn("points at least 10 mm apart", text)
 
     def test_missing_measurements_ask_for_notes(self):
         rows = [(i * 10, i * 10, 150, 150, 0, 0, 0, 0) for i in range(50)] + [(500, 500) + (0,) * 6]
         text = ca.report([save(self.tmp.name, "straight 1 150", 5, rows)])
-        self.assertIn("/nota medido", text)
+        self.assertIn("/note measured", text)
 
 
 if __name__ == "__main__":

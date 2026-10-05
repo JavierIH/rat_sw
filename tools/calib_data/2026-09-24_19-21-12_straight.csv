@@ -11,7 +11,7 @@
 # ir_cal_sl="-0.00000005219f, 0.0002629f, -0.4566f, 325.6f"
 # ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f, 189.0f"
 # end: result=OK samples=198
-# nota: cal straight 3 sale practicamente perfecto
+# note: cal straight 3 comes out practically perfect
 t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr
 0,0,0,0,0,46,28,954,680
 10,0,0,40,40,45,26,929,704

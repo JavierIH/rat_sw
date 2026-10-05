@@ -1,7 +1,7 @@
 # rat_sw calibration data (tools/calib_analyze.py)
 # captured: 2026-09-23 23:04:15
 # test: straight 3 250
-# period_ms=10 samples=222 capacity=384 result=PERDIDO build="Sep 23 2026 22:39:45"
+# period_ms=10 samples=222 capacity=384 result=LOST build="Sep 23 2026 22:39:45"
 # ticks_per_mm=9 cell_ticks=1620 move_extra_ticks=140 ticks_per_turn=390 turn_still_ms=20
 # spd=250 fast=350 turn=140 kp=2.00 ki=0.50 kd=30.00 ke=0.00 pd_max=80 accel_step_per_ms=4
 # wall_detect_mm=140 front_ref_mm=94 front_emergency_mm=60 side_track_mm=130 lane_mm=168
@@ -10,7 +10,7 @@
 # ir_cal_fr="-0.00000003535f, 0.0001995f, -0.3834f, 317.6f"
 # ir_cal_sl="-0.00000005219f, 0.0002629f, -0.4566f, 325.6f"
 # ir_cal_sr="-0.00000003241f, 0.0001505f, -0.25f, 189.0f"
-# end: result=PERDIDO samples=222
+# end: result=LOST samples=222
 t_ms,enc_l,enc_r,pwm_l,pwm_r,raw_fl,raw_fr,raw_sl,raw_sr
 0,0,0,0,0,72,44,1001,632
 10,0,0,40,40,59,42,998,637

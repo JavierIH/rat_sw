@@ -7,11 +7,11 @@ S=${RAT_BT_DIR:-/tmp/rat_bt}
 WAIT=""; TIMEOUT=3
 while getopts "w:t:" o; do case $o in w) WAIT=$OPTARG;; t) TIMEOUT=$OPTARG;; esac; done
 shift $((OPTIND-1))
-pgrep -f "bt_logger.py" >/dev/null || { echo "!! el registrador no esta en marcha"; exit 1; }
+pgrep -f "bt_logger.py" >/dev/null || { echo "!! the logger is not running"; exit 1; }
 L=$(cat $S/bt_log_path)
 N=$(wc -l < "$L")
 for c in "$@"; do
-    timeout 2 bash -c "echo '$c' > $S/bt_in" || { echo "!! no se pudo enviar: $c"; exit 1; }
+    timeout 2 bash -c "echo '$c' > $S/bt_in" || { echo "!! could not send: $c"; exit 1; }
     sleep 1.2
 done
 if [ -n "$WAIT" ]; then
