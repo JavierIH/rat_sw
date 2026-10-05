@@ -64,6 +64,32 @@ What the firmware lacked: the map was saved once, at the end of the search;
 a failed save printed "!!" only over Bluetooth, nothing on the LEDs; and
 once the store was blocked nothing restarted the HSI, so it stayed wedged.
 
+### GitHub issue #2
+
+"Save map when the robot reaches the goal; menu/reset locked up after a
+failed race (map lost)". Each of its points, and what came of it:
+
+- Save the map at the goal, at rest, keeping the save at the start: done
+  (933aff2 search, 85d42db races: a race saves at the goal only). Each save
+  shows on the LEDs (3975b09). The 5 saves per power-on and the compaction
+  were checked on the chip (section 3).
+- The risk behind "no save at the goal" (a write right after a move froze
+  the robot): its cause was found, motor transients leaving the HSI that
+  times the flash crawling, and removed (e3c5b21; section 2).
+- The hang after the failed race: the menu works after a failed run (`Fin:
+  FALLO`, back to the race menu, tested on the chip). The races refused
+  after the power cycle for lack of a verified path because the map had
+  never reached the flash; a refused START now blinks fast. Why no race
+  would start after the crash, before the power cycle, is not known (no
+  log); it stays with the crash itself in `docs/ISSUES.md`, issue 17.
+- The reset button: a reset on a wedged HSI does not boot (reproduced: no
+  boot in 12.9 and 4.8 min); with the HSI stopped a reset boots at once.
+- Saving after an aborted run once the goal was reached: not needed, the
+  save happens at the goal itself.
+- The information to collect: there was no log of the competition; the
+  boot banner after the power cycle read "Mapa en flash: 0 celdas" (the
+  `ERASE` record from before the search).
+
 ## 2. Fault 1: motor transients wedge the flash (the HSI)
 
 ### 2.1 How it was found
