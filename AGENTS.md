@@ -42,7 +42,7 @@ unknown maze, maps it, finds the fastest route and runs it:
 
 Goal configuration:
 - Competition 16x16: goal = center 2x2 block, the default build
-  (`bluepill_f103c8`, `pio run -t upload`).
+  (`competition`, `pio run -t upload`).
 - Practice maze 4x3: goal = cell (3,2), the `practice` environment
   (`-DPRACTICE_MAZE=1`; `pio run -e practice -t upload`).
 - `GOAL` changes it at runtime (saved with the map); `ERASE` / mode 3 put
@@ -72,8 +72,8 @@ Goal configuration:
   driven, for bench testing on USB power). Currently 1.
 
 ## Build / flash / test
-Environments in `platformio.ini` (`default_envs = bluepill_f103c8`):
-- `bluepill_f103c8`: robot firmware (`main.c`), 16x16 competition goal.
+Environments in `platformio.ini` (`default_envs = competition`):
+- `competition`: robot firmware (`main.c`), 16x16 competition goal.
 - `practice`: the same with `-DPRACTICE_MAZE=1` (4x3 practice maze).
 - `uart_test`, `diag_test`: hardware smoke tests (UART loopback; LED + IR +
   encoder panel for `tools/dashboard.py`). They exclude the app modules
