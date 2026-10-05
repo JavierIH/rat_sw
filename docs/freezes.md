@@ -277,3 +277,6 @@ restart on a slow halfword stays); before that, a restart every 10 ms
 (286a4fd) and a restart first thing in SystemInit (did not help: the reset
 still did not boot). The whole account, with the evidence and how to
 reproduce it: `docs/oshwdem2026.md`.
+
+Closed 2026-10-05: the HSI stopped except during flash operations, validated
+on the stand (`docs/oshwdem2026.md`, section 2.4).

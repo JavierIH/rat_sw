@@ -6,24 +6,12 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/oshwdem2026.md`): the
-  search's map never reached the flash (likely a wedge: the reset button
-  did not boot), so a power cycle after race 2.4 crashed lost it. Done in
-  code, not flashed (the user's rules): the search saves at the goal and
-  back at the start only if it learned something; a race saves at the goal
-  only, never back at the start; save results on the LEDs (3 slow = in
-  flash, 3 fast = only in RAM); START refused for lack of a verified path
-  blinks fast. Next: issue 18, then flash with issue 15 (a)(b).
-
-- Issue 18, virtual robot and the flash wedge: done. The wedge reproduced on
-  a stand (motor reversals leave the HSI crawling; a reset then does not
-  boot) and fixed by stopping the HSI except during flash operations
-  (e3c5b21), validated 10-05: control (HSI kept on) wedged after 20
-  reversals, stopped 600 reversals clean, `RESET` boots, saves and the boot
-  erase normal. Full account: `docs/oshwdem2026.md`. The competition
-  firmware with every fix flashed 10-05; its smoke test in the air needs
-  ~30 cm clear around the sensors (they saw the stand at 3-5 cm and the
-  search rightly gave up), then `ERASE`.
+- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/oshwdem2026.md`): the map
+  loss is solved (saves at the goal, the flash wedge fixed: issue 18,
+  closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and
+  why no race would start after it (a wall marked on the verified path?);
+  the user will bring them up. A smoke test of the competition firmware in
+  the air needs ~30 cm clear around the sensors.
 
 - Issue 19, work plan of the review (`docs/review.md`): 8 items, by gain for
   the effort; first a test on a large stretch of maze, then deleting the
@@ -72,6 +60,13 @@ commit when done. Details go in the docs it points to, not here.
   console messages as short codes that the monitor expands.
 
 ## Closed
+
+- 2026-10-05 The flash wedge (issue 18; `docs/oshwdem2026.md`, `docs/freezes.md`):
+  hard motor reversals leave the running HSI crawling (~8000x slow flash
+  operations, a reset that does not boot). Fixed by stopping the HSI except
+  during flash operations (e3c5b21), validated on a stand: control wedged
+  after 20 reversals, the fix clean over 600, reset boots, saves normal.
+  Watch STATUS "HSI n" (should stay 0) and "!! flash" lines in real runs.
 
 - 2026-09-30 Simplification (issue 16; the user found the code too
   complicated): removed `TURN_CARRY`, `SIDE_LEVER`, the old centring
