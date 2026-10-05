@@ -115,7 +115,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
         .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .observer_mm = sim_observer,
+        .error_max_mm = STEER_ERROR_MAX_MM, .agree_mm = STEER_AGREE_MM, .far_mm = STEER_FAR_MM,
+        .kp_far = STEER_KP_FAR, .observer_mm = sim_observer,
         .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
         .average_steps = (uint8_t)sim_average,
     };
@@ -168,9 +169,20 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
                 // Walls a few mm off: each cell's pair, from where the beams hit it.
                 const int cell = (int)floorf((r.travelled + SIDE_BEAM_AHEAD_MM) / CELL_MM + 0.5f) & 63;
                 const float off_r = p->wall_error_mm * wall_error[cell][0], off_l = p->wall_error_mm * wall_error[cell][1];
-                const float lever = p->side_lever_mm * yaws * (3.14159265f / 180.0f);
-                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + ys - lever + off_r + gauss(p->ir_noise)) / step);
-                held_l = step * roundf((LANE_WIDTH_MM / 2.0f - ys + lever + off_l + gauss(p->ir_noise)) / step);
+                // The beams 15 deg forward from the nose, as geometry: the
+                // distance along each beam (scaled to read 1:1 with the
+                // lateral position, as calibrated), side_lever_mm per radian
+                // of yaw for small yaws; at a big yaw one beam runs along its
+                // wall (long, then no wall) and the two disagree (10-05).
+                const float beam = 15.0f * (3.14159265f / 180.0f), a = yaws * (3.14159265f / 180.0f);
+                const float d0 = LANE_WIDTH_MM / 2.0f * cosf(beam);      // sensor to wall, centred and square
+                const float ahead = p->side_lever_mm - d0 * tanf(beam);   // sensors ahead of the axle
+                const float yn = ys - ahead * sinf(a);
+                const float to_r = d0 + yn + off_r, to_l = d0 - yn + off_l;
+                const float along_r = cosf(beam - a) > 0.1f ? to_r * cosf(beam) / cosf(beam - a) : 999.0f;
+                const float along_l = cosf(beam + a) > 0.1f ? to_l * cosf(beam) / cosf(beam + a) : 999.0f;
+                held_r = step * roundf((LANE_WIDTH_MM / 2.0f + along_r - d0 + gauss(p->ir_noise)) / step);
+                held_l = step * roundf((LANE_WIDTH_MM / 2.0f + along_l - d0 + gauss(p->ir_noise)) / step);
             }
             const float sr = held_r, sl = held_l;
             const float remaining = fwd.target - (fwd.pos - c.fwd_error);
@@ -195,6 +207,14 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
         if(fabsf(c.rot_error) > r.rot_err_max) r.rot_err_max = fabsf(c.rot_error);
         yaw_hist[n] = yaw;
         y_hist[n++] = y;
+        if(fabsf(y) > r.y_max) r.y_max = fabsf(y);
+        for(int i = 0; i < SIM_SAMPLES; i++){
+            const float at = 90.0f * (float)(i + 1);
+            if(r.travelled >= at && r.travelled - v * dt < at){
+                r.y_at[i] = y;
+                r.yaw_at[i] = yaw;
+            }
+        }
         // As guard_settled() in motion.c.
         if(!fwd.active && !rot.active){
             if(!done_at) done_at = t;

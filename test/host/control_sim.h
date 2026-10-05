@@ -28,17 +28,22 @@ typedef struct {
     uint32_t seed;
 } plant_t;
 
+#define SIM_SAMPLES 7
+
 typedef struct {
     float travelled;            // true distance, mm
     float turned;               // true rotation, deg
     float y_end;                // mm left of the centre at the end
     float y_late;               // largest |y| over the second half of the move
+    float y_max;                // largest |y| over the whole move (48: touching a wall)
     float yaw_end;              // deg to the right of the corridor at the end
     float bias_end;             // deg: the centring's idea of the encoder heading parallel to the walls...
     float bias_true;            // ...and the real one
     float fwd_err_max, rot_err_max;
     float rot_error_end;        // deg the rotation loop stopped short of its reference
     int crossings;              // sign changes of y (weaving)
+    float y_at[SIM_SAMPLES];    // y (mm) and yaw (deg) after 90, 180, 270... mm (from a cell
+    float yaw_at[SIM_SAMPLES];  // centre: the posts and the next cells' centres)
     int pwm_max;                // largest |PWM| asked
     uint32_t ms;                // until the move settled
 } sim_result_t;

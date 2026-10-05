@@ -1359,9 +1359,13 @@ static void test_steering_bias(void){
         steer_step(&s, &k, 84.0f - y, 84.0f + y, 0.5f, 0.0f, 1.0f);
     }
     CHECK(fabsf(s.bias - 0.05f * 180.0f / 3.14159265f) < 0.3f);
-    // A new wall (another reference, a few mm off): no jump in the bias.
+    // A new wall (another reference, a few mm off), the same drift: no jump
+    // in the bias.
     const float before = s.bias;
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 84.0f - y - 5.0f, 250.0f, 0.5f, 0.0f, 1.0f);
+    for(int i = 0; i < 100; i++){
+        y += 0.05f * 0.5f;
+        steer_step(&s, &k, 84.0f - y - 5.0f, 250.0f, 0.5f, 0.0f, 1.0f);
+    }
     CHECK(fabsf(s.bias - before) < 0.3f);
 }
 
@@ -1413,6 +1417,36 @@ static void test_speed_control(void){
     yawed.yaw0 = 5.0f;
     r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KI);
     CHECK(fabsf(r.y_end) < 2.5f);
+    // Placed by hand 27 mm off and 11 deg into the wall (the robot, 10-05:
+    // the error clamp took it for a transient and it ran the whole straight
+    // 30-40 mm off, along the wall): both walls agree, so back to the centre.
+    plant_t crooked = base;
+    crooked.y0 = 27.0f;
+    crooked.yaw0 = -11.0f;
+    crooked.wall_error_mm = 2.0f;
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(fabsf(r.y_at[3]) < 10.0f);        // the second cell's centre
+    CHECK(fabsf(r.y_end) < 3.0f);
+    // 20 deg crooked, centred: the old 15 deg clamp drove it into the wall.
+    crooked.y0 = 0.0f;
+    crooked.yaw0 = -20.0f;
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    for(int i = 0; i < 5; i++) CHECK(fabsf(r.y_at[i]) < 30.0f);
+    CHECK(fabsf(r.y_end) < 3.0f);
+    // 30 deg, the tail by the right wall (10-05, 900 mm/s: it touched the
+    // left wall): a bias clamp of 25 deg left it ~13 mm off to the end.
+    crooked.y0 = -38.0f;
+    crooked.yaw0 = -30.0f;
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(r.y_max < 45.0f);                 // 48: touching the wall
+    CHECK(fabsf(r.y_end) < 4.0f);
+    // 35 deg (10-05, 100 mm/s, into the wall): at that yaw one beam runs
+    // along its wall and only the other is seen, nearer than the centre.
+    crooked.y0 = -30.0f;
+    crooked.yaw0 = -35.0f;
+    r = sim_straight(&crooked, 540.0f, 100.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    CHECK(r.y_max < 45.0f);
+    CHECK(fabsf(r.y_end) < 4.0f);
     // Off-centre at the start of a short straight (the first cell of a
     // speed run): the bias stays where it is, so the next corridor is not
     // aimed at a wall.
@@ -1831,6 +1865,30 @@ static void control_report(void){
                " final %+.2f mm %+.2f deg, cruces %d, PWM max %d\n", (double)speeds[i], r.ms, (double)r.travelled,
                (double)r.fwd_err_max, (double)r.rot_err_max, (double)r.y_late, (double)r.y_end, (double)r.yaw_end,
                r.crossings, r.pwm_max);
+    }
+    // A turn left the robot yawed (in place: up to ~4.5 deg): how far the
+    // straight after it goes before the walls centre it (GitHub issue #1).
+    printf("recta 720 mm tras un giro (guinada +-4 deg, centrado, paredes +-2 mm; media de 16):"
+           " |y| mm / |guinada| deg a 90, 180 ... 630 mm\n");
+    const float after_turn[] = {300.0f, 450.0f, 600.0f, 800.0f, 900.0f};
+    for(size_t i = 0; i < sizeof(after_turn) / sizeof(after_turn[0]); i++){
+        float y[SIM_SAMPLES] = {0}, yaw[SIM_SAMPLES] = {0};
+        int crossings = 0;
+        for(uint32_t seed = 1; seed <= 16; seed++){
+            plant_t p = plant_nominal();
+            p.seed = seed;
+            p.yaw0 = seed & 1u ? 4.0f : -4.0f;
+            p.wall_error_mm = 2.0f;
+            const sim_result_t r = sim_straight(&p, 720.0f, after_turn[i], 3000.0f, PARAM_KP, PARAM_KI);
+            for(int j = 0; j < SIM_SAMPLES; j++){
+                y[j] += fabsf(r.y_at[j]) / 16.0f;
+                yaw[j] += fabsf(r.yaw_at[j]) / 16.0f;
+            }
+            crossings += r.crossings;
+        }
+        printf("  %4.0f mm/s:", (double)after_turn[i]);
+        for(int j = 0; j < SIM_SAMPLES; j++) printf(" %4.1f/%3.1f", (double)y[j], (double)yaw[j]);
+        printf(", cruces %.1f\n", (double)crossings / 16.0);
     }
     const float angles[] = {90.0f, 180.0f};
     for(size_t i = 0; i < 2; i++){

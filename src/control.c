@@ -234,11 +234,15 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
     }
     const float error_r = sr_mm - k->center_r_mm, error_l = k->center_l_mm - sl_mm;
     uint8_t right = sr_mm < k->track_mm, left = sl_mm < k->track_mm;
-    // Both walls: their average (half the noise, and no bias from one
-    // sensor), unless one reading is implausible (the angled beam catching a
-    // post or a wall ahead) and the other agrees better with where the robot
-    // can be.
-    if(right && left){
+    // Both walls telling the same: the robot really is that far off, however
+    // far (a post or a wall ahead fools one sensor, not both the same way).
+    // Clamping it as a transient left the robot running a whole straight
+    // 30-40 mm off, along the wall (10-05, a hand placement 11 deg crooked).
+    const uint8_t agree = right && left && absf(error_r - error_l) <= k->agree_mm;
+    // Otherwise their average (half the noise, and no bias from one sensor),
+    // unless one reading is implausible (the angled beam catching a post or a
+    // wall ahead) and the other agrees better with where the robot can be.
+    if(right && left && !agree){
         if(absf(error_r) > k->error_max_mm && absf(error_l) < absf(error_r)) right = 0;
         else if(absf(error_l) > k->error_max_mm && absf(error_r) < absf(error_l)) left = 0;
     }
@@ -246,11 +250,22 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
     float want = s->bias;
     if(right || left){
         const float raw = right && left ? 0.5f * (error_r + error_l) : right ? error_r : error_l;
-        const float error = clampf(raw, -k->error_max_mm, k->error_max_mm);
+        // One wall alone, closer than on the centre line: real too. A beam
+        // reads a wall too far as it leaves it (an opening, or at a big yaw
+        // along it), never too near: nothing stands in between. A robot 35
+        // deg crooked sees one wall only and ran into it (10-05).
+        const uint8_t near_one = !(right && left) && (right ? raw < 0.0f : raw > 0.0f);
+        const uint8_t trusted = agree || near_one;
+        const float error = trusted ? raw : clampf(raw, -k->error_max_mm, k->error_max_mm);
         const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT : STEER_WALL_LEFT;
         // Another wall is another reference (each has its own few mm of
-        // error): what the readings should show starts afresh.
-        if(walls != s->wall || absf(raw) >= k->error_max_mm) s->expecting = 0;
+        // error): the readings start afresh, and what they should show too
+        // (followed at the slew rate, the step taught ~2.4 deg of false bias).
+        if(walls != s->wall){
+            s->valid = 0;
+            s->expecting = 0;
+        }
+        if(!trusted && absf(raw) >= k->error_max_mm) s->expecting = 0;
         s->wall = walls;
         // A post or a wall edge makes the reading jump further in 1 ms than
         // the robot can move sideways: follow it at a limited rate, so a
@@ -294,7 +309,14 @@ float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, 
             s->expected += surprise * fminf(ds_mm / k->observer_mm, 1.0f);
             s->bias = clampf(s->bias + k->ki * surprise * ds_mm, -k->max_deg, k->max_deg);
         }
-        want = clampf(gain * k->kp * s->lateral + s->bias, -k->max_deg, k->max_deg);
+        // Farther than far_mm off, by readings trusted as above (close to a
+        // wall): a stronger pull back, fading faster with speed (it overshot
+        // at 600-900 in the simulator). The bias has its own clamp, so a big
+        // yaw (a crooked hand placement) leaves the pull its whole range.
+        float pull = k->kp * s->lateral;
+        const float far = absf(s->lateral) - k->far_mm;
+        if(trusted && far > 0.0f) pull += gain * k->kp_far * (s->lateral > 0.0f ? far : -far);
+        want = clampf(gain * pull, -k->max_deg, k->max_deg) + s->bias;
     }
     else{
         // No wall: hold the heading, corrected by what the walls taught.

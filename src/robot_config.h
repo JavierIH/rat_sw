@@ -85,12 +85,15 @@
 #define EMERGENCY_DECEL         6000.0f // mm/s^2: the short brake, for the obstacle distance
 
 // ---- Wall centring (steer_step in control.c; KP, KI in params.h) ----------------------------
-#define STEER_MAX_DEG           15.0f   // clamp of the heading offset (turns and hand placements leave 5-9 deg)
-#define STEER_CURVE_DEG_PER_MM  0.2f    // how fast the heading offset may change: curves of radius >= 290 mm
+#define STEER_MAX_DEG           40.0f   // clamp of the pull and, apart, of the bias: room for a hand placement ~30 deg crooked
+#define STEER_CURVE_DEG_PER_MM  0.4f    // how fast the heading offset may change (0.2 let a robot 35 deg crooked reach the wall)
 #define STEER_AVERAGE_MS        32      // side readings averaged over two sensor periods
 #define STEER_VREF_MM_S         500.0f  // above this KP falls as 1/speed (KP 0.7 weaved at 700)
 #define STEER_SLEW_MM_PER_MS    0.5f    // lateral error change accepted per ms (posts, wall edges jump more)
-#define STEER_ERROR_MAX_MM      25      // wall error clamp: beyond it the reading is a transient, not the robot
+#define STEER_ERROR_MAX_MM      25      // wall error clamp: beyond it the reading is a transient, not the robot...
+#define STEER_AGREE_MM          12.0f   // ...unless both walls agree within this: then the robot really is that far off
+#define STEER_FAR_MM            10.0f   // farther off than this (both walls agreeing), a stronger pull back...
+#define STEER_KP_FAR            1.0f    // ...deg per mm beyond STEER_FAR_MM, fading as (STEER_VREF/v)^2 (2 overshot at 450)
 #define STEER_OBSERVER_MM       40.0f   // the bias observer follows the readings over this distance
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------

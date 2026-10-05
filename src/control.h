@@ -105,13 +105,16 @@ typedef struct {
     float ki;               // bias learning: deg per mm of lateral error per mm travelled
     float observer_mm;      // > 0: the bias is learned from the unexplained sideways motion (see
                             // steer_step()), the lateral estimate following the readings over this distance
-    float max_deg;          // clamp of the heading offset
+    float max_deg;          // clamp of the centring's pull and, apart, of the bias
     float curve_deg;        // max change of the heading offset per mm travelled (curvature)
     float slew_mm;          // max change of the lateral error per step (posts, wall edges)
     float track_mm;         // a side wall closer than this is a reference
     float center_l_mm;      // SL reading with the robot on the centre line
     float center_r_mm;      // SR reading with the robot on the centre line
-    float error_max_mm;     // clamp of the lateral error
+    float error_max_mm;     // clamp of the lateral error (unless both walls agree)
+    float agree_mm;         // both walls' errors this close: the robot really is that far off
+    float far_mm;           // farther than this off-centre (both walls agreeing)...
+    float kp_far;           // ...this much more heading per mm beyond it, deg/mm
     uint8_t delay_steps;    // side IR delay in steps, averaging included (<= STEER_DELAY_MAX)
     uint8_t average_steps;  // side IR averaged over this many steps (<= STEER_AVERAGE_MAX)
 } steer_config_t;
