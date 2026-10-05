@@ -24,7 +24,7 @@
 #define FRONT_ZONE_MM       (CELL_MM / 2)   // the front wall at the end of a move is tracked in its last half cell
 #define FRONT_EARLY_MAX_MM  (CELL_MM / 2)   // the IR may end a move this much before the encoders say...
 #define FRONT_LATE_MAX_MM   30              // ...or this much after
-#define STEER_FADE_MM       40      // the centring fades out over the last mm of a move: it stops parallel
+#define STEER_FADE_MM       40      // the centring fades out over the last mm of a move
 #define SQUARE_SPEED_DIV    2       // squaring rotates at half the turn speed
 
 static void motors_off(void){
@@ -113,18 +113,12 @@ static control_config_t control_cfg = {
 };
 
 static steer_config_t steer_cfg = {
-    .max_deg = STEER_MAX_DEG,
-    .curve_deg = STEER_CURVE_DEG_PER_MM,
-    .slew_mm = STEER_SLEW_MM_PER_MS,
     .track_mm = SIDE_WALL_TRACK_MM,
     .center_l_mm = SIDE_CENTER_L_MM,
     .center_r_mm = SIDE_CENTER_R_MM,
     .error_max_mm = STEER_ERROR_MAX_MM,
-    .agree_mm = STEER_AGREE_MM,
-    .far_mm = STEER_FAR_MM,
-    .kp_far = STEER_KP_FAR,
-    .observer_mm = STEER_OBSERVER_MM,
-    // average_steps, delay_steps: set per move (TUNE STEER_AVG, IR_DELAY)
+    .average_steps = STEER_AVERAGE_MS,      // ms: one step each
+    // kp, kd: the parameters, set per move
 };
 
 // Live-tunable (TUNE) values that are not in the two configs above.
@@ -132,9 +126,7 @@ static float ir_delay = IR_DELAY_MS;            // ms
 static float front_track = FRONT_TRACK_MM;      // mm
 static float front_ref = FRONT_TRACK_REF_MM;    // mm
 static float late_margin = SEARCH_LATE_MARGIN_MM;   // mm
-static float steer_average = STEER_AVERAGE_MS;  // ms
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
-static float steer_vref = STEER_VREF_MM_S;      // mm/s
 static float curve_radius = CURVE_RADIUS_MM, curve_ramp = CURVE_RAMP_MM, curve_angle = CURVE_ANGLE_DEG;
 static float curve_slip = CURVE_SLIP_DEG;   // deg more at CURVE_SLIP_VREF_MM_S
 static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
@@ -171,7 +163,7 @@ static int32_t tick_l, tick_r;      // encoder totals at the last SysTick
 // report the past (IR_DELAY_MS), and must be added to the position then.
 #define TRAIL_LEN 64
 #define IR_DELAY_MAX 60     // TUNE limit
-_Static_assert(IR_DELAY_MAX < TRAIL_LEN && IR_DELAY_MAX + STEER_AVERAGE_MAX / 2 < STEER_DELAY_MAX, "IR delay too long");
+_Static_assert(IR_DELAY_MAX < TRAIL_LEN, "IR delay too long");
 static float trail[TRAIL_LEN];
 static volatile uint8_t trail_slot;
 
@@ -210,10 +202,7 @@ void motion_tick_1ms(void){
                 steer_restart(&steer);
                 steer_blind = 0;
             }
-            const float ds = 0.5f * fabsf((float)(dl + dr)) / control_cfg.ticks_per_mm;
-            // Heading since the move started, relative to the corridor (the reference's turns taken out).
-            const float to_corridor = ctl.steer_prev - ctl.rot_error;
-            heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), ds, to_corridor, steer_gain);
+            heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), CONTROL_DT_S, steer_gain);
             static const uint8_t WALL_LEDS[4] = {0x00, 0x07, 0x38, 0x3F};   // none, right, left, both
             leds_set_mask(WALL_LEDS[steer.wall & 3u]);
         }
@@ -240,11 +229,9 @@ static void control_begin(uint8_t steering){
     path_on = 0;
     steer_blind = 0;
     move_id++;
-    steer_cfg.average_steps = (uint8_t)steer_average;
-    steer_cfg.delay_steps = (uint8_t)(ir_delay + steer_average / 2);  // the averaging delays by half its window
     control_cfg.mm_per_deg = (float)params.turn_ticks / 90.0f / control_cfg.ticks_per_mm;
     steer_cfg.kp = params.kp;
-    steer_cfg.ki = params.ki * 0.001f;     // per m travelled -> per mm
+    steer_cfg.kd = params.kd;
     profile_reset(&fwd);
     profile_reset(&rot);
     control_reset(&ctl);
@@ -553,12 +540,9 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         at = fwd_actual();
         const float v = run.v, ir_at = fwd_at_ir();
         if(v > vmax) vmax = v;
-        // Centring gain: KP up to steer_vref, then as 1/speed (see
-        // STEER_VREF_MM_S), fading out over the last STEER_FADE_MM before
-        // every curve and the end, so the robot gets there parallel.
+        // The centring fades out over the last STEER_FADE_MM before every curve and the end.
         const float remaining = fminf(run.curve_start, run.stop_at) - at;
-        const float fade = remaining < STEER_FADE_MM ? fmaxf(remaining, 0.0f) / STEER_FADE_MM : 1.0f;
-        steer_gain = fade * (v > steer_vref ? steer_vref / v : 1.0f);
+        steer_gain = remaining < STEER_FADE_MM ? fmaxf(remaining, 0.0f) / STEER_FADE_MM : 1.0f;
         if(ex){
             if(!short_stop) planned_end = run.length;     // it grows as the search decides
             explore_step(ex, &g, v, ir_at, ir_seen >= FRONT_CONFIRM_MS);
@@ -863,14 +847,6 @@ static const tunable_t TUNABLES[] = {
     {"SETTLE_KI_FWD", &control_cfg.settle_ki_fwd, 0.0f, 20000.0f, 0},
     {"SETTLE_KI_ROT", &control_cfg.settle_ki_rot, 0.0f, 20000.0f, 0},
     {"SETTLE_I_MAX", &control_cfg.settle_i_max, 0.0f, 400.0f, 0},
-    {"STEER_MAX", &steer_cfg.max_deg, 0.0f, 60.0f, 1},
-    {"STEER_AGREE", &steer_cfg.agree_mm, 0.0f, 40.0f, 1},
-    {"STEER_FAR", &steer_cfg.far_mm, 0.0f, 60.0f, 1},
-    {"STEER_KP_FAR", &steer_cfg.kp_far, 0.0f, 5.0f, 2},
-    {"STEER_CURVE", &steer_cfg.curve_deg, 0.01f, 5.0f, 2},
-    {"STEER_AVG", &steer_average, 1.0f, STEER_AVERAGE_MAX, 0},
-    {"OBSERVER", &steer_cfg.observer_mm, 1.0f, 500.0f, 0},
-    {"STEER_VREF", &steer_vref, 100.0f, 3000.0f, 0},
     {"SETTLE_MM", &settle_mm, 0.1f, 5.0f, 2},
     {"SETTLE_DEG", &settle_deg, 0.1f, 5.0f, 2},
     {"CENTER_L", &steer_cfg.center_l_mm, 40.0f, 130.0f, 1},

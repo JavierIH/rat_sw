@@ -523,7 +523,7 @@ static void test_storage(void){
     params.search_speed = 123;
     params.turn_ticks = 415;
     params.accel = 4321;
-    params.ki = 0.75f;
+    params.kd = 0.75f;
     CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     uint16_t size;
     memcpy(&size, fake_flash + 6, sizeof(size));
@@ -550,7 +550,7 @@ static void test_storage(void){
     CHECK_EQ(params.search_speed, 123);
     CHECK_EQ(params.turn_ticks, 415);
     CHECK_EQ(params.accel, 4321);
-    CHECK(params.ki == 0.75f);
+    CHECK(params.kd == 0.75f);
 
     // Every change is a new record in the next free slot, never an erase;
     // with no slot left the map stays in RAM.
@@ -1298,75 +1298,36 @@ static void test_profile(void){
     CHECK(p.pos == 100.0f);
 }
 
-static void test_steering_filter(void){
+static void test_steering_pd(void){
     const steer_config_t k = {
-        .kp = 1.0f, .ki = 0.0f, .max_deg = STEER_MAX_DEG, .curve_deg = 2.0f, .slew_mm = STEER_SLEW_MM_PER_MS,
-        .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
-        .center_r_mm = LANE_WIDTH_MM / 2.0f, .error_max_mm = STEER_ERROR_MAX_MM,
-        .observer_mm = STEER_OBSERVER_MM, .delay_steps = 0, .average_steps = 1,
+        .kp = 10.0f, .kd = 1.0f, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = 84.0f, .center_r_mm = 84.0f,
+        .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = 1,
     };
+    const float dt = 0.001f;
     steer_t s;
     steer_reset(&s);
-    for(int i = 0; i < 50; i++) steer_step(&s, &k, 84.0f, 84.0f, 0.5f, 0.0f, 1.0f);
+    // Centred between both walls: no turn.
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 84.0f, 84.0f, dt, 1.0f);
     CHECK(fabsf(s.heading) < 0.01f);
-    CHECK_EQ(s.wall, STEER_WALL_BOTH);
-    // One wall only: that one.
-    for(int i = 0; i < 50; i++) steer_step(&s, &k, 250.0f, 84.0f, 0.5f, 0.0f, 1.0f);
-    CHECK_EQ(s.wall, STEER_WALL_RIGHT);
-    CHECK(fabsf(s.heading) < 0.01f);
-    for(int i = 0; i < 50; i++) steer_step(&s, &k, 84.0f, 84.0f, 0.5f, 0.0f, 1.0f);
-    // A post caught by the right beam for 2 ms: the estimate barely moves.
-    steer_step(&s, &k, 84.0f, 50.0f, 0.5f, 0.0f, 1.0f);
-    steer_step(&s, &k, 84.0f, 50.0f, 0.5f, 0.0f, 1.0f);
-    CHECK(fabsf(s.lateral) <= 2.0f * STEER_SLEW_MM_PER_MS + 0.001f);
-    // Robot 10 mm left of centre: heads right, KP deg per mm.
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 1.0f);
-    CHECK(fabsf(s.heading - 10.0f * k.kp) < 0.01f || fabsf(s.heading - STEER_MAX_DEG) < 0.01f);
-    CHECK(s.heading > 0.0f);
-    // Fading out at the end of a move: back to straight.
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 0.0f);
-    CHECK(fabsf(s.heading) < 0.01f);
-    // No walls: hold the heading.
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 250.0f, 250.0f, 0.5f, 0.0f, 1.0f);
-    CHECK_EQ(s.wall, STEER_WALL_NONE);
-    CHECK(fabsf(s.heading) < 0.01f);
-}
-
-// The bias (the encoder heading parallel to the walls) is learned from how
-// the readings move against what the encoders predict, not from how far off
-// the centre the robot is.
-static void test_steering_bias(void){
-    const steer_config_t k = {
-        .kp = PARAM_KP, .ki = PARAM_KI * 0.001f, .observer_mm = STEER_OBSERVER_MM, .max_deg = STEER_MAX_DEG,
-        .curve_deg = STEER_CURVE_DEG_PER_MM, .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM,
-        .center_l_mm = LANE_WIDTH_MM / 2.0f, .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .delay_steps = 20,
-        .average_steps = 8,
-    };
-    // 10 mm off-centre, moving parallel to the walls as the encoders say:
-    // nothing to learn (the integral of the lateral error learned ~3 deg).
-    steer_t s;
+    // 10 mm left of the centre: KD * 10 at once, then KP * 10 deg/s, to the right.
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, dt, 1.0f);
+    CHECK(fabsf(s.heading - (k.kd * 10.0f + k.kp * 10.0f * 0.1f)) < 0.2f);
+    // No walls: the heading is held.
+    const float held = s.heading;
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 250.0f, 250.0f, dt, 1.0f);
+    CHECK(fabsf(s.heading - held) < 0.001f);
+    // A wall appearing (another reference): no derivative kick.
+    steer_step(&s, &k, 60.0f, 250.0f, dt, 1.0f);
+    CHECK(fabsf(s.heading - held - k.kp * 24.0f * dt) < 0.01f);
+    // The error clamped; gain 0 (a move's end): no change.
+    const float before = s.heading;
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 10.0f, 250.0f, dt, 0.0f);
+    CHECK(fabsf(s.heading - before) < 0.001f);
+    // The D term: the error growing 1 mm turns KD deg more.
     steer_reset(&s);
-    for(int i = 0; i < 400; i++) steer_step(&s, &k, 74.0f, 94.0f, 0.5f, 0.0f, 1.0f);
-    CHECK(fabsf(s.bias) < 0.01f);
-    CHECK(s.heading > 0.0f);                // but it does head for the centre
-    // Drifting left 0.05 mm per mm while the encoders say straight: the
-    // encoder heading parallel to the walls is 2.86 deg to the right.
-    steer_reset(&s);
-    float y = 0.0f;
-    for(int i = 0; i < 1200; i++){
-        y += 0.05f * 0.5f;
-        steer_step(&s, &k, 84.0f - y, 84.0f + y, 0.5f, 0.0f, 1.0f);
-    }
-    CHECK(fabsf(s.bias - 0.05f * 180.0f / 3.14159265f) < 0.3f);
-    // A new wall (another reference, a few mm off), the same drift: no jump
-    // in the bias.
-    const float before = s.bias;
-    for(int i = 0; i < 100; i++){
-        y += 0.05f * 0.5f;
-        steer_step(&s, &k, 84.0f - y - 5.0f, 250.0f, 0.5f, 0.0f, 1.0f);
-    }
-    CHECK(fabsf(s.bias - before) < 0.3f);
+    steer_step(&s, &k, 84.0f, 84.0f, dt, 1.0f);
+    steer_step(&s, &k, 83.0f, 85.0f, dt, 1.0f);
+    CHECK(fabsf(s.heading - (k.kd * 1.0f + k.kp * 1.0f * dt)) < 0.001f);
 }
 
 static void test_speed_control(void){
@@ -1376,16 +1337,14 @@ static void test_speed_control(void){
     for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
         plant_t p = plant_nominal();
         p.y0 = 8.0f;
-        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);
+        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KD);
         CHECK(fabsf(r.travelled - 540.0f) < 1.0f);
         CHECK(r.fwd_err_max < 5.0f);
         CHECK(r.rot_err_max < 6.0f);
-        // The side IR resolve ~2 mm; above STEER_VREF_MM_S the centring
-        // works over a longer distance (it weaved on the robot otherwise).
-        CHECK(r.y_late < (speeds[i] > STEER_VREF_MM_S ? 6.0f : 3.0f));
-        p.y0 = 15.0f;               // a bad start: centred within the move (more slowly
-        r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);     // above STEER_VREF_MM_S)
-        CHECK(fabsf(r.y_end) < (speeds[i] > STEER_VREF_MM_S ? 6.0f : 3.0f));
+        CHECK(r.y_late < 3.0f);     // the side IR resolve ~2 mm
+        p.y0 = 15.0f;               // a bad start: centred within the move
+        r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KD);
+        CHECK(fabsf(r.y_end) < 3.0f);
         CHECK(r.crossings <= 4);   // also counts +-0.5 mm wobbles at the centre
         CHECK(fabsf(r.yaw_end) < 2.0f);
         CHECK(r.ms < 3000);
@@ -1402,7 +1361,7 @@ static void test_speed_control(void){
     variants[4].dead_ms = 6;    // measured: none
     for(int i = 0; i < 5; i++){
         variants[i].y0 = 10.0f;
-        sim_result_t r = sim_straight(&variants[i], 540.0f, 600.0f, 3000.0f, PARAM_KP, PARAM_KI);
+        sim_result_t r = sim_straight(&variants[i], 540.0f, 600.0f, 3000.0f, PARAM_KP, PARAM_KD);
         CHECK(fabsf(r.travelled - 540.0f) < 1.5f);
         CHECK(r.y_late < 5.0f);
         CHECK(r.fwd_err_max < 10.0f);
@@ -1410,12 +1369,12 @@ static void test_speed_control(void){
     // Unequal motors (the right one 8 % stronger than modelled): still straight.
     plant_t uneven = base;
     uneven.gain_r = 1.08f;
-    sim_result_t r = sim_straight(&uneven, 900.0f, 700.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    sim_result_t r = sim_straight(&uneven, 900.0f, 700.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_late < 3.0f);     // 2.0 even with equal motors: IR steps and yaw friction
     // A turn left the robot 5 deg off the corridor: the integral finds it.
     plant_t yawed = base;
     yawed.yaw0 = 5.0f;
-    r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(fabsf(r.y_end) < 2.5f);
     // Placed by hand 27 mm off and 11 deg into the wall (the robot, 10-05:
     // the error clamp took it for a transient and it ran the whole straight
@@ -1424,53 +1383,51 @@ static void test_speed_control(void){
     crooked.y0 = 27.0f;
     crooked.yaw0 = -11.0f;
     crooked.wall_error_mm = 2.0f;
-    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(fabsf(r.y_at[3]) < 10.0f);        // the second cell's centre
     CHECK(fabsf(r.y_end) < 3.0f);
     // 20 deg crooked, centred: the old 15 deg clamp drove it into the wall.
     crooked.y0 = 0.0f;
     crooked.yaw0 = -20.0f;
-    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
     for(int i = 0; i < 5; i++) CHECK(fabsf(r.y_at[i]) < 30.0f);
     CHECK(fabsf(r.y_end) < 3.0f);
     // 30 deg, the tail by the right wall (10-05, 900 mm/s: it touched the
     // left wall): a bias clamp of 25 deg left it ~13 mm off to the end.
     crooked.y0 = -38.0f;
     crooked.yaw0 = -30.0f;
-    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_max < 45.0f);                 // 48: touching the wall
     CHECK(fabsf(r.y_end) < 4.0f);
     // 35 deg (10-05, 100 mm/s, into the wall): at that yaw one beam runs
     // along its wall and only the other is seen, nearer than the centre.
     crooked.y0 = -30.0f;
     crooked.yaw0 = -35.0f;
-    r = sim_straight(&crooked, 540.0f, 100.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&crooked, 540.0f, 100.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_max < 45.0f);
     CHECK(fabsf(r.y_end) < 4.0f);
     // Off-centre at the start of a short straight (the first cell of a
-    // speed run): the bias stays where it is, so the next corridor is not
-    // aimed at a wall.
+    // speed run): it ends nearly parallel, the next corridor not aimed at a wall.
     plant_t off = base;
     off.y0 = 10.0f;
-    r = sim_straight(&off, 180.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KI);
-    CHECK(fabsf(r.bias_end - r.bias_true) < 1.0f);
-    CHECK(fabsf(r.yaw_end) < 1.0f);
-    // A real heading error at speed-run speed: learned.
+    r = sim_straight(&off, 180.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
+    CHECK(fabsf(r.yaw_end) < 2.0f);
+    // A real heading error at speed-run speed: corrected.
     yawed.yaw0 = 3.0f;
-    r = sim_straight(&yawed, 540.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KI);
-    CHECK(fabsf(r.bias_end - r.bias_true) < 1.0f);
+    r = sim_straight(&yawed, 540.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KD);
+    CHECK(fabsf(r.y_end) < 3.0f);
+    CHECK(fabsf(r.yaw_end) < 2.0f);
     // Walls a few mm off in every cell, a long straight at 900.
     plant_t maze = base;
     maze.y0 = 3.0f;
     maze.wall_error_mm = 3.0f;
-    r = sim_straight(&maze, 1440.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KI);
-    CHECK(fabsf(r.bias_end - r.bias_true) < 1.5f);
+    r = sim_straight(&maze, 1440.0f, 900.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_late < 5.0f);
     // Out of PWM (flat battery at full speed): rotation keeps priority.
     plant_t flat = base;
     flat.gain_l = flat.gain_r = 0.7f;
     flat.y0 = 5.0f;
-    r = sim_straight(&flat, 900.0f, 1000.0f, 3000.0f, PARAM_KP, PARAM_KI);
+    r = sim_straight(&flat, 900.0f, 1000.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_late < 6.0f);
     // Turns: exact angle (encoder), quick.
     const float angles[] = {90.0f, -90.0f, 180.0f};
@@ -1855,12 +1812,12 @@ static void test_curve_pre_slip(void){
 
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
-    printf("recta 540 mm, 15 mm descentrado (KP %.2f KI %.2f):\n", (double)PARAM_KP, (double)PARAM_KI);
+    printf("recta 540 mm, 15 mm descentrado (KP %.2f KD %.2f):\n", (double)PARAM_KP, (double)PARAM_KD);
     const float speeds[] = {300.0f, 500.0f, 800.0f, 1000.0f};
     for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
         plant_t p = plant_nominal();
         p.y0 = 15.0f;
-        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KI);
+        sim_result_t r = sim_straight(&p, 540.0f, speeds[i], 3000.0f, PARAM_KP, PARAM_KD);
         printf("  %4.0f mm/s: %4u ms, recorrido %.2f mm, error max %.2f mm / %.2f deg, y 2a mitad %.2f mm,"
                " final %+.2f mm %+.2f deg, cruces %d, PWM max %d\n", (double)speeds[i], r.ms, (double)r.travelled,
                (double)r.fwd_err_max, (double)r.rot_err_max, (double)r.y_late, (double)r.y_end, (double)r.yaw_end,
@@ -1879,7 +1836,7 @@ static void control_report(void){
             p.seed = seed;
             p.yaw0 = seed & 1u ? 4.0f : -4.0f;
             p.wall_error_mm = 2.0f;
-            const sim_result_t r = sim_straight(&p, 720.0f, after_turn[i], 3000.0f, PARAM_KP, PARAM_KI);
+            const sim_result_t r = sim_straight(&p, 720.0f, after_turn[i], 3000.0f, PARAM_KP, PARAM_KD);
             for(int j = 0; j < SIM_SAMPLES; j++){
                 y[j] += fabsf(r.y_at[j]) / 16.0f;
                 yaw[j] += fabsf(r.yaw_at[j]) / 16.0f;
@@ -2180,8 +2137,7 @@ int main(int argc, char **argv){
     test_wall_followers();
     test_competition_mazes();
     test_profile();
-    test_steering_filter();
-    test_steering_bias();
+    test_steering_pd();
     test_speed_control();
     test_curve_shape();
     test_path_reference();

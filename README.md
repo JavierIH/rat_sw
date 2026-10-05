@@ -81,8 +81,8 @@ flash: esta tabla es la referencia. "Parado" = se rechaza durante un run.
 | `ACCEL n` | mm/s² de aceleración y frenada en recta | |
 | `TURN n`, `TACCEL n` | grados/s máximos y grados/s² de los giros en el sitio | |
 | `TURNTICKS n` | ticks de encoder de un giro de 90° (menos = gira menos) | |
-| `KP f` | centrado: grados de rumbo por mm descentrado | |
-| `KI f` | centrado: corrige el rumbo torcido (grados por mm y metro; 0 = apagado) | |
+| `KP f` | centrado: grados/s de giro por mm descentrado | |
+| `KD f` | centrado: amortiguación (grados de giro por mm que cambia el error) | |
 | `TUNE [nombre valor]` | ajusta en vivo una constante del control (no se guarda); `TUNE` solo las lista | |
 | `LOG 0-2` | detalle del log | |
 | `TELEM ON\|OFF` | líneas `@` para el mapa en vivo del monitor | |

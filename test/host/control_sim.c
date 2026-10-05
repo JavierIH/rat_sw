@@ -8,6 +8,7 @@
 #define DEAD_MAX 32
 #define FADE_MM 40.0f               // as STEER_FADE_MM in motion.c
 #define SIDE_BEAM_AHEAD_MM 20.0f    // where the angled side beams hit the walls, ahead of the robot's centre
+#define SIDE_IR_DELAY_MS 8          // side IR delay: 4-8 ms on in-place turns (docs/centring.md)
 
 typedef struct {
     float gain, tau, friction, stiction;
@@ -17,10 +18,6 @@ typedef struct {
 } motor_t;
 
 static uint32_t rng;
-float sim_average = STEER_AVERAGE_MS;       // experiments: side IR averaging, ms
-float sim_curve = STEER_CURVE_DEG_PER_MM;   // experiments: centring curvature limit
-float sim_observer = STEER_OBSERVER_MM;     // experiments: bias observer distance
-float sim_vref = STEER_VREF_MM_S;           // experiments: speed above which KP falls as 1/speed
 
 static float uniform(void){
     rng = rng * 1664525u + 1013904223u;
@@ -85,7 +82,7 @@ plant_t plant_nominal(void){
     plant_t p = {
         .gain_l = 1.0f, .gain_r = 1.0f, .tau = MOTOR_TAU_S, .friction = MOTOR_KS_PWM, .stiction = 85.0f,
         .yaw_friction = 15.0f, .yaw_stiction = 50.0f,
-        .dead_ms = 0, .ir_noise = 1.0f, .ir_delay_ms = IR_DELAY_MS,
+        .dead_ms = 0, .ir_noise = 1.0f, .ir_delay_ms = SIDE_IR_DELAY_MS,
         .ir_period_ms = 16, .ir_step_mm = 2.0f, .y0 = 0.0f, .yaw0 = 0.0f, .seed = 1,
         // The robot's: sensors ~40 mm ahead of the axle, their beams 15 deg
         // forward (fitted on the ring, calib_analyze.py SIDE_LEVER_MM).
@@ -107,18 +104,14 @@ static control_config_t firmware_control(void){
 }
 
 static sim_result_t run(const plant_t *p, float mm, float speed, float accel, float deg, float turn_speed,
-                        float turn_accel, float kp, float ki){
+                        float turn_accel, float kp, float kd){
     const float dt = CONTROL_DT_S;
     const control_config_t k = firmware_control();
     const float mm_per_deg = k.mm_per_deg;
     const steer_config_t sk = {
-        .kp = kp, .ki = ki * 0.001f, .max_deg = STEER_MAX_DEG, .curve_deg = sim_curve,
-        .slew_mm = STEER_SLEW_MM_PER_MS, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
+        .kp = kp, .kd = kd, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .agree_mm = STEER_AGREE_MM, .far_mm = STEER_FAR_MM,
-        .kp_far = STEER_KP_FAR, .observer_mm = sim_observer,
-        .delay_steps = (uint8_t)(IR_DELAY_MS + sim_average / 2),
-        .average_steps = (uint8_t)sim_average,
+        .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = STEER_AVERAGE_MS,
     };
     profile_t fwd, rot;
     control_t c;
@@ -186,10 +179,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
             }
             const float sr = held_r, sl = held_l;
             const float remaining = fwd.target - (fwd.pos - c.fwd_error);
-            const float fade = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;
-            const float gain = fade * (fwd.speed > sim_vref ? sim_vref / fwd.speed : 1.0f);  // as motion.c
-            const float rot_now = rot.pos + c.steer_prev - c.rot_error;
-            heading = steer_step(&s, &sk, sl, sr, 0.5f * fabsf((float)(dl + dr)) / WHEEL_TICKS_PER_MM, rot_now, gain);
+            const float gain = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;  // as motion.c
+            heading = steer_step(&s, &sk, sl, sr, dt, gain);
         }
         control_step(&c, &k, &fwd, &rot, heading, dl, dr, dt);
         if(abs(c.pwm_l) > r.pwm_max) r.pwm_max = abs(c.pwm_l);
@@ -230,10 +221,6 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     r.rot_error_end = c.rot_error;
     r.y_end = y;
     r.yaw_end = yaw;
-    // Parallel to the walls: the encoder heading minus the true yaw
-    // (steer_step()'s heading is > 0 to the right, as the yaw here).
-    r.bias_end = s.bias;
-    r.bias_true = (rot.pos + c.steer_prev - c.rot_error) - yaw;
     for(uint32_t i = 1; i < n; i++){
         if((y_hist[i] < 0.0f) != (y_hist[i - 1] < 0.0f)) r.crossings++;
         if(i >= n / 2 && fabsf(y_hist[i]) > r.y_late) r.y_late = fabsf(y_hist[i]);
@@ -241,8 +228,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     return r;
 }
 
-sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki){
-    return run(p, mm, speed, accel, 0.0f, 0.0f, 1.0f, kp, ki);
+sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float kd){
+    return run(p, mm, speed, accel, 0.0f, 0.0f, 1.0f, kp, kd);
 }
 
 sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel){

@@ -37,8 +37,6 @@ typedef struct {
     float y_late;               // largest |y| over the second half of the move
     float y_max;                // largest |y| over the whole move (48: touching a wall)
     float yaw_end;              // deg to the right of the corridor at the end
-    float bias_end;             // deg: the centring's idea of the encoder heading parallel to the walls...
-    float bias_true;            // ...and the real one
     float fwd_err_max, rot_err_max;
     float rot_error_end;        // deg the rotation loop stopped short of its reference
     int crossings;              // sign changes of y (weaving)
@@ -63,13 +61,9 @@ typedef struct {
     uint32_t stall_ms;          // when the robot fell FWD_ERROR_MAX_MM behind (MOVE_STALLED), 0 if never
 } path_result_t;
 
-extern float sim_average;       // side IR averaging, ms (default STEER_AVERAGE_MS)
-extern float sim_curve;         // centring curvature limit, deg/mm (default STEER_CURVE_DEG_PER_MM)
-extern float sim_observer;      // bias observer distance, mm (default STEER_OBSERVER_MM)
-extern float sim_vref;          // KP falls as 1/speed above this, mm/s (default STEER_VREF_MM_S)
 
 plant_t plant_nominal(void);
-sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float ki);
+sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, float kp, float kd);
 sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel);
 path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
                        float v_curve, float accel);

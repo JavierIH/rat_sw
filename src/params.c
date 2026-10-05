@@ -7,7 +7,7 @@ _Static_assert(sizeof(params_t) == 24, "params_t layout changed");
 
 static const params_t DEFAULTS = {
     .kp = PARAM_KP,
-    .ki = PARAM_KI,
+    .kd = PARAM_KD,
     .search_speed = PARAM_SEARCH_SPEED,
     .fast_speed = PARAM_FAST_SPEED,
     .accel = PARAM_ACCEL,
@@ -21,7 +21,7 @@ static const params_t DEFAULTS = {
 
 params_t params = {
     .kp = PARAM_KP,
-    .ki = PARAM_KI,
+    .kd = PARAM_KD,
     .search_speed = PARAM_SEARCH_SPEED,
     .fast_speed = PARAM_FAST_SPEED,
     .accel = PARAM_ACCEL,

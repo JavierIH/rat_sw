@@ -101,53 +101,33 @@ void control_step(control_t *c, const control_config_t *k, const profile_t *fwd,
 typedef enum { STEER_WALL_NONE, STEER_WALL_RIGHT, STEER_WALL_LEFT, STEER_WALL_BOTH } steer_wall_t;
 
 typedef struct {
-    float kp;               // deg of heading per mm off-centre
-    float ki;               // bias learning: deg per mm of lateral error per mm travelled
-    float observer_mm;      // > 0: the bias is learned from the unexplained sideways motion (see
-                            // steer_step()), the lateral estimate following the readings over this distance
-    float max_deg;          // clamp of the centring's pull and, apart, of the bias
-    float curve_deg;        // max change of the heading offset per mm travelled (curvature)
-    float slew_mm;          // max change of the lateral error per step (posts, wall edges)
+    float kp;               // deg/s of turn per mm off-centre
+    float kd;               // deg of turn per mm the error changes
     float track_mm;         // a side wall closer than this is a reference
     float center_l_mm;      // SL reading with the robot on the centre line
     float center_r_mm;      // SR reading with the robot on the centre line
-    float error_max_mm;     // clamp of the lateral error (unless both walls agree)
-    float agree_mm;         // both walls' errors this close: the robot really is that far off
-    float far_mm;           // farther than this off-centre (both walls agreeing)...
-    float kp_far;           // ...this much more heading per mm beyond it, deg/mm
-    uint8_t delay_steps;    // side IR delay in steps, averaging included (<= STEER_DELAY_MAX)
-    uint8_t average_steps;  // side IR averaged over this many steps (<= STEER_AVERAGE_MAX)
+    float error_max_mm;     // clamp of the lateral error
+    uint8_t average_steps;  // side readings averaged over this many steps (<= STEER_AVERAGE_MAX)
 } steer_config_t;
 
-#define STEER_DELAY_MAX 84
 #define STEER_AVERAGE_MAX 40
 
 typedef struct {
-    float lateral;          // filtered lateral error, mm (> 0: left of the centre line)
-    float bias;             // encoder heading that is parallel to the corridor, deg
-    float expected;         // lateral error the readings should show, mm (observer)
     float heading;          // heading offset asked for, deg (> 0: to the right)
-    float drift;            // lateral motion over the last delay_steps (encoders), mm
-    float drift_hist[STEER_DELAY_MAX];
-    float reading;          // lateral error from the wall, slew-limited, mm
-    float reading_sum;      // of the last average_steps readings
-    float reading_hist[STEER_AVERAGE_MAX];
-    uint8_t slot, reading_slot;
+    float error;            // lateral error, averaged, mm (> 0: left of the centre line)
+    float sum;              // of the last average_steps errors
+    float hist[STEER_AVERAGE_MAX];
+    uint8_t slot;
     uint8_t wall;           // steer_wall_t in use
-    uint8_t valid;          // lateral holds a reading
-    uint8_t expecting;      // expected is valid
+    uint8_t valid;          // error holds a reading
 } steer_t;
 
 void steer_reset(steer_t *s);
-// A new corridor (after a curve): forget the readings and the motion since,
-// keep the heading offset and what the walls taught about the heading.
+// A new corridor (after a curve): forget the readings, keep the heading offset.
 void steer_restart(steer_t *s);
-// One control period: side readings (mm), distance travelled this step (mm,
-// >= 0), heading now (deg since the move started, from the encoders) and
-// how much of the centring to apply (1 cruising, fading to 0 at the end of a
-// move so the robot stops parallel to the walls). Returns the heading offset
-// for control_step().
-float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float ds_mm, float heading_deg,
-                 float gain);
+// One control period of the wall follower (a PD on the turn rate): side
+// readings (mm), period (s), gain (1, fading to 0 at a move's end). Returns
+// the heading offset for control_step().
+float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float gain);
 
 #endif // CONTROL_H

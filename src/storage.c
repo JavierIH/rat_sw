@@ -58,7 +58,7 @@ static uint32_t record_crc(const record_t *r){
 static uint8_t params_sane(const params_t *p){
     // Written by us with range-checked values; this only guards against a
     // layout mix-up that the CRC could not catch.
-    return p->kp >= 0.0f && p->kp <= 10.0f && p->ki >= 0.0f && p->ki <= 100.0f
+    return p->kp >= 0.0f && p->kp <= 100.0f && p->kd >= 0.0f && p->kd <= 20.0f
         && p->search_speed >= SPEED_MIN && p->search_speed <= SPEED_MAX
         && p->fast_speed >= SPEED_MIN && p->fast_speed <= SPEED_MAX
         && p->curve_speed >= SPEED_MIN && p->curve_speed <= SPEED_MAX

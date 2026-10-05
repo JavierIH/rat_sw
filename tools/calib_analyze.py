@@ -875,8 +875,10 @@ def report(paths):
         out.append("%s  [%s, %d muestras cada %.0f ms, firmware %s]"
                    % (path, rec.test, rec.n, rec.period, rec.meta.get("build", "?")))
         if "accel" in rec.meta:
-            out.append("  SPD %s FAST %s CURVE %s ACCEL %s TURN %s TACCEL %s KP %s KI %s" % tuple(
-                rec.meta.get(k, "?") for k in ("spd", "fast", "curve", "accel", "turn", "turn_accel", "kp", "ki")))
+            gain2 = "kd" if "kd" in rec.meta else "ki"     # the centring's second gain (KI before 10-05)
+            out.append("  SPD %s FAST %s CURVE %s ACCEL %s TURN %s TACCEL %s KP %s %s %s" % tuple(
+                [rec.meta.get(k, "?") for k in ("spd", "fast", "curve", "accel", "turn", "turn_accel", "kp")]
+                + [gain2.upper(), rec.meta.get(gain2, "?")]))
         else:
             out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
                 rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))

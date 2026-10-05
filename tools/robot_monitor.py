@@ -696,7 +696,7 @@ HELP_LINES = [
     ("", "  MODE n   1 busq | 2 k carrera: 1/2 seg.izq/der 3 sin curvas 4 800/300 5 900/400 6 900/480 | 3 borrar"),
     ("", "  START STOP PAUSE RESUME STEP ON|OFF"),
     ("", "  STATUS MAP IR WALLS SYNC TELEM ON|OFF"),
-    ("", "  SPD FAST CURVE ACCEL TURN TACCEL TURNTICKS n   KP KI f   LOG 0-2"),
+    ("", "  SPD FAST CURVE ACCEL TURN TACCEL TURNTICKS n   KP KD f   LOG 0-2"),
     ("", "  GOAL x y [x1 y1]  SAVE ERASE HOME DEFAULTS RESET"),
     ("", "  TUNE [nombre valor]  CONT ON|OFF"),
     ("", "  CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN  calibracion"),

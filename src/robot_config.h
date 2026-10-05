@@ -84,17 +84,9 @@
 #define SETTLE_MAX_MS           200     // ...or after this long past the end of the profile
 #define EMERGENCY_DECEL         6000.0f // mm/s^2: the short brake, for the obstacle distance
 
-// ---- Wall centring (steer_step in control.c; KP, KI in params.h) ----------------------------
-#define STEER_MAX_DEG           40.0f   // clamp of the pull and, apart, of the bias: room for a hand placement ~30 deg crooked
-#define STEER_CURVE_DEG_PER_MM  0.4f    // how fast the heading offset may change (0.2 let a robot 35 deg crooked reach the wall)
-#define STEER_AVERAGE_MS        32      // side readings averaged over two sensor periods
-#define STEER_VREF_MM_S         500.0f  // above this KP falls as 1/speed (KP 0.7 weaved at 700)
-#define STEER_SLEW_MM_PER_MS    0.5f    // lateral error change accepted per ms (posts, wall edges jump more)
-#define STEER_ERROR_MAX_MM      25      // wall error clamp: beyond it the reading is a transient, not the robot...
-#define STEER_AGREE_MM          12.0f   // ...unless both walls agree within this: then the robot really is that far off
-#define STEER_FAR_MM            10.0f   // farther off than this (both walls agreeing), a stronger pull back...
-#define STEER_KP_FAR            1.0f    // ...deg per mm beyond STEER_FAR_MM, fading as (STEER_VREF/v)^2 (2 overshot at 450)
-#define STEER_OBSERVER_MM       40.0f   // the bias observer follows the readings over this distance
+// ---- Wall centring (steer_step in control.c; KP, KD in params.h) ----------------------------
+#define STEER_AVERAGE_MS        16      // side readings averaged over one sensor period (they step every ~16 ms)
+#define STEER_ERROR_MAX_MM      25      // clamp of the lateral error
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------
 #define CURVE_RADIUS_MM         70.0f   // clothoid-arc-clothoid of this radius...
@@ -151,8 +143,8 @@
 #define PARAM_TURN_SPEED        500     // deg/s peak of in-place turns
 #define PARAM_TURN_ACCEL        5000    // deg/s^2: a 90 deg turn takes ~0.3 s
 #define PARAM_TURN_TICKS        TICKS_PER_TURN
-#define PARAM_KP                0.5f    // deg of heading per mm off-centre (0.7 weaved with KI 20)
-#define PARAM_KI                20.0f   // deg per mm off-centre per m travelled: how fast the observer learns a yaw
+#define PARAM_KP                8.0f    // deg/s of turn per mm off-centre (simulator, side IR 5-20 ms late)
+#define PARAM_KD                0.6f    // deg of turn per mm the lateral error changes
 #define PARAM_LOG_LEVEL         2
 #define PARAM_TELEMETRY         1       // '@' lines for tools/robot_monitor.py
 

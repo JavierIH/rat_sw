@@ -193,140 +193,45 @@ void control_step(control_t *c, const control_config_t *k, const profile_t *fwd,
 // ---- Wall centring ---------------------------------------------------------------------
 
 void steer_reset(steer_t *s){
-    s->bias = s->heading = 0.0f;
+    s->heading = 0.0f;
     steer_restart(s);
 }
 
 void steer_restart(steer_t *s){
-    s->lateral = s->drift = 0.0f;
-    for(uint8_t i = 0; i < STEER_DELAY_MAX; i++) s->drift_hist[i] = 0.0f;
-    s->reading = s->reading_sum = 0.0f;
-    for(uint8_t i = 0; i < STEER_AVERAGE_MAX; i++) s->reading_hist[i] = 0.0f;
-    s->slot = s->reading_slot = 0;
+    s->error = s->sum = 0.0f;
+    for(uint8_t i = 0; i < STEER_AVERAGE_MAX; i++) s->hist[i] = 0.0f;
+    s->slot = 0;
     s->wall = STEER_WALL_NONE;
     s->valid = 0;
-    s->expected = 0.0f;
-    s->expecting = 0;
 }
 
-// The heading offset is proportional to the lateral error, which makes the
-// correction a matter of distance, not time: the robot converges within the
-// same ~distance at 200 mm/s and at 1000 mm/s, and the position loops keep
-// the heading however unequal the motors are. The integral learns how far
-// the encoder heading of this move is from the corridor (the error a turn
-// leaves), which P alone would turn into a steady offset from the centre.
-//
-// The side IR report where the robot was IR_DELAY_MS ago (25 mm at 500
-// mm/s): steering on that alone weaves at speed. The encoders know how far
-// the robot moved sideways since (distance times heading to the corridor),
-// and adding that brings the reading up to date (a Smith predictor).
-float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float ds_mm, float heading_deg,
-                 float gain){
-    const float to_corridor = (heading_deg - s->bias) * (3.14159265f / 180.0f);    // rad, > 0 heading right
-    const float dy = -ds_mm * to_corridor;          // heading right: the robot moves right, lateral decreases
-    const uint8_t n = k->delay_steps < STEER_DELAY_MAX ? k->delay_steps : STEER_DELAY_MAX;
-    float then = dy;                                // sideways motion when the reading was taken
-    if(n){
-        then = s->drift_hist[s->slot];
-        s->drift += dy - then;
-        s->drift_hist[s->slot] = dy;
-        s->slot = (uint8_t)((s->slot + 1u) % n);
-    }
+// The wall follower most micromice use: the turn rate is a PD of the lateral
+// error, so the heading keeps turning while the robot is off-centre.
+float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float gain){
+    const uint8_t right = sr_mm < k->track_mm, left = sl_mm < k->track_mm;
+    const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT
+                        : left ? STEER_WALL_LEFT : STEER_WALL_NONE;
+    if(walls != s->wall) s->valid = 0;          // another reference: no derivative across the change
+    s->wall = walls;
+    if(walls == STEER_WALL_NONE) return s->heading;
     const float error_r = sr_mm - k->center_r_mm, error_l = k->center_l_mm - sl_mm;
-    uint8_t right = sr_mm < k->track_mm, left = sl_mm < k->track_mm;
-    // Both walls telling the same: the robot really is that far off, however
-    // far (a post or a wall ahead fools one sensor, not both the same way).
-    // Clamping it as a transient left the robot running a whole straight
-    // 30-40 mm off, along the wall (10-05, a hand placement 11 deg crooked).
-    const uint8_t agree = right && left && absf(error_r - error_l) <= k->agree_mm;
-    // Otherwise their average (half the noise, and no bias from one sensor),
-    // unless one reading is implausible (the angled beam catching a post or a
-    // wall ahead) and the other agrees better with where the robot can be.
-    if(right && left && !agree){
-        if(absf(error_r) > k->error_max_mm && absf(error_l) < absf(error_r)) right = 0;
-        else if(absf(error_l) > k->error_max_mm && absf(error_r) < absf(error_l)) left = 0;
-    }
-
-    float want = s->bias;
-    if(right || left){
-        const float raw = right && left ? 0.5f * (error_r + error_l) : right ? error_r : error_l;
-        // One wall alone, closer than on the centre line: real too. A beam
-        // reads a wall too far as it leaves it (an opening, or at a big yaw
-        // along it), never too near: nothing stands in between. A robot 35
-        // deg crooked sees one wall only and ran into it (10-05).
-        const uint8_t near_one = !(right && left) && (right ? raw < 0.0f : raw > 0.0f);
-        const uint8_t trusted = agree || near_one;
-        const float error = trusted ? raw : clampf(raw, -k->error_max_mm, k->error_max_mm);
-        const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT : STEER_WALL_LEFT;
-        // Another wall is another reference (each has its own few mm of
-        // error): the readings start afresh, and what they should show too
-        // (followed at the slew rate, the step taught ~2.4 deg of false bias).
-        if(walls != s->wall){
-            s->valid = 0;
-            s->expecting = 0;
-        }
-        if(!trusted && absf(raw) >= k->error_max_mm) s->expecting = 0;
-        s->wall = walls;
-        // A post or a wall edge makes the reading jump further in 1 ms than
-        // the robot can move sideways: follow it at a limited rate, so a
-        // short glitch barely moves the estimate and a real change is
-        // tracked a few ms later. Then average over one sensor period: the
-        // sensors change in ~2 mm steps every ~16 ms, and each step used to
-        // kick the heading.
-        const uint8_t avg_n = k->average_steps < 1 ? 1
-                            : k->average_steps > STEER_AVERAGE_MAX ? STEER_AVERAGE_MAX : k->average_steps;
-        if(!s->valid){
-            s->reading = error;
-            s->reading_sum = error * (float)avg_n;
-            for(uint8_t i = 0; i < avg_n; i++) s->reading_hist[i] = error;
-        }
-        else{
-            s->reading += clampf(error - s->reading, -k->slew_mm, k->slew_mm);
-        }
-        s->reading_sum += s->reading - s->reading_hist[s->reading_slot];
-        s->reading_hist[s->reading_slot] = s->reading;
-        s->reading_slot = (uint8_t)((s->reading_slot + 1u) % avg_n);
+    const float raw = clampf(walls == STEER_WALL_BOTH ? 0.5f * (error_r + error_l) : right ? error_r : error_l,
+                             -k->error_max_mm, k->error_max_mm);
+    // Averaged over the sensors' period (they step ~2 mm every ~16 ms).
+    const uint8_t n = k->average_steps < 1 ? 1 : k->average_steps > STEER_AVERAGE_MAX ? STEER_AVERAGE_MAX
+                    : k->average_steps;
+    if(!s->valid){
+        for(uint8_t i = 0; i < n; i++) s->hist[i] = raw;
+        s->sum = raw * (float)n;
+        s->error = raw;
+        s->slot = 0;
         s->valid = 1;
-        const float measured = s->reading_sum / (float)avg_n;
-        s->lateral = measured + s->drift;
-        // The bias is where the encoder heading is parallel to the walls.
-        // Moving at an angle to them changes the readings: the encoders
-        // predict that change (with the bias as it is), and what the
-        // readings do beyond it, per mm travelled, is the bias still
-        // missing. An off-centre robot moves exactly as predicted and
-        // teaches nothing; integrating the lateral error itself learned a
-        // start 8 mm off-centre as 5 deg of bias in the first cell of a
-        // speed run, which then aimed the robot at a wall after the curves.
-        // `expected` follows the readings over observer_mm: that averages
-        // their steps and noise.
-        if(!s->expecting){
-            s->expected = measured;
-            s->expecting = 1;
-        }
-        else{
-            s->expected += then;
-            const float surprise = measured - s->expected;
-            s->expected += surprise * fminf(ds_mm / k->observer_mm, 1.0f);
-            s->bias = clampf(s->bias + k->ki * surprise * ds_mm, -k->max_deg, k->max_deg);
-        }
-        // Farther than far_mm off, by readings trusted as above (close to a
-        // wall): a stronger pull back, fading faster with speed (it overshot
-        // at 600-900 in the simulator). The bias has its own clamp, so a big
-        // yaw (a crooked hand placement) leaves the pull its whole range.
-        float pull = k->kp * s->lateral;
-        const float far = absf(s->lateral) - k->far_mm;
-        if(trusted && far > 0.0f) pull += gain * k->kp_far * (s->lateral > 0.0f ? far : -far);
-        want = clampf(gain * pull, -k->max_deg, k->max_deg) + s->bias;
     }
-    else{
-        // No wall: hold the heading, corrected by what the walls taught.
-        s->wall = STEER_WALL_NONE;
-        s->valid = 0;
-        s->expecting = 0;
-    }
-    // Limited per mm travelled, not per second: a gentle curve at any speed,
-    // and no pivoting at the start of a move when the robot barely moves.
-    const float step = k->curve_deg * ds_mm;
-    s->heading += clampf(want - s->heading, -step, step);
+    s->sum += raw - s->hist[s->slot];
+    s->hist[s->slot] = raw;
+    s->slot = (uint8_t)((s->slot + 1u) % n);
+    const float error = s->sum / (float)n;
+    s->heading += gain * (k->kp * error * dt + k->kd * (error - s->error));    // > 0: to the right
+    s->error = error;
     return s->heading;
 }

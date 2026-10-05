@@ -117,17 +117,17 @@ static uint8_t parse_on_off(const char *args, uint8_t *on){
 
 static void cmd_status(const char *args){
     (void)args;
-    char kp[12], ki[12];
+    char kp[12], kd[12];
     uint8_t x, y;
     heading_t h;
     search_pose(&x, &y, &h);
     print("modo %s | %s | robot (%u,%u)%c %s\n", app_mode_label(),
           app_run_active() ? "EN MARCHA" : "parado", x, y, "NESW"[h],
           search_ready() ? "en la salida" : "fuera de la salida");
-    print("SPD %d FAST %d CURVE %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KI %s LOG %u%s\n",
+    print("SPD %d FAST %d CURVE %d ACCEL %d TURN %d TACCEL %d TURNTICKS %d KP %s KD %s LOG %u%s\n",
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
-          format_fixed2(ki, sizeof(ki), params.ki), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
+          format_fixed2(kd, sizeof(kd), params.kd), params.log_level, motion_step_mode() ? " | PASO A PASO" : "");
     print("pila: %lu bytes sin usar nunca | reinicio: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
@@ -253,8 +253,8 @@ static void cmd_turnticks(const char *args){
     set_value(args, &params.turn_ticks, 300, 600, "TURNTICKS", "ticks por 90 grados (SAVE para guardarlo)");
 }
 
-static void cmd_kp(const char *args){ set_gain(args, &params.kp, 10.0f, "KP"); }
-static void cmd_ki(const char *args){ set_gain(args, &params.ki, 100.0f, "KI"); }
+static void cmd_kp(const char *args){ set_gain(args, &params.kp, 100.0f, "KP"); }
+static void cmd_kd(const char *args){ set_gain(args, &params.kd, 20.0f, "KD"); }
 
 // TUNE [name value]: live experiments with the control constants (not saved).
 static void cmd_tune(const char *args){
@@ -484,7 +484,7 @@ static const command_t COMMANDS[] = {
     {"TACCEL",    cmd_taccel,     0},
     {"TURNTICKS", cmd_turnticks,  0},
     {"KP",        cmd_kp,         0},
-    {"KI",        cmd_ki,         0},
+    {"KD",        cmd_kd,         0},
     {"TUNE",      cmd_tune,       0},
     {"LOG",       cmd_log,        0},
     {"TELEM",     cmd_telem,      0},

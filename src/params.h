@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 // Runtime-tunable parameters: changed live over Bluetooth (SPD, FAST, ACCEL,
-// CURVE, TURN, TACCEL, TURNTICKS, KP, KI, LOG, TELEM) and persisted with SAVE.
+// CURVE, TURN, TACCEL, TURNTICKS, KP, KD, LOG, TELEM) and persisted with SAVE.
 // Defaults in robot_config.h. Speeds are physical units: the speed control
 // (control.h) makes the wheels follow them whatever the battery.
 typedef struct {
-    float kp;               // centring: deg of heading per mm off-centre
-    float ki;               // centring: deg per mm off-centre per m travelled (0 = off)
+    float kp;               // centring: deg/s of turn per mm off-centre
+    float kd;               // centring: deg of turn per mm the error changes
     int16_t search_speed;   // mm/s cruise of search moves, wall following and the speed run's return
     int16_t fast_speed;     // mm/s cruise of speed-run straights
     int16_t accel;          // mm/s^2 of every straight, speeding up and braking

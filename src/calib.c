@@ -151,7 +151,7 @@ static uint8_t wait_slot(void){
 }
 
 static void dump(void){
-    char kp[12], ki[12];
+    char kp[12], kd[12];
     if(!count){
         print("CAL: no hay datos grabados\n");
         return;
@@ -171,9 +171,9 @@ static void dump(void){
               format_fixed2(tau, sizeof(tau), MOTOR_TAU_S * 1000.0f), (unsigned)MOTOR_KS_PWM);
     }
     if(!wait_slot()) goto interrupted;
-    print("@D INFO spd=%d fast=%d curve=%d accel=%d turn=%d turn_accel=%d kp=%s ki=%s\n",
+    print("@D INFO spd=%d fast=%d curve=%d accel=%d turn=%d turn_accel=%d kp=%s kd=%s\n",
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
-          params.turn_accel, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(ki, sizeof(ki), params.ki));
+          params.turn_accel, format_fixed2(kp, sizeof(kp), params.kp), format_fixed2(kd, sizeof(kd), params.kd));
     for(uint8_t i = 0; i < 3; i++){
         if(!wait_slot()) goto interrupted;
         motion_curve_info(i);
