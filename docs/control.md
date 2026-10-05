@@ -71,11 +71,20 @@ Read the section you are about to touch; AGENTS.md has the rules.
   KI 20 weaved (heading error at the goal 4.9-5.1 deg at 900); KP 0.5 KI 20
   on a 9-cell, 6-curve route, races 2.5 and 2.6 there and back: end error
   <= 3.3 mm / 1.9 deg, the user saw no weave.
-  With both walls their average is used, unless one
-  reading is implausible: the angled beams catch posts and walls ahead
-  (`STEER_ERROR_MAX_MM`), which once swerved the robot 35 deg. The offset is
-  clamped (`STEER_MAX_DEG`) and curvature-limited (`STEER_CURVE_DEG_PER_MM`),
-  and fades out over the last 40 mm so the robot stops parallel.
+  With both walls their average is used, unless one reading is implausible:
+  the angled beams catch posts and walls ahead (`STEER_ERROR_MAX_MM`, the
+  error clamped at 25), which once swerved the robot 35 deg. Trusted however
+  far off (10-05, GitHub issue #1, `docs/centring.md`): both walls agreeing
+  within `STEER_AGREE_MM`, or one wall alone nearer than on the centre line;
+  clamping them ran a crooked robot along a wall for a whole straight.
+  Beyond `STEER_FAR_MM` a stronger pull (`STEER_KP_FAR`), damped by
+  `STEER_KD` (the encoders' yaw to the corridor). Pull and bias are clamped
+  apart (`STEER_MAX_DEG` 40), the offset curvature-limited
+  (`STEER_CURVE_DEG_PER_MM` 0.4), and it fades out over the last 40 mm so
+  the robot stops parallel. A change of walls restarts the reading filter
+  with the observer (followed at the slew rate, it taught ~2.4 deg of false
+  bias). A PD wall follower without the bias (the issue's proposal) settles
+  yaw/KP off-centre.
 - Side walls after a straight are read on the way in, `SIDE_PASS_MM` before
   its end, where the angled beams hit the middle of the walls (`lados=` in
   the log). Read at the stop they caught the next post as phantom walls (9 in
@@ -326,7 +335,8 @@ already have it (robot_config.h keeps one line per constant).
   late: KP 1 with 0.35 deg/mm (`STEER_CURVE_DEG_PER_MM`) and a 16 ms
   average made fast small S-curves (~5.5 Hz, +-2 deg); 0.2 and 32 ms are
   gentler (the simulator with a slower heading response agrees: heading
-  error 3.8 -> 1.5 deg). `STEER_VREF_MM_S`: at 700 mm/s KP 0.7 weaved (1.0
+  error 3.8 -> 1.5 deg); 0.4 since 10-05 (with 0.2 a robot 35 deg crooked
+  reached the wall: `docs/centring.md`). `STEER_VREF_MM_S`: at 700 mm/s KP 0.7 weaved (1.0
   deg rms, 4 Hz), 0.5 did not (0.67), the same as KP 0.7 at 400. KP 1.0
   also weaved with `ROT_KP` 20.
 - Curves at 400 mm/s: 2.3 m/s^2 sideways (braking at 5 slipped, 3 was near

@@ -6,6 +6,16 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
+- GitHub issue #1, centring far from the centre line (10-05,
+  `docs/centring.md`): placed crooked, the robot ran along a wall or into
+  it; six faults found and fixed in `steer_step()`. On the robot (22:09
+  build) 35 deg at 100-300 and ~30 mm off at 700-900 come back; at 800 the
+  recovery swings. `STEER_KD` tried and removed. Not committed. The
+  recordings put the IR delay at ~5-30 ms, not the 50 assumed
+  (`docs/centring.md` 7). Next: `TUNE IR_DELAY 10` on the 800 swing and
+  after turns (check the front stops), the simulator with that delay;
+  then 180s at 600-900, races 2.4/2.5.
+
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,
   closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and

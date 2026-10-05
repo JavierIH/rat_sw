@@ -9,7 +9,8 @@
   motion, sensing, curves, search legs), `history.md` (what was validated
   on the robot), `freezes.md` (the freeze investigation),
   `oshwdem2026.md` (the competition's lost map; the flash wedge's cause,
-  motor transients, reproduced and fixed), `review.md` (outside review of
+  motor transients, reproduced and fixed), `centring.md` (the centring far
+  from the centre line: crooked starts, GitHub issue #1), `review.md` (outside review of
   the project and the work plan it suggests), `mazes.md` (the test layouts
   A-D, drawn). Read only what the issue needs; keep this file
   to rules and commands.
@@ -103,8 +104,8 @@ Commands:
   <openings> [practice] [phantom]` prints everything the robot would send
   over Bluetooth (telemetry included) during a search + speed run;
   `--control` prints the speed control's numbers on the simulated robot
-  (straights, turns and curves at several speeds), for tuning gains away
-  from it; `--costs [FAST CURVE]` times the speed run's routes for several
+  (straights, the straight after a turn's yaw, turns and curves at several
+  speeds), for tuning gains away from it; `--costs [FAST CURVE]` times the speed run's routes for several
   planner costs over random mazes (how `FAST_COST_*` were chosen);
   `--timing` counts the planner's work (states popped) in each decision
   the search's legs make on the way, on 16x16 and on the practice maze
@@ -301,6 +302,11 @@ search leg; the dump comes when the run ends).
     from the observer (`KI`, `STEER_OBSERVER_MM`): never integrate the
     lateral error itself (it learned an off-centre start as a heading error
     and aimed a speed run at a wall).
+  - Never clamp as a transient what the walls agree on (both within
+    `STEER_AGREE_MM`, or one alone nearer than on the centre line): it ran a
+    crooked robot along a wall for a whole straight. Test centring changes
+    with crooked and off-centre starts too (`docs/centring.md`), not only
+    with the few degrees a turn leaves.
   - Side walls are read on the way in (`SIDE_PASS_MM`), not at the stop
     (posts give phantoms); right after a turn only "no wall" is recorded.
     Squaring on a front wall only within `SQUARE_MAX_SKEW_MM`.
