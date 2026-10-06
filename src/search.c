@@ -131,9 +131,9 @@ static move_result_t forward(uint8_t cells, int16_t speed){
 }
 
 // Drives `route` without stopping and moves the pose along the cells covered (MOVE_BLOCKED: stopped short facing a wall).
-static move_result_t run_route(int16_t speed){
+static move_result_t run_route(int16_t speed, int16_t curve_speed){
     uint8_t entered = 0;
-    move_result_t r = motion_run_path(&route, speed, params.curve_speed, &entered);
+    move_result_t r = motion_run_path(&route, speed, curve_speed, &entered);
     for(uint8_t i = 0; i < entered; i++){
         maze_mark_crossed(pose.x, pose.y, pose.h);
         pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
@@ -440,8 +440,8 @@ static const char *route_text(char *text){
     return text;
 }
 
-// Drives the verified route to `targets` in one go, replanned at every stop (explores if none); without curves, turns in place.
-static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t curves, const char *tag,
+// Drives the verified route to `targets` in one go, replanned at every stop (explores if none); curve_speed 0: turns in place.
+static run_result_t drive_to(const cellset_t *targets, int16_t speed, int16_t curve_speed, const char *tag,
                              uint16_t *steps){
     uint8_t repairs = 0;
     while(!cellset_has(targets, pose.x, pose.y)){
@@ -456,7 +456,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t cu
         if(maze_route(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, route_turn, PATH_MAX_CELLS,
                       &route.cells)){
             if(turn == 0 && w.front == SEEN_PRESENT) continue;
-            for(uint8_t i = 0; !curves && i < route.cells; i++){
+            for(uint8_t i = 0; !curve_speed && i < route.cells; i++){
                 if(!route_turn[i]) continue;
                 route_turn[i] = 0;
                 route.cells = (uint8_t)(i + 1u);
@@ -467,7 +467,7 @@ static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t cu
                       route_text(text), route.cells);
             }
             r = turn_by(turn);
-            if(r == MOVE_OK && route.cells) r = run_route(speed);
+            if(r == MOVE_OK && route.cells) r = run_route(speed, curve_speed);
         }
         else{
             if(plan_explore(targets, &repairs, 1) == REPLAN_UNREACHABLE) return fail_plan("target unreachable");
@@ -499,13 +499,15 @@ run_result_t search_fast_run(uint8_t curves){
     telemetry_activity(TM_FAST);
     print("== SPEED RUN (cost %u) ==\n", cost);
     uint16_t steps = 0;
-    run_result_t res = drive_to(&goal, params.fast_speed, curves, "FAST", &steps);
+    run_result_t res = drive_to(&goal, params.fast_speed, curves ? params.curve_speed : 0, "FAST", &steps);
     if(res != RUN_OK) return res;
     print("Goal reached in the speed run after %u legs\n", steps);
     // Saved here, never back at the start: a failed return loses nothing.
     save_map();
     telemetry_activity(TM_RETURN);
-    res = drive_to(&home, params.search_speed, curves, "RETURN", &steps);
+    // Not timed, and the map is saved: no faster curves than the safe race's.
+    const int16_t back = params.curve_speed < FAST_SAFE_CURVE ? params.curve_speed : FAST_SAFE_CURVE;
+    res = drive_to(&home, params.search_speed, curves ? back : 0, "RETURN", &steps);
     if(res != RUN_OK) return res;
     return finish_at_start(steps);
 }

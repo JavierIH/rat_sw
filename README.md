@@ -10,7 +10,8 @@ maps it, works out the fastest route and runs it.
 - **Speed run** (mode 2, races 4-6): drives the verified path in one move,
   straights at `FAST` and every turn a smooth curve at `CURVE`; at the goal
   it saves the map if it changed (never on the way back; a race that does
-  not reach the goal saves nothing) and returns to the start by itself.
+  not reach the goal saves nothing) and returns to the start by itself
+  (at `SPD`, curves at most at 300: the return is not timed).
 - The planner minimises **time** (cells and turns), not just cells.
 - The map, the goal and the parameters survive resets.
 

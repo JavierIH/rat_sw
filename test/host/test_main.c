@@ -1072,6 +1072,34 @@ static void test_fast_run_no_curves(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// A race at CURVE 480 goes back with the safe race's curves: the return is not timed and the map is saved.
+static void test_race_return_curves(void){
+    maze_set_goal(7, 7, 8, 8);
+    int runs = 0, ok = 0;
+    for(uint32_t m = 1; m <= 10; m++){
+        truth_generate(m * 7919u, 40);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        search_set_home();
+        if(search_explore() != RUN_OK) continue;
+        runs++;
+        params.curve_speed = 480;
+        sim_reset(0.0, m + 1u);
+        const run_result_t r = search_fast_run(1);
+        const int good = r == RUN_OK && sim_stats.curve_speed_max == 480 && sim_stats.curve_speed_last == FAST_SAFE_CURVE
+                      && sim_x == START_X && sim_y == START_Y && search_ready();
+        ok += good;
+        if(!good) printf("  return curves, maze %u: result %d max %d last %d\n", m, r, sim_stats.curve_speed_max,
+                         sim_stats.curve_speed_last);
+    }
+    printf("races at CURVE 480 back at %d: %d/%d\n", FAST_SAFE_CURVE, ok, runs);
+    CHECK(runs >= 5);
+    CHECK_EQ(ok, runs);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 // --demo: one full cycle on the practice layout, with the firmware's log and map.
 static void demo(void){
     host_verbose = 1;
@@ -2099,6 +2127,7 @@ int main(int argc, char **argv){
     test_repair_at_rest();
     test_fast_run_surprise_wall();
     test_fast_run_no_curves();
+    test_race_return_curves();
     test_search_modes();
     test_practice_maze();
     test_wall_followers();

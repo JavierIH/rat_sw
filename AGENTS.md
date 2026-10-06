@@ -38,7 +38,8 @@ unknown maze, maps it, finds the fastest route and runs it:
    no turning in place). At the goal, stopped, save the map if it changed
    (never back at the start: a failed return must lose nothing; a race that
    does not reach the goal saves nothing). Then return to the start the
-   same way at `SPD`.
+   same way at `SPD`, its curves at most at the safe race's 300
+   (`FAST_SAFE_CURVE`: the return is not timed).
 
 Goal configuration:
 - Competition 16x16: goal = center 2x2 block, the default build

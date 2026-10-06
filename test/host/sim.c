@@ -319,7 +319,12 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
 
 move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered){
     (void)cruise_speed;
-    (void)curve_speed;
+    for(uint8_t i = 0; path->turn && i < path->cells; i++){
+        if(!path->turn[i]) continue;
+        if(curve_speed > sim_stats.curve_speed_max) sim_stats.curve_speed_max = curve_speed;
+        sim_stats.curve_speed_last = curve_speed;
+        break;
+    }
     sides_fresh = 0;
     sim_stats.actions++;
     sim_stats.paths++;
