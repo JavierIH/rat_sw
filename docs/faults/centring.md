@@ -282,7 +282,23 @@ of the old controller removed.
   The zero crossings rise from ~1 to ~2-3 a straight: +-0.5 mm wobbles at
   the centre, now that it gets there.
 - Curves are untouched: the centring holds its offset through them and
-  resumes in the new corridor; their exits are the "curve exit" case.
+  resumes in the new corridor. `sim_path_walls()` (10-06) runs whole paths
+  between walls with the centring as `motion.c` does (blind from each
+  curve until the IR read the new corridor, fading 40 mm before it). Mean
+  of 8 seeds at 300-480 mm/s, largest distance off the route:
+
+| Path | No walls, centred start | PD, centred start | No walls, 10 mm 3 deg | PD, 10 mm 3 deg |
+|---|---|---|---|---|
+| staircase | ~1.2 mm | 2.4 | 37-38 | 10.1 (the start) |
+| layout E | ~1.1 | 2.7 | ~24 | 10.2 |
+| 6 cells, curve, 6 cells | ~2.5 | 1.1 | ~79 | 10.0 (the start) |
+
+  From a perfect start the PD costs ~1-1.5 mm in staircases: the side
+  readings step ~2 mm, KD turns each into ~1 deg of heading, and the
+  offset held at a curve's start carries through the next curves (no
+  straight between them to correct). Lowering KD made everything worse
+  (it also damps). From any real start the PD is what keeps the robot on
+  the route. `test_path_centring` and `host_tests --control` keep it.
 
 ## 9. Open
 

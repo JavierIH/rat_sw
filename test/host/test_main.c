@@ -1737,6 +1737,36 @@ static void test_curve_pre_slip(void){
     CHECK(!fast.stall_ms && fast.cross_err_max < 3.0f && fast.end_err < 5.0f);
 }
 
+// Curves between walls, the centring as motion.c runs it (blind in each curve, a new corridor after): from a
+// disturbed start it keeps the robot on the path, from a centred one it costs little.
+static void test_path_centring(void){
+    static const int8_t stairs[7] = {0, 1, -1, 1, -1, 0, 0}, longc[13] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
+    const run_path_t paths[2] = {{stairs, 7}, {longc, 13}};
+    const curve_t c = default_curve();
+    for(int i = 0; i < 2; i++){
+        float off = 0.0f, worst = 0.0f;
+        for(uint32_t seed = 1; seed <= 4; seed++){
+            plant_t p = plant_nominal();
+            p.seed = seed;
+            const path_result_t r = sim_path_walls(&p, &paths[i], &c, PARAM_FAST_SPEED, 400.0f, PARAM_ACCEL,
+                                                   PARAM_KP, PARAM_KD);
+            CHECK(!r.stall_ms);
+            off += r.cross_err_max / 4.0f;
+            worst = fmaxf(worst, r.cross_err_max);
+        }
+        CHECK(off < 4.0f);
+        CHECK(worst < 10.0f);
+        plant_t p = plant_nominal();
+        p.y0 = 10.0f;
+        p.yaw0 = 3.0f;
+        const path_result_t bare = sim_path(&p, &paths[i], &c, PARAM_FAST_SPEED, 400.0f, PARAM_ACCEL);
+        const path_result_t walls = sim_path_walls(&p, &paths[i], &c, PARAM_FAST_SPEED, 400.0f, PARAM_ACCEL,
+                                                   PARAM_KP, PARAM_KD);
+        CHECK(walls.end_err < 8.0f);
+        CHECK(walls.end_err < bare.end_err / 3.0f);
+    }
+}
+
 // host_tests --control: the numbers behind test_speed_control(), for tuning.
 static void control_report(void){
     printf("straight 540 mm, 15 mm off-centre (KP %.2f KD %.2f):\n", (double)PARAM_KP, (double)PARAM_KD);
@@ -1796,6 +1826,27 @@ static void control_report(void){
                    " error max %.2f mm / %.2f deg, PWM max %d\n", paths[i].name, (double)curve_speeds[j], r.ms,
                    (double)r.end_err, (double)r.heading_err, (double)r.cross_err_max, (double)r.fwd_err_max,
                    (double)r.rot_err_max, r.pwm_max);
+        }
+    }
+    // Curves between walls with the centring, against the same without walls (GitHub issue #1).
+    printf("curves between walls, centring (KP %.1f KD %.2f): max off the route / end mm, no walls | walls\n",
+           (double)PARAM_KP, (double)PARAM_KD);
+    for(int start = 0; start < 2; start++){
+        for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
+            printf("  %s%-12s", start ? "10 mm 3 deg " : "", paths[i].name);
+            for(size_t j = 0; j < 3; j++){
+                plant_t p = plant_nominal();
+                if(start){
+                    p.y0 = 10.0f;
+                    p.yaw0 = 3.0f;
+                }
+                const path_result_t a = sim_path(&p, &paths[i].path, &c, PARAM_FAST_SPEED, curve_speeds[j], PARAM_ACCEL);
+                const path_result_t b = sim_path_walls(&p, &paths[i].path, &c, PARAM_FAST_SPEED, curve_speeds[j],
+                                                       PARAM_ACCEL, PARAM_KP, PARAM_KD);
+                printf("  %3.0f: %4.1f/%4.1f | %4.1f/%4.1f", (double)curve_speeds[j], (double)a.cross_err_max,
+                       (double)a.end_err, (double)b.cross_err_max, (double)b.end_err);
+            }
+            printf("\n");
         }
     }
     // Layout E (no walls, no centring): lateral after the last curve (> 0 right) for several CURVE_PRE_SLIP.
@@ -2063,6 +2114,7 @@ int main(int argc, char **argv){
     test_path_governor();
     test_curve_slip();
     test_curve_pre_slip();
+    test_path_centring();
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;

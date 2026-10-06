@@ -228,8 +228,26 @@ sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel){
     return run(p, 0.0f, 0.0f, 1.0f, deg, speed, accel, 0.0f, 0.0f);
 }
 
-path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
-                       float v_curve, float accel){
+// The path's cells (start cell centre at the origin, +y north): their centres and the heading the robot
+// crosses them with, 0-3 = NESW; curving ones are -1 (no side walls, the centring is blind there anyway).
+typedef struct { int x, y; int8_t heading; } path_cell_t;
+
+static uint8_t path_cells(const run_path_t *path, path_cell_t *out){
+    static const int DX[4] = {0, 1, 0, -1}, DY[4] = {1, 0, -1, 0};
+    int x = 0, y = 0, h = 0;
+    out[0] = (path_cell_t){0, 0, 0};
+    for(uint8_t i = 0; i < path->cells; i++){
+        x += DX[h];
+        y += DY[h];
+        const int8_t turn = path->turn ? path->turn[i] : 0;
+        out[i + 1] = (path_cell_t){x, y, (int8_t)(turn ? -1 : h)};
+        h = (h + turn + 4) % 4;
+    }
+    return (uint8_t)(path->cells + 1);
+}
+
+static path_result_t path_run(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                              float v_curve, float accel, const steer_config_t *sk){
     const float dt = CONTROL_DT_S;
     const control_config_t k = firmware_control();
     const double rad = 3.14159265358979 / 180.0;
@@ -247,7 +265,18 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
     if(!path_start(&pr, path, curve, CELL_MM, v_straight, v_curve, accel)) return r;
     float xl = 0.0f, xr = 0.0f;
     int32_t cl = 0, cr = 0;
-    double x = 0.0, y = 0.0, yaw = p->yaw0;        // true pose: mm, deg (> 0 right of the start heading)
+    double x = -(double)p->y0, y = 0.0, yaw = p->yaw0;  // true pose: mm, deg (> 0 right of the start heading)
+    // Walls along the straights and the centring, as motion.c runs it (sk != NULL).
+    static path_cell_t cells[PATH_MAX_CELLS + 1];
+    const uint8_t n_cells = sk ? path_cells(path, cells) : 0;
+    enum { HIST = 64 };
+    static float lat_hist[HIST], yaw_hist[HIST], trail[HIST];
+    static uint8_t wall_hist[HIST];
+    steer_t st;
+    steer_reset(&st);
+    uint8_t blind = 0;
+    float held_l = 250.0f, held_r = 250.0f;
+    rng = p->seed;
     double rx = 0.0, ry = 0.0;                      // the reference's point
     // The reference's path, one point per step (<= 1 mm apart), with its distance.
     enum { STEPS = 30000 };
@@ -270,7 +299,48 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         const int32_t dl = nl - cl, dr = nr - cr;
         cl = nl;
         cr = nr;
-        control_step(&c, &k, &fwd, &rot, 0.0f, dl, dr, dt);
+        float heading = 0.0f;
+        if(sk){
+            // Where the robot is: its cell on the path, offset (left) and yaw against that cell's corridor.
+            const int cx = (int)lround(x / CELL_MM), cy = (int)lround(y / CELL_MM);
+            int8_t h = -1;
+            for(uint8_t i = 0; i < n_cells; i++) if(cells[i].x == cx && cells[i].y == cy) h = cells[i].heading;
+            const double ox = x - cx * CELL_MM, oy = y - cy * CELL_MM;
+            const double lat = h == 0 ? -ox : h == 1 ? oy : h == 2 ? ox : -oy;
+            const uint32_t now = t % HIST, then = (t + HIST - (uint32_t)p->ir_delay_ms) % HIST;
+            lat_hist[now] = (float)lat;
+            yaw_hist[now] = (float)(yaw - 90.0 * (h < 0 ? 0 : h));
+            wall_hist[now] = h >= 0;
+            trail[now] = fwd.pos - c.fwd_error;
+            if(t % (uint32_t)p->ir_period_ms == 1u){
+                if(t > (uint32_t)p->ir_delay_ms && wall_hist[then]){      // the angled beams, as in run()
+                    const float beam = 15.0f * (float)rad, a = yaw_hist[then] * (float)rad;
+                    const float d0 = LANE_WIDTH_MM / 2.0f * cosf(beam), ahead = p->side_lever_mm - d0 * tanf(beam);
+                    const float yn = lat_hist[then] - ahead * sinf(a);
+                    const float along_r = cosf(beam - a) > 0.1f ? (d0 + yn) * cosf(beam) / cosf(beam - a) : 999.0f;
+                    const float along_l = cosf(beam + a) > 0.1f ? (d0 - yn) * cosf(beam) / cosf(beam + a) : 999.0f;
+                    held_r = p->ir_step_mm * roundf((LANE_WIDTH_MM / 2.0f + along_r - d0 + gauss(p->ir_noise)) / p->ir_step_mm);
+                    held_l = p->ir_step_mm * roundf((LANE_WIDTH_MM / 2.0f + along_l - d0 + gauss(p->ir_noise)) / p->ir_step_mm);
+                }
+                else held_l = held_r = 250.0f;
+            }
+            const float at = trail[now];
+            const float fwd_at_ir = t > IR_DELAY_MS ? trail[(t + HIST - IR_DELAY_MS) % HIST] : 0.0f;
+            if(!(pr.s < pr.curve_start && fwd_at_ir >= pr.last_curve_end)){
+                blind = 1;
+                heading = st.heading;
+            }
+            else{
+                if(blind){
+                    steer_restart(&st);
+                    blind = 0;
+                }
+                const float remaining = fminf(pr.curve_start, pr.stop_at) - at;
+                const float gain = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;
+                heading = steer_step(&st, sk, held_l, held_r, dt, gain);
+            }
+        }
+        control_step(&c, &k, &fwd, &rot, heading, dl, dr, dt);
         if(abs(c.pwm_l) > r.pwm_max) r.pwm_max = abs(c.pwm_l);
         if(abs(c.pwm_r) > r.pwm_max) r.pwm_max = abs(c.pwm_r);
         wheels_step(&ml, &mr, c.pwm_l, c.pwm_r, p->yaw_friction, p->yaw_stiction, dt);
@@ -315,4 +385,18 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
     r.y_end = (float)y;
     r.heading_err = (float)(yaw - pr.heading * 90.0 / pr.curve.angle);
     return r;
+}
+
+path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                       float v_curve, float accel){
+    return path_run(p, path, curve, v_straight, v_curve, accel, NULL);
+}
+
+path_result_t sim_path_walls(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                             float v_curve, float accel, float kp, float kd){
+    const steer_config_t sk = {
+        .kp = kp, .kd = kd, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
+        .center_r_mm = LANE_WIDTH_MM / 2.0f, .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = STEER_AVERAGE_MS,
+    };
+    return path_run(p, path, curve, v_straight, v_curve, accel, &sk);
 }

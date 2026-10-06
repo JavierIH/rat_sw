@@ -63,5 +63,8 @@ sim_result_t sim_straight(const plant_t *p, float mm, float speed, float accel, 
 sim_result_t sim_turn(const plant_t *p, float deg, float speed, float accel);
 path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
                        float v_curve, float accel);
+// The same between walls (both sides of every straight cell) with the centring as motion.c runs it.
+path_result_t sim_path_walls(const plant_t *p, const run_path_t *path, const curve_t *curve, float v_straight,
+                             float v_curve, float accel, float kp, float kd);
 
 #endif // CONTROL_SIM_H
