@@ -7,16 +7,9 @@
 extern uint32_t _ebss;      // linker: end of .bss, where the free RAM (and the stack's reach) begins
 
 static const char *reset_cause = "?";
-static uint8_t power_on;
 static volatile uint32_t alive_ms;
 static volatile uint8_t stalled, stall_ready;
 static volatile uint32_t stall_start, stall_ms, stall_pc, stall_lr;
-
-// The HSI is left out: it is off but during flash operations (flash_store.c).
-#define RCC_WATCH (RCC_CR_HSEON | RCC_CR_HSERDY | RCC_CR_PLLON | RCC_CR_PLLRDY | RCC_CR_CSSON)
-static uint32_t rcc_expected;       // 0 until the clock setup is done
-static uint32_t rcc_seen;
-static uint8_t rcc_changed;
 
 // A pattern from the end of .bss to below the stack pointer; whatever still holds it was never used.
 static void paint_stack(void){
@@ -35,7 +28,6 @@ void health_init(void){
                 : (csr & RCC_CSR_WWDGRSTF) ? "window watchdog"
                 : (csr & RCC_CSR_PINRSTF) ? "reset button"
                 : "?";
-    power_on = (csr & RCC_CSR_PORRSTF) != 0;
     RCC->CSR |= RCC_CSR_RMVF;
     alive_ms = HAL_GetTick();
 }
@@ -43,11 +35,6 @@ void health_init(void){
 void health_alive(void){
     const uint32_t now = HAL_GetTick();
     alive_ms = now;
-    const uint32_t cr = RCC->CR & RCC_WATCH;
-    if(rcc_expected && cr != rcc_expected && !rcc_changed){
-        rcc_seen = cr;
-        rcc_changed = 1;
-    }
     if(stalled){
         stall_ms = now - stall_start;
         stalled = 0;
@@ -55,26 +42,9 @@ void health_alive(void){
     }
 }
 
-void health_clock_baseline(void){
-    rcc_expected = RCC->CR & RCC_WATCH;
-    rcc_changed = 0;
-}
-
-uint8_t health_take_clock_change(uint32_t *expected, uint32_t *seen){
-    if(!rcc_changed) return 0;
-    *expected = rcc_expected;
-    *seen = rcc_seen;
-    health_clock_baseline();    // report each change once
-    return 1;
-}
-
 // uart.c: waiting for room to print.
 void uart_waiting(void){
     health_alive();
-}
-
-uint8_t health_power_on(void){
-    return power_on;
 }
 
 const char *health_reset_cause(void){

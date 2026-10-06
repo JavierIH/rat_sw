@@ -28,7 +28,7 @@ typedef struct {
 #define SLOTS           (SLOTS_PER_PAGE * FLASH_STORE_PAGES)
 
 _Static_assert(sizeof(record_t) % 4 == 0, "records must keep their fields aligned in flash");
-_Static_assert(SLOTS_PER_PAGE * sizeof(record_t) <= FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE,
+_Static_assert(SLOTS_PER_PAGE * sizeof(record_t) <= FLASH_STORE_PAGE_SIZE,
                "three records must fit in a page");
 _Static_assert(offsetof(record_t, crc) == sizeof(record_t) - 4, "crc must be the last field");
 

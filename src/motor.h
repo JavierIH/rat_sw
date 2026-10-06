@@ -13,7 +13,6 @@ void MOTOR_Init(void);
 // Signed duty -1000..1000, positive forward; 0 short-brakes (PWM low with one bridge input high).
 void motor_set(motor_t motor, int16_t pwm);
 int16_t motor_get(motor_t motor);   // last duty requested (recorded by CAL tests)
-uint32_t motor_idle_ms(void);       // ms since either motor was last driven (flash writes wait for it)
 
 // Register-level stop for fault handlers: zero duty and every bridge input low.
 static inline void motor_emergency_stop(void){

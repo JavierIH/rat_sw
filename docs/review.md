@@ -103,7 +103,7 @@ means retuning a dozen constants (centre left 89 vs right 76, front offset
 | # | Item | Status |
 |---|---|---|
 | 1 | Test on a large stretch before the next competition: straights of 8-15 cells and staircases of curves, even if only half a maze | open |
-| 2 | Delete the flash defences the stopped HSI supersedes (settle wait, UART-quiet wait, `RESET` refusal, ...), keeping the timing and the reactive restart | open (the stopped HSI validated 10-05) |
+| 2 | Delete the flash defences the stopped HSI supersedes (settle wait, UART-quiet wait, `RESET` refusal, ...), keeping the timing and the reactive restart | done 10-06: settle and UART waits, boot probe, `RESET` refusal and oscillator watch removed; timing, reactive restart and blocked state kept |
 | 3 | Two builds: competition (no calibration recorder, tunables, register dumps) and development (all of it): ~5 KB of flash and 6.4 KB of RAM back | open |
 | 4 | HC-05 at 115200 baud (AT+UART), then `UART_BAUDRATE` and the tools | open |
 | 5 | Split `motion.c`: control loop, moves, search legs, sensing | open |

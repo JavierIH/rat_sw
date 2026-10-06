@@ -515,7 +515,7 @@ static void test_storage(void){
     CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
     uint16_t size;
     memcpy(&size, fake_flash + 6, sizeof(size));
-    CHECK(3u * size <= FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE);
+    CHECK(3u * size <= FLASH_STORE_PAGE_SIZE);
     // The same record again: nothing programmed.
     int programs = fake_flash_programs;
     CHECK_EQ(storage_save(0), STORAGE_UNCHANGED);

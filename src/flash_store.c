@@ -1,8 +1,6 @@
 #include "flash_store.h"
 #include <string.h>
 #include "stm32f1xx_hal.h"
-#include "motor.h"
-#include "robot_config.h"
 #include "uart.h"
 
 // The last two 1 KB pages; platformio.ini caps the program at 62 KB.
@@ -18,7 +16,6 @@ const void *flash_store_data(void){
 // Flash ops are timed by the HSI, which motor transients can leave crawling: it runs only during an operation, started fresh.
 #define HALFWORD_SLOW_US    1000u   // normal: ~56 us
 #define ERASE_SLOW_MS       200u    // normal: ~22 ms
-#define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond FLASH_SETTLE_MS
 #define HALFWORD_FAILED     0xFFFFFFFFu
 
 static flash_timing_t timing;
@@ -39,14 +36,6 @@ static void cycle_counter_on(void){
 
 static uint32_t cycles_per_us(void){
     return SystemCoreClock / 1000000u;
-}
-
-// Every wedged write began within ms of a move's end: wait FLASH_SETTLE_MS with the motors off and the UART quiet.
-static void settle(void){
-    const uint32_t t0 = HAL_GetTick();
-    while((motor_idle_ms() < FLASH_SETTLE_MS || !uart_tx_idle()) && HAL_GetTick() - t0 < FLASH_SETTLE_MS + SETTLE_EXTRA_MS){
-        uart_waiting();
-    }
 }
 
 // The flash needs the HSI running; bounded by iterations too, in case the cycle counter did not start.
@@ -90,12 +79,11 @@ static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32
           (unsigned long)timing.erase_ms, (unsigned long)hal_error);
     print("!! flash: before RCC_CR=%08lx ACR=%02lx | after RCC_CR=%08lx SR=%02lx CR=%04lx\n", (unsigned long)rcc_cr,
           (unsigned long)acr, (unsigned long)RCC->CR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR);
-    print("!! flash blocked until a power cycle: the map is only in RAM (do not use RESET)\n");
+    print("!! flash blocked until a power cycle: the map is only in RAM\n");
 }
 
 static uint8_t erase(uint8_t page){
     if(blocked || page >= FLASH_STORE_PAGES) return 0;
-    settle();
     cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
     if(!hsi_fresh()) return 0;
@@ -135,7 +123,6 @@ static uint8_t program(uint16_t offset, const void *data, uint16_t len){
     for(uint16_t i = 0; i < len / 2u; i++){
         if(dst[i] != 0xFFFFu) return 0;     // not erased: the caller's mistake, not the flash's
     }
-    settle();
     cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
     if(!hsi_fresh()) return 0;
@@ -178,34 +165,6 @@ static uint8_t program(uint16_t offset, const void *data, uint16_t len){
     return 0;
 }
 
-static uint8_t probe(void){
-    if(blocked) return 0;
-    cycle_counter_on();
-    const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
-    uint8_t restarted = 0;
-    for(uint8_t page = 0; page < FLASH_STORE_PAGES; page++){
-        const uint32_t base = STORE_ADDR + (page + 1u) * FLASH_STORE_PAGE_SIZE - FLASH_STORE_SPARE;
-        for(uint32_t a = base; a < base + FLASH_STORE_SPARE; a += 2u){
-            if(*(const volatile uint16_t *)a != 0xFFFFu) continue;
-            if(!hsi_fresh()) return 0;
-            HAL_FLASH_Unlock();
-            const uint32_t us = program_halfword(a, 0u);
-            const uint32_t hal_error = HAL_FLASH_GetError();
-            HAL_FLASH_Lock();
-            timing.first_us = timing.worst_us = us;
-            if(us <= HALFWORD_SLOW_US) return 1;
-            if(us == HALFWORD_FAILED || restarted || !hsi_restart()){
-                report("SLOW probe", hal_error, rcc_cr, acr);
-                return 0;
-            }
-            timing.hsi_restarts++;
-            restarted = 1;
-            print("!! flash: slow probe (%lu us): HSI restarted, another\n", (unsigned long)us);
-        }
-    }
-    return 0;   // no spare halfword left: cannot tell
-}
-
 // The operations, each between a fresh start of the HSI and its stop.
 uint8_t flash_store_erase(uint8_t page){
     const uint8_t ok = erase(page);
@@ -215,12 +174,6 @@ uint8_t flash_store_erase(uint8_t page){
 
 uint8_t flash_store_program(uint16_t offset, const void *data, uint16_t len){
     const uint8_t ok = program(offset, data, len);
-    hsi_off();
-    return ok;
-}
-
-uint8_t flash_store_probe(void){
-    const uint8_t ok = probe();
     hsi_off();
     return ok;
 }

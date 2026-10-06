@@ -99,7 +99,7 @@ reference. "Stopped" = refused during a run.
 | `HOME` | "the robot is at the start facing north" | yes |
 | `SYNC` | sends map and state to the monitor again | yes |
 | `CAL ...` | calibration tests (below) | yes |
-| `RESET` | resets the micro (refused if the flash is blocked: power cycle) | |
+| `RESET` | resets the micro | |
 
 ## Calibration data
 

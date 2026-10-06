@@ -338,10 +338,10 @@ search leg; the dump comes when the run ends).
   goal), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
   HSI: the first slow halfword restarts it and the write goes on; a second
-  one stops it and blocks the store until a power cycle; `RESET` refuses
-  then: it once did not boot); only the boot erases (compacts), after a power-on or a good
-  probe. Writes also wait for the motors off `FLASH_SETTLE_MS` and the UART
-  quiet. Never add an erase to a run.
+  one stops it and blocks the store until a power cycle); only the boot
+  erases (compacts). Never add an erase to a run. The defences built on
+  correlations before the cause was known (motors-off wait, UART-quiet
+  wait, boot probe, `RESET` refusal, oscillator watch) were removed 10-06.
 - The UART TX queue drops messages when full (never blocks a control loop).
   Bulk output while stopped uses `uart_wait_space()`.
 - Only `print()`/`uart_send()` from the main context, never from interrupts.

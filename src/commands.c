@@ -453,11 +453,6 @@ static void cmd_cal(const char *args){
 
 static void cmd_reset(const char *args){
     (void)args;
-    if(flash_store_blocked()){
-        // After a wedged write a software reset once did not boot at all.
-        print("!! flash blocked: a RESET may not boot. Power the robot off and on\n");
-        return;
-    }
     motion_stop();
     print("resetting...\n");
     uart_flush(1500);

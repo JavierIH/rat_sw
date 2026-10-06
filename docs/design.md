@@ -265,15 +265,13 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
   resumes (map the PC with `arm-none-eabi-addr2line -e firmware.elf`); the
   banner says why the last reset happened. Until 0221cd6 that report was
   only printed in mode 5 (it had gone into the sensor monitor's loop), so
-  earlier logs saying nothing about stalls prove nothing. `health_alive()`
-  also watches the oscillator bits of RCC->CR against those the clock setup
-  left (`health_clock_baseline()` after every intended change): a change is
-  reported ("!! oscillators changed unasked") and the HSI turned back
-  on. Every flash write checks the HSI (the flash needs it to erase and
-  program) and starts it if stopped, times itself with the DWT cycle
-  counter and SysTick, and prints "!! flash: ..." with RCC_CR, FLASH_SR and
-  FLASH_CR when slow (> 200 ms), failed, HSI stopped or flagged; `STATUS`
-  shows those registers and the last write's duration.
+  earlier logs saying nothing about stalls prove nothing. Every flash
+  operation starts the HSI fresh (the flash needs it; it is off otherwise,
+  `docs/faults/oshwdem2026.md`), times itself with the DWT cycle counter
+  and SysTick, and prints "!! flash: ..." with RCC_CR, FLASH_SR and
+  FLASH_CR when slow or failed; `STATUS` shows those registers and the last
+  write's times. (An oscillator watch on RCC_CR, which never fired, was
+  removed 2026-10-06.)
 - Clock (`sysclock.c`): crystal x 9 = 72 MHz. If it does not start at boot
   the robot runs on the internal oscillator / 2 x 16 = 64 MHz (+-1 %) and the
   banner says so; before, `Error_Handler` ran before the LEDs and UART were

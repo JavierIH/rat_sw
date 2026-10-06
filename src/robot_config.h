@@ -118,7 +118,6 @@
 #define BUTTON_DEBOUNCE_MS      20
 
 // ---- Flash store (flash_store.c) ----------------------------------------------------------
-#define FLASH_SETTLE_MS         1000    // a write waits until the motors are off this long (docs/faults/freezes.md)
 
 // ---- Planner / strategy ------------------------------------------------------------
 // Costs per cell and per 90 deg turn (host_tests --costs): a turn is half a cell.

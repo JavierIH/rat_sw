@@ -139,14 +139,8 @@ static void report_health(void){
         print("!! the program stalled %lu ms at PC=0x%08lx LR=0x%08lx\n", (unsigned long)stall_ms,
               (unsigned long)stall_pc, (unsigned long)stall_lr);
     }
-    uint32_t expected, seen;
-    if(health_take_clock_change(&expected, &seen)){
-        print("!! oscillators changed unasked: RCC_CR %08lx -> %08lx\n", (unsigned long)expected,
-              (unsigned long)seen);
-    }
     if(sysclock_recover()){
         uart_retime();
-        health_clock_baseline();
         print("!! crystal failure: run aborted, internal clock at 64 MHz\n");
     }
 }
@@ -285,26 +279,19 @@ storage_save_t app_save_now(void){
     const storage_save_t r = storage_save(0);
     if(r != STORAGE_FULL) return r;
     print("flash full: compacting (erases 2 pages, ~50 ms)\n");
-    if(!flash_store_probe() || !storage_compact()) return STORAGE_FAILED;
+    if(!storage_compact()) return STORAGE_FAILED;
     return storage_save(0);
 }
 
-// The boot compacts the store, the only erase, and only with a healthy flash (power-on or a good probe).
+// The boot compacts the store: the only erase, never during a run.
 static void compact_store(void){
-    if(!storage_needs_compact()) return;
-    if(!health_power_on() && !flash_store_probe()){
-        print("!! flash: not compacting (untested after a reset): power cycle; %u slots left\n",
-              storage_free_slots());
-        return;
-    }
-    if(!storage_compact()) print("!! flash: could not compact\n");
+    if(storage_needs_compact() && !storage_compact()) print("!! flash: could not compact\n");
 }
 
 int main(void){
     health_init();
     HAL_Init();
     SystemClock_Config();
-    health_clock_baseline();
     LED_Init();
     UART_Init();
     PWM_Init();
