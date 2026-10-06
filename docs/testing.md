@@ -4,6 +4,46 @@ What has been verified on the robot (and in the simulator), with numbers, and
 how the 16x16 parts are tested without a 16x16. Open problems: docs/ISSUES.md;
 the test layouts: docs/mazes.md.
 
+## Next robot session (plan, 10-06)
+
+One flash for GitHub issue #1 (centring), issue 20 (IR delay), issue 21
+(lighting) and the SysTick load (issue 19). Motion in short batches, a
+few minutes each (battery); stop at any wall touch or surprise and
+restore safe values before going on.
+
+- Maze: layout I (`docs/mazes.md`) plus a wall east of (0,0), so the start
+  is closed on three sides as in a competition. Row 2 stays a 4-cell
+  straight with walls on both sides.
+- Flash `pio run -e practice -t upload` (`CAL` is only in `practice` and
+  `dev` now). The saved map and goal load, the parameters restart from the
+  new defaults (`KD` replaced `KI`); the layout is new anyway: `ERASE`.
+
+1. Boot, no motion (2 min): the banner; `STATUS` with no "!!" line, note
+   "SysTick worst" and the stack.
+2. Lighting, in-place turns only (1 min): at (0,0) facing north, `CHECK`
+   three times: centred, ~10 mm left, ~10 mm right. Expected: every shift
+   under 3 mm, `light: OK`, the same numbers whatever the placement
+   (validation 1 of `docs/lighting.md`; write them there).
+3. IR delay, turns (2 min): the same cell, `CAL TURN 1` and `CAL TURN -1`,
+   five each (IR delay tests 1 below). Expected 4-8 ms on all four.
+4. IR delay, approaches (5 min): at (0,2) facing east, `CAL STRAIGHT 3
+   <v>` onto the end wall at 100, 300, 600, 900, two each (IR delay tests
+   2); then `calib_analyze.py --delay` and, if it calls for it, test 3.
+5. Centring, issue #1 (10 min, slow speeds first): at (0,2) facing east,
+   placed 30-35 deg crooked, nose to the left wall and then to the right
+   one, `CAL STRAIGHT 3 <v>` at 100, 300, 600, 900; then ~25 mm off the
+   centre line, square. Expected: on the centre line within about a cell,
+   no touch, no weave. Then the 180s: `CAL TURN 2` and `CAL STRAIGHT 3
+   <v>` at 600 and 900 (the straights after a 179 deg turn started 9-21
+   deg crooked).
+6. Curves (5 min): `CAL CURVE 1 300` from (0,1) facing north (ends at
+   (1,2)), `CAL CURVE -1 300` from (3,1) facing north (ends at (2,2)),
+   then both at 400. Expected: end within a few mm of the cell centre.
+7. Search and races (10 min): the robot at (0,0) facing north, `HOME`,
+   mode 1, then race 2.4 twice and, only if clean, 2.5 twice (the return's
+   curves now stop at 300). Expected `End: OK` and the save blinks; then
+   `STATUS`: "SysTick worst" after a race (issue 19).
+
 ## Validation history
 
 ### Status up to 2026-09-26
@@ -250,7 +290,8 @@ On the robot (no flash needed; short batches for the battery):
    `CAL TURN -1`, five each (recorded every 4 ms). The fronts need a wall
    within ~200 mm during the first 25 deg, the sides one within 130 mm.
    Expected: 4-8 ms for all four.
-2. **Approaches** (front sensors). Layout I, row 0, from a corner cell:
+2. **Approaches** (front sensors). Layout I, row 2 (or row 0 without a
+   wall east of the start), from a corner cell:
    `CAL STRAIGHT 3 <v>` onto the end wall at 100, 300, 600 and 900 mm/s, two
    runs each. A real delay keeps the same ms at every speed; an offset or a
    slide keeps the same mm, so its ms falls as 1/speed.
