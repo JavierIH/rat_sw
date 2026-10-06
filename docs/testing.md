@@ -207,12 +207,11 @@ for the 9600-baud UART (the 2001 pops are ~8 ms). Fix: issue 15 (a).
   also puts the goal back to 7 7 8 8 (after any `GOAL` used to practise).
   `STATUS` must show `goal (7,7)-(8,8)`.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
-- `IR` at the start with nothing around the nose: FL/FR ~230 and SL/SR
-  far. A reflective floor reads as walls (a room floor gave FR ~70 and SL
-  40-60 in patches, a phantom wall the centring follows).
-- Flash firmware older than a6d42d2: each switch between races 2.4/2.5/2.6
-  spends a flash slot (six; `STATUS` shows them free). Keep one preset per
-  power-on, or power-cycle (the boot compacts) before switching.
+- `CHECK` in the start cell facing north, under the competition's light:
+  `light: OK`, or read `docs/lighting.md` (report only until the
+  correction is in). A reflective floor reads as walls too (a room floor
+  gave FR ~70 and SL 40-60 in patches, a phantom wall the centring
+  follows).
 - `CONT ON` (default). Mode 1, then race 2.4 (FAST 800 CURVE 300) and only
   with it clean 2.5 (FAST 900 CURVE 400); 2.6 (CURVE 480) is not safe
   (issue 12). Race 2.3 (no curves) if the curves fail.
