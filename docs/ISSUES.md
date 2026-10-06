@@ -14,6 +14,13 @@ commit when done. Details go in the docs it points to, not here.
   these reorganised docs. Next: flash the branch; crooked starts 30-35 deg
   at 100-900, 180s at 600-900, `CAL CURVE`, races 2.4/2.5; then merge.
 
+- Issue 20, the IR delay (10-06; `docs/testing.md`, IR delay tests): the
+  front readings are paired with the position 50 ms back, but every
+  recording says 4-8 ms on in-place turns (all four sensors) and FL ~18 /
+  FR ~34 ms approaching walls. Next: the robot tests written there (turns,
+  approaches at 100-900, `ACCEL 2000`), analysed with `calib_analyze.py
+  --delay`; then `TUNE IR_DELAY` and the stops on end walls.
+
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,
   closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and

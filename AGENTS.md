@@ -196,7 +196,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
   `tools/calib_data/` (`/note` appends measurements).
 - `tools/calib_analyze.py`: reports and suggested constants from those CSVs;
-  `--chain` follows the encoder heading against the walls over a session.
+  `--chain` follows the encoder heading against the walls over a session;
+  `--delay` measures the IR delays (turns, wall approaches).
 - `tools/dashboard.py`: live panel for `diag_test`.
 
 ## Operating the robot

@@ -183,3 +183,48 @@ min more of search in them (the other 517 finish under 400). Set to 800
   (issue 12). Race 2.3 (no curves) if the curves fail.
 - After an abort: the robot at the start facing north, `HOME`, `START` (or
   START on the button).
+
+## IR delay tests
+
+The firmware pairs the front readings with where the robot was
+`IR_DELAY_MS` (50 ms) earlier (the wall tracking at the end of straights,
+the search legs' front decisions, `SEARCH_LEG_SPEED_MAX`); the centring
+assumes nothing, and the simulator gives the side IR 8 ms
+(`SIDE_IR_DELAY_MS`). The only measurement behind the 50 is a front wall
+approached at 400 mm/s (docs/measurements.md). `tools/calib_analyze.py
+--delay` measures every recording at hand (all of them up to 10-05):
+
+| Method | FL | FR | SL | SR |
+|---|---|---|---|---|
+| in-place turns (median, quartiles) | 4 (0-8) | 8 (4-12) | 4 (0-8) | 4 (0-4) ms |
+| wall approaches (median, quartiles) | 18 (10-26) | 34 (28-40) | - | - ms |
+
+- In-place turns: each reading against the encoder angle over the first 25
+  deg, delayed d; only readings that really move with the angle count (at
+  least 0.5 mm/deg). No translation, so no calibration offset or slide can
+  mimic a delay.
+- Wall approaches: the front readings against the true distance (the final
+  reading plus the encoder distance still to go), delayed d. A scale error
+  of the calibration, or the robot sliding with its wheels stopped (which
+  the encoders do not see), also shows up as delay here. The motors
+  short-brake at 0 (TB6612FNG), and coasting is counted by the encoders.
+
+On the robot (no flash needed; short batches for the battery):
+
+1. **Turns** (all four sensors). In a cell closed on three sides, centred
+   front to back and side to side, facing the open side: `CAL TURN 1`,
+   `CAL TURN -1`, five each (recorded every 4 ms). The fronts need a wall
+   within ~200 mm during the first 25 deg, the sides one within 130 mm.
+   Expected: 4-8 ms for all four.
+2. **Approaches** (front sensors). Layout I, row 0, from a corner cell:
+   `CAL STRAIGHT 3 <v>` onto the end wall at 100, 300, 600 and 900 mm/s, two
+   runs each. A real delay keeps the same ms at every speed; an offset or a
+   slide keeps the same mm, so its ms falls as 1/speed.
+3. **Slide** (only if 2 points at one): the 600 mm/s runs again with `ACCEL
+   2000`; a slide shrinks with gentler braking, a delay does not.
+4. Then `python3 tools/calib_analyze.py --delay tools/calib_data/<new>*.csv`.
+
+If the front delay is not 50: try it live with `TUNE IR_DELAY <ms>` and
+check the stops on end walls (`end=IR`, FL/FR ~85/101 squared, err a few
+mm) at 300-900 before writing it into `robot_config.h`; the search legs'
+speed cap (`SEARCH_LEG_SPEED_MAX`, set from the 50) can then be revisited.

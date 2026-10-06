@@ -955,6 +955,109 @@ def motor_model(points):
             "     #define MOTOR_KS_PWM            %.1ff" % max(0.0, (ks_l + ks_r) / 2)]
 
 
+# ---- IR delay (--delay) ----------------------------------------------------------------
+
+def best_delay(xs, ys, max_d):
+    """The d (samples) that best fits ys[i + d] ~ a + b xs[i] (None: no reading): (d, b, rms), or None."""
+    best = None
+    for d in range(max_d + 1):
+        y = ys[d:d + len(xs)]
+        if len(y) < len(xs) or None in y:
+            break
+        mx, my = mean(xs), mean(y)
+        sxx = sum((x - mx) ** 2 for x in xs)
+        if sxx <= 0:
+            return None
+        b = sum((x - mx) * (v - my) for x, v in zip(xs, y)) / sxx
+        rms = (sum((v - my - b * (x - mx)) ** 2 for x, v in zip(xs, y)) / len(xs)) ** 0.5
+        if best is None or rms < best[2]:
+            best = (d, b, rms)
+    return best
+
+
+def delay_turn(rec):
+    """Each IR's delay on an in-place turn: its reading against the encoder angle over the first 25 deg,
+    where it moves only with the angle. {sensor: (ms, mm per deg, rms)}, informative fits only."""
+    tpm = rec.number("ticks_per_mm", 9.05)
+    mpd = rec.number("turn_ticks", 400) / 90 / tpm
+    ang = [(l - r) / 2 / tpm / mpd for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
+    start = next((i for i, a in enumerate(ang) if abs(a) > 0.5), None)
+    end = next((i for i, a in enumerate(ang) if abs(a) > 25), None)
+    if start is None or end is None:
+        return {}
+    first, max_d, out = max(0, start - 6), int(100 / rec.period), {}
+    for s in SENSORS:
+        limit = 130 if s in ("sl", "sr") else 220      # beyond: no wall to read
+        r = [rec.ir_mm(s, v) for v in rec.data["raw_" + s]]
+        r = [v if v is not None and v <= limit else None for v in r]
+        fit = best_delay(ang[first:end + 1], r[first:], max_d)
+        if fit and abs(fit[1]) >= 0.5 and fit[2] < 3.0:
+            out[s] = (fit[0] * rec.period, fit[1], fit[2])
+    return out
+
+
+def delay_approach(rec):
+    """The front IR's delay approaching the wall at the end of a straight: the reading against the true
+    distance (the final reading plus the encoder distance still to go). {sensor: (ms, bias mm, rms)}."""
+    if rec.meta.get("result") != "OK":
+        return {}
+    tpm = rec.number("ticks_per_mm", 9.05)
+    pos = [t / tpm for t in average_ticks(rec)]
+    out, last = {}, rec.n - 1
+    for s in ("fl", "fr"):
+        r = [rec.ir_mm(s, v) for v in rec.data["raw_" + s]]
+        if r[last] is None:
+            continue
+        dist = [r[last] + pos[last] - p for p in pos]
+        idx = [i for i in range(rec.n) if r[i] is not None and 60 < r[i] < 160 and dist[i] < 170]
+        best = None
+        for ms in range(0, 101, 2):
+            k = ms / rec.period
+            errs = []
+            for i in idx:
+                j = int(i - k)
+                if 0 <= j < last:
+                    errs.append(r[i] - (dist[j] + (dist[j + 1] - dist[j]) * (i - k - j)))
+            if len(errs) < 5:
+                continue
+            m = mean(errs)
+            rms = (sum((e - m) ** 2 for e in errs) / len(errs)) ** 0.5
+            if best is None or rms < best[2]:
+                best = (ms, m, rms)
+        if best:
+            out[s] = best
+    return out
+
+
+def delays(paths):
+    """--delay: every IR's delay from in-place turns, the front ones' also from wall approaches."""
+    out, turns, approaches = [], {s: [] for s in SENSORS}, {"fl": [], "fr": []}
+    for path in paths:
+        rec = load(path)
+        if rec.kind == "turn" and rec.period <= 4:
+            found = delay_turn(rec)
+            for s, v in found.items():
+                turns[s].append(v[0])
+            text = "  ".join("%s %d ms (%+.2f mm/deg)" % (s.upper(), v[0], v[1]) for s, v in found.items())
+        elif rec.kind == "straight" and "ref_fwd" in rec.data:
+            found = delay_approach(rec)
+            for s, v in found.items():
+                approaches[s].append(v[0])
+            text = "  ".join("%s %d ms (rms %.1f)" % (s.upper(), v[0], v[2]) for s, v in found.items())
+        else:
+            continue
+        out.append("%s  %s" % (os.path.basename(path), text or "-"))
+    def summary(name, table):
+        for s, v in table.items():
+            if v:
+                v = sorted(v)
+                out.append("%s %s: %d, median %d ms (quartiles %d-%d)"
+                           % (name, s.upper(), len(v), v[len(v) // 2], v[len(v) // 4], v[3 * len(v) // 4]))
+    summary("in-place turns", turns)
+    summary("wall approaches", approaches)
+    return "\n".join(out)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("files", nargs="+", help="CSVs from tools/calib_data/")
@@ -962,8 +1065,13 @@ def main(argv=None):
                         help="a session in order: encoder heading against the real one, move by move")
     parser.add_argument("--wheel-diff", type=float,
                         help="with --chain: the session's WHEEL_DIFF, if the dumps lack it (0)")
+    parser.add_argument("--delay", action="store_true",
+                        help="every IR's delay: in-place turns (CAL TURN), wall approaches (CAL STRAIGHT)")
     args = parser.parse_args(argv)
-    print(chain(sorted(args.files), args.wheel_diff) if args.chain else report(args.files))
+    if args.delay:
+        print(delays(sorted(args.files)))
+    else:
+        print(chain(sorted(args.files), args.wheel_diff) if args.chain else report(args.files))
     return 0
 
 

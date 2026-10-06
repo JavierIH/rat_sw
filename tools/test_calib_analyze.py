@@ -494,6 +494,33 @@ class TestCalibAnalyze(unittest.TestCase):
         text = ca.report([save(self.tmp.name, "straight 1 150", 5, rows)])
         self.assertIn("/note measured", text)
 
+    def test_ir_delay(self):
+        # An in-place turn (5000 deg/s^2) with SL reading the angle 8 ms late, +1.2 mm/deg.
+        tpd = 400 / 90.0                                        # wheel ticks per degree (turn_ticks 400)
+        angle = lambda t: 0.0025 * max(0.0, t - 20) ** 2        # deg, t in ms
+        rows = []
+        for i in range(60):
+            t = i * 4
+            a, late = min(angle(t), 90.0), min(angle(t - 8), 90.0)
+            rows.append((tpd * a, -tpd * a, 0, 0, fl_raw_for(300), fl_raw_for(300, FR_CAL),
+                         fl_raw_for(80 + 1.2 * late, SL_CAL), fl_raw_for(200, SR_CAL), 0, 0))
+        turn = save_new(self.tmp.name, "turn 1", 4, rows)
+        # A straight braking onto a wall (300 mm/s, 3000 mm/s^2), FL reading the distance 20 ms late.
+        rows, pos, v = [], 0.0, 300.0
+        for i in range(140):
+            if pos > 390:
+                v = max(0.0, v - 3000 * 0.004)
+            pos += v * 0.004
+            rows.append((pos,))
+        end = rows[-1][0]
+        dist = lambda k: 80 + end - rows[max(0, k)][0]
+        straight = [(9.05 * rows[k][0], 9.05 * rows[k][0], 300, 300, fl_raw_for(dist(k - 5)),
+                     fl_raw_for(300, FR_CAL), fl_raw_for(80, SL_CAL), fl_raw_for(80, SR_CAL), 0, 0)
+                    for k in range(140)]
+        text = ca.delays([turn, save_new(self.tmp.name, "straight 3 300", 4, straight)])
+        self.assertAlmostEqual(number(r"in-place turns SL: 1, median (\d+) ms", text), 8, delta=4)
+        self.assertAlmostEqual(number(r"wall approaches FL: 1, median (\d+) ms", text), 20, delta=4)
+
 
 if __name__ == "__main__":
     unittest.main()

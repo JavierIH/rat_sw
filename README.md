@@ -125,7 +125,8 @@ python3 tools/calib_analyze.py tools/calib_data/*.csv
 ```
 
 summarises every file and, with the notes, suggests concrete values (for
-example new IR coefficients ready for `infrared.c`).
+example new IR coefficients ready for `infrared.c`). `--delay` measures every IR's
+delay from in-place turns and wall approaches (docs/testing.md).
 
 ## Build, flash and test
 
