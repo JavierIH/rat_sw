@@ -100,7 +100,19 @@ def load(path):
             elif line.strip():
                 rows.append([int(v) for v in line.split(",")])
     data = {c: [r[i] for r in rows] for i, c in enumerate(columns or [])}
+    for c in ("enc_l", "enc_r", "ref_fwd", "ref_rot"):     # int16 on the robot: unwrap long recordings
+        if c in data:
+            data[c] = unwrap16(data[c])
     return Recording(path, test, meta, notes, data)
+
+
+def unwrap16(values):
+    out, offset = [], 0
+    for i, v in enumerate(values):
+        if i and abs(v + offset - out[-1]) > 32768:
+            offset += 65536 if v + offset < out[-1] else -65536
+        out.append(v + offset)
+    return out
 
 
 # ---- Helpers ------------------------------------------------------------------------------

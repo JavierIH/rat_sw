@@ -521,6 +521,9 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"in-place turns SL: 1, median (\d+) ms", text), 8, delta=4)
         self.assertAlmostEqual(number(r"wall approaches FL: 1, median (\d+) ms", text), 20, delta=4)
 
+    def test_int16_columns_unwrap(self):
+        self.assertEqual(ca.unwrap16([32000, 32767, -32768, -30000, 32000]), [32000, 32767, 32768, 35536, 32000])
+
 
 if __name__ == "__main__":
     unittest.main()

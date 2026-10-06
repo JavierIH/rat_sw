@@ -28,52 +28,23 @@ commit when done. Details go in the docs it points to, not here.
   the air needs ~30 cm clear around the sensors.
 
 - Issue 19, work plan of the review (`docs/review.md`): 8 items, by gain for
-  the effort; first a test on a large stretch of maze, then deleting the
-  flash defences the stopped HSI supersedes.
+  the effort; first a test on a large stretch of maze. Also the ideas left
+  from issue 15: cap the race return's curve speed, a SysTick stop if the
+  following error runs away while the main loop blocks, the SysTick load.
 
-- Issue 11, 16x16 competition readiness (plan and results:
-  `docs/testing.md`). Flashed 09-27. Decision time measured: 4.15 us a
-  pop (1024 pops 4493 us on E, 3072 13001 us on G), so the 16x16 worst
-  (5144) ~21.6 ms vs 17.8: ~4 ms late, which only dips the leg ~12 mm/s
-  (the path grows while braking); kept. Test 5 endurance done 09-27 on G:
-  search + 20 races 2.4/2.5 clean, no pace drop. Flashed again 09-27
-  (a6d42d2 map-only saves, OPTIM 800, KI 16): test 3 on the ring (layout
-  I) done: search 13 actions, 0 "!!", worst decision 4473 us; races 2.4,
-  2.5, 2.4 route `2R3` in one leg both ways, `end=IR`, err <= 3.8 mm /
-  2.9 deg. The first two saved (the goal's walls' evidence +1 -> +3), the
-  third did not despite the preset switch (test_races_settle_map). Test 4
-  (goal block, layout H) done: search 11 actions, races 2.4 and 2.5 clean
-  (`2R2` into (2,2), `end=ENC`, err <= 2.8 mm / 4.0 deg). Test 2 on the
-  room floor along a baseboard (SR, 2 x `CAL STRAIGHT 10 300`): this floor
-  reflects into FR (~70 mm always) and SL (40-60 in patches), a phantom
-  left wall that swayed the centring; to the baseboard alone -8..+16 mm.
-  The user wants oscillations checked, not the distance. Robot left on
-  defaults, goal (3,2), map erased. Next, if repeated: baseboard on the
-  left (SL on it; SR stayed clean there), 300/450/600/800.
-  09-27: the default build is now the 16x16 one (goal 7 7 8 8; 4x3 =
-  `pio run -e practice`), and `ERASE` / mode 3 restore the build's goal.
-  Flashed 09-27 (50b4be9), checked on the desk: boot goal (7,7)-(8,8);
-  `GOAL 3 2` + `SAVE`, `ERASE` -> (7,7)-(8,8), still so after `RESET`.
-  To practise on the 4x3 with it: `GOAL 3 2`, then `ERASE` when done.
-  Next flash: defaults KP 0.5 KI 20 (validated on races 2.5/2.6 09-27;
-  until then they are in the saved record, `SAVE` after setting them),
-  and the options removed on 09-30 (issue 16: no test needed).
-  The 149 ms decision on the way (goal unreachable, log
-  2026-09-27_19-11-58) is the map repair inside a leg: explore_next ->
-  plan_explore -> telemetry_map(), whose uart_wait_space() waits ~140 ms
-  for the 9600-baud UART (the 2001 pops are ~8 ms). Fix: issue 15 (a).
-
-- Issue 15, review 2026-09-30. (a) and (b) done 10-04, not flashed: map
-  repairs only at rest, and their first pass keeps the walls of the
-  robot's cell (forgetting a real wall seen once from there looped until
-  the search gave up: test_repair_at_rest); STATUS "flash:" line shortened.
-  Left: (c) ideas (cap the race return's curve speed, a SysTick stop if
-  the following error runs away while the main loop blocks, measure the
-  SysTick load), and the no-flash items (calib_analyze.py int16 unwrap,
-  README CAL table). Idea (the user's, 10-04), only if flash runs short:
-  console messages as short codes that the monitor expands.
+- Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
+  done 09-27 (results there). Left: test 1 on a large stretch (review item
+  1), and the oscillation check along a baseboard at 300/450/600/800.
 
 ## Closed
+
+- 2026-10-06 Review of 09-30 (issue 15): (a) map repairs only at rest, their
+  first pass keeping the robot's cell's walls (test_repair_at_rest), and (b)
+  the shorter STATUS "flash:" line, in the firmware since the 10-05 flash;
+  calib_analyze.py unwraps its int16 columns (long CAL RUN recordings); the
+  README's CAL table rewritten. Ideas left for the review's plan (issue 19):
+  cap the race return's curve speed, a SysTick stop if the following error
+  runs away while the main loop blocks, measure the SysTick load.
 
 - 2026-10-05 The flash wedge (issue 18; `docs/faults/oshwdem2026.md`, `docs/faults/freezes.md`):
   hard motor reversals leave the running HSI crawling (~8000x slow flash
