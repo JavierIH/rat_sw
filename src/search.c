@@ -198,7 +198,7 @@ static void save_map(void){
         case STORAGE_FULL:      print("!! flash full: the map is only in RAM (SAVE compacts and saves it)\n"); break;
         case STORAGE_FAILED:    print("!! could not save the map to flash: it is only in RAM\n"); break;
     }
-    motion_indicate(r == STORAGE_WRITTEN || r == STORAGE_UNCHANGED ? IND_DONE : IND_FAIL);
+    motion_indicate(r == STORAGE_WRITTEN || r == STORAGE_UNCHANGED ? IND_DONE : IND_NOT_SAVED);
 }
 
 static run_result_t finish_at_start(uint16_t steps){

@@ -216,8 +216,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   keep the old numbers 1-6, plus 7 no curves and 8 900/400. START launches
   after a 5 s countdown, every LED blinking fast (`CAL` tests: 2 s).
   Three slow blinks of every LED: the map is in flash; three fast ones: a
-  failed run, START refused (no verified path) or a save that failed (the
-  map only in RAM: no reset, no power cycle).
+  failed run; the left and right halves alternating: a save that failed
+  (the map only in RAM: no reset, no power cycle); LEDs 3-4 blinking: START
+  refused (no verified path).
 - During a run, START (or `STOP`) aborts. The robot knows it is ready when it
   finished a run back at the start; after an abort, place it at the start
   facing north and press START (or send `HOME`, then `START`).

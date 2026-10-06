@@ -23,7 +23,8 @@ typedef struct {
     uint8_t moving;                 // 1: the sides were read on the way in, during the straight that ended here
 } wall_sense_t;
 
-typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
+// Done: map saved; fail: run failed; not saved: the map is only in RAM; refused: START without a verified path.
+typedef enum { IND_GOAL, IND_DONE, IND_FAIL, IND_NOT_SAVED, IND_REFUSED } indication_t;
 
 // Drives `cells` cells straight at `cruise_speed` mm/s, stopping at the end or at the calibrated distance from a wall ahead.
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);

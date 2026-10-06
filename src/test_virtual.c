@@ -129,6 +129,12 @@ void motion_indicate(indication_t what){
         case IND_FAIL:
             leds_blink(3, 60);
             break;
+        case IND_NOT_SAVED:
+            leds_flash(0x38, 0x07, 6, 100);     // left and right halves alternating
+            break;
+        case IND_REFUSED:
+            leds_flash(0x0C, 0x00, 3, 100);     // LEDs 3 and 4
+            break;
     }
 }
 

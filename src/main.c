@@ -162,8 +162,9 @@ static void erase_map_confirmed(void){
         if(button_take_press(BUTTON_START)){
             maze_erase();
             leds_all(0);
-            print(app_save_now() == STORAGE_FAILED ? "Map erased in RAM; !! error writing the flash\n"
-                                                   : "Map erased, default goal\n");
+            const uint8_t failed = app_save_now() == STORAGE_FAILED;
+            print(failed ? "Map erased in RAM; !! error writing the flash\n" : "Map erased, default goal\n");
+            if(failed) motion_indicate(IND_NOT_SAVED);
             sync_telemetry(TM_ERASE);
             return;
         }
@@ -185,7 +186,7 @@ static void run_mode(uint8_t m){
     else if((m == MODE_FAST || m == MODE_FAST_MID || m == MODE_FAST_SAFE || m == MODE_NO_CURVES)
             && search_fast_path_cost() == PLAN_INF){
         print("No verified start-goal path: run a search first (mode 1)\n");
-        motion_indicate(IND_FAIL);  // START did something: no path
+        motion_indicate(IND_REFUSED);   // START did something: no path
     }
     else{
         print("Mode %s: starts in %u ms (START or STOP cancels)\n", app_mode_label(), START_DELAY_MS);

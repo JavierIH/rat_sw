@@ -81,13 +81,18 @@ void leds_sweep_frame(uint32_t ms){
     leds_set_mask((uint8_t)(1u << (6u - led)));
 }
 
-void leds_blink(uint8_t times, uint32_t half_period_ms){
+void leds_flash(uint8_t a, uint8_t b, uint8_t times, uint32_t half_period_ms){
     for(uint8_t i = 0; i < times; i++){
-        leds_all(1);
+        leds_set_mask(a);
         HAL_Delay(half_period_ms);
-        leds_all(0);
+        leds_set_mask(b);
         HAL_Delay(half_period_ms);
     }
+    leds_all(0);
+}
+
+void leds_blink(uint8_t times, uint32_t half_period_ms){
+    leds_flash(0x3F, 0x00, times, half_period_ms);
 }
 
 void buttons_tick(void){

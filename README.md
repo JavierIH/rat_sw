@@ -34,8 +34,9 @@ At a competition: `ERASE` (or mode 3) if the maze is new → mode 1 → race
 
 LEDs: the mode picked (a blink a second = alive); on the straights, 1-3 =
 centring on the left wall, 4-6 = on the right one; map saved in flash = 3
-slow blinks; failure = 3 fast blinks (also: START with no verified path, or
-the map could not be saved and is only in RAM: do not reset or power off);
+slow blinks; failed run = 3 fast blinks; **map not saved** (only in RAM:
+do not reset or power off) = the left and right halves alternating fast;
+START refused (no verified path) = LEDs 3 and 4 blinking 3 times;
 continuous fast blink = `Error_Handler`; continuous slow blink = CPU fault
 (motors stopped).
 
