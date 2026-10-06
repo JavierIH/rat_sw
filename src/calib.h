@@ -2,6 +2,7 @@
 #define CALIB_H
 
 #include <stdint.h>
+#include "robot_config.h"
 
 // Calibration experiments (CAL): SysTick samples encoders, PWM and raw IR during a known motion; dumped as '@D' lines.
 
@@ -16,6 +17,7 @@ typedef enum {
     CAL_RUN,        // arm: record the next continuous move of a run (speed run to the goal, search leg)
 } cal_test_t;
 
+#if DEV_TOOLS
 void calib_tick_1ms(void);              // from SysTick
 uint8_t calib_moves(cal_test_t test);   // 1 if the robot will move
 // Runs `test` with its (validated) arguments and dumps the samples.
@@ -24,5 +26,11 @@ void calib_run(cal_test_t test, int32_t a, int32_t b);
 void calib_path_start(void);
 void calib_path_end(const char *result);
 void calib_run_finished(void);
+#else
+static inline void calib_tick_1ms(void){}
+static inline void calib_path_start(void){}
+static inline void calib_path_end(const char *result){ (void)result; }
+static inline void calib_run_finished(void){}
+#endif
 
 #endif // CALIB_H

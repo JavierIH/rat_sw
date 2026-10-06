@@ -15,7 +15,7 @@ jobs:
           path: ~/.platformio
           key: platformio-${{ hashFiles('platformio.ini') }}
       - run: pip install platformio
-      - run: pio run -e competition -e practice -e uart_test -e diag_test -e virtual
+      - run: pio run -e competition -e practice -e dev -e uart_test -e diag_test -e virtual
 
   host-tests:
     runs-on: ubuntu-latest

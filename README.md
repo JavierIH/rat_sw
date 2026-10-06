@@ -71,7 +71,7 @@ reference. "Stopped" = refused during a run.
 
 | Command | What it does | Stopped |
 |---|---|---|
-| `STATUS` | state, parameters, stack, reset cause, clock and flash registers, chip, the flash's free slots and its last write's times; after a search, the worst decision on the way (also printed when the run ends) | |
+| `STATUS` | state, parameters, stack, reset cause, clock and flash registers and chip (`practice`/`dev` builds), the flash's free slots and its last write's times; after a search, the worst decision on the way (also printed when the run ends) | |
 | `MODE n [k]` | picks the mode: 1 search, 2 k race k (1/2 left/right follower, 3 no curves, 4 800/300, 5 900/400, 6 900/480), 3 erase map | yes |
 | `START` | launches the mode picked after 2 s (as the button) | |
 | `STOP` | stops the run (as START during a run) | |
@@ -98,12 +98,13 @@ reference. "Stopped" = refused during a run.
 | `ERASE` | erases the map in RAM and flash and goes back to the build's default goal (16x16: 7 7 8 8) | yes |
 | `HOME` | "the robot is at the start facing north" | yes |
 | `SYNC` | sends map and state to the monitor again | yes |
-| `CAL ...` | calibration tests (below) | yes |
+| `CAL ...` | calibration tests (below; `practice` and `dev` builds) | yes |
 | `RESET` | resets the micro | |
 
 ## Calibration data
 
-During a test the robot records the encoders, the PWM applied and the 4 raw
+Only in the `practice` and `dev` builds (the competition one leaves the
+recorder out). During a test the robot records the encoders, the PWM applied and the 4 raw
 IR every 2-10 ms (if they do not fit, it spaces the samples out instead of
 cutting the end) and dumps them when it ends; the monitor saves them as CSV
 in `tools/calib_data/` with every firmware constant. The tests that move the
@@ -132,8 +133,10 @@ delay from in-place turns and wall approaches (docs/testing.md).
 ## Build, flash and test
 
 ```
-pio run                  # robot firmware
+pio run                  # robot firmware, 16x16 goal, no CAL (competition)
 pio run -t upload        # flash it (ST-Link with openocd, see AGENTS.md)
+pio run -e practice -t upload   # 4x3 practice maze, with CAL and STATUS registers
+pio run -e dev -t upload        # 16x16 goal with CAL and STATUS registers
 make -C test/host        # PC tests: planner, strategies and simulator
 test/host/build/host_tests --demo   # log and map of a simulated search
 python3 -m unittest discover -s tools -p 'test_*.py'   # monitor and analysis

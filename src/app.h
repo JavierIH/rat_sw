@@ -31,7 +31,7 @@ const char *app_mode_label(void);       // "2.4 RAPIDA SEGURA"
 void app_request_start(void);
 void app_telemetry_sync(void);          // full map/state for the monitor (robot stopped)
 void app_request_cal(cal_test_t test, int32_t a, int32_t b);    // run from the main loop
-// SAVE, ERASE, mode 3 (at rest): storage_save(0), compacting first if full and a probe says the flash is normal.
+// SAVE, ERASE, mode 3 (at rest): storage_save(0), compacting first if full.
 storage_save_t app_save_now(void);
 
 #endif // APP_H

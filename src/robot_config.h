@@ -20,6 +20,11 @@
 #define GOAL_Y1                 8
 #endif
 
+// 1 (practice and dev builds): the calibration recorder (CAL, @D dumps, 6.4 KB of RAM) and STATUS's register lines.
+#ifndef DEV_TOOLS
+#define DEV_TOOLS               0
+#endif
+
 // ---- Geometry / odometry -----------------------------------------------------
 #define CELL_MM                 180
 #define LANE_WIDTH_MM           168.0f  // free space between the two walls of a corridor

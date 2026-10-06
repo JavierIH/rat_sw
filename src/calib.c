@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "stm32f1xx_hal.h"
+#if DEV_TOOLS
 #include "commands.h"
 #include "encoder.h"
 #include "infrared.h"
@@ -282,3 +283,5 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
           full ? " (buffer full: try a shorter test)" : "");
     dump();
 }
+
+#endif // DEV_TOOLS

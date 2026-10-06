@@ -36,20 +36,24 @@ static uint8_t race_menu;           // 1 once START opened it: SELECT cycles the
 static uint8_t mode_chosen;         // 0 after boot: the LEDs sweep until SELECT (or MODE, START)
 static uint8_t run_active;
 static volatile uint8_t start_requested;
+#if DEV_TOOLS
 static volatile uint8_t cal_requested;
 static cal_test_t cal_test;
 static int32_t cal_a, cal_b;
+#endif
 
 uint8_t app_run_active(void){ return run_active; }
 uint8_t app_mode(void){ return mode; }
 void app_request_start(void){ start_requested = 1; }
 
+#if DEV_TOOLS
 void app_request_cal(cal_test_t test, int32_t a, int32_t b){
     cal_test = test;
     cal_a = a;
     cal_b = b;
     cal_requested = 1;
 }
+#endif
 
 uint8_t app_set_mode(uint8_t m, uint8_t r){
     if(m < 1 || m > MENU_COUNT || r > RACE_COUNT) return 0;
@@ -224,6 +228,7 @@ static void run_mode(uint8_t m){
     telemetry_pose(x, y, h);
 }
 
+#if DEV_TOOLS
 static void run_calibration(void){
     motion_clear_abort();
     buttons_clear();
@@ -247,6 +252,7 @@ static void run_calibration(void){
     buttons_clear();
     telemetry_activity(TM_IDLE);
 }
+#endif
 
 static void print_banner(storage_status_t stored){
     uint8_t g[4];
@@ -325,10 +331,12 @@ int main(void){
             start_requested = 0;
             run_mode(mode);
         }
+#if DEV_TOOLS
         if(cal_requested){
             cal_requested = 0;
             run_calibration();
         }
+#endif
         show_mode();
     }
 }

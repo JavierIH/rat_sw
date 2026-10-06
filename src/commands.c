@@ -94,6 +94,7 @@ const char *format_fixed2(char *buf, unsigned size, float v){
     return format_fixed(buf, size, v, 2);
 }
 
+#if DEV_TOOLS     // CAL
 static uint8_t parse_int(const char **s, int32_t *out){
     const char *p = skip_spaces(*s);
     uint8_t negative = *p == '-';
@@ -104,6 +105,7 @@ static uint8_t parse_int(const char **s, int32_t *out){
     *out = negative ? -(int32_t)v : (int32_t)v;
     return 1;
 }
+#endif
 
 static uint8_t parse_on_off(const char *args, uint8_t *on){
     const char *p = skip_spaces(args);
@@ -129,12 +131,14 @@ static void cmd_status(const char *args){
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(kd, sizeof(kd), params.kd), params.log_level, motion_step_mode() ? " | STEP MODE" : "");
     print("stack: %lu bytes never used | reset: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
+#if DEV_TOOLS
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
           (unsigned long)FLASH->ACR, (unsigned long)FLASH->OBR, (unsigned long)FLASH->WRPR);
     // A genuine STM32F103 reads IDCODE 0 without a debugger; this robot's reads 0x307 (a clone).
     print("chip CPUID=%08lx IDCODE=%08lx %u KB\n", (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE,
           *(const volatile uint16_t *)FLASHSIZE_BASE);
+#endif
     const flash_timing_t *ft = flash_store_timing();
     // Under print()'s 119 characters even blocked, with a wedge's 6-digit times.
     print("flash: %u slots%s | write 1st %lu us, worst %lu us, %lu ms | erase %lu ms | HSI %lu\n",
@@ -391,6 +395,7 @@ static void cmd_telem(const char *args){
     if(on && !app_run_active()) app_telemetry_sync();
 }
 
+#if DEV_TOOLS
 // CAL <test> [args]: validated here, run by the main loop (STOP keeps working), recorded and dumped by calib.c.
 static void cmd_cal(const char *args){
     static const struct { const char *name; cal_test_t test; } TESTS[] = {
@@ -450,6 +455,7 @@ static void cmd_cal(const char *args){
     }
     app_request_cal(TESTS[found].test, a, b);
 }
+#endif
 
 static void cmd_reset(const char *args){
     (void)args;
@@ -483,7 +489,9 @@ static const command_t COMMANDS[] = {
     {"TELEM",     cmd_telem,      0},
     {"CONT",      cmd_cont,       1},
     {"SYNC",      cmd_sync,       1},
+#if DEV_TOOLS
     {"CAL",       cmd_cal,        1},
+#endif
     {"DEFAULTS",  cmd_defaults,   0},
     {"IR",        cmd_ir,         0},
     {"WALLS",     cmd_walls,      1},

@@ -144,13 +144,6 @@ void motion_stop(void){ wheels_set(0, 0); }
 void motion_leg_timing_reset(void){}
 void motion_leg_timing_report(void){}
 float motion_ticks_per_mm(void){ return WHEEL_TICKS_PER_MM; }
-void motion_curve_info(uint8_t line){ (void)line; }
-
-void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
-    *fwd_mm = 0.0f;
-    *rot_deg = 0.0f;
-    *move_id = 0;
-}
 
 // ---- Flash stress (TUNE STRESS n, TUNE REVERSAL n; robot on a stand): tries to wedge the flash (docs/faults/freezes.md) --
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)

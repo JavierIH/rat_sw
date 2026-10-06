@@ -72,8 +72,12 @@ Goal configuration:
 
 ## Build / flash / test
 Environments in `platformio.ini` (`default_envs = competition`):
-- `competition`: robot firmware (`main.c`), 16x16 competition goal.
-- `practice`: the same with `-DPRACTICE_MAZE=1` (4x3 practice maze).
+- `competition`: robot firmware (`main.c`), 16x16 competition goal, without
+  the development tools (`DEV_TOOLS` 0: no `CAL` recorder, no register
+  lines in `STATUS`; `TUNE` stays).
+- `practice`: `-DPRACTICE_MAZE=1 -DDEV_TOOLS=1` (4x3 practice maze, tools).
+- `dev`: `-DDEV_TOOLS=1`, the competition goal with the tools (tests on a
+  large stretch; same saved record as `competition`).
 - `uart_test`, `diag_test`: hardware smoke tests (UART loopback; LED + IR +
   encoder panel for `tools/dashboard.py`). They exclude the app modules
   (`[common] app_sources`).
@@ -173,7 +177,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   (six slots): saves only program erased slots, the boot erases.
 - `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format in
   `docs/design.md`).
-- `calib.c/.h`: calibration recorder (CAL command): samples encoders,
+- `calib.c/.h` (`DEV_TOOLS` builds only): calibration recorder (CAL command): samples encoders,
   requested PWM (`motor_get()`), raw IR and the profile reference from
   SysTick into a 320-sample buffer (6.4 KB; when full it halves its
   resolution instead of dropping the end), then dumps them as `@D` lines
@@ -239,7 +243,7 @@ firmware has no HELP, to save flash). Main ones: `MODE n`, `START`, `STOP`, `PAU
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset),
-`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`RUN` arms the recorder
+`CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`practice`/`dev` builds; `RUN` arms the recorder
 for the next continuous move of a run: the speed run to the goal, or a
 search leg; the dump comes when the run ends).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
@@ -316,9 +320,10 @@ search leg; the dump comes when the run ends).
   - Planner: `FAST_COST_TURN` 1 (a curve costs half a cell), which needs
     `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
-  (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (84.3 %: ~3.2 KB left for the stack) and flash
-  (91.7 % of 62 KB, 5.1 KB left). Keep that headroom: report sizes after every change,
+  (`PRACTICE_MAZE` only changes the goal). With the tools (`practice`,
+  `dev`): RAM 84.2 % (~3.2 KB left for the stack), flash 90.4 % of 62 KB
+  (5.9 KB left); `competition`: RAM 52.5 %, flash 81.9 % (11.2 KB left).
+  Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/design.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's
