@@ -4,6 +4,17 @@ One entry per issue: state and next step, one or two lines each. Update the
 entry before ending a session; move it to "Closed" with its result and
 commit when done. Details go in the docs it points to, not here.
 
+## Next session
+
+- With the robot: the session planned in `docs/testing.md` ("Next robot
+  session"): one flash of `practice`, then issues #1, 20, 21 and the
+  SysTick load in short batches. Write each result into its issue.
+- Waiting on the user: the trigger of `CHECK` without the console (a 4th
+  menu entry recommended); review item 8 (recommended: keep the monitor's
+  planner port, the transcript tests' cross-check of the firmware); the
+  hardware of item 6; the race 2.4 crash at OSHWDEM (issue 17).
+- Nothing left that can be done without the robot or those answers.
+
 ## Open
 
 - GitHub issue #1, centring (`docs/faults/centring.md`): the controller is
@@ -40,11 +51,12 @@ commit when done. Details go in the docs it points to, not here.
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
   (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
-  (HC-05 at 115200), 6 (hardware, the user's call), 8 (monitor draws the
-  robot's route). Ideas from issue 15: a SysTick stop if the following
-  error runs away while the main loop blocks; the SysTick load: `STATUS`
-  shows the slowest tick since 10-06, read it after a race (the return's
-  curves are capped at 300 since 10-06).
+  (HC-05 at 115200: the module in AT mode, on the robot), 6 (hardware, the
+  user's call), 8 (monitor draws the robot's route: the user's call). Ideas
+  from issue 15: a SysTick stop if the following error runs away while the
+  main loop blocks (no such failure seen: only with one); the SysTick
+  load: `STATUS` shows the slowest tick since 10-06, read it after a race
+  (the return's curves are capped at 300 since 10-06).
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item
