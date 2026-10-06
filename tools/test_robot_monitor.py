@@ -257,6 +257,16 @@ class TestRender(unittest.TestCase):
                                              for g in rm.GLYPHS_UNICODE["robot"] if "robot" not in cv.row_text(y))
                                 self.assertEqual(robots, 1)
 
+    def test_splash_before_telemetry(self):
+        for rows, cols in self.SIZES:
+            for ascii_only in (False, True):
+                for now in (0.0, 0.55, 7.3):    # animation frames
+                    with self.subTest(rows=rows, cols=cols, ascii=ascii_only, now=now):
+                        view = self.view_with_log(ascii_only)
+                        view.started = 0.0
+                        cv, cursor = rm.render(rows, cols, rm.MazeModel(), rm.Overlay(), view, (0, 0), now)
+                        self.check_frame(cv, cursor, rows, cols, ascii_only)
+
     def competition_model(self):
         checker = TranscriptChecker(self)
         lines = firmware_transcript(11, 40)

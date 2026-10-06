@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live monitor and console for the rat micromouse.
+"""Live monitor and console for the Ratatron micromouse.
 
 Draws the maze while the robot explores it (from the robot's '@' telemetry
 lines, see src/telemetry.h) next to the run log, and sends typed commands.
@@ -493,14 +493,59 @@ GLYPHS_UNICODE = {
     "robot": "▲▶▼◀", "path": "•", "cand": "◇", "visited": "·", "post": "·",
     "h_wall": "─", "v_wall": "│", "h_unknown": "┄", "v_unknown": "┆",
     "junction": " ╶╷┌╴─┐┬╵└│├┘┴┤┼", "dot_on": "●", "dot_off": "○", "sep": "│",
-    "down": "↓",
+    "down": "↓", "h_trace": "─", "v_trace": "│", "frame": "╭╮╰╯─│", "title": ("┤ ", " ├"),
+    "spin": "◐◓◑◒", "bar": "▰▱", "spark": " ▁▂▃▄▅▆▇█", "gutter": "▌", "fade": "▓▒░",
+    "mouse": "~(__^·>", "updown": "↑↓", "cursor": "█", "prompt": "❯",
 }
 GLYPHS_ASCII = {
     "robot": "^>v<", "path": "*", "cand": "o", "visited": ".", "post": "+",
     "h_wall": "-", "v_wall": "|", "h_unknown": ".", "v_unknown": ":",
     "junction": "++++++++++++++++", "dot_on": "*", "dot_off": "o", "sep": "|",
-    "down": "v",
+    "down": "v", "h_trace": "-", "v_trace": "|", "frame": "++++-|", "title": ("[ ", " ]"),
+    "spin": "|/-\\", "bar": "#.", "spark": " .:-=+*#", "gutter": "|", "fade": "",
+    "mouse": "~(__^.>", "updown": "Up/Dn", "cursor": "_", "prompt": ">",
 }
+LOGOS_UNICODE = ((     # the largest that fits is drawn
+    "██████╗  █████╗ ████████╗ █████╗ ████████╗██████╗  ██████╗ ███╗   ██╗",
+    "██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗╚══██╔══╝██╔══██╗██╔═══██╗████╗  ██║",
+    "██████╔╝███████║   ██║   ███████║   ██║   ██████╔╝██║   ██║██╔██╗ ██║",
+    "██╔══██╗██╔══██║   ██║   ██╔══██║   ██║   ██╔══██╗██║   ██║██║╚██╗██║",
+    "██║  ██║██║  ██║   ██║   ██║  ██║   ██║   ██║  ██║╚██████╔╝██║ ╚████║",
+    "╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝",
+), (
+    "█▀█ ▄▀█ ▀█▀ ▄▀█ ▀█▀ █▀█ █▀█ █▄ █",
+    "█▀▄ █▀█  █  █▀█  █  █▀▄ █ █ █ ▀█",
+    "▀ ▀ ▀ ▀  ▀  ▀ ▀  ▀  ▀ ▀ ▀▀▀ ▀  ▀",
+))
+LOGOS_ASCII = ((
+    " _   _  ___  _  ___  _   _      ",
+    "|_) |_|  |  |_|  |  |_) | | |\\ |",
+    "| \\ | |  |  | |  |  | \\ |_| | \\|",
+),)
+
+# Style -> (foreground, background, bold) in the xterm 256-colour palette, on a background of
+# its own; init_styles() falls back to the nearest of the 8 basic colours.
+BG, BAR, KEYBAR = 233, 236, 235
+THEME = {
+    "": (252, BG, False), "dim": (243, BG, False), "label": (244, BG, False), "value": (255, BG, True),
+    "ok": (46, BG, True), "bad": (196, BG, True), "warn": (214, BG, False), "info": (45, BG, False),
+    "head": (201, BG, True), "sent": (226, BG, False), "key": (51, BG, True), "boot": (243, BG, False),
+    "wall": (255, BG, True), "unknown": (60, BG, False), "axis": (239, BG, False), "axis_hot": (226, BG, True),
+    "robot": (226, 58, True), "halo": (226, 58, False), "goal": (201, 53, True), "goal_bg": (201, 53, False),
+    "route": (46, BG, True), "route_trace": (34, BG, False), "fast": (51, BG, True), "fast_trace": (37, BG, False),
+    "cand": (213, BG, True), "trail": (220, BG, True), "trail1": (178, BG, False), "trail2": (136, BG, False),
+    "trail3": (94, BG, False), "border": (31, BG, False), "frame": (31, BG, False),
+    "frame_title": (51, BG, True), "frame_tag": (201, BG, True),
+    "title": (250, BAR, False), "title_sep": (239, BAR, False), "title_ok": (46, BAR, True),
+    "title_bad": (196, BAR, True), "title_hot": (51, BAR, True), "brand_fade": (165, BAR, False),
+    "keycap": (16, 37, True), "keycap_stop": (231, 160, True), "keylabel": (250, KEYBAR, False),
+    "rec": (196, KEYBAR, True),
+    "bar_on": (46, BG, False), "bar_off": (237, BG, False), "spark": (41, BG, False),
+    "logo_shadow": (60, BG, False), "rain": (22, BG, False), "rain_head": (120, BG, True),
+}
+BRAND_COLOURS = (51, 45, 39, 63, 99, 135, 165)     # header block, cyan to violet
+THEME.update({"brand%d" % i: (16, c, True) for i, c in enumerate(BRAND_COLOURS)})
+THEME.update({"logo%d" % i: (c, BG, True) for i, c in enumerate((51, 45, 39, 63, 135, 201))})
 
 
 def sanitize(text):
@@ -536,6 +581,41 @@ class Canvas:
         return "".join(self.chars[y])
 
 
+def put_segments(cv, y, x, width, segments):
+    """Writes (text, style) pieces one after another, clipped to width. Returns the end column."""
+    end = x + max(0, width)
+    for text, style in segments:
+        if x >= end:
+            break
+        cv.put(y, x, text, style, end - x)
+        x += len(text)
+    return min(x, end)
+
+
+def draw_frame(cv, top, left, height, width, glyphs, tag, title, note=""):
+    """A box with its title in the top border: ╭─┤ 0x01 MAZE ├───╮."""
+    tl, tr, bl, br, h, v = glyphs["frame"]
+    cv.put(top, left, tl + h * (width - 2) + tr, "frame")
+    for row in range(top + 1, top + height - 1):
+        cv.put(row, left, v, "frame")
+        cv.put(row, left + width - 1, v, "frame")
+    cv.put(top + height - 1, left, bl + h * (width - 2) + br, "frame")
+    opening, closing = glyphs["title"]
+    put_segments(cv, top, left + 2, width - 4, [(opening, "frame"), (tag + " ", "frame_tag"),
+                                                (title, "frame_title"), (note, "dim"), (closing, "frame")])
+
+
+def spinner(glyphs, now):
+    return glyphs["spin"][int(now * 10) % len(glyphs["spin"])]
+
+
+def telemetry_age(model, now):
+    if model.last_telemetry is None:
+        return "no telemetry"
+    age = now - model.last_telemetry
+    return "tlm %.1fs" % age if age < 99 else "tlm --"
+
+
 def view_size(model, full):
     """Cells to draw: the practice area grows with what was explored; any
     maze reaching beyond 8 cells is drawn whole."""
@@ -553,24 +633,70 @@ def view_size(model, full):
     return max(nx, 4), max(ny, 3)
 
 
+CELL_SIZES = ((7, 3), (5, 2), (3, 1), (2, 1), (1, 1))  # characters inside a cell, across and down: square on screen
+OPEN = (OPEN_ONCE, OPEN_VERIFIED)
+
+
 def maze_width(nx, cw):
     return nx * (cw + 1) + 1
 
 
+def maze_height(ny, ch):
+    return ny * (ch + 1) + 1
+
+
+def maze_fit(nx, ny, width, height):
+    """(cell width, cell height, axes): the largest cells that fit with the legend row, with
+    the hex axes if they fit too; else the widest that fit across, the view scrolled."""
+    for cw, ch in CELL_SIZES:
+        for axes in (1, 0):
+            if maze_width(nx, cw) + 2 * axes <= width and maze_height(ny, ch) + 1 + axes <= height:
+                return cw, ch, axes
+    return next((w for w in (3, 2, 1) if maze_width(nx, w) <= width), 1), 1, 0
+
+
+def maze_panel_width(nx, ny, width, height):
+    """Width of the whole maze at the largest cells fitting (width, height), or None."""
+    for cw, ch in CELL_SIZES:
+        for axes in (1, 0):
+            if maze_width(nx, cw) + 2 * axes <= width and maze_height(ny, ch) + 1 + axes <= height:
+                return maze_width(nx, cw) + 2 * axes
+    return None
+
+
+def trail_style(age):
+    """The run's trail fades behind the robot, like phosphor."""
+    return "trail" if age < 4 else "trail1" if age < 10 else "trail2" if age < 20 else "trail3"
+
+
 def draw_maze(cv, top, left, height, width, model, ov, glyphs, full, start):
-    """Draws the maze inside the box (top, left, height, width)."""
+    """Draws the maze centred in the box (top, left, height, width)."""
     nx, ny = view_size(model, full)
-    cw = next((w for w in (3, 2, 1) if maze_width(nx, w) <= width), 1)
-    rows_for_maze = max(1, height - 1)      # last row: legend
-    vnx = min(nx, max(1, (width - 1) // (cw + 1)))
-    vny = min(ny, max(1, (rows_for_maze - 1) // 2))
+    cw, ch, axes = maze_fit(nx, ny, width, height)
+    pw, ph = cw + 1, ch + 1     # cell pitch
+    vnx = min(nx, max(1, (width - 1 - 2 * axes) // pw))
+    vny = min(ny, max(1, (height - 2 - axes) // ph))
     rx, ry = (model.pose[0], model.pose[1]) if model.pose else (0, 0)
     vx0 = min(max(0, rx - vnx // 2), nx - vnx)
     vy0 = min(max(0, ry - vny // 2), ny - vny)
+    gx = left + 2 * axes + max(0, (width - maze_width(vnx, cw) - 2 * axes) // 2)
+    gy = top + max(0, (height - maze_height(vny, ch) - 1 - axes) // 2)
     running = model.activity in RUNNING
     route = set(ov.route)
     fast = set() if running else set(ov.fast_path)
-    trail = set(model.trail)
+    trail_age = {cell: len(model.trail) - 1 - i for i, cell in enumerate(model.trail)}
+
+    def line_row(py):   # canvas row of the horizontal grid line py
+        return gy + (vy0 + vny - py) * ph
+
+    def line_col(px):   # canvas column of the vertical grid line px
+        return gx + (px - vx0) * pw
+
+    def center(x, y):
+        return line_row(y + 1) + 1 + (ch - 1) // 2, line_col(x) + 1 + (cw - 1) // 2
+
+    def inside(x, y):
+        return vx0 <= x < vx0 + vnx and vy0 <= y < vy0 + vny
 
     def vline(px, y):   # vertical wall on grid column px, cell row y
         if px <= 0 or px >= MAZE:
@@ -608,58 +734,137 @@ def draw_maze(cv, top, left, height, width, model, ov, glyphs, full, start):
         if (x, y) == start:
             return "S", "dim"
         if model.visited[x][y]:
-            return glyphs["visited"], "trail" if (x, y) in trail else "dim"
+            return glyphs["visited"], trail_style(trail_age[(x, y)]) if (x, y) in trail_age else "dim"
         return " ", ""
 
-    for row, y in enumerate(range(vy0 + vny - 1, vy0 - 1, -1)):
-        wall_y, cell_y = top + 2 * row, top + 2 * row + 1
-        for col, x in enumerate(range(vx0, vx0 + vnx)):
-            px = left + col * (cw + 1)
-            cv.put(wall_y, px, *post(x, y + 1))
-            w = hline(x, y + 1)
-            if w == WALL:
-                cv.put(wall_y, px + 1, glyphs["h_wall"] * cw, "wall")
-            elif w == UNKNOWN:
-                cv.put(wall_y, px + 1, glyphs["h_unknown"] * cw, "unknown")
-            w = vline(x, y)
-            if w == WALL:
-                cv.put(cell_y, px, glyphs["v_wall"], "wall")
-            elif w == UNKNOWN:
-                cv.put(cell_y, px, glyphs["v_unknown"], "unknown")
-            ch, style = content(x, y)
-            cv.put(cell_y, px + 1 + (cw - 1) // 2, ch, style)
-        right = left + vnx * (cw + 1)
-        cv.put(wall_y, right, *post(vx0 + vnx, y + 1))
-        w = vline(vx0 + vnx, y)
-        if w == WALL:
-            cv.put(cell_y, right, glyphs["v_wall"], "wall")
-        elif w == UNKNOWN:
-            cv.put(cell_y, right, glyphs["v_unknown"], "unknown")
-    bottom = top + 2 * vny
-    for col, x in enumerate(range(vx0, vx0 + vnx)):
-        px = left + col * (cw + 1)
-        cv.put(bottom, px, *post(x, vy0))
-        w = hline(x, vy0)
-        if w == WALL:
-            cv.put(bottom, px + 1, glyphs["h_wall"] * cw, "wall")
-        elif w == UNKNOWN:
-            cv.put(bottom, px + 1, glyphs["h_unknown"] * cw, "unknown")
-    cv.put(bottom, left + vnx * (cw + 1), *post(vx0 + vnx, vy0))
+    # Walls and posts.
+    for py in range(vy0, vy0 + vny + 1):
+        row = line_row(py)
+        for px in range(vx0, vx0 + vnx + 1):
+            col = line_col(px)
+            cv.put(row, col, *post(px, py))
+            if px < vx0 + vnx:
+                w = hline(px, py)
+                if w == WALL:
+                    cv.put(row, col + 1, glyphs["h_wall"] * cw, "wall")
+                elif w == UNKNOWN:
+                    cv.put(row, col + 1, glyphs["h_unknown"] * cw, "unknown")
+            if py < vy0 + vny:
+                w = vline(px, py)
+                for k in range(ch):
+                    if w == WALL:
+                        cv.put(line_row(py + 1) + 1 + k, col, glyphs["v_wall"], "wall")
+                    elif w == UNKNOWN:
+                        cv.put(line_row(py + 1) + 1 + k, col, glyphs["v_unknown"], "unknown")
 
-    items = ["%s robot" % glyphs["robot"][0], "%s route" % glyphs["path"], "%s candidate" % glyphs["cand"],
-             "G goal", "%s unseen" % (glyphs["h_unknown"] * 2)]
+    # The goal glows, through the open walls between its cells.
+    for x, y in model.goal_cells():
+        if not inside(x, y):
+            continue
+        row, col = line_row(y + 1) + 1, line_col(x) + 1
+        cv.fill(row, col, ch, cw, " ", "goal_bg")
+        if model.is_goal(x + 1, y) and inside(x + 1, y) and vline(x + 1, y) in OPEN:
+            cv.fill(row, col + cw, ch, 1, " ", "goal_bg")
+        if model.is_goal(x, y + 1) and inside(x, y + 1) and hline(x, y + 1) in OPEN:
+            cv.fill(row - 1, col, 1, cw, " ", "goal_bg")
+        if all(model.is_goal(x + i, y + j) and inside(x + i, y + j) for i in (0, 1) for j in (0, 1)) and \
+                all(w in OPEN for w in (hline(x, y + 1), hline(x + 1, y + 1), vline(x + 1, y), vline(x + 1, y + 1))):
+            cv.put(line_row(y + 1), line_col(x + 1), " ", "goal_bg")
+    if model.pose and inside(*model.pose[:2]) and cw >= 3:
+        cv.fill(line_row(model.pose[1] + 1) + 1, line_col(model.pose[0]) + 1, ch, cw, " ", "halo")
+
+    # Paths as traces between the cells' pads, like a circuit board.
+    traces = []
+    if fast:
+        traces.append(([start] + ov.fast_path, "fast_trace"))
+    if route and model.pose:
+        traces.append(([model.pose[:2]] + ov.route, "route_trace"))
+    blank = (" ", glyphs["h_unknown"], glyphs["v_unknown"])
+    for cells, style in traces:
+        for a, b in zip(cells, cells[1:]):
+            if abs(a[0] - b[0]) + abs(a[1] - b[1]) != 1 or not inside(*a) or not inside(*b):
+                continue
+            (ra, ca), (rb, cb) = center(*a), center(*b)
+            if ra == rb:
+                spots, glyph = [(ra, c) for c in range(min(ca, cb) + 1, max(ca, cb))], glyphs["h_trace"]
+            else:
+                spots, glyph = [(r, ca) for r in range(min(ra, rb) + 1, max(ra, rb))], glyphs["v_trace"]
+            for r, c in spots:
+                if 0 <= r < cv.rows and 0 <= c < cv.cols and cv.chars[r][c] in blank:
+                    under = cv.styles[r][c]
+                    cv.put(r, c, glyph, "goal" if under == "goal_bg" else "halo" if under == "halo" else style)
+
+    for y in range(vy0, vy0 + vny):
+        for x in range(vx0, vx0 + vnx):
+            glyph, style = content(x, y)
+            if glyph != " ":
+                cv.put(*center(x, y), glyph, style)
+
+    bottom = line_row(vy0) + 1
+    if axes:    # hex coordinates, the robot's row and column lit
+        for x in range(vx0, vx0 + vnx):
+            cv.put(bottom, center(x, 0)[1], HEX[x], "axis_hot" if model.pose and x == model.pose[0] else "axis")
+        for y in range(vy0, vy0 + vny):
+            cv.put(center(0, y)[0], gx - 2, HEX[y], "axis_hot" if model.pose and y == model.pose[1] else "axis")
+        bottom += 1
+
+    items = [(glyphs["robot"][0], "robot", " robot"), (glyphs["path"], "route", " route"),
+             (glyphs["path"], "fast", " fast"), (glyphs["cand"], "cand", " candidate"),
+             ("G", "goal", " goal"), (glyphs["h_unknown"] * 2, "unknown", " unseen")]
     if vnx < nx or vny < ny:
-        items.insert(0, "view %dx%d of %dx%d" % (vnx, vny, nx, ny))
-    row, line = bottom + 1, ""
-    for item in items:     # wrapped to the panel width, as many rows as fit
-        if line and len(line) + 2 + len(item) > width:
-            if row >= top + height:
-                return
-            cv.put(row, left, line, "dim", width)
-            row, line = row + 1, ""
-        line = item if not line else line + "  " + item
-    if line and row < top + height:
-        cv.put(row, left, line, "dim", width)
+        items.insert(0, ("view %dx%d of %dx%d" % (vnx, vny, nx, ny), "dim", ""))
+    lx = gx - 2 * axes
+    row, x = bottom, lx
+    for glyph, style, label in items:     # wrapped to the panel width, as many rows as fit
+        need = len(glyph) + len(label)
+        if x > lx and x + need > left + width:
+            row, x = row + 1, lx
+        if row >= top + height:
+            return
+        cv.put(row, x, glyph, style, left + width - x)
+        cv.put(row, x + len(glyph), label, "dim", left + width - x - len(glyph))
+        x += need + 2
+
+
+def draw_splash(cv, top, left, height, width, view, glyphs, now):
+    """Before any telemetry: hex rain behind the logo, waiting for the robot."""
+    for col in range(0, width, 2):
+        seed = col * 7919 % 101
+        speed, length = 4 + seed % 7, 3 + seed % 6
+        head = int(now * speed + seed * 3) % (height + length)
+        for k in range(length):
+            row = head - k
+            if 0 <= row < height:
+                cv.put(top + row, left + col, HEX[(seed + row * 7 + int(now * 3)) % 16],
+                       "rain_head" if k == 0 else "rain")
+    logo = next((logo for logo in (LOGOS_ASCII if view.ascii else LOGOS_UNICODE)
+                 if len(logo[0]) + 4 <= width and len(logo) + 6 <= height), ())
+    if view.connected:
+        status = "link up, waiting for telemetry"
+    else:
+        status = view.link_text or "opening %s" % view.source
+    status += glyphs["cursor"] if int(now * 2) % 2 == 0 else " "
+    lines = [(text, None) for text in logo]
+    lines += [("", ""), ("MICROMOUSE TELEMETRY CONSOLE", "dim"), ("", ""), (status, "warn")]
+    block_w = min(width, max(len(text) for text, _ in lines) + 4)
+    y0 = top + max(0, (height - len(lines) - 2) // 2)
+    x0 = left + (width - block_w) // 2
+    cv.fill(y0 - 1, x0, len(lines) + 2, block_w, " ", "")
+    for i, (text, style) in enumerate(lines):
+        x = left + max(0, (width - len(text)) // 2)
+        if style is None:   # a logo row: gradient across, shadows dimmer
+            for j, c in enumerate(text):
+                shadow = c not in "█▀▄" and not view.ascii
+                cv.put(y0 + i, x + j, c, "logo_shadow" if shadow else "logo%d" % (j * 6 // len(text)),
+                       left + width - x - j)
+        else:
+            cv.put(y0 + i, x, text, style, left + width - x)
+    mouse = glyphs["mouse"]
+    row = y0 + len(lines) + 1
+    if row < top + height:
+        pos = int(now * 12) % (width + len(mouse)) - len(mouse)
+        visible = mouse[max(0, -pos):max(0, width - pos)]
+        cv.put(row, left + max(0, pos), visible, "key")
 
 
 LOG_STYLES = (
@@ -681,15 +886,15 @@ def log_style(text):
 
 HELP_LINES = [
     ("head", "KEYS"),
-    ("", "  Enter        send the command"),
-    ("", "  Up/Down      command history"),
-    ("", "  PgUp/PgDn    scroll the log (Home/End)"),
-    ("", "  Tab          log / this help"),
-    ("", "  Ctrl+X       immediate STOP of the run"),
-    ("", "  Ctrl+L       redraw the screen"),
-    ("", "  Esc          quit"),
-    ("", "  /full /ascii /clear  16x16 view, symbols, clear the log"),
-    ("", "  /note text   adds a measurement to the last calibration file"),
+    ("keyline", "  Enter        send the command"),
+    ("keyline", "  Up/Down      command history"),
+    ("keyline", "  PgUp/PgDn    scroll the log (Home/End)"),
+    ("keyline", "  Tab          log / this help"),
+    ("keyline", "  Ctrl+X       immediate STOP of the run"),
+    ("keyline", "  Ctrl+L       redraw the screen"),
+    ("keyline", "  Esc          quit"),
+    ("keyline", "  /full /ascii /clear  16x16 view, symbols, clear the log"),
+    ("keyline", "  /note text   adds a measurement to the last calibration file"),
     ("", ""),
     ("head", "ROBOT (all in README.md, Bluetooth console)"),
     ("", "  MODE n   1 search | 2 k race: 1/2 left/right follower 3 no curves 4 800/300 5 900/400 6 900/480 | 3 erase"),
@@ -723,6 +928,13 @@ class ViewState:
         self.source = ""
         self.replay = False
         self.capture = None     # (test, samples) while a calibration dump arrives
+        self.rx_times = collections.deque(maxlen=4096)     # arrival of every line, for the RX activity
+        self.started = time.monotonic()
+        self.recording = ""
+
+
+FRAMED_ROWS, FRAMED_COLS = 20, 60   # panels get their boxes from this size on
+STATUS_ROWS, STATUS_COLS = 8, 40
 
 
 def render(rows, cols, model, ov, view, start, now):
@@ -734,78 +946,191 @@ def render(rows, cols, model, ov, view, start, now):
         cv.put(1, 0, "minimum %dx%d, now %dx%d" % (MIN_COLS, MIN_ROWS, cols, rows), "dim")
         return cv, (min(2, rows - 1), 0)
 
-    # Header.
-    cv.fill(0, 0, 1, cols, " ", "title")
-    parts = [" RAT ", (glyphs["dot_on"] if view.connected else glyphs["dot_off"]) + " " + view.source]
-    if view.capture:
-        parts.append("receiving %s: %d samples" % view.capture)
-    if model.mode:
-        parts.append("%d %s" % (model.mode, MODE_NAME[model.mode]))
-    if model.activity:
-        parts.append(ACTIVITY_NAME[model.activity])
-    if model.pose:
-        parts.append("(%d,%d)%s" % (model.pose[0], model.pose[1], HEADINGS[model.pose[2]]))
-    parts.append("%d cells" % model.visited_count())
-    if ov.fast_cost is not None:
-        parts.append("fast: %d cells %d turns" % (len(ov.fast_path), ov.fast_turns))
-    if model.last_telemetry is None:
-        parts.append("no telemetry")
-    else:
-        age = now - model.last_telemetry
-        parts.append("tlm %.1fs" % age if age < 99 else "tlm --")
-    x = 0
-    for i, part in enumerate(parts):
-        style = "title" if i != 1 else "title_ok" if view.connected else "title_bad"
-        text = part if i == 0 else " " + glyphs["sep"] + " " + part
-        cv.put(0, x, text, style)
-        x += len(text)
-
+    framed = rows >= FRAMED_ROWS and cols >= FRAMED_COLS
+    f = 2 if framed else 0
     body_top, body_h = 1, rows - 3
     nx, ny = view_size(model, view.full)
-    maze_w = next((maze_width(nx, cw) for cw in (3, 2, 1)
-                   if maze_width(nx, cw) + 2 + MIN_LOG_COLS <= cols and 2 * ny + 2 <= body_h), None)
-    if maze_w is not None:      # side by side
-        sep_x = maze_w + 2
-        maze_box = (body_top, 1, body_h, maze_w)
-        side_box = (body_top, sep_x + 1, body_h, cols - sep_x - 1)
-        for row in range(body_top, body_top + body_h):
-            cv.put(row, sep_x, glyphs["sep"], "border")
+    side_need = MIN_LOG_COLS + (4 if framed else 2)
+    inner_w = maze_panel_width(nx, ny, cols - side_need, body_h - f)
+    if inner_w is not None:     # side by side
+        if framed:
+            maze_box, side_box = (body_top, 0, body_h, inner_w + 2), (body_top, inner_w + 2, body_h, cols - inner_w - 2)
+        else:
+            sep_x = inner_w + 2
+            maze_box, side_box = (body_top, 1, body_h, inner_w), (body_top, sep_x + 1, body_h, cols - sep_x - 1)
+            for row in range(body_top, body_top + body_h):
+                cv.put(row, sep_x, glyphs["sep"], "border")
     else:                       # stacked
-        maze_h = min(2 * ny + 2, max(3, body_h * 2 // 3))
-        maze_box = (body_top, 1, maze_h, cols - 2)
+        maze_h = min(2 * ny + 2 + f, max(3 + f, body_h * 2 // 3))
+        maze_box = (body_top, 0, maze_h, cols) if framed else (body_top, 1, maze_h, cols - 2)
         side_box = (body_top + maze_h, 0, body_h - maze_h, cols)
-    draw_maze(cv, *maze_box, model, ov, glyphs, view.full, start)
-    draw_side_panel(cv, *side_box, view, glyphs)
 
-    # Input line and key hints.
-    prompt = "(replay) > " if view.replay else "> "
-    cv.put(rows - 2, 0, prompt, "key")
-    room = max(0, cols - len(prompt) - 1)
+    top, left, height, width = maze_box
+    if framed:
+        draw_frame(cv, top, left, height, width, glyphs, "0x01", "MAZE %dx%d" % (nx, ny))
+        top, left, height, width = top + 1, left + 1, height - 2, width - 2
+    if model.last_telemetry is None:
+        draw_splash(cv, top, left, height, width, view, glyphs, now)
+    else:
+        draw_maze(cv, top, left, height, width, model, ov, glyphs, view.full, start)
+
+    top, left, height, width = side_box
+    status = framed and inner_w is not None and height >= STATUS_ROWS + 6 and width >= STATUS_COLS
+    if status:
+        draw_frame(cv, top, left, STATUS_ROWS, width, glyphs, "0x02", "STATUS")
+        draw_status(cv, top + 1, left + 1, STATUS_ROWS - 2, width - 2, model, ov, view, glyphs, now)
+        top, height = top + STATUS_ROWS, height - STATUS_ROWS
+    if framed and height >= 3:
+        title, note = draw_console(cv, top + 1, left + 1, height - 2, width - 2, view, glyphs)
+        draw_frame(cv, top, left, height, width, glyphs, "0x03", title, note)
+    elif height >= 2:
+        title, note = draw_console(cv, top + 1, left, height - 1, width, view, glyphs)
+        cv.put(top, left, " %s%s " % (title, note), "head", width)
+
+    draw_header(cv, cols, model, ov, view, glyphs, now, compact=not status)
+
+    # Prompt and key bar.
+    # The arrow shows the link, like a shell's last exit status.
+    prompt = [("%s " % glyphs["prompt"], "ok" if view.connected else "bad")]
+    x = put_segments(cv, rows - 2, 0, cols, prompt)
+    room = max(0, cols - x - 1)
     visible = view.input[-room:] if room else ""
-    cv.put(rows - 2, len(prompt), visible)
-    hints = "Enter send  Up/Down history  PgUp/PgDn log  Tab help  Ctrl+X STOP  Esc quit"
-    cv.put(rows - 1, 0, hints, "dim", cols - 1)
-    return cv, (rows - 2, min(cols - 1, len(prompt) + len(visible)))
+    cv.put(rows - 2, x, visible, "value")
+    draw_keys(cv, rows - 1, cols, view, glyphs)
+    return cv, (rows - 2, min(cols - 1, x + len(visible)))
 
 
-def draw_side_panel(cv, top, left, height, width, view, glyphs):
-    if height < 2 or width < 4:
-        return
+def draw_header(cv, cols, model, ov, view, glyphs, now, compact):
+    cv.fill(0, 0, 1, cols, " ", "title")
+    brand = " %s RATATRON " % glyphs["mouse"]
+    for i, c in enumerate(brand):
+        cv.put(0, i, c, "brand%d" % (i * len(BRAND_COLOURS) // len(brand)))
+    x = len(brand)
+    cv.put(0, x, glyphs["fade"], "brand_fade")
+    x += len(glyphs["fade"])
+    rx_age = now - view.rx_times[-1] if view.rx_times else INF
+    led = glyphs["dot_on"] if view.connected else glyphs["dot_off"]
+    parts = [("%s %s" % (led, view.source),
+              "title_bad" if not view.connected else "title_hot" if rx_age < 0.15 else "title_ok")]
+    if view.capture:
+        parts.append(("receiving %s: %d samples" % view.capture, "title_hot"))
+    if model.mode:
+        parts.append(("%d %s" % (model.mode, MODE_NAME[model.mode]), "title_hot"))
+    if model.activity:
+        spin = spinner(glyphs, now) + " " if model.activity in RUNNING else ""
+        parts.append((spin + ACTIVITY_NAME[model.activity], "title"))
+    if compact:     # no status panel: its facts go here
+        if model.pose:
+            parts.append(("(%d,%d)%s" % (model.pose[0], model.pose[1], HEADINGS[model.pose[2]]), "title"))
+        parts.append(("%d cells" % model.visited_count(), "title"))
+        if ov.fast_cost is not None:
+            parts.append(("fast: %d cells %d turns" % (len(ov.fast_path), ov.fast_turns), "title"))
+        parts.append((telemetry_age(model, now), "title"))
+    for i, (text, style) in enumerate(parts):
+        x = put_segments(cv, 0, x, cols - x, [(" " + glyphs["sep"] + " " if i else " ", "title_sep"), (text, style)])
+    up = int(now - view.started)
+    clock = " T+%02d:%02d:%02d " % (up // 3600, up // 60 % 60, up % 60)
+    if x + len(clock) + 1 <= cols:
+        cv.put(0, cols - len(clock), clock, "title_hot")
+
+
+def draw_status(cv, top, left, height, width, model, ov, view, glyphs, now):
+    """Mode, pose, explored share, fast path, link and RX activity."""
+    def line(row, label, segments):
+        if row < height:
+            put_segments(cv, top + row, left + 1, width - 1, [(label.ljust(6), "label")] + segments)
+
+    act = model.activity
+    doing = []
+    if act in RUNNING:
+        doing = [("  " + spinner(glyphs, now) + " ", "key"), (ACTIVITY_NAME[act], "")]
+    elif act:
+        doing = [("  " + ACTIVITY_NAME[act], "dim")]
+    line(0, "MODE", [("%d %s" % (model.mode, MODE_NAME[model.mode]), "value") if model.mode else ("--", "dim")] + doing)
+
+    x0, y0, x1, y1 = model.goal
+    goal = "goal (%d,%d)" % (x0, y0) if (x0, y0) == (x1, y1) else "goal (%d,%d)-(%d,%d)" % model.goal
+    pose = ("(%d,%d) %s" % (model.pose[0], model.pose[1], HEADINGS[model.pose[2]]), "value") if model.pose else ("--", "dim")
+    line(1, "POSE", [pose, ("   " + goal, "dim")])
+
+    nx, ny = view_size(model, view.full)
+    explored = sum(model.visited[x][y] for x in range(nx) for y in range(ny))
+    bar_w = max(4, min(48, width - 1 - 6 - 9))
+    filled = bar_w * explored // (nx * ny)
+    line(2, "MAP", [(glyphs["bar"][0] * filled, "bar_on"), (glyphs["bar"][1] * (bar_w - filled), "bar_off"),
+                    (" %d/%d" % (explored, nx * ny), "value")])
+
+    if ov.fast_cost is None:
+        line(3, "FAST", [("no verified path yet", "dim")])
+    else:
+        line(3, "FAST", [("%d cells" % len(ov.fast_path), "fast"), ("  %d turns" % ov.fast_turns, ""),
+                         ("  cost %d" % ov.fast_cost, "dim")])
+
+    state = ("%s up" % glyphs["dot_on"], "ok") if view.connected else \
+        ("%s %s" % (glyphs["dot_off"], view.link_text or "down"), "bad")
+    line(4, "LINK", [state, ("  " + telemetry_age(model, now), "dim"),
+                     ("  bad %d" % model.bad_lines, "bad" if model.bad_lines else "dim")])
+
+    span = max(4, min(60, width - 1 - 6 - 9))    # one column per second
+    counts = [0] * span
+    for t in view.rx_times:
+        age = int(now - t)
+        if 0 <= age < span:
+            counts[span - 1 - age] += 1
+    peak, levels = max(counts) or 1, glyphs["spark"]
+    spark = "".join(levels[0] if c == 0 else levels[1 + (c * (len(levels) - 2) + peak - 1) // peak] for c in counts)
+    rate = sum(1 for t in view.rx_times if now - t < 5) / 5
+    line(5, "RX", [(spark, "spark"), (" %5.1f/s" % rate, "value")])
+
+
+def draw_console(cv, top, left, height, width, view, glyphs):
+    """The log (or the help) inside the box; returns its title and note."""
+    if height < 1 or width < 2:
+        return "CONSOLE", ""
     if view.show_help:
-        cv.put(top, left, " AYUDA (Tab: volver al log) ", "head", width)
-        for i, (style, text) in enumerate(HELP_LINES[:height - 1]):
-            cv.put(top + 1 + i, left + 1, text, style, width - 1)
-        return
-    rows = height - 1
+        for i, (style, text) in enumerate(HELP_LINES[:height]):
+            if style == "keyline":     # the keys, then what they do in a column
+                key, _, rest = text.strip().partition("  ")
+                x = put_segments(cv, top + i, left + 3, width - 3, [(key, "key")])
+                x = max(x + 2, left + 16)
+                cv.put(top + i, x, rest.strip(), "", left + width - x)
+            elif style == "head":
+                cv.put(top + i, left, glyphs["gutter"] + text, "head", width)
+            else:
+                cv.put(top + i, left + 1, text, style, width - 1)
+        return "HELP", "  Tab: back to the log"
     lines = list(view.log)
-    view.scroll = max(0, min(view.scroll, max(0, len(lines) - rows)))
-    first = max(0, len(lines) - rows - view.scroll)
-    title = " LOG "
-    if view.scroll:
-        title += "(%s %d more lines below) " % (glyphs["down"], view.scroll)
-    cv.put(top, left, title, "head", width)
-    for i, (style, text) in enumerate(lines[first:first + rows]):
-        cv.put(top + 1 + i, left + 1, text, style, width - 1)
+    view.scroll = max(0, min(view.scroll, max(0, len(lines) - height)))
+    first = max(0, len(lines) - height - view.scroll)
+    for i, (style, text) in enumerate(lines[first:first + height]):
+        y = top + i
+        if style not in ("", "dim", "boot"):
+            cv.put(y, left, glyphs["gutter"], style)
+        if style == "boot" and text.startswith("["):
+            cv.put(y, left + 1, text[:6], "ok" if "OK" in text[:6] else "warn", width - 1)
+            cv.put(y, left + 7, text[6:], "dim", width - 7)
+        else:
+            cv.put(y, left + 1, text, style, width - 1)
+    note = "  %s %d more lines below" % (glyphs["down"], view.scroll) if view.scroll else ""
+    return "CONSOLE", note
+
+
+def draw_keys(cv, row, cols, view, glyphs):
+    """htop-style key bar, the recording light on the right."""
+    cv.fill(row, 0, 1, cols, " ", "keylabel")
+    x = 0
+    for key, label in (("Enter", "send"), ("^X", "STOP"), ("Tab", "help"), ("Esc", "quit"),
+                       (glyphs["updown"], "history"), ("PgUp/Dn", "log")):
+        cap, text = " %s " % key, "%s " % label
+        if x + len(cap) + len(text) > cols - 1:
+            break
+        cv.put(row, x, cap, "keycap_stop" if key == "^X" else "keycap")
+        cv.put(row, x + len(cap), text, "keylabel")
+        x += len(cap) + len(text) + 1
+    if view.recording:
+        rec = "%s REC %s " % (glyphs["dot_on"], view.recording)
+        if x + len(rec) + 1 < cols:
+            cv.put(row, cols - 1 - len(rec), rec, "rec")
 
 
 # ---- Links: serial port, replay file, session recorder -------------------------------------
@@ -971,12 +1296,23 @@ class Monitor:
             self.link = ReplayLink(args.replay, args.speed, self.on_line, self.on_status, self.on_replay_sent)
         else:
             self.link = SerialLink(args.port, args.baud, self.on_line, self.on_status, self.on_connect)
+        self.add_log("head", "RATATRON//MONITOR  micromouse telemetry console")
+        self.add_log("boot", "[ OK ] planner costs: search %d/cell %d/turn, fast %d/cell %d/turn"
+                     % (self.planner.search + self.planner.fast))
+        if self.recorder:
+            self.view.recording = os.path.basename(self.recorder.path)
+            self.add_log("boot", "[ OK ] recording to %s" % os.path.relpath(self.recorder.path))
+        if args.replay:
+            self.add_log("boot", "[ OK ] replay of %s at x%g" % (os.path.basename(args.replay), args.speed))
+        else:
+            self.add_log("boot", "[ .. ] link %s at %d baud" % (args.port, args.baud))
 
     # -- called from the link thread
     def on_line(self, text):
         if self.recorder:
             self.recorder.write("<", text)
         with self.lock:
+            self.view.rx_times.append(time.monotonic())
             if text.startswith("@D"):
                 message = self.capture.feed(text)
                 if message:
@@ -1115,6 +1451,7 @@ class Monitor:
 
     def run(self, stdscr):
         styles = init_styles()
+        stdscr.bkgd(" ", styles[""])
         stdscr.keypad(True)
         stdscr.timeout(50)
         try:
@@ -1130,7 +1467,11 @@ class Monitor:
                     break
                 now = time.monotonic()
                 with self.lock:
-                    redraw = self.dirty or now - last_draw >= 0.5
+                    # Animations (splash, spinner, RX light) at 10 frames/s, else 2.
+                    rx = self.view.rx_times
+                    animated = self.model.last_telemetry is None or self.model.activity in RUNNING \
+                        or (rx and now - rx[-1] < 0.5)
+                    redraw = self.dirty or now - last_draw >= (0.1 if animated else 0.5)
                     self.dirty = False
                 if redraw:
                     rows, cols = stdscr.getmaxyx()
@@ -1143,41 +1484,66 @@ class Monitor:
                 self.recorder.close()
 
 
+XTERM16 = ((0, 0, 0), (128, 0, 0), (0, 128, 0), (128, 128, 0), (0, 0, 128), (128, 0, 128), (0, 128, 128),
+           (192, 192, 192), (128, 128, 128), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 0, 255),
+           (255, 0, 255), (0, 255, 255), (255, 255, 255))
+BASIC_RGB = ((0, 0, 0), (205, 0, 0), (0, 205, 0), (205, 205, 0), (0, 0, 238), (205, 0, 205), (0, 205, 205),
+             (229, 229, 229))   # curses COLOR_BLACK .. COLOR_WHITE
+
+
+def xterm_rgb(index):
+    if index < 16:
+        return XTERM16[index]
+    if index < 232:
+        i = index - 16
+        return tuple((0, 95, 135, 175, 215, 255)[v] for v in (i // 36, i // 6 % 6, i % 6))
+    gray = 8 + 10 * (index - 232)
+    return gray, gray, gray
+
+
+def basic_colour(index):
+    """The nearest of the 8 basic colours to an xterm 256-colour index."""
+    rgb = xterm_rgb(index)
+    return min(range(8), key=lambda c: sum((a - b) ** 2 for a, b in zip(rgb, BASIC_RGB[c])))
+
+
 def init_styles():
+    """curses attributes of every THEME style: its own 256 colours, the nearest 8 basic
+    ones (dark tones dimmed, on the terminal's background), or reverse video for bars."""
     styles = collections.defaultdict(int)
+    colours, default = 0, curses.COLOR_BLACK
     if curses.has_colors():
         curses.start_color()
         try:
             curses.use_default_colors()
-            bg = -1
+            default = -1
         except curses.error:
-            bg = curses.COLOR_BLACK
-        pairs = {
-            "ok": (curses.COLOR_GREEN, bg), "bad": (curses.COLOR_RED, bg),
-            "warn": (curses.COLOR_YELLOW, bg), "info": (curses.COLOR_CYAN, bg),
-            "wall": (curses.COLOR_WHITE, bg), "unknown": (curses.COLOR_BLUE, bg),
-            "robot": (curses.COLOR_YELLOW, bg), "route": (curses.COLOR_GREEN, bg),
-            "fast": (curses.COLOR_CYAN, bg), "cand": (curses.COLOR_CYAN, bg),
-            "goal": (curses.COLOR_MAGENTA, bg), "trail": (curses.COLOR_YELLOW, bg),
-            "sent": (curses.COLOR_YELLOW, bg), "head": (curses.COLOR_MAGENTA, bg),
-            "key": (curses.COLOR_CYAN, bg), "border": (curses.COLOR_BLUE, bg),
-            "title": (curses.COLOR_BLACK, curses.COLOR_CYAN),
-            "title_ok": (curses.COLOR_BLACK, curses.COLOR_GREEN),
-            "title_bad": (curses.COLOR_WHITE, curses.COLOR_RED),
-        }
-        for i, (name, (fg, pair_bg)) in enumerate(pairs.items(), start=1):
-            try:
-                curses.init_pair(i, fg, pair_bg)
-                styles[name] = curses.color_pair(i)
-            except curses.error:
-                pass
-    else:
-        styles["title"] = styles["title_ok"] = styles["title_bad"] = curses.A_REVERSE
-    for name in ("bad", "ok", "wall", "robot", "route", "goal", "sent", "head",
-                 "title", "title_ok", "title_bad"):
-        styles[name] |= curses.A_BOLD
-    styles["dim"] |= curses.A_DIM
-    styles["unknown"] |= curses.A_DIM
+            pass
+        colours = curses.COLORS
+    pairs = {}
+    for name, (fg, bg, bold) in THEME.items():
+        attr = curses.A_BOLD if bold else 0
+        if colours >= 256:
+            key = fg, bg
+        else:
+            f, b = basic_colour(fg), basic_colour(bg) if bg != BG else curses.COLOR_BLACK
+            if f == b == curses.COLOR_BLACK:
+                f = curses.COLOR_WHITE
+            if sum(xterm_rgb(fg)) < 400:
+                attr |= curses.A_DIM
+            key = f, (default if b == curses.COLOR_BLACK else b)
+            if not colours and bg != BG:
+                attr |= curses.A_REVERSE
+        if colours:
+            if key not in pairs and len(pairs) + 1 < curses.COLOR_PAIRS:
+                try:
+                    curses.init_pair(len(pairs) + 1, *key)
+                    pairs[key] = len(pairs) + 1
+                except curses.error:
+                    pass
+            if key in pairs:
+                attr |= curses.color_pair(pairs[key])
+        styles[name] = attr
     return styles
 
 
