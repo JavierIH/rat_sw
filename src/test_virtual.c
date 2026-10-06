@@ -211,8 +211,6 @@ static void flash_stress(uint32_t rounds){
         print("stress: TUNE WHEELS 1 first (robot on a stand); TUNE STRESS rounds\n");
         return;
     }
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     abort_flag = 0;
     uint32_t worst_us = 0, worst_round = 0, sum_us = 0, count = 0, worst_erase_ms = 0;
     uint8_t failed = 0;
@@ -300,8 +298,6 @@ static void reversal_stress(uint32_t blocks){
         print("reversal: TUNE WHEELS 1 first (robot on a stand); TUNE REVERSAL blocks (1-512)\n");
         return;
     }
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     abort_flag = 0;
     wheels_now(0, 0);
     FLASH_EraseInitTypeDef erase = {.TypeErase = FLASH_TYPEERASE_PAGES, .Banks = FLASH_BANK_1,

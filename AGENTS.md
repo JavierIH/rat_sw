@@ -331,7 +331,7 @@ search leg; the dump comes when the run ends).
   Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/design.md`): `STATUS` shows the
-  stack never used, the reset cause, the flash's free slots and last
+  stack never used, the slowest SysTick, the reset cause, the flash's free slots and last
   write's times (and, in `DEV_TOOLS` builds, RCC/FLASH registers and the
   chip's identity); "!! ..." lines report stalls, crystal failures and slow
   or failed flash operations. Clock: crystal x 9 = 72 MHz, else HSI 64 MHz

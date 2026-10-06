@@ -41,8 +41,9 @@ commit when done. Details go in the docs it points to, not here.
   (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
   (HC-05 at 115200), 6 (hardware, the user's call), 8 (monitor draws the
   robot's route). Ideas from issue 15: a SysTick stop if the following
-  error runs away while the main loop blocks, the SysTick load (the
-  return's curves are capped at 300 since 10-06).
+  error runs away while the main loop blocks; the SysTick load: `STATUS`
+  shows the slowest tick since 10-06, read it after a race (the return's
+  curves are capped at 300 since 10-06).
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item

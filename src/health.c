@@ -10,6 +10,7 @@ static const char *reset_cause = "?";
 static volatile uint32_t alive_ms;
 static volatile uint8_t stalled, stall_ready;
 static volatile uint32_t stall_start, stall_ms, stall_pc, stall_lr;
+static volatile uint32_t tick_cycles_max;
 
 // A pattern from the end of .bss to below the stack pointer; whatever still holds it was never used.
 static void paint_stack(void){
@@ -30,6 +31,16 @@ void health_init(void){
                 : "?";
     RCC->CSR |= RCC_CSR_RMVF;
     alive_ms = HAL_GetTick();
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;     // the cycle counter: SysTick and flash timings
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+void app_tick_time(uint32_t cycles){
+    if(cycles > tick_cycles_max) tick_cycles_max = cycles;
+}
+
+uint32_t health_tick_us_max(void){
+    return tick_cycles_max / (SystemCoreClock / 1000000u);
 }
 
 void health_alive(void){

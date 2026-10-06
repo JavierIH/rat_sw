@@ -72,7 +72,7 @@ reference. "Stopped" = refused during a run.
 
 | Command | What it does | Stopped |
 |---|---|---|
-| `STATUS` | state, parameters, stack, reset cause, clock and flash registers and chip (`practice`/`dev` builds), the flash's free slots and its last write's times; after a search, the worst decision on the way (also printed when the run ends) | |
+| `STATUS` | state, parameters, stack, the slowest SysTick, reset cause, clock and flash registers and chip (`practice`/`dev` builds), the flash's free slots and its last write's times; after a search, the worst decision on the way (also printed when the run ends) | |
 | `MODE n [k]` | picks the mode: 1 search, 2 k race k (1/2 left/right follower, 3 no curves, 4 800/300, 5 900/400, 6 900/480), 3 erase map | yes |
 | `START` | launches the mode picked after 2 s (as the button) | |
 | `STOP` | stops the run (as START during a run) | |

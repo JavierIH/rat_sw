@@ -130,7 +130,8 @@ static void cmd_status(const char *args){
           params.search_speed, params.fast_speed, params.curve_speed, params.accel, params.turn_speed,
           params.turn_accel, params.turn_ticks, format_fixed2(kp, sizeof(kp), params.kp),
           format_fixed2(kd, sizeof(kd), params.kd), params.log_level, motion_step_mode() ? " | STEP MODE" : "");
-    print("stack: %lu bytes never used | reset: %s\n", (unsigned long)health_stack_free(), health_reset_cause());
+    print("stack: %lu bytes never used | SysTick worst %lu us | reset: %s\n", (unsigned long)health_stack_free(),
+          (unsigned long)health_tick_us_max(), health_reset_cause());
 #if DEV_TOOLS
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,

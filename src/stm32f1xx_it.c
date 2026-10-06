@@ -62,11 +62,14 @@ void PendSV_Handler(void){}
 
 // SysTick with the stacked frame (health.c looks at where the main program was).
 __weak void app_stall_check(const uint32_t *frame){ (void)frame; }
+__weak void app_tick_time(uint32_t cycles){ (void)cycles; }     // how long app_systick() took
 
 __attribute__((used)) void systick_with_frame(const uint32_t *frame){
     HAL_IncTick();
     app_stall_check(frame);
+    const uint32_t t0 = DWT->CYCCNT;
     app_systick();
+    app_tick_time(DWT->CYCCNT - t0);
 }
 
 __attribute__((naked)) void SysTick_Handler(void){

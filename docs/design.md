@@ -258,7 +258,8 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
 
 - Health checks (`health.c`), for rare failures on the robot: the free
   stack is painted at boot and `STATUS` shows how much was never used
-  (static estimate of the deepest chain: ~1.65 KB); if the main program
+  (static estimate of the deepest chain: ~1.65 KB), and the slowest 1 ms
+  tick (`app_systick()`, timed with the cycle counter) since boot; if the main program
   stops calling `health_alive()` (every wait loop does) for more than
   `HEALTH_STALL_MS`, SysTick notes the program counter it interrupted and
   the main loop prints "!! the program stalled N ms at PC=..." when it

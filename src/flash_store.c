@@ -29,11 +29,6 @@ uint8_t flash_store_blocked(void){
     return blocked;
 }
 
-static void cycle_counter_on(void){
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-}
-
 static uint32_t cycles_per_us(void){
     return SystemCoreClock / 1000000u;
 }
@@ -84,7 +79,6 @@ static void report(const char *what, uint32_t hal_error, uint32_t rcc_cr, uint32
 
 static uint8_t erase(uint8_t page){
     if(blocked || page >= FLASH_STORE_PAGES) return 0;
-    cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
     if(!hsi_fresh()) return 0;
     const uint32_t tick0 = HAL_GetTick(), t0 = DWT->CYCCNT;
@@ -123,7 +117,6 @@ static uint8_t program(uint16_t offset, const void *data, uint16_t len){
     for(uint16_t i = 0; i < len / 2u; i++){
         if(dst[i] != 0xFFFFu) return 0;     // not erased: the caller's mistake, not the flash's
     }
-    cycle_counter_on();
     const uint32_t rcc_cr = RCC->CR, acr = FLASH->ACR;
     if(!hsi_fresh()) return 0;
     const uint32_t t0 = DWT->CYCCNT;

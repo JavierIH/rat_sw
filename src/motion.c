@@ -405,8 +405,6 @@ float motion_ticks_per_mm(void){
 
 void motion_leg_timing_reset(void){
     memset(&leg_timing, 0, sizeof(leg_timing));
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;     // the cycle counter
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
 void motion_leg_timing_report(void){
