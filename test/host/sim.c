@@ -101,8 +101,7 @@ void truth_generate(uint32_t seed, uint16_t extra_openings){
     }
 }
 
-// Competition goal: the centre 2x2 open inside, closed around but for one
-// entrance; cells cut off by closing it are joined to the rest again.
+// Competition goal: the centre 2x2 open inside, closed around but for one entrance.
 void truth_competition_goal(uint32_t seed){
     rng_state = seed ? seed : 1;
     const uint8_t g0 = MAZE_SIZE / 2 - 1, g1 = MAZE_SIZE / 2;
@@ -120,8 +119,7 @@ void truth_competition_goal(uint32_t seed){
     const uint8_t ex = (uint8_t)(g0 + ((k >> 1) & 1u)), ey = (uint8_t)(g0 + ((k >> 2) & 1u));
     const heading_t eh = (heading_t)(k & 1u ? (ex == g0 ? WEST : EAST) : (ey == g0 ? SOUTH : NORTH));
     truth_set_wall(ex, ey, eh, 0);
-    // Rejoin: open a wall between a reached and an unreached cell (never the
-    // goal's) until the start reaches every cell.
+    // Rejoin: open a wall between a reached and an unreached cell (never the goal's) until all are reached.
     static uint8_t reached[MAZE_SIZE][MAZE_SIZE];
     static uint8_t qx[MAZE_SIZE * MAZE_SIZE], qy[MAZE_SIZE * MAZE_SIZE];
     for(;;){
@@ -198,10 +196,7 @@ void sim_abort_after_cells(uint32_t cells){
 }
 
 // ---- Time model ----------------------------------------------------------------
-// Seconds as the robot takes them, from the practice maze: straights on the
-// speed-control profile, 0.30 s per quarter turn in place (0.28-0.34
-// measured, 0.46-0.66 for a half turn), and 0.08 s at every stop to sense,
-// plan and log (the gaps between moves in the search logs).
+// Seconds as the robot takes them (practice maze): profiles, 0.30 s a quarter turn, 0.08 s at every stop.
 #define SIM_STOP_S          0.08
 #define SIM_QUARTER_TURN_S  0.30
 
@@ -213,8 +208,7 @@ static double drive_seconds(double mm, double v){
     return mm / v + v / a;
 }
 
-// The virtual robot firmware lives the moves' time for real (its wheels can
-// turn meanwhile: forward at `speed` mm/s, or in place, `turn` > 0 right).
+// The virtual robot lives the moves' time for real (its wheels may turn: `speed` mm/s, or `turn` > 0 right).
 static void elapse(double s, int16_t speed, int8_t turn){
     sim_stats.seconds += s;
 #ifdef SIM_ON_ROBOT
@@ -272,15 +266,13 @@ move_result_t motion_forward(uint8_t cells, int16_t cruise_speed){
     return MOVE_OK;
 }
 
-// Side walls read on the way into a cell: three sensor periods in the window.
-// Unanimous or doubtful.
+// Side walls read on the way into a cell (three sensor periods): unanimous or doubtful.
 static uint8_t side_on_the_way(uint8_t wall){
     const uint8_t seen = (uint8_t)(noisy(wall) + noisy(wall) + noisy(wall));
     return seen == 3 ? SEEN_PRESENT : seen == 0 ? SEEN_ABSENT : SEEN_DOUBTFUL;
 }
 
-// A search leg: straight on, each cell decided inside it with its walls in
-// view (the front read once, as the robot classifies it at the decision).
+// A search leg: straight on, each cell decided inside it with its walls in view.
 move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint8_t *entered){
     sides_fresh = 0;
     sim_stats.actions++;
@@ -288,16 +280,14 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
     *entered = 0;
     double cells_s = 0.0;   // spent cell by cell on the way; the rest at the stop
     for(;;){
-        // Leaving the current cell through its front: a wall there the robot
-        // did not expect (a front read open wrongly) stops it at the centre.
+        // Leaving through an unexpected front wall (read open wrongly) stops it at the centre.
         if(truth_wall(sim_x, sim_y, sim_h)){
             stopped(drive_seconds(*entered * CELL_MM, speed) - cells_s, speed);
             sim_stats.wall_stops++;
             sides_fresh = *entered > 0;
             return MOVE_BLOCKED;
         }
-        // Into the next cell (its walls and its decision come there, one
-        // cell after another, as on the robot).
+        // Into the next cell: its walls and decision come there, as on the robot.
         const double cell_s = CELL_MM / (double)speed;
         elapse(cell_s, speed, 0);
         cells_s += cell_s;
@@ -337,8 +327,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     double mm = 0.0;
     for(uint8_t i = 0; i < path->cells; i++){
         if(truth_wall(sim_x, sim_y, sim_h)){
-            // Seen from a straight: the robot stops at the centre of the cell
-            // before it. Right after a curve the front sensors see it too late.
+            // Seen from a straight it stops at the cell before; right after a curve it is seen too late.
             if(i == 0 || path->turn[i - 1] == 0){
                 sim_stats.blocked++;
                 return MOVE_BLOCKED;

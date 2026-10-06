@@ -262,8 +262,7 @@ static curve_t default_curve(void){
     return c;
 }
 
-// Seconds the reference of a speed run takes along a route (the simulated
-// robot tracks it within a few ms).
+// Seconds a speed run's reference takes along a route.
 static float route_seconds(const int8_t *turns, uint8_t cells, float v_fast, float v_curve){
     const curve_t c = default_curve();
     const run_path_t path = {turns, cells};
@@ -338,10 +337,7 @@ static void test_planner_basics(void){
     CHECK_EQ(cells, 5);
     CHECK_EQ(turns[4], 0);
 
-    // Optimal in time: to reach (3,3), a staircase of 6 cells and 5 turns
-    // against a detour of 8 cells and 2 turns. With smooth curves the
-    // staircase is faster (curves at 400 mm/s all the way, against
-    // accelerating to FAST and braking twice), and so is its cost.
+    // Optimal in time: to (3,3), a staircase (6 cells, 5 curves) beats a detour (8 cells, 2 turns).
     truth_reset(1);
     truth_set_wall(0, 0, NORTH, 0);     // staircase N E N E N E
     truth_set_wall(0, 1, EAST, 0);
@@ -370,9 +366,7 @@ static void test_planner_basics(void){
                                                                                             PARAM_CURVE_SPEED));
 }
 
-// SPFA (maze.c) against the independent Dijkstra on random evidence maps, for
-// every state, both directions and both modes; then follow the best actions
-// and check they realise exactly the planned cost.
+// SPFA against an independent Dijkstra on random evidence maps; the best actions must realise the planned cost.
 static void test_planner_against_reference(void){
     const plan_costs_t cost_models[2] = {FAST, SEARCH};
     int mismatches = 0, walk_errors = 0;
@@ -453,8 +447,7 @@ static void fill_test_map(void){
     maze_observe(12, 12, NORTH, 0);
 }
 
-// A run's end saves only a changed map: switching race presets (FAST,
-// CURVE) spent a flash slot on every run (issue 11, endurance).
+// A run's end saves only a changed map (switching race presets spent a slot on every run).
 static void test_storage_map_only(void){
     fake_flash_wipe();
     params_reset();
@@ -476,10 +469,7 @@ static void test_storage_map_only(void){
     CHECK_EQ(maze_evidence(12, 12, NORTH), -2);
 }
 
-// Races there and back on layout I (docs/mazes.md), switching presets as
-// the race menu does: each sees the goal's walls again, so the map changes
-// (and is saved) until their evidence saturates, then no race spends a slot.
-// On the robot (09-27): 2.4 and 2.5 saved, the next 2.4 did not.
+// Races there and back on layout I switching presets: saved until the goal's walls saturate, then no slot spent.
 static void test_races_settle_map(void){
     fake_flash_wipe();
     params_reset();
@@ -509,9 +499,7 @@ static void test_races_settle_map(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// The store is a log (docs/freezes.md): saves only program erased slots,
-// the newest valid record wins, pages are erased only by the boot's
-// compaction, and a flash that wedges mid-save loses nothing saved before.
+// The store is a log: saves only program erased slots, the newest valid record wins, only the boot erases.
 static void test_storage(void){
     fake_flash_wipe();
     params_reset();
@@ -552,8 +540,7 @@ static void test_storage(void){
     CHECK_EQ(params.accel, 4321);
     CHECK(params.kd == 0.75f);
 
-    // Every change is a new record in the next free slot, never an erase;
-    // with no slot left the map stays in RAM.
+    // Every change is a new record in the next free slot; with none left the map stays in RAM.
     const int erases = fake_flash_erases;
     for(uint8_t i = 0; i < 5; i++){
         maze_mark_visited(i, 9);
@@ -567,8 +554,7 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(4, 9) && !maze_is_visited(9, 9));
 
-    // The boot compacts: the newest record stays, the other five slots are
-    // freed with two erases, and the sequence goes on after it.
+    // The boot compacts: the newest record stays, the other slots freed with two erases.
     CHECK(storage_needs_compact());
     CHECK(storage_compact());
     CHECK_EQ(fake_flash_erases, erases + 2);
@@ -583,8 +569,7 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(9, 9));
 
-    // A halfword lands wrong but the flash recovers (the HSI restart): the
-    // save goes on into the next erased slot.
+    // A halfword lands wrong but the flash recovers: the save goes on in the next slot.
     maze_mark_visited(7, 9);
     const uint8_t free_before = storage_free_slots();
     fake_flash_glitch_after = 40;
@@ -595,8 +580,7 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(7, 9));
 
-    // The flash wedges 40 halfwords into a save: the write stops, the store
-    // refuses everything until a power cycle, the previous record loads.
+    // The flash wedges mid-save: the store refuses everything until a power cycle, the previous record loads.
     maze_mark_visited(8, 8);
     fake_flash_fail_after = 40;
     CHECK_EQ(storage_save(0), STORAGE_FAILED);
@@ -612,8 +596,7 @@ static void test_storage(void){
     CHECK_EQ(storage_load(), STORAGE_LOADED);
     CHECK(maze_is_visited(9, 9));
 
-    // A power cut between the copy and the erase of its old page: the copy
-    // (newer) wins, and the next boot finishes the compaction.
+    // A power cut between the copy and the erase of its old page: the copy wins, the next boot finishes.
     for(uint8_t i = 0; i < 2; i++){
         maze_mark_visited(i, 12);
         CHECK_EQ(storage_save(0), STORAGE_WRITTEN);
@@ -648,9 +631,7 @@ static void test_storage(void){
     fake_flash[at + 40] ^= 0x55;
     CHECK_EQ(storage_load(), STORAGE_LOADED);
 
-    // Saved by firmware with other parameter defaults (tuned values written
-    // into the code): the map and goal load, the parameters stay the new
-    // defaults.
+    // Saved by firmware with other parameter defaults: map and goal load, the parameters stay the new defaults.
     fake_flash[at + 16] ^= 0xFF;    // parameter signature
     reseal(at);
     maze_init();
@@ -663,8 +644,7 @@ static void test_storage(void){
     CHECK_EQ(params.accel, PARAM_ACCEL);
     fake_flash[at + 16] ^= 0xFF;
 
-    // Saved by firmware for another maze (another default goal): ignored
-    // even with a valid CRC, map and parameters alike.
+    // Saved by firmware for another maze: ignored even with a valid CRC.
     fake_flash[at + 12] ^= 0xFF;    // maze signature
     reseal(at);
     maze_init();
@@ -676,8 +656,7 @@ static void test_storage(void){
     reseal(at);
     CHECK_EQ(storage_load(), STORAGE_LOADED);
 
-    // The old one-page layout (STORE_VERSION 6 at the start of the second
-    // page): stale, and the boot's compaction clears it.
+    // The old one-page layout (STORE_VERSION 6): stale, cleared by the boot's compaction.
     fake_flash_wipe();
     const uint32_t magic = 0x4D544152u;
     const uint16_t v6 = 6, v6_size = 592;
@@ -695,8 +674,7 @@ static void test_storage(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// The firmware's own square root (control_sqrt: newlib's sqrtf pulls in ~2 KB
-// of double-precision code) against the C library's.
+// The firmware's own square root against the C library's.
 static void test_sqrt(void){
     float worst = 0.0f;
     for(float x = 1e-4f; x < 1e7f; x *= 1.37f){
@@ -763,8 +741,7 @@ static void run_cycle(summary_t *s, double noise, uint32_t seed, double doubt){
     s->fast_cells += sim_stats.forward_cells;
     s->fast_curves += sim_stats.curves;
     s->fast_turns += sim_stats.quarter_turns;
-    // The speed run and its return drive whole routes: at most one in-place
-    // turn per leg, at the start of each (and more only when a route fails).
+    // The speed run and its return: at most one in-place turn per leg, at its start.
     CHECK(sim_stats.paths > 0);
 }
 
@@ -792,8 +769,7 @@ static void test_competition_mazes(void){
         }
         print_summary(suites[i].name, &s);
         if(suites[i].doubt > 0.0){
-            // Doubtful readings only withhold information: never a wrong
-            // belief, never a crash, always done.
+            // Doubtful readings only withhold information: never a wrong belief, never a crash.
             CHECK_EQ(s.search_ok, s.runs);
             CHECK_EQ(s.consistent, s.runs);
             CHECK_EQ(s.fast_ok, s.runs);
@@ -819,9 +795,7 @@ static void test_competition_mazes(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// The two ways the search moves, on the same mazes. Straight legs decide
-// every cell with the walls the robot would see stopped there: the same
-// cells, the same verified optimum, fewer stops and less time.
+// Both ways the search moves on the same mazes: straight legs, the same verified optimum, fewer stops.
 static void test_search_modes(void){
     maze_set_goal(7, 7, 8, 8);
     const uint16_t openings[] = {0, 40, 150};
@@ -857,9 +831,7 @@ static void test_search_modes(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// Both hands, stopping in every cell and on straight legs (the default):
-// past the goal they go on following the wall until STOP (here after 600
-// cells: a perfect 16x16's lap is 510), the legs with fewer stops.
+// Both hands, stopping in every cell and on straight legs: past the goal they follow the wall until STOP.
 static void test_wall_followers(void){
     maze_set_goal(7, 7, 8, 8);
     int ok[2] = {0}, runs = 0;
@@ -896,8 +868,7 @@ static void test_practice_maze(void){
     summary_t s = {0};
     for(uint32_t m = 0; m < 60; m++){
         truth_reset(1);
-        // Carve a random spanning tree inside x<4, y<3 (DFS), plus the
-        // layout of the old flood test (only the bottom row joins the halves).
+        // A random spanning tree inside x<4, y<3, plus the old flood test's layout.
         if(m == 0){
             for(uint8_t x = 0; x < 4; x++)
                 for(uint8_t y = 0; y < 3; y++){
@@ -1027,9 +998,7 @@ static void test_run_control(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// A wall appears on a straight of the verified route after the search (the
-// map was wrong): the speed run stops at the cell before it, notes it, and
-// drives on around it.
+// A wall appears on the verified route: the speed run stops at the cell before it, notes it and drives around.
 static void test_fast_run_surprise_wall(void){
     maze_set_goal(7, 7, 8, 8);
     cellset_t goal;
@@ -1076,8 +1045,7 @@ static void test_fast_run_surprise_wall(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// Race 2.3: the verified route with every turn made in place, there and
-// back: no curves, every straight whole, home and ready at the end.
+// Race 2.3: the verified route with turns in place, there and back, home and ready.
 static void test_fast_run_no_curves(void){
     maze_set_goal(7, 7, 8, 8);
     int runs = 0, ok = 0;
@@ -1104,8 +1072,7 @@ static void test_fast_run_no_curves(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// --demo: one full cycle on the old flood-test practice layout, with the
-// firmware's own log and map drawing.
+// --demo: one full cycle on the practice layout, with the firmware's log and map.
 static void demo(void){
     host_verbose = 1;
     maze_set_goal(3, 2, 3, 2);
@@ -1130,12 +1097,7 @@ static void demo(void){
     search_print_map();
 }
 
-// --transcript <seed> <openings> [practice]: everything the robot would send
-// over Bluetooth during a search and a speed run on one random maze, telemetry
-// included, as tools/test_robot_monitor.py consumes it. Lines starting with
-// '#' are markers for the test, not firmware output.
-// Random 4x3 practice maze (spanning tree, start cell closed to the east)
-// plus `openings` random extra passages.
+// --transcript <seed> <openings> [practice]: all the robot would send over Bluetooth ('#' lines are markers).
 static void practice_truth(uint32_t seed, uint16_t openings){
     uint8_t seen[4][3] = {{0}};
     uint8_t sx[12], sy[12];
@@ -1175,8 +1137,7 @@ static void practice_truth(uint32_t seed, uint16_t openings){
     }
 }
 
-// Walls the robot "believes" around the goal before starting: forces the
-// map repair path (telemetry must resend the map).
+// Walls believed around the goal before starting: forces the map repair (telemetry resends the map).
 static void phantom_walls(void){
     uint8_t g[4];
     maze_get_goal(g);
@@ -1190,10 +1151,7 @@ static void phantom_walls(void){
     }
 }
 
-// A leg finds the goal sealed off on the way (the map believed in phantom
-// walls around it and the one entrance it left is really closed): the robot
-// stops there and repairs the map at rest. Never on the way: the repair
-// resends the whole map, ~140 ms of waiting for the UART while moving.
+// A leg finds the goal sealed off by phantom walls: the robot stops and repairs the map at rest, never on the way.
 static void test_repair_at_rest(void){
     maze_set_goal(7, 7, 8, 8);
     truth_reset(0);
@@ -1331,8 +1289,7 @@ static void test_steering_pd(void){
 }
 
 static void test_speed_control(void){
-    // Nominal robot, 15 mm off-centre: exact distance, centred within the
-    // first half, no weaving, at search and speed-run speeds.
+    // Nominal robot, off-centre: exact distance, centred, no weaving, at search and speed-run speeds.
     const float speeds[] = {300.0f, 500.0f, 800.0f};
     for(size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++){
         plant_t p = plant_nominal();
@@ -1376,9 +1333,7 @@ static void test_speed_control(void){
     yawed.yaw0 = 5.0f;
     r = sim_straight(&yawed, 540.0f, 500.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(fabsf(r.y_end) < 2.5f);
-    // Placed by hand 27 mm off and 11 deg into the wall (the robot, 10-05:
-    // the error clamp took it for a transient and it ran the whole straight
-    // 30-40 mm off, along the wall): both walls agree, so back to the centre.
+    // Placed by hand 27 mm off and 11 deg into the wall (on the robot, 10-05, it ran the whole straight along it).
     plant_t crooked = base;
     crooked.y0 = 27.0f;
     crooked.yaw0 = -11.0f;
@@ -1392,22 +1347,19 @@ static void test_speed_control(void){
     r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
     for(int i = 0; i < 5; i++) CHECK(fabsf(r.y_at[i]) < 30.0f);
     CHECK(fabsf(r.y_end) < 3.0f);
-    // 30 deg, the tail by the right wall (10-05, 900 mm/s: it touched the
-    // left wall): a bias clamp of 25 deg left it ~13 mm off to the end.
+    // 30 deg, the tail by the right wall (10-05, 900 mm/s: it touched the left wall).
     crooked.y0 = -38.0f;
     crooked.yaw0 = -30.0f;
     r = sim_straight(&crooked, 540.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_max < 45.0f);                 // 48: touching the wall
     CHECK(fabsf(r.y_end) < 4.0f);
-    // 35 deg (10-05, 100 mm/s, into the wall): at that yaw one beam runs
-    // along its wall and only the other is seen, nearer than the centre.
+    // 35 deg (10-05, 100 mm/s, into the wall): one beam runs along its wall, only the other is seen.
     crooked.y0 = -30.0f;
     crooked.yaw0 = -35.0f;
     r = sim_straight(&crooked, 540.0f, 100.0f, 3000.0f, PARAM_KP, PARAM_KD);
     CHECK(r.y_max < 45.0f);
     CHECK(fabsf(r.y_end) < 4.0f);
-    // Off-centre at the start of a short straight (the first cell of a
-    // speed run): it ends nearly parallel, the next corridor not aimed at a wall.
+    // Off-centre at the start of a short straight: it ends nearly parallel.
     plant_t off = base;
     off.y0 = 10.0f;
     r = sim_straight(&off, 180.0f, 450.0f, 3000.0f, PARAM_KP, PARAM_KD);
@@ -1449,8 +1401,7 @@ typedef struct {
     uint8_t done;
 } ref_walk_t;
 
-// Follows the reference of a path the way a perfect robot would: every
-// step moves `delta` along the reference heading.
+// Follows a path's reference as a perfect robot would.
 static ref_walk_t walk_reference(path_run_t *r, int max_steps){
     ref_walk_t w = {0};
     profile_t fwd, rot;
@@ -1476,16 +1427,14 @@ static ref_walk_t walk_reference(path_run_t *r, int max_steps){
 
 static void test_curve_shape(void){
     curve_t c = default_curve();
-    // Clothoid-arc-clothoid: R pi/2 + ramp long; symmetric, so the same
-    // footprint along both axes (Fresnel integrals: 85.47 mm).
+    // Clothoid-arc-clothoid: symmetric, the same footprint along both axes (Fresnel integrals: 85.47 mm).
     CHECK(fabsf(c.length - (CURVE_RADIUS_MM * 1.5707963f + CURVE_RAMP_MM)) < 0.01f);
     CHECK(fabsf(c.footprint - 85.47f) < 0.05f);
     CHECK(fabsf(c.pre - (CELL_MM / 2.0f - c.footprint)) < 0.05f);
     CHECK(fabsf(c.pre - c.post) < 0.01f);
     CHECK(curve_progress(&c, 0.0f) == 0.0f && curve_progress(&c, c.length) == 1.0f);
     CHECK(fabsf(curve_progress(&c, 0.5f * c.length) - 0.5f) < 1e-5f);
-    // Nearly a pure arc: the ramps push it out by half their length, so
-    // radius 90 would overhang the cell; 89 with 1 mm ramps fills it.
+    // Nearly a pure arc: the ramps push it out by half their length; 89 with 1 mm ramps fills the cell.
     CHECK(!curve_setup(&c, 90.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
     CHECK(curve_setup(&c, 89.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
     CHECK(fabsf(c.footprint - 89.5f) < 0.05f);
@@ -1538,8 +1487,7 @@ static void test_path_reference(void){
             CHECK(w.alpha_max <= alpha * 1.05f);
         }
     }
-    // The curve speed leaves room to stop at the next cell centre after the
-    // last curve: at 3000 mm/s^2, sqrt(2 a (post + 90)) = 753 mm/s.
+    // The curve speed leaves room to stop after the last curve: sqrt(2 a (post + 90)) = 753 mm/s.
     const int8_t corner[2] = {1, 0};
     const run_path_t path = {corner, 2};
     path_run_t r;
@@ -1611,9 +1559,7 @@ static void test_path_control(void){
     CHECK(!path_straight_centre(&r, r.first_edge, 0, &entered, &centre));   // no centre passed yet
 }
 
-// A path decided on the way, as the search drives it: each cell is added
-// before the reference gets there. It must never stop in between and end
-// exactly where the same path planned in one go ends.
+// A path decided on the way must never stop in between and end where the same path planned in one go ends.
 static void test_path_grow(void){
     const curve_t c = default_curve();
     static const int8_t plan[9] = {0, 1, 0, -1, 1, 0, 0, -1, 0};    // corners, an S, straights
@@ -1665,11 +1611,7 @@ static void test_path_grow(void){
     CHECK(!path_grow(&r));
 }
 
-// The simulated robot (motors, encoders, the chassis' yaw stick-slip)
-// through corners, staircases and u-turns at the default speeds: it must end
-// on the cell centre, square, and never stray from the path. There are no
-// walls here, so nothing centres the robot: over a long tour the small
-// heading errors of each curve add up (the maze's walls take them out).
+// The simulated robot through corners, staircases and u-turns (no walls, no centring): on the centre, square, on the path.
 static void test_path_tracking(void){
     const curve_t c = default_curve();
     static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
@@ -1688,10 +1630,7 @@ static void test_path_tracking(void){
     for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++){
         for(int k = 0; k < 7; k++){
             const path_result_t r = sim_path(&plants[k], &paths[i], &c, PARAM_FAST_SPEED, PARAM_CURVE_SPEED, PARAM_ACCEL);
-            // Nominal robot: within 2 mm (the tour: 3.5). With the model 20 %
-            // off, each curve lags ~2 deg and leaves 3-5 mm at CURVE 400;
-            // at 480 a motor 50 % slower than measured leaves 7 mm after a
-            // staircase.
+            // Nominal: within 2 mm (the tour: 3.5); a model 20-50 % off leaves 3-7 mm.
             const uint8_t long_tour = i == 3;
             const float tol = k == 0 ? (long_tour ? 3.5f : 2.0f) : (long_tour ? 16.0f : 8.0f);
             const int ok = r.ms > 0 && r.end_err < tol && r.cross_err_max < tol
@@ -1703,19 +1642,13 @@ static void test_path_tracking(void){
             }
             CHECK(ok);
         }
-        // Curves at the most the motors are asked for (the firmware caps
-        // them at ~480 mm/s), between straights slow enough not to run out
-        // of PWM themselves: on the path, and never out of PWM.
+        // Curves at the most the motors are asked for, between straights that do not run out of PWM.
         const path_result_t r = sim_path(&base, &paths[i], &c, 700.0f, 480.0f, PARAM_ACCEL);
         CHECK(r.end_err < 2.0f && r.cross_err_max < 3.5f && r.pwm_max < CONTROL_PWM_LIMIT);
     }
 }
 
-// Motors that cannot keep up (a low battery: 70-80 % of the model) at 900
-// / 480 mm/s: the reference slows down instead of running away, so the
-// robot never falls far behind it and the curves start where they should.
-// Without that, at 80 % the robot fell 24 mm behind and ended a 14-cell tour
-// 47 mm off. A blocked robot must still be caught.
+// Motors that cannot keep up (70-80 % of the model): the reference slows down instead of running away.
 static void test_path_governor(void){
     const curve_t c = default_curve();
     static const int8_t corner[3] = {0, 1, 0}, stairs[7] = {0, 1, -1, 1, -1, 0, 0}, u_turn[4] = {0, 1, 1, 0};
@@ -1749,10 +1682,7 @@ static void test_path_governor(void){
     CHECK(r.stall_ms > 0 && r.stall_ms < 500);
 }
 
-// The curves slip sideways, turning less than the encoders say, the more
-// the faster (on the robot ~2 deg per curve at 478 mm/s). The path asks the
-// encoders for more at its curve speed: layout C's staircase (1D1I1D2) must
-// come out square, not a curve's worth off as without it.
+// The curves slip sideways (~2 deg at 478 mm/s): the path asks the encoders for more; layout C's staircase comes out square.
 static void test_curve_slip(void){
     static const int8_t stairs[6] = {0, 1, -1, 1, 0, 0};
     const run_path_t path = {stairs, 6};
@@ -1773,9 +1703,7 @@ static void test_curve_slip(void){
     CHECK(ok);
 }
 
-// The faster the curves, the more they slip sideways: `pre` grows with the
-// curve speed above CURVE_PRE_V0, CURVE_PRE_SLIP mm at CURVE_SLIP_VREF_MM_S,
-// and layout E's six curves shift ~3 mm per mm of it.
+// `pre` grows with the curve speed above CURVE_PRE_V0 (curves slip outwards the faster).
 static void test_curve_pre_slip(void){
     static const int8_t layout_e[9] = {0, 1, 1, -1, 1, -1, -1, 0, 0};
     const run_path_t e = {layout_e, 9};
@@ -1795,8 +1723,7 @@ static void test_curve_pre_slip(void){
     c.pre_v0 = 0.0f;
     CHECK(path_start(&r, &e, &c, CELL_MM, 900.0f, CURVE_SLIP_VREF_MM_S, PARAM_ACCEL));
     CHECK(r.curve.pre + r.curve.post > -0.001f);
-    // In the simulator +7 at 480 moves E's exit ~20 mm right (the robot's
-    // 20 mm left); with V0 300, 300 mm/s is untouched.
+    // +7 at 480 moves layout E's exit ~20 mm right in the simulator; 300 mm/s untouched.
     const plant_t p = plant_nominal();
     c.pre_k = 7.0f / (vref2 - 300.0f * 300.0f);
     c.pre_v0 = 300.0f;
@@ -1823,8 +1750,7 @@ static void control_report(void){
                (double)r.fwd_err_max, (double)r.rot_err_max, (double)r.y_late, (double)r.y_end, (double)r.yaw_end,
                r.crossings, r.pwm_max);
     }
-    // A turn left the robot yawed (in place: up to ~4.5 deg): how far the
-    // straight after it goes before the walls centre it (GitHub issue #1).
+    // A turn left the robot yawed: how far the straight after it goes before the walls centre it.
     printf("straight 720 mm after a turn (yaw +-4 deg, centred, walls +-2 mm; mean of 16):"
            " |y| mm / |yaw| deg at 90, 180 ... 630 mm\n");
     const float after_turn[] = {300.0f, 450.0f, 600.0f, 800.0f, 900.0f};
@@ -1872,9 +1798,7 @@ static void control_report(void){
                    (double)r.rot_err_max, r.pwm_max);
         }
     }
-    // Layout E: north 2, a curve in each of six cells, north 2 (no walls:
-    // no centring). Lateral right after the last curve (> 0 right of the
-    // centre line), for several CURVE_PRE_SLIP.
+    // Layout E (no walls, no centring): lateral after the last curve (> 0 right) for several CURVE_PRE_SLIP.
     static const int8_t layout_e[9] = {0, 1, 1, -1, 1, -1, -1, 0, 0};
     const run_path_t e = {layout_e, 9};
     const plant_t base = plant_nominal();
@@ -1895,9 +1819,7 @@ static void control_report(void){
     }
 }
 
-// host_tests --costs [fast curve]: speed-run time of the planner's route
-// start -> goal for several (cell, turn) cost pairs, on fully known random
-// mazes, to choose FAST_COST_CELL / FAST_COST_TURN.
+// --costs [fast curve]: speed-run time of the route for several (cell, turn) cost pairs (FAST_COST_*).
 static void costs_report(float v_fast, float v_curve){
     static const plan_costs_t pairs[] = {
         {2, 4}, {2, 3}, {2, 2}, {2, 1}, {3, 4}, {3, 2}, {3, 1}, {4, 3}, {4, 1}, {5, 2}, {5, 3},
@@ -1940,9 +1862,7 @@ static void costs_report(float v_fast, float v_curve){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// A maze file in the text format of github.com/micromouseonline/mazefiles
-// (16x16, 33 lines: 'o' posts, '---' and '|' walls, S start, G goal) as the
-// true maze, the goal where its G are (the centre if none). 0 if unreadable.
+// A maze file of github.com/micromouseonline/mazefiles as the true maze (goal at its G, else the centre).
 static int mazefile_load(const char *path){
     FILE *f = fopen(path, "r");
     if(!f) return 0;
@@ -1975,8 +1895,7 @@ static int mazefile_load(const char *path){
     return true_optimum() != PLAN_INF;
 }
 
-// host_tests --mazefile <file>...: the whole cycle on each maze, with perfect
-// sensing and with 3% noise; names the mazes where anything went wrong.
+// --mazefile <file>...: the whole cycle on each maze, perfect and 3% noise; names the failures.
 static void mazefile_report(int count, char **paths){
     summary_t sums[2] = {{0}};
     for(int i = 0; i < count; i++){
@@ -2020,10 +1939,7 @@ static void mazefile_report(int count, char **paths){
     printf("  worst decision on the way: %u pops (perfect), %u (3%% noise)\n", sums[0].decide_pops_max, sums[1].decide_pops_max);
 }
 
-// host_tests --timing: the planner's work (states popped) in each decision a
-// search leg makes on the way, over 16x16 searches. The robot must decide
-// within SEARCH_LATE_MARGIN_MM of travel; the pops are converted to time
-// with the robot's measured cost per pop (STATUS).
+// --timing: the planner's pops in each decision on the way (the robot must decide within SEARCH_LATE_MARGIN_MM).
 static void timing_report(void){
     maze_set_goal(7, 7, 8, 8);
     cellset_t goal;

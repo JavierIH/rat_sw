@@ -593,8 +593,7 @@ def draw_maze(cv, top, left, height, width, model, ov, glyphs, full, start):
         return glyphs["junction"][index], "wall"
 
     def content(x, y):
-        # Route markers win over the goal letter (a route into the goal must
-        # stay visible) but take the goal colour there.
+        # Route markers win over the goal letter, in the goal colour.
         goal = model.is_goal(x, y)
         if model.pose and (x, y) == model.pose[:2]:
             return glyphs["robot"][model.pose[2]], "robot"

@@ -37,10 +37,7 @@ CELL_MM = 180
 SENSORS = ("fl", "fr", "sl", "sr")
 IR_DELAY_MS = 50            # as in robot_config.h: the IR report the robot's past
 SQUARE_MM_PER_DEG = 1.2     # as in robot_config.h: FL - FR per degree of yaw
-# The side sensors sit at the nose: a yaw moves their readings ~1 mm per
-# degree (right: towards the right wall), besides the robot's sideways
-# motion. Fitted on 54 wall stretches of the ring (layout F, 2026-09-26)
-# while the centring turned the robot 4 deg on average.
+# Side readings move ~1 mm per degree of yaw (sensors at the nose); fitted on the ring, 2026-09-26.
 SIDE_LEVER_MM = 55.0        # per radian
 
 
@@ -445,8 +442,7 @@ def analyze_curve_controlled(rec, out):
         out.append("  shape: radius %s, ramps %s mm: %s mm of curve, straight before %s and after %s mm, up to %s mm/s"
                    % tuple(rec.meta.get(k, "?") for k in ("curve_r", "curve_ramp", "curve_len", "curve_pre",
                                                           "curve_post", "curve_vmax")))
-    # The curve from the distance travelled: the rotation reference also
-    # carries the centring's heading offset.
+    # The curve from the distance travelled (the rotation reference also carries the centring's offset).
     s0 = CELL_MM / 2 + rec.number("curve_pre", 0.0)
     s1 = s0 + rec.number("curve_len", 0.0)
     turning = [i for i in range(end) if s0 < ref_f[i] < s1]
@@ -468,8 +464,7 @@ def analyze_curve_controlled(rec, out):
     out.append("  encoders: %+.2f deg in the curve, %+.2f over the whole move (asked %+.2f); centring"
                " held in the curve %+.2f" % (rot[b] - rot[a], rot[end - 1], direction * angle, ref_r[a]))
 
-    # Sideways, as soon as the side readings come from the exit corridor
-    # (IR_DELAY_MS after the curve), before the centring corrects much.
+    # Sideways, once the side readings come from the exit corridor (IR_DELAY_MS after the curve).
     errors = dict(side_errors(rec, end))
     first = b + int(math.ceil(IR_DELAY_MS / rec.period))
     before = [errors[i] for i in range(max(0, a - 10), a) if i in errors]
@@ -509,8 +504,7 @@ def analyze_curve_controlled(rec, out):
         if abs(front) > 6:
             out.append("  (FL-FR %+.0f mm from the reference distance: the heading is not reliable)" % front)
         elif abs(rot[end - 1]) > 45:
-            # Real rotation over the encoders' (curve and centring alike),
-            # assuming the robot started square to the maze.
+            # Real rotation over the encoders', assuming the robot started square.
             k = (direction * 90.0 + yaw_right) / rot[end - 1]
             out.append("  real turn / encoders: %.3f, assuming it came out straight" % k)
             out.append("  -> TUNE CURVE_ANGLE %.2f (now %.2f; the exit heading and FL-FR are noisy:"
@@ -587,8 +581,7 @@ def analyze_turn(rec, out):
     out.append("Turn of %d quarters (%s), %d stretches found" % (abs(quarters), rec.meta.get("result", "?"), len(segments)))
     overshoots = []
     for k, (a, b) in enumerate(segments):
-        # From rest before the motors start, to the last sample driving, to
-        # rest again just before the next turn (or the end).
+        # From rest before the motors start to rest again before the next turn (or the end).
         rest = rot[a - 1] if a > 0 else rot[a]
         end = segments[k + 1][0] - 1 if k + 1 < len(segments) else rec.n - 1
         turned_at_stop = rot[b - 1] - rest
@@ -724,8 +717,7 @@ def analyze_run(rec, out):
         out.append("  the robot did not move")
         return
     first, end = on[0], on[-1] + 1
-    # The recording goes on after the stop: what follows (a turn in place)
-    # is another move.
+    # The recording goes on after the stop: what follows is another move.
     top = max(ref_f)
     end = min(end, next(i for i in range(rec.n) if ref_f[i] >= top - 0.05) + 1)
     v = speed_mm_s(rec, average_ticks(rec), smooth=2)
@@ -737,12 +729,7 @@ def analyze_run(rec, out):
     saturated = sum(1 for i in on if max(abs(rec.data["pwm_l"][i]), abs(rec.data["pwm_r"][i])) >= 1000)
     if saturated:
         out.append("  ! PWM at the limit in %d samples of %d" % (saturated, len(on)))
-    # The reference turns fast in the curves (~0.65 deg/mm) and the centring
-    # at most STEER_CURVE_DEG_PER_MM (0.2): the straights are where it turns
-    # slower than 0.4 deg/mm. The heading offset is what it holds beyond the
-    # curves' multiples of their angle.
-    # The clothoid ramps turn slower near their ends: under 0.4 deg/mm for
-    # their first 15 mm, so every curve is widened by that much.
+    # Straights: where the reference turns under 0.4 deg/mm (curves ~0.65; their ramps widen each by 15 mm).
     fast = []
     for i in range(rec.n):
         a, b = max(0, i - 2), min(rec.n - 1, i + 2)
@@ -900,8 +887,7 @@ def report(paths):
             ANALYSES[rec.kind](rec, out)
         else:
             out.append("  prueba desconocida: %s" % rec.kind)
-        # The side sensors: CAL NOISE, CAL TURN 2, CAL NOISE in a corridor
-        # (their centres), or rounds of CAL NOISE + CAL TURN 1 (see side_round).
+        # The side sensors: CAL NOISE, CAL TURN 2, CAL NOISE in a corridor, or rounds (side_round).
         if rec.kind == "noise" and rec.n:
             means = rest_means(rec)
             if mirror and means and mirror[1] % 4 == 2:

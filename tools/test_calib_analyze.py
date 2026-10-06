@@ -145,8 +145,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"MOTOR_TAU_S +([\d.]+)f", text), 0.050, delta=0.008)
 
     def test_controlled_straight(self):
-        # 3 cells at 500 mm/s, 0.5 mm behind the reference, 12 mm left of centre
-        # at the start and centred by the end; 543 mm measured.
+        # 3 cells at 500 mm/s, 0.5 mm behind, 12 mm left at the start and centred by the end; 543 mm measured.
         rows, ref, tpm = [], 0.0, 9.05
         n = 600
         for i in range(n):
@@ -186,9 +185,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"TURNTICKS (\d+)", text), 400 * 352 / 360, delta=2)
 
     def test_controlled_curve(self):
-        # CAL CURVE 1 400: right curve, encoders on the reference. The robot
-        # leaves the curve 5 mm left of centre (out wide), the wall at the end
-        # stops it 3 mm before the plan, and it is 2 deg short of square.
+        # CAL CURVE 1 400: exits 5 mm left (out wide), stops 3 mm before the plan, 2 deg short of square.
         period, v, tpm, mpd = 2, 400.0, 9.05, 400 / 90 / 9.05
         radius, ramp, pre, post = 70.0, 30.0, 4.5, 4.5
         length = radius * math.pi / 2 + ramp
@@ -255,9 +252,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"TUNE CURVE_ANGLE ([\d.]+)", text), 92.0, delta=0.4)
 
     def test_continuous_run(self):
-        # CAL RUN over a cell, a right curve and 270 mm of straight at 500
-        # mm/s. The robot leaves the curve 12 mm left of centre and ends 2 mm
-        # off; the side IR report where it was 50 ms before.
+        # CAL RUN: a cell, a right curve, 270 mm at 500 mm/s; exits 12 mm left, ends 2 mm off.
         period, v, tpm, mpd = 4, 500.0, 9.05, 400 / 90 / 9.05
         radius, ramp = 70.0, 30.0
         length = radius * math.pi / 2 + ramp
@@ -325,19 +320,13 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"straight 1: 0-(\d+) mm", text), c0, delta=3)
         self.assertAlmostEqual(number(r"straight 2: (\d+)-", text), c1, delta=3)
         self.assertIn("asked +0.0..+0.0 deg", text[:text.index("straight 2")])
-        # Parallel to the walls: straight 2 drifts 10 mm right with the
-        # encoders straight; straight 1 is too short to fit it.
+        # Parallel to the walls: straight 2 drifts 10 mm right; straight 1 is too short to fit.
         self.assertNotIn("encoder heading", text[:text.index("straight 2")])
         self.assertAlmostEqual(number(r"encoder heading ([-+\d.]+)", second),
                                math.degrees(-10.0 / (stop - c1)), delta=0.3)
 
     def test_chain_follows_the_heading_across_moves(self):
-        # Two straights of a session. In the first the encoders drive
-        # straight while the robot runs 2 deg left of them (a turn before came
-        # out short). In the second the centring turns it 2 deg right over
-        # its first 60 mm, which the side readings also show through the
-        # nose (SIDE_LEVER_MM), and it stops square to a front wall. The
-        # encoders stay 2 deg ahead of the robot: that turn was real.
+        # Two straights: the first runs 2 deg left of the encoders, the second turns 2 deg right and stops square.
         period, v, tpm, mpd = 4, 300.0, 9.05, 400 / 90 / 9.05
         y, paths = 0.0, []
         for n, turn in enumerate((0.0, 2.0)):
@@ -382,9 +371,7 @@ class TestCalibAnalyze(unittest.TestCase):
             self.assertAlmostEqual(ahead, 2.0, delta=0.4)
         self.assertAlmostEqual(number(r"front\s+([-+\d.]+)", text), 2.0, delta=0.4)
         self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+walls\s+[-+\d.]+\s+front", text), 2.0, delta=0.1)
-        # WHEEL_DIFF weighs the ticks as the firmware does: from the option,
-        # or from the dump's wheel_diff_ppm. -0.003 turns each 180 mm
-        # straight's encoder heading 0.003 / 2 * 180 / mpd deg to the left.
+        # WHEEL_DIFF weighs the ticks as the firmware does (option or the dump's wheel_diff_ppm).
         trimmed = ca.chain(paths, wheel_diff=-0.003)
         shift = 2 * 0.003 / 2 * 180.0 / mpd
         self.assertAlmostEqual(number(r"encoders\s+([-+\d.]+)\s+walls\s+[-+\d.]+\s+front", trimmed),
@@ -409,8 +396,7 @@ class TestCalibAnalyze(unittest.TestCase):
         return save(self.tmp.name, "straight %d 150" % cells, 5, rows, ["measured %.1f mm" % measured])
 
     def test_straights_split_cell_and_move_calibration(self):
-        # Wheels really do 9.5 ticks/mm and coast 60 ticks after braking: to
-        # stop centred, N cells need N*1710 - 60 ticks at the brake point.
+        # 9.5 ticks/mm and 60 ticks of coasting: N cells need N*1710 - 60 ticks at the brake point.
         one = self.straight(1, 9.5, 60)
         three = self.straight(3, 9.5, 60)
         text = ca.report([one, three])
@@ -478,8 +464,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertIn("wall is missing", ca.report([paths[0], paths[1], still(94, 150)]))
 
     def test_side_sensors_from_rounds_of_quarter_turns(self):
-        # Centred, SL reads 88 and SR 75, both following the offset x (to
-        # the right) mm for mm; facing a wall centred the fronts read 94.
+        # Centred, SL reads 88 and SR 75, following the offset mm for mm; fronts read 94 facing a wall.
         def still(front, sl, sr):
             raws = (fl_raw_for(front), fl_raw_for(front, FR_CAL)) if front else (40, 40)
             row = (0, 0, 0, 0) + raws + (fl_raw_for(sl, SL_CAL), fl_raw_for(sr, SR_CAL))

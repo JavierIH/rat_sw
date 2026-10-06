@@ -48,9 +48,7 @@ def firmware_transcript(seed, openings, practice=False, phantom=False):
 
 
 def map_state(model):
-    # The border slots (north of the top row, east of the right column) are
-    # never read: the border is always a wall. Full rows fill them in, cell
-    # lines do not.
+    # Border slots are never read (the border is always a wall); full rows fill them, cell lines do not.
     north = [col[:-1] for col in model.north]
     east = copy.deepcopy(model.east[:-1])
     return copy.deepcopy((north, east, model.visited))
@@ -75,8 +73,7 @@ class TranscriptChecker:
                 elif line.startswith("@R") and rows_left is not None:
                     rows_left -= 1
                     if rows_left == 0:
-                        # The map built incrementally during the run must
-                        # equal the one the full sync describes.
+                        # The map built during the run must equal the full sync's.
                         self.test.assertEqual(snapshot, (map_state(self.model), self.model.pose))
                         snapshot, rows_left = None, None
                         self.syncs += 1
@@ -142,8 +139,7 @@ class TestAgainstFirmware(unittest.TestCase):
                     self.check(seed, openings, practice=True)
 
     def test_map_repairs_keep_the_monitor_in_sync(self):
-        # Phantom walls around the goal force the robot to forget walls
-        # mid-run; the monitor must still agree with every decision.
+        # Phantom walls around the goal force forgetting walls mid-run; the monitor must still agree.
         for seed in range(1, 6):
             with self.subTest(seed=seed):
                 lines = firmware_transcript(seed, 1, practice=True, phantom=True)
@@ -256,8 +252,7 @@ class TestRender(unittest.TestCase):
                             cv, cursor = rm.render(rows, cols, model, ov, view, (0, 0), time.monotonic())
                             self.check_frame(cv, cursor, rows, cols, ascii_only)
                             if rows >= rm.MIN_ROWS and cols >= rm.MIN_COLS and not ascii_only:
-                                # The robot is always kept in view, drawn once (the
-                                # legend and header lines name it in words).
+                                # The robot is always in view, drawn once.
                                 robots = sum(cv.row_text(y).count(g) for y in range(1, rows - 2)
                                              for g in rm.GLYPHS_UNICODE["robot"] if "robot" not in cv.row_text(y))
                                 self.assertEqual(robots, 1)

@@ -1,8 +1,5 @@
 #!/bin/bash
-# tools/robot.sh [-w "pattern"] [-t seconds] "CMD1" "CMD2" ...: sends the commands
-# through tools/bt_logger.py's FIFO (never blocks: fails if no logger is reading),
-# waits until a received line matches the pattern (default: nothing, 3 s),
-# and prints the new human-readable lines.
+# robot.sh [-w pattern] [-t s] "CMD" ...: sends through bt_logger.py, waits for the pattern, prints the new lines.
 S=${RAT_BT_DIR:-/tmp/rat_bt}
 WAIT=""; TIMEOUT=3
 while getopts "w:t:" o; do case $o in w) WAIT=$OPTARG;; t) TIMEOUT=$OPTARG;; esac; done

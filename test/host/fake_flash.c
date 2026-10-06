@@ -1,10 +1,4 @@
-// RAM stand-in for the reserved flash pages, with the real rules: a program
-// only fills erased space, an erase clears one page. It can wedge like the
-// robot's flash (docs/freezes.md): after fake_flash_fail_after more halfwords
-// the next one never lands and the store refuses everything until
-// fake_flash_power_cycle(). After fake_flash_glitch_after more halfwords the
-// next one lands wrong and the write fails, the store still usable (a slow
-// halfword the HSI restart recovered from).
+// RAM flash with the real rules; can wedge (fake_flash_fail_after) or glitch a halfword (fake_flash_glitch_after).
 #include <string.h>
 #include "flash_store.h"
 

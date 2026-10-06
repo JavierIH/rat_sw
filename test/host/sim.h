@@ -5,10 +5,7 @@
 #include "maze.h"
 #include "motion.h"
 
-// Simulated robot in a known "true" maze, implementing motion.h. Also built
-// into the virtual robot firmware (src/test_virtual.c, SIM_ON_ROBOT), which
-// replaces motion_checkpoint() and motion_indicate() with the robot's and
-// takes each move's time for real in virtual_elapse() (turning its wheels).
+// Simulated robot in a known maze, implementing motion.h (also inside the virtual robot firmware).
 
 #define SIM_POPS_BUCKETS      16
 #define SIM_POPS_BUCKET_SIZE  1024u
@@ -36,8 +33,7 @@ extern heading_t sim_h;
 void truth_reset(uint8_t with_all_walls);   // border always walls
 void truth_set_wall(uint8_t x, uint8_t y, heading_t h, uint8_t on);
 uint8_t truth_wall(uint8_t x, uint8_t y, heading_t h);
-// Random perfect maze (DFS) with `extra_openings` walls knocked out to create
-// loops. The start cell (0,0) keeps its east wall, as in competition mazes.
+// Random perfect maze (DFS) with `extra_openings` walls knocked out; the start keeps its east wall.
 void truth_generate(uint32_t seed, uint16_t extra_openings);
 // The centre 2x2 as in competition: open inside, one entrance (after truth_generate).
 void truth_competition_goal(uint32_t seed);

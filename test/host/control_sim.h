@@ -4,10 +4,7 @@
 #include <stdint.h>
 #include "path.h"
 
-// The firmware's speed control (control.c, robot_config.h constants) driving
-// a simulated robot in a corridor: first-order motors with friction and dead
-// time, quantized encoders, noisy angled side IR. Used by the host tests and
-// by `host_tests --control` to tune the gains away from the robot.
+// The firmware's speed control driving a simulated robot in a corridor (motors, encoders, angled side IR).
 
 typedef struct {
     float gain_l, gain_r;       // real mm/s per PWM relative to the model (1 = as MOTOR_KV_*)
@@ -46,8 +43,7 @@ typedef struct {
     uint32_t ms;                // until the move settled
 } sim_result_t;
 
-// A whole path (path.h) without walls, so without centring: how closely the
-// wheels follow the curves. Maze frame: start cell centre at the origin.
+// A whole path without walls (no centring): how closely the wheels follow the curves; start cell centre at the origin.
 typedef struct {
     float end_err;              // mm from where the robot stops to where the reference ends
     float heading_err;          // deg, true heading at the end minus the reference's

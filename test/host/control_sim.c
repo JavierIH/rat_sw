@@ -39,8 +39,7 @@ static void motor_init(motor_t *m, float gain, const plant_t *p){
     m->dead = p->dead_ms < DEAD_MAX ? p->dead_ms : DEAD_MAX - 1;
 }
 
-// PWM left to accelerate the wheel after its friction; 0 while the PWM
-// cannot beat the static friction of a wheel at rest.
+// PWM left to accelerate the wheel after its friction; 0 while it cannot beat the static friction.
 static float motor_drive(motor_t *m, int16_t pwm){
     m->queue[m->head] = pwm;
     m->head = (m->head + 1) % (m->dead + 1);
@@ -52,9 +51,7 @@ static float motor_drive(motor_t *m, int16_t pwm){
     return u - copysignf(m->friction, m->v);
 }
 
-// Both wheels, first order each, coupled through the chassis: a change of
-// heading also drags the skids, which hold the heading until the wheels
-// push apart hard enough (the robot's stick-slip in yaw).
+// Both wheels, first order each, coupled through the chassis' stick-slip in yaw.
 static void wheels_step(motor_t *l, motor_t *r, int16_t pwm_l, int16_t pwm_r, float yaw_friction,
                         float yaw_stiction, float dt){
     const float ul = motor_drive(l, pwm_l), ur = motor_drive(r, pwm_r);
@@ -84,8 +81,7 @@ plant_t plant_nominal(void){
         .yaw_friction = 15.0f, .yaw_stiction = 50.0f,
         .dead_ms = 0, .ir_noise = 1.0f, .ir_delay_ms = SIDE_IR_DELAY_MS,
         .ir_period_ms = 16, .ir_step_mm = 2.0f, .y0 = 0.0f, .yaw0 = 0.0f, .seed = 1,
-        // The robot's: sensors ~40 mm ahead of the axle, their beams 15 deg
-        // forward (fitted on the ring, calib_analyze.py SIDE_LEVER_MM).
+        // Sensors ~40 mm ahead of the axle, beams 15 deg forward (fitted on the ring).
         .side_lever_mm = 55.0f,
     };
     return p;
@@ -162,11 +158,7 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
                 // Walls a few mm off: each cell's pair, from where the beams hit it.
                 const int cell = (int)floorf((r.travelled + SIDE_BEAM_AHEAD_MM) / CELL_MM + 0.5f) & 63;
                 const float off_r = p->wall_error_mm * wall_error[cell][0], off_l = p->wall_error_mm * wall_error[cell][1];
-                // The beams 15 deg forward from the nose, as geometry: the
-                // distance along each beam (scaled to read 1:1 with the
-                // lateral position, as calibrated), side_lever_mm per radian
-                // of yaw for small yaws; at a big yaw one beam runs along its
-                // wall (long, then no wall) and the two disagree (10-05).
+                // Angled beams as geometry, 1:1 with the lateral position; at a big yaw one loses its wall.
                 const float beam = 15.0f * (3.14159265f / 180.0f), a = yaws * (3.14159265f / 180.0f);
                 const float d0 = LANE_WIDTH_MM / 2.0f * cosf(beam);      // sensor to wall, centred and square
                 const float ahead = p->side_lever_mm - d0 * tanf(beam);   // sensors ahead of the axle
@@ -285,8 +277,7 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
         xl += ml.v * dt;
         xr += mr.v * dt;
         const double v = 0.5 * (ml.v + mr.v);
-        // Turning while moving, the wheels slip sideways: the robot turns
-        // less than the encoders say, the more the faster (~ v^2).
+        // Turning while moving the wheels slip sideways: it turns less than the encoders say (~ v^2).
         const double vr = v / (double)CURVE_SLIP_VREF_MM_S;
         const double w = 0.5 * (ml.v - mr.v) / k.mm_per_deg * 90.0 / (90.0 + (double)p->curve_slip * vr * vr);
         const double mid = (yaw + 0.5 * w * dt) * rad;
@@ -298,8 +289,7 @@ path_result_t sim_path(const plant_t *p, const run_path_t *path, const curve_t *
             r.x_exit = (float)x;
             r.y_exit = (float)y;
         }
-        // Distance to the reference's path near where the robot has got to
-        // (behind the reference is not off the path).
+        // Distance to the reference's path near the robot (behind the reference is not off the path).
         double nearest = 1e9;
         for(uint32_t i = points; i-- > 0 && path_s[i] > travelled - 40.0;){
             if(path_s[i] > travelled + 40.0) continue;
