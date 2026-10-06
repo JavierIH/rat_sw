@@ -91,6 +91,7 @@ reference. "Stopped" = refused during a run.
 | `CONT ON\|OFF` | search with straights without stopping (ON, the default) or stopping in every cell; until reset | yes |
 | `DEFAULTS` | back to the default parameters | |
 | `IR` | sensors in mm and raw, and the encoders | |
+| `CHECK` | lighting check, in the start cell facing north: four quarter turns, then how the light shifts each sensor and the verdict (report only for now; docs/lighting.md) | yes |
 | `WALLS` | senses the walls right now | yes |
 | `MAP` | draws the ASCII map with the fast path | yes |
 | `GOAL x y [x1 y1]` | goal cells (e.g. `GOAL 7 7 8 8` for 16x16) | yes |

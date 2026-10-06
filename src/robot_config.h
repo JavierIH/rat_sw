@@ -54,6 +54,10 @@
 #define SEARCH_LEG_SPEED_MAX    450     // mm/s: the fastest at which the front wall is known at the decision
 #define SEARCH_MIN_READINGS     3       // side readings that must all agree, else the side is doubtful
 #define SEARCH_FRONT_OPEN_MM    205.0f  // inside the cell at the decision: no wall in front above this
+// Lighting check (CHECK, docs/lighting.md): verdict limits, mm on the centre line.
+#define LIGHT_OK_MM             3.0f    // the light shifts a reading less than this: nothing to correct
+#define LIGHT_NOISE_MAX_MM      4.0f    // standard deviation stopped at a wall (home: 1.9 at worst)
+#define LIGHT_OPEN_MARGIN_MM    20.0f   // open space must read this far beyond WALL_DETECT_MM (SR at home: +42)
 // Phantom side walls: stopped yawed or too far forward, a side beam hits the post or the front wall.
 #define FRONT_SQUARE_OFFSET_MM  -15     // FL - FR square to a wall at the cell centre (median of 44 stops)
 #define SIDE_YAW_DOUBT_MM       10      // |FL - FR - offset| beyond this (~8 deg): doubt the side it turns towards

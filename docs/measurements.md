@@ -75,3 +75,12 @@ The numbers behind the constants that docs/design.md does not already give
   cut 47 mm inside, without). CURVE: practice-maze speed runs (9 cells, 4
   curves, a U-turn) 400 in 3.28 s, 450 in 2.98 s, 480 (478) in 2.79 s,
   within 2.5 mm and 1.9 / 2.7 / 3.1 deg.
+- Lighting check (`LIGHT_*`, `docs/lighting.md`), from the 74 `CAL NOISE`
+  recordings at home: stopped at a wall the raw readings' standard
+  deviation is 4-8 counts (median), 16 at worst, i.e. 1.9 mm at worst on
+  the centre line: `LIGHT_NOISE_MAX_MM` 4, twice that. Open space reads
+  20-30 counts: SR then reads ~182 mm, 42 beyond `WALL_DETECT_MM`; the
+  margin `LIGHT_OPEN_MARGIN_MM` 20 leaves room for ~100 counts of extra
+  light on SR before it calls for a correction. `LIGHT_OK_MM` 3: a first
+  guess (the cubics and centres agree within ~2 mm at home), to confirm
+  with validation 1.

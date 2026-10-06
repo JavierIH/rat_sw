@@ -2,8 +2,16 @@
 
 A short automatic routine to run at a competition before the first search:
 it measures how the venue's light changes the IR readings, corrects them
-if it can, and says so with the LEDs. Not implemented yet; the trigger
-(mode and buttons) is still to be decided.
+if it can, and says so with the LEDs. The trigger (mode and buttons) is
+still to be decided.
+
+Status (10-06): the measurement and the verdict are in every build as the
+console's `CHECK` (`src/light_check.c`), reporting only: no correction is
+applied and no LED code is shown yet. Run on the PC against a synthetic
+start cell (centred and 10 mm off, +100 counts everywhere, +250 on SR, a
+lamp shining into the front beams, flicker, a wall missing, saturation),
+every case gave the verdict below and the robot ended facing north. Not
+yet run on the robot.
 
 ## Why
 
@@ -87,10 +95,20 @@ Verdict (LED codes to be chosen with the trigger):
   Options then: shade or move the light if the judges allow it, or race
   the safer modes.
 
-The console runs it with `CHECK`, which prints a line per sensor: raw at
-the wall, expected raw, offset, its effect in mm on the centre line, noise,
-and the corrected open reading. It needs no development tools: it uses the
-in-place turns and the IR reads, so it goes in the competition build.
+The console runs it with `CHECK` (2 s countdown; START or STOP cancels),
+which prints a line per sensor and then the verdict:
+
+```
+SR: walls 957/957 shift -16.8mm (250 counts) noise 0.0mm open 130mm (182mm corrected) CORRECT
+light: shifted: needs a correction (not applied yet, docs/lighting.md)
+```
+
+the mean raw readings of the two opposite walls, the centre-line reading's
+shift (negative: walls read closer), the offset that would correct it, the
+noise in mm on the centre line, and the open reading as it is and
+corrected. A failing sensor adds a line saying why. It needs no
+development tools (in-place turns and IR reads), so it is in the
+competition build.
 
 ## Trigger (to decide)
 
@@ -107,8 +125,8 @@ switched on).
 
 ## Validation before relying on it (robot, `practice` build)
 
-1. At home, under the light the cubics and centres were fitted in: the
-   offsets come out near 0. Run it three times, placing the robot 10 mm
+1. At home, under the light the cubics and centres were fitted in: `CHECK`
+   gives offsets near 0. Run it three times, placing the robot 10 mm
    left, centred and 10 mm right: the means must not move.
 2. The additive model: `CAL IR` (backing away from a front wall) with and
    without a lamp aimed at the maze (halogen or incandescent; a phone
@@ -122,7 +140,8 @@ switched on).
 
 ## Cost
 
-About 1 KB of flash (the competition build has 11 KB free) and 8 bytes in
+The report: 1.75 KB of flash (the competition build keeps 9.5 KB free,
+practice and dev 4.3 KB). The correction: a little more code and 8 bytes in
 the saved record. The record's layout changes, so the flash that brings it
 ignores the saved map: flash it before the competition day, not on it, and
 run a new search.

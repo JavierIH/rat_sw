@@ -84,11 +84,14 @@ uint16_t ir_raw(ir_sensor_t ir){
 }
 
 // Single precision on purpose: the M3 has no FPU.
-float ir_mm(ir_sensor_t ir){
+float ir_mm_of(ir_sensor_t ir, float x){
     if((unsigned)ir >= IR_COUNT) return IR_MAX_MM;
     const cubic_t *k = &CALIBRATION[ir];
-    float x = (float)raw_sum(ir) * (1.0f / IR_OVERSAMPLE);
     float mm = ((k->a * x + k->b) * x + k->c) * x + k->d;
     if(mm < 0.0f) return 0.0f;
     return mm > IR_MAX_MM ? IR_MAX_MM : mm;
+}
+
+float ir_mm(ir_sensor_t ir){
+    return ir_mm_of(ir, (float)raw_sum(ir) * (1.0f / IR_OVERSAMPLE));
 }

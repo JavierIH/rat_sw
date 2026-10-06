@@ -7,6 +7,7 @@
 #include "flash_store.h"
 #include "gpio.h"
 #include "health.h"
+#include "light_check.h"
 #include "infrared.h"
 #include "maze.h"
 #include "motion.h"
@@ -36,6 +37,7 @@ static uint8_t race_menu;           // 1 once START opened it: SELECT cycles the
 static uint8_t mode_chosen;         // 0 after boot: the LEDs sweep until SELECT (or MODE, START)
 static uint8_t run_active;
 static volatile uint8_t start_requested;
+static volatile uint8_t check_requested;
 #if DEV_TOOLS
 static volatile uint8_t cal_requested;
 static cal_test_t cal_test;
@@ -45,6 +47,7 @@ static int32_t cal_a, cal_b;
 uint8_t app_run_active(void){ return run_active; }
 uint8_t app_mode(void){ return mode; }
 void app_request_start(void){ start_requested = 1; }
+void app_request_check(void){ check_requested = 1; }
 
 #if DEV_TOOLS
 void app_request_cal(cal_test_t test, int32_t a, int32_t b){
@@ -228,12 +231,34 @@ static void run_mode(uint8_t m){
     telemetry_pose(x, y, h);
 }
 
-#if DEV_TOOLS
-static void run_calibration(void){
+// CAL tests and CHECK: a run as far as STOP and the console are concerned.
+static void test_begin(void){
     motion_clear_abort();
     buttons_clear();
     run_active = 1;
     telemetry_activity(TM_CALIBRATE);
+}
+
+static void test_end(void){
+    motion_stop();
+    run_active = 0;
+    motion_clear_abort();
+    buttons_clear();
+    telemetry_activity(TM_IDLE);
+}
+
+// CHECK: back facing north after four quarter turns, or lost.
+static void run_check(void){
+    test_begin();
+    print("CHECK: the robot turns in %u ms (START or STOP cancels)\n", CAL_DELAY_MS);
+    if(!countdown(CAL_DELAY_MS)) print("cancelled\n");
+    else if(light_check() == LIGHT_ABORTED) search_set_lost();
+    test_end();
+}
+
+#if DEV_TOOLS
+static void run_calibration(void){
+    test_begin();
     uint8_t go = 1;
     if(calib_moves(cal_test)){
         print("CAL: the robot moves in %u ms (START or STOP cancels)\n", CAL_DELAY_MS);
@@ -246,11 +271,7 @@ static void run_calibration(void){
     else{
         print("cancelled\n");
     }
-    motion_stop();
-    run_active = 0;
-    motion_clear_abort();
-    buttons_clear();
-    telemetry_activity(TM_IDLE);
+    test_end();
 }
 #endif
 
@@ -330,6 +351,10 @@ int main(void){
         if(pressed || start_requested){
             start_requested = 0;
             run_mode(mode);
+        }
+        if(check_requested){
+            check_requested = 0;
+            run_check();
         }
 #if DEV_TOOLS
         if(cal_requested){

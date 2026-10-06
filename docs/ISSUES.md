@@ -32,8 +32,9 @@ commit when done. Details go in the docs it points to, not here.
   IR have no ambient subtraction; ~200 counts of extra light make an open
   right side a phantom wall. Proposed: four quarter turns in the start
   cell, per-sensor raw offsets measured, applied and saved, LED verdict.
-  Next: the user picks the trigger (4th menu entry recommended); then
-  validation 1-2 on the robot before implementing the correction.
+  `CHECK` (report only) is in, tested on the PC against a synthetic cell.
+  Next: on the robot, validation 1-2 with `CHECK`; the user picks the
+  trigger (4th menu entry recommended); then the correction.
 
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7

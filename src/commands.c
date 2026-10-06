@@ -457,6 +457,11 @@ static void cmd_cal(const char *args){
 }
 #endif
 
+static void cmd_check(const char *args){
+    (void)args;
+    app_request_check();
+}
+
 static void cmd_reset(const char *args){
     (void)args;
     motion_stop();
@@ -494,6 +499,7 @@ static const command_t COMMANDS[] = {
 #endif
     {"DEFAULTS",  cmd_defaults,   0},
     {"IR",        cmd_ir,         0},
+    {"CHECK",     cmd_check,      1},
     {"WALLS",     cmd_walls,      1},
     {"MAP",       cmd_map,        1},
     {"GOAL",      cmd_goal,       1},

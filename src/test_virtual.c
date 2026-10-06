@@ -7,6 +7,7 @@
 #include "commands.h"
 #include "gpio.h"
 #include "health.h"
+#include "light_check.h"
 #include "motor.h"
 #include "uart.h"
 
@@ -144,6 +145,12 @@ void motion_stop(void){ wheels_set(0, 0); }
 void motion_leg_timing_reset(void){}
 void motion_leg_timing_report(void){}
 float motion_ticks_per_mm(void){ return WHEEL_TICKS_PER_MM; }
+
+// Virtual turns, real sensors: nothing to check.
+light_verdict_t light_check(void){
+    print("CHECK: not on the virtual robot\n");
+    return LIGHT_OK;
+}
 
 // ---- Flash stress (TUNE STRESS n, TUNE REVERSAL n; robot on a stand): tries to wedge the flash (docs/faults/freezes.md) --
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
