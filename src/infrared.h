@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-// Four IR distance sensors on ADC1, sampled continuously by circular DMA with
-// no CPU involvement. Each reading averages the last IR_OVERSAMPLE conversions.
+// Four IR sensors on ADC1, sampled by circular DMA; each reading averages the last IR_OVERSAMPLE conversions.
 
 #define IR_OVERSAMPLE 16
 

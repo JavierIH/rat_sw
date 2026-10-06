@@ -5,8 +5,7 @@
 #include "calib.h"
 #include "storage.h"
 
-// What a run does. The numbers go to the monitor (@M), which knew 1-6
-// before the menu below: keep them.
+// What a run does; the numbers go to the monitor (@M), which knew 1-6 before the menu: keep them.
 typedef enum {
     MODE_SEARCH = 1,    // explore, optimise the speed-run path, return, save
     MODE_FOLLOW_LEFT,   // left-hand wall follower to the goal
@@ -20,9 +19,7 @@ typedef enum {
 
 #define MODE_COUNT 8
 
-// The menu: SELECT cycles modes 1-3 (LEDs 1-2, 3-4, 5-6). START on mode 2
-// opens the race menu, where SELECT cycles its races (LEDs 1..n lit) and
-// START launches one; only a reset leaves it.
+// SELECT cycles modes 1-3; START on mode 2 opens the race menu (SELECT cycles, START launches; only a reset leaves).
 enum { MENU_SEARCH = 1, MENU_RACE, MENU_ERASE };
 #define MENU_COUNT 3
 #define RACE_COUNT 6
@@ -34,8 +31,7 @@ const char *app_mode_label(void);       // "2.4 RAPIDA SEGURA"
 void app_request_start(void);
 void app_telemetry_sync(void);          // full map/state for the monitor (robot stopped)
 void app_request_cal(cal_test_t test, int32_t a, int32_t b);    // run from the main loop
-// SAVE, ERASE, mode 3 (at rest, by hand): storage_save(0), compacting first
-// if the log is full and a probe says the flash answers normally.
+// SAVE, ERASE, mode 3 (at rest): storage_save(0), compacting first if full and a probe says the flash is normal.
 storage_save_t app_save_now(void);
 
 #endif // APP_H

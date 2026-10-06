@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-// Bluetooth command console, one command per line, case-insensitive. HELP
-// lists them. Polled from the idle loop and from every motion loop.
+// Bluetooth console, one command per line, case-insensitive (README.md); polled from every loop.
 void commands_poll(void);
 
 // Non-negative value with two decimals ("30.00"): nano-libc printf has no %f.

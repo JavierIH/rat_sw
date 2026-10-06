@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-// Maze map + path planner. Pure logic (no HAL): also built and tested on the
-// PC by test/host.
+// Maze map + path planner: pure logic, host-tested.
 
 #define MAZE_SIZE    16
 #define MAZE_STATES  (MAZE_SIZE * MAZE_SIZE * 4)    // planner states: (cell, heading)
@@ -37,12 +36,7 @@ static inline uint8_t cellset_has(const cellset_t *s, uint8_t x, uint8_t y){
 }
 
 // ---- Walls ---------------------------------------------------------------------
-// Every interior wall carries signed evidence in [-3, +3], shared by the two
-// cells it separates: each sighting moves it one step towards "present" (+)
-// or "absent" (-). > 0 is a wall, <= 0 is passable for exploration, and
-// <= -2 (two consistent sightings, or physically crossed) is trusted by speed
-// runs. So one reading takes effect immediately, yet a single wrong reading
-// never outweighs repeated consistent ones. The outer border is always a wall.
+// Signed evidence per wall in [-3, 3]: > 0 wall, <= 0 passable to explore, <= -2 trusted by speed runs; the border is a wall.
 typedef enum { WALL_UNKNOWN, WALL_PRESENT, WALL_ABSENT } wall_state_t;
 
 void maze_init(void);   // forget all interior walls and visited cells (goal is kept)
@@ -51,8 +45,7 @@ void maze_mark_crossed(uint8_t x, uint8_t y, heading_t dir);   // drove through 
 void maze_mark_blocked(uint8_t x, uint8_t y, heading_t dir);   // hit an obstacle there: surely closed
 wall_state_t maze_wall(uint8_t x, uint8_t y, heading_t dir);
 int8_t maze_evidence(uint8_t x, uint8_t y, heading_t dir);     // 3 for the border
-// Forgets walls with evidence in [1, max_evidence], but the four of cell
-// (keep_x, keep_y) (MAZE_SIZE: none). Returns how many.
+// Forgets walls with evidence in [1, max_evidence] except cell (keep_x, keep_y)'s (MAZE_SIZE: none); returns how many.
 uint16_t maze_forget_walls(int8_t max_evidence, uint8_t keep_x, uint8_t keep_y);
 
 void maze_mark_visited(uint8_t x, uint8_t y);   // all four walls of the cell have been seen
@@ -62,16 +55,13 @@ uint16_t maze_visited_count(void);
 // ---- Goal ------------------------------------------------------------------------
 uint8_t maze_set_goal(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);   // 0 if invalid
 void maze_get_goal(uint8_t goal[4]);
-// ERASE / mode 3: forget the map and go back to the build's default goal, so
-// an erase always leaves the robot ready for the maze it was built for.
+// ERASE / mode 3: forget the map and go back to the build's default goal.
 void maze_erase(void);
 uint8_t maze_is_goal(uint8_t x, uint8_t y);
 void maze_goal_cells(cellset_t *out);
 
 // ---- Planner -------------------------------------------------------------------------
-// Shortest paths over (cell, heading) states: driving one cell forward costs
-// `cell`, turning 90 degrees in place costs `turn` (180 = two turns). So paths
-// are optimal in *time*, not just in cells: long straights beat staircases.
+// Shortest paths over (cell, heading): a cell costs `cell`, a quarter turn `turn`, so paths are optimal in time.
 typedef struct { uint8_t cell, turn; } plan_costs_t;
 
 typedef enum {
@@ -81,31 +71,23 @@ typedef enum {
 
 typedef enum { ACT_NONE, ACT_FORWARD, ACT_TURN_LEFT, ACT_TURN_RIGHT, ACT_TURN_AROUND } action_t;
 
-// Cost to reach any cell of `targets` (arriving with any heading), for every
-// state. `cost` must hold MAZE_STATES entries; PLAN_INF = unreachable.
+// Cost to any of `targets` for every state (MAZE_STATES entries); PLAN_INF = unreachable.
 void maze_plan_to(const cellset_t *targets, plan_mode_t mode, plan_costs_t costs, uint16_t *cost);
 // Cost from the state (x, y, h) to every state.
 void maze_plan_from(uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_costs_t costs, uint16_t *cost);
 // States popped by every plan so far (the planner's work; wraps).
 uint32_t maze_plan_pops(void);
 
-// Best next action at (x, y, h) following a maze_plan_to() result computed
-// with the same mode and costs. ACT_NONE when at a target or unreachable.
+// Best next action from a maze_plan_to() result with the same mode and costs; ACT_NONE at a target or unreachable.
 action_t maze_best_action(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h,
                           plan_mode_t mode, plan_costs_t costs);
 
-// The optimal path from (x, y, h) as a speed run drives it without stopping:
-// an in-place turn first (quarter turns: 0, -1 = left, +1 = right, 2 =
-// around), then the cells it drives into, with the turn made inside each
-// (`turns`: 0 straight through, +1 right, -1 left; the last cell never
-// turns). At most `max` cells. Returns 0 when there is nothing to do (at a
-// target or unreachable).
+// The optimal path as a speed run drives it: a turn in place first, then the cells with the turn made in each; 0 if none.
 uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan_mode_t mode, plan_costs_t costs,
                    int8_t *turn, int8_t *turns, uint8_t max, uint8_t *cells);
 
 // ---- Persistence -----------------------------------------------------------------------
-// Packed so that three records fit in a flash page (storage.c): each
-// wall's evidence (-3..3) + 3 in a nibble.
+// Packed for storage.c: each wall's evidence + 3 in a nibble.
 typedef struct {
     uint8_t walls[MAZE_SIZE][MAZE_SIZE];    // [x][y]: the wall north of (x, y) in the low nibble, east in the high one
     uint16_t visited[MAZE_SIZE];            // bit x of row y

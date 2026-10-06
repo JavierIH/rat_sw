@@ -4,30 +4,20 @@
 #include <stdint.h>
 #include "maze.h"
 
-// Run strategies. Pure logic on top of motion.h and maze.h (tested on the PC
-// by test/host). Every run starts at the start cell facing north.
+// Run strategies: pure logic on motion.h and maze.h (host-tested). Every run starts at the start facing north.
 
 typedef enum { RUN_OK, RUN_ABORTED, RUN_FAILED } run_result_t;
 
-// Explores to the goal, keeps exploring cells that could still shorten the
-// speed-run path, returns to the start (exploring on the way), faces north
-// and saves the map.
+// Explores to the goal, then the cells that could still shorten the speed run, returns exploring, faces north, saves.
 run_result_t search_explore(void);
-// Speed run over verified passages with merged straights, then back to the
-// start and save. Refuses without moving if no verified path exists yet.
-// Without curves it stops where the route turns and turns there in place.
+// Speed run over verified passages, back to the start and save; refused if no verified path. Without curves it turns in place.
 run_result_t search_fast_run(uint8_t curves);
-// How the search moves forward (CONT OFF / ON, until reset). No curves in
-// the search: those are for the speed run.
-// - SEARCH_STOP_EACH: one cell at a time, stopping in every one;
-// - SEARCH_STRAIGHTS (default): straight on without stopping, each cell
-//   decided inside it with all its walls in view; stops to turn in place.
+// How the search moves forward (CONT OFF/ON, until reset): stopping in every cell, or straights decided cell by cell (default).
 typedef enum { SEARCH_STOP_EACH, SEARCH_STRAIGHTS } search_mode_t;
 void search_set_mode(search_mode_t mode);
 search_mode_t search_mode(void);
 
-// Left- or right-hand wall follower: past the goal it goes on until STOP
-// (or a failed move), so it ends RUN_ABORTED.
+// Left- or right-hand wall follower: past the goal it goes on until STOP, so it ends RUN_ABORTED.
 run_result_t search_wall_follow(uint8_t left_hand);
 
 // 1 while the robot is known to be at the start cell facing north.

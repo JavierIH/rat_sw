@@ -132,8 +132,7 @@ static void cmd_status(const char *args){
     print("RCC_CR=%08lx CFGR=%08lx | FLASH_SR=%02lx CR=%04lx ACR=%02lx OBR=%08lx WRPR=%08lx\n",
           (unsigned long)RCC->CR, (unsigned long)RCC->CFGR, (unsigned long)FLASH->SR, (unsigned long)FLASH->CR,
           (unsigned long)FLASH->ACR, (unsigned long)FLASH->OBR, (unsigned long)FLASH->WRPR);
-    // Which chip: a genuine STM32F103 reads IDCODE 0 without a debugger; this
-    // robot's reads 0x307, a clone (docs/freezes.md).
+    // A genuine STM32F103 reads IDCODE 0 without a debugger; this robot's reads 0x307 (a clone).
     print("chip CPUID=%08lx IDCODE=%08lx %u KB\n", (unsigned long)SCB->CPUID, (unsigned long)DBGMCU->IDCODE,
           *(const volatile uint16_t *)FLASHSIZE_BASE);
     const flash_timing_t *ft = flash_store_timing();
@@ -392,8 +391,7 @@ static void cmd_telem(const char *args){
     if(on && !app_run_active()) app_telemetry_sync();
 }
 
-// CAL <test> [args]: validated here, run by the main loop (so STOP keeps
-// working during the test), recorded and dumped by calib.c.
+// CAL <test> [args]: validated here, run by the main loop (STOP keeps working), recorded and dumped by calib.c.
 static void cmd_cal(const char *args){
     static const struct { const char *name; cal_test_t test; } TESTS[] = {
         {"NOISE", CAL_NOISE}, {"STRAIGHT", CAL_STRAIGHT}, {"TURN", CAL_TURN}, {"CURVE", CAL_CURVE},
@@ -505,8 +503,7 @@ static const command_t COMMANDS[] = {
 #define COMMAND_COUNT (sizeof(COMMANDS) / sizeof(COMMANDS[0]))
 
 void commands_poll(void){
-    // Handlers that wait (WALLS) poll inputs themselves: queue nested lines
-    // instead of recursing into another handler.
+    // Handlers that wait (WALLS) poll inputs themselves: queue nested lines instead of recursing.
     static uint8_t busy;
     if(busy) return;
     char line[48];

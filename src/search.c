@@ -67,15 +67,11 @@ void search_pose(uint8_t *x, uint8_t *y, heading_t *h){
 
 static const char SIGHTING_CHAR[3] = {'0', '1', '?'};
 
-// Senses the three visible walls and feeds them to the map. Doubtful side
-// readings (possible phantom walls) are left out: the wall keeps whatever the
-// map knew, and is confirmed later from a better pose.
+// Senses the three visible walls into the map; doubtful sides are left out (confirmed later from a better pose).
 static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
     move_result_t r = motion_sense_walls(w);
     if(r != MOVE_OK) return r;
-    // Stopped at the end of a search leg: the sides were recorded when the
-    // robot got to this cell, from the same readings. Counting them again
-    // would make one sighting look like two.
+    // Stopped at the end of a leg: the sides were recorded on the way in; counting them again doubles a sighting.
     if(sides_recorded){
         w->left = w->left == SEEN_PRESENT ? SEEN_DOUBTFUL : w->left;
         w->right = w->right == SEEN_PRESENT ? SEEN_DOUBTFUL : w->right;
@@ -85,11 +81,7 @@ static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
         telemetry_background_row();
         return MOVE_OK;
     }
-    // Sides read from the stop after a turn caught posts and the passage just
-    // driven through: 5 phantom walls in 14 such readings on the practice
-    // maze. After a turn only a "no wall" is recorded; the walls there were
-    // seen before the turn, by the front sensors or on the way in. (At the
-    // start the robot was placed centred by hand: those readings are kept.)
+    // After a turn only "no wall" sides are recorded (stopped, they caught posts: 5 phantoms in 14); not at the start.
     if(!w->moving && turned){
         if(w->left == SEEN_PRESENT) w->left = SEEN_DOUBTFUL;
         if(w->right == SEEN_PRESENT) w->right = SEEN_DOUBTFUL;
@@ -114,8 +106,7 @@ static move_result_t turn_by(int8_t quarter_turns){
     return r;
 }
 
-// MOVE_OK: moved and pose updated. MOVE_BLOCKED: still in place, wall noted.
-// Anything else: the real position is unknown.
+// MOVE_OK: moved, pose updated. MOVE_BLOCKED: in place, wall noted. Else: position unknown.
 static move_result_t forward(uint8_t cells, int16_t speed){
     int16_t end_x = (int16_t)(pose.x + cells * heading_dx(pose.h));
     int16_t end_y = (int16_t)(pose.y + cells * heading_dy(pose.h));
@@ -139,9 +130,7 @@ static move_result_t forward(uint8_t cells, int16_t speed){
     return r;
 }
 
-// Drives `route` without stopping (smooth curves) and moves the pose along
-// the cells actually covered. MOVE_OK: at its end. MOVE_BLOCKED: stopped
-// short at a cell centre, facing a wall the map had as open (noted now).
+// Drives `route` without stopping and moves the pose along the cells covered (MOVE_BLOCKED: stopped short facing a wall).
 static move_result_t run_route(int16_t speed){
     uint8_t entered = 0;
     move_result_t r = motion_run_path(&route, speed, params.curve_speed, &entered);
@@ -200,9 +189,7 @@ static run_result_t fail_plan(const char *why){
     return RUN_FAILED;
 }
 
-// At rest (a flash write stalls the CPU). The LEDs tell whoever is at the
-// robot: three slow blinks, the map is in flash; three fast ones, only in
-// RAM (a reset or a power cycle would lose it).
+// At rest (a flash write stalls the CPU); LEDs: 3 slow blinks = in flash, 3 fast = only in RAM.
 static void save_map(void){
     const storage_save_t r = storage_save(1);
     switch(r){
@@ -226,14 +213,7 @@ static run_result_t finish_at_start(uint16_t steps){
 
 // ---- Planning helpers ----------------------------------------------------------------
 
-// Plans towards `targets` over the optimistic map into cost_a. If a phantom
-// wall sealed the targets off, forgets doubtful walls (first those seen only
-// once, but not this cell's, just seen: forgetting a real wall seen once from
-// here only made the robot see it again, repair again and give up; then all)
-// instead of giving up: the position is still trusted, so the robot simply
-// re-learns them. Only at rest (`at_rest`): on the way the
-// search just stops there, since the repair resends the whole map (~140 ms
-// of waiting for the UART) and the walls are seen once more at the stop.
+// Plans to `targets`; if phantom walls sealed them off, forgets doubtful walls (not this cell's) instead of giving up, at rest only.
 static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs, uint8_t at_rest){
     maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     if(cost_a[pose_state()] != PLAN_INF) return REPLAN_OK;
@@ -251,9 +231,7 @@ static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs, uint8_t
     return cost_a[pose_state()] != PLAN_INF ? REPLAN_OK : REPLAN_UNREACHABLE;
 }
 
-// Unvisited cells on some optimistic optimal speed-run path from the start to
-// the goal. Once there are none, the best speed-run path runs through visited
-// cells only, whose walls are all known: it is verified optimal.
+// Unvisited cells on an optimistic optimal path start->goal; none left = the best path is verified optimal.
 static uint16_t optimize_candidates(cellset_t *out){
     cellset_t goal;
     maze_goal_cells(&goal);
@@ -301,16 +279,12 @@ typedef struct {
 
 typedef enum { PHASE_GO, PHASE_STOP, PHASE_DONE } phase_step_t;
 
-// Phase changes at the robot's cell, and the targets of the phase. The goal
-// is announced and the map saved at rest (writing flash stalls the CPU), so
-// on the way (`stopped` = 0) getting to the goal or back to the start only
-// asks for a stop.
+// Phase changes at the robot's cell and the phase's targets; the goal is saved at rest, so on the way it only asks for a stop.
 static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     if(e->phase == PH_TO_GOAL && maze_is_goal(pose.x, pose.y)){
         if(!stopped) return PHASE_STOP;
         print("Goal reached at (%u,%u) after %u actions\n", pose.x, pose.y, e->steps);
-        // Saved here, not only back at the start: a failed way back loses
-        // nothing (the end saves again if it learned something).
+        // Saved here too: a failed way back loses nothing.
         save_map();
         e->phase = PH_OPTIMIZE;
         telemetry_activity(TM_OPTIMIZE);
@@ -330,8 +304,7 @@ static phase_step_t explore_phase(explore_t *e, uint8_t stopped){
     return PHASE_GO;
 }
 
-// Best action from the pose, logged with what was seen. 0 if the targets
-// cannot be reached or the action budget ran out (e->failed says which).
+// Best action from the pose, logged with the walls seen; 0 if unreachable or out of budget (e->failed says which).
 static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a, uint8_t at_rest){
     if(plan_explore(&e->targets, &e->repairs, at_rest) == REPLAN_UNREACHABLE){
         e->failed = 1;
@@ -355,9 +328,7 @@ static uint8_t explore_plan(explore_t *e, const wall_sense_t *w, action_t *a, ui
 
 static uint8_t leg_decided;             // cells decided in the current leg
 
-// The robot is getting to the centre of the next cell of a leg, its walls
-// in view: move the pose there and record them. Every leg's `decide` starts
-// with it.
+// Getting to the next cell of a leg, walls in view: move the pose and record them (every leg's `decide` starts here).
 static void leg_enter_cell(const wall_sense_t *w){
     maze_mark_crossed(pose.x, pose.y, pose.h);
     pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
@@ -372,8 +343,7 @@ static void leg_enter_cell(const wall_sense_t *w){
     telemetry_background_row();
 }
 
-// Forward from rest, deciding every cell on the way until `decide` needs a
-// stop. The pose follows the cells the robot actually got to (`reached`).
+// Forward from rest, deciding every cell on the way until `decide` stops; the pose follows the cells reached.
 static move_result_t drive_leg(next_cell_fn decide, void *ctx, uint8_t *reached){
     const pose_t start = pose;
     const int16_t speed = params.search_speed < SEARCH_LEG_SPEED_MAX ? params.search_speed : SEARCH_LEG_SPEED_MAX;
@@ -399,9 +369,7 @@ static move_result_t drive_leg(next_cell_fn decide, void *ctx, uint8_t *reached)
     return r;
 }
 
-// The search's leg: record each cell, then decide. Anything the search does
-// at rest (turning in place, the goal, the end, an unclear front) is a stop
-// there.
+// The search's leg: record each cell, then decide; anything done at rest is a stop there.
 static next_move_t explore_next(const wall_sense_t *w, void *ctx){
     explore_t *e = ctx;
     leg_enter_cell(w);
@@ -409,8 +377,7 @@ static next_move_t explore_next(const wall_sense_t *w, void *ctx){
     action_t a;
     if(!explore_plan(e, w, &a, 0)) return NEXT_STOP;
     if(a == ACT_FORWARD && w->front == SEEN_ABSENT) return NEXT_STRAIGHT;
-    // It stops here and decides again at rest: one action, not two (the
-    // optimisation budget counts them).
+    // A stop here decides again at rest: one action, not two (the budget counts them).
     e->steps--;
     if(e->phase == PH_OPTIMIZE) e->optimize_steps--;
     return NEXT_STOP;
@@ -439,9 +406,7 @@ run_result_t search_explore(void){
         if(!explore_plan(&e, &w, &a, 1)){
             return fail_plan(e.failed == 2 ? "action budget spent" : "target unreachable");
         }
-        // The map may still believe in a passage the sensors now see closed:
-        // never drive into it. The sighting already raised its evidence, so
-        // sensing again converges to the truth.
+        // Never drive into a passage the sensors see closed: the sighting raised its evidence, sensing converges.
         if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
         if(a == ACT_FORWARD && mode != SEARCH_STOP_EACH){
             r = drive_leg(explore_next, &e, &e.reached);
@@ -454,9 +419,7 @@ run_result_t search_explore(void){
     }
 }
 
-// The route as the log shows it: cells straight ahead, then D/I for a curve
-// right/left in the last of them ("2D1I3": 2 cells curving right in the
-// second, 1 cell curving left, 3 cells). Cut with '+' if too long.
+// The route as the log shows it: cells, then R/L for a curve right/left in the last one ("2R1L3"), '+' if cut.
 #define ROUTE_TEXT_MAX 40
 static const char *route_text(char *text){
     uint8_t n = 0, run = 0;
@@ -477,12 +440,7 @@ static const char *route_text(char *text){
     return text;
 }
 
-// Drives to `targets` over verified passages in one go (straights and
-// smooth curves), sensing at every stop. If the verified map has no route (a
-// wall appeared where it was believed open), explores step by step instead.
-// Drives the verified route to `targets`, replanned at every stop. Without
-// curves every straight ends in the cell where the route turns, and the
-// turn is made there in place, at the next stop.
+// Drives the verified route to `targets` in one go, replanned at every stop (explores if none); without curves, turns in place.
 static run_result_t drive_to(const cellset_t *targets, int16_t speed, uint8_t curves, const char *tag,
                              uint16_t *steps){
     uint8_t repairs = 0;
@@ -563,9 +521,7 @@ static heading_t follow_near_side(const follow_t *f){
     return f->left_hand ? heading_left(pose.h) : heading_right(pose.h);
 }
 
-// The follower's leg: straight on while the hand's wall goes on and the way
-// ahead is open, by the same map rule it applies at rest; anything else (a
-// turn, the goal, an unclear reading) is a stop there, decided at rest.
+// The follower's leg: straight on while its wall goes on and the way is open; anything else is a stop there.
 static next_move_t follow_next(const wall_sense_t *w, void *ctx){
     follow_t *f = ctx;
     leg_enter_cell(w);
@@ -586,8 +542,7 @@ run_result_t search_wall_follow(uint8_t left_hand){
     ready = 0;
     telemetry_activity(TM_FOLLOW);
     print("== WALL FOLLOWER %s ==\n", left_hand ? "LEFT" : "RIGHT");
-    // It never ends on its own: past the goal it goes on following the wall
-    // until STOP (or a failed move).
+    // It never ends on its own: past the goal it follows the wall until STOP.
     for(;;){
         if(!f.goal && maze_is_goal(pose.x, pose.y)) f.goal = 1;
         if(f.goal == 1){

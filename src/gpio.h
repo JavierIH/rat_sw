@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 
-// Six status LEDs (1-3 on the left, 4-6 on the right) and the two buttons.
-// Both buttons read high when pressed and rely on the PCB's external
-// resistors (no internal pull), hence the debouncing.
+// Six LEDs (1-3 left, 4-6 right) and two buttons (high when pressed, external resistors, debounced).
 
 typedef enum { BUTTON_START, BUTTON_SELECT } button_t;
 

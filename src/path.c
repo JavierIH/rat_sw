@@ -9,8 +9,7 @@
 
 // ---- Curve shape ------------------------------------------------------------------------
 
-// sin and cos on [0, pi/2] by their series (error < 1e-6): libm's sinf and
-// cosf would add 4 KB of range reduction to the firmware for this.
+// sin and cos on [0, pi/2] by their series (error < 1e-6): libm's would add 4 KB.
 static void sin_cos(float x, float *s, float *c){
     const float x2 = x * x;
     *s = x * (1.0f - x2 * (1.0f / 6.0f) * (1.0f - x2 * (1.0f / 20.0f) * (1.0f - x2 * (1.0f / 42.0f)
@@ -57,8 +56,7 @@ uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre
     c->k_ramp = c->k / ramp;
     // Each clothoid turns ramp / (2 radius): the arc makes up the rest.
     c->length = radius * HALF_PI + ramp;
-    // How far the curve takes the robot along the entry direction and
-    // sideways (equal: the shape is symmetric), integrating the heading.
+    // How far the curve goes along the entry direction and sideways (equal: symmetric), integrating the heading.
     const float h = c->length / FOOTPRINT_STEPS;
     float along = 0.0f, across = 0.0f;
     for(uint8_t i = 0; i <= FOOTPRINT_STEPS; i++){
@@ -73,8 +71,7 @@ uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre
     c->footprint = 0.5f * (along + across);
     c->pre = 0.5f * cell_mm - along + pre_adjust;
     c->post = 0.5f * cell_mm - across + post_adjust;
-    // Curves in consecutive cells must not overlap, and there must be room
-    // to settle on the centre line before and after one.
+    // Curves in consecutive cells must not overlap, with room to settle on the centre line around one.
     return c->pre + c->post >= 0.0f && c->pre >= -0.25f * cell_mm && c->post >= -0.25f * cell_mm;
 }
 
@@ -98,10 +95,7 @@ static void find_next(path_run_t *r){
     r->curve_start = i < p->cells ? edge + r->curve.pre : PATH_NONE;
 }
 
-// `next` limited so that a point `rem` ahead can still be reached at `final`
-// (profile_brake_speed()). While that point is far the limit is higher than
-// `next` anyway: checked without the square root (~10 us in soft float,
-// every millisecond in SysTick).
+// `next` limited to still reach `rem` at `final` (checked without the square root while far: ~10 us in soft float).
 static float brake_cap(float next, float v0, float rem, float final, float rate, float dt){
     const float a_dt = rate * dt;
     if(next * (next + a_dt) <= final * final + 2.0f * rate * (rem - 0.5f * v0 * dt)) return next;
@@ -111,13 +105,10 @@ static float brake_cap(float next, float v0, float rem, float final, float rate,
 uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, float cell_mm,
                    float v_straight, float v_curve, float accel){
     if(!path->cells || turn_at(path, (uint8_t)(path->cells - 1u)) != 0) return 0;
-    // After its last curve the path ends at the next cell centre: the
-    // curve speed must leave room to brake there. Every other curve is
-    // followed by a straight or another curve at the same speed.
+    // After the last curve the path ends at the next cell centre: the curve speed must leave room to brake.
     const float room = curve->post + 0.5f * cell_mm;
     const float vc = fminf(fminf(v_curve, v_straight), control_sqrt(2.0f * accel * room));
-    // The faster the curves, the less they really turn for the same encoder
-    // angle, and the more they slip sideways (a later start makes up for it).
+    // Faster curves turn less for the same encoder angle and slip outwards: a later start makes up for it.
     const float pre = fmaxf(curve->pre + curve->pre_k * fmaxf(vc * vc - curve->pre_v0 * curve->pre_v0, 0.0f),
                             fmaxf(-curve->post, -0.25f * cell_mm));
     float length = cell_mm;     // half of the start cell and half of the last one
@@ -149,8 +140,7 @@ uint8_t path_start(path_run_t *r, const run_path_t *path, const curve_t *curve, 
     return 1;
 }
 
-// 1 while the robot keeps up, down to PATH_SCALE_MIN as it falls behind.
-// Never 0: a blocked robot must still fall FWD_ERROR_MAX_MM behind.
+// 1 while the robot keeps up, down to PATH_SCALE_MIN as it lags (never 0: a blocked robot must fall behind).
 static float time_scale(float lag){
     const float x = (lag - PATH_LAG_FREE_MM) * (1.0f / PATH_LAG_SPAN_MM);
     return x <= 0.0f ? 1.0f : fmaxf(1.0f - x, PATH_SCALE_MIN);
@@ -158,17 +148,14 @@ static float time_scale(float lag){
 
 void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt_real){
     const float s0 = r->s, v0 = r->v, h0 = r->heading;
-    // The reference lives in its own time, which runs slower than the real
-    // one while the robot lags: distance, speed and heading all follow it.
+    // The reference's own time runs slower while the robot lags.
     const float scale = time_scale(r->lag);
     const float dt = scale * dt_real;
     r->scale = scale;
     if(scale < r->scale_min) r->scale_min = scale;
     if(!r->done){
         const float a_dt = r->accel * dt;
-        // Speed limit where the reference is, and braking in time for the
-        // next curve and for the end: the plain profile's scheme, so it
-        // arrives at each exactly at its speed.
+        // Speed limit here, braking in time for the next curve and the end.
         const float cap = r->hold ? 0.0f : r->s >= r->curve_start ? r->v_curve : r->v_straight;
         float next = v0 < cap ? fminf(v0 + a_dt, cap) : fmaxf(v0 - a_dt, cap);
         if(r->s < r->curve_start) next = brake_cap(next, v0, r->curve_start - r->s, r->v_curve, r->accel, dt);
@@ -200,9 +187,7 @@ void path_step(path_run_t *r, profile_t *fwd, profile_t *rot, float dt_real){
             r->heading += (float)r->dir * r->curve.angle * curve_progress(&r->curve, r->s - r->curve_start);
         }
     }
-    // What the loops see, in real time. The accelerations leave out the
-    // change of the time scale itself: it only happens while the motors are
-    // out of PWM, and feeding it forward would just kick them.
+    // What the loops see, in real time (the time scale's own change is not fed forward).
     fwd->pos = r->s;
     fwd->delta = r->s - s0;
     fwd->speed = scale * r->v;
@@ -256,9 +241,7 @@ float path_straight_end(const path_run_t *r){
 }
 
 uint8_t path_straight_centre(const path_run_t *r, float s, uint8_t nearest, uint8_t *entered, float *centre){
-    // Cells with their centre on this straight: `first` up to the one before
-    // the next curve (or the last cell), plus the start cell (-1) if the
-    // straight starts there.
+    // Cell centres on this straight: `first` up to the next curve (or the last cell), plus the start cell (-1).
     const int16_t last = r->next < r->path.cells ? (int16_t)r->next - 1 : (int16_t)r->path.cells - 1;
     const int16_t lo = r->first == 0 ? -1 : (int16_t)r->first;
     if(last < lo) return 0;

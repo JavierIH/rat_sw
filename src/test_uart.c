@@ -3,10 +3,7 @@
 #include "sysclock.h"
 #include "uart.h"
 
-// UART / Bluetooth smoke test (env uart_test): motors, encoders and IR are
-// never touched. The LEDs first blink the UART state right before the first
-// transmit (1=READY 2=BUSY_TX 3=BUSY_RX 4=BUSY_TX_RX 5=BUSY 6=other), then a
-// numbered line goes out every second.
+// UART smoke test (env uart_test): the LEDs show the UART state before the first transmit, then a line a second.
 
 extern UART_HandleTypeDef huart3;
 
@@ -32,8 +29,7 @@ int main(void){
     else if(state == HAL_UART_STATE_BUSY) state_code = 5;
     blink_count(state_code);
 
-    // Back to back (microseconds apart): shows whether specifically the very
-    // first transmit is lost, independently of Bluetooth timing.
+    // Back to back: shows whether the very first transmit is lost.
     print("first\n");
     print("second\n");
     HAL_Delay(2000);

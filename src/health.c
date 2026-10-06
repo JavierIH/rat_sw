@@ -18,8 +18,7 @@ static uint32_t rcc_expected;       // 0 until the clock setup is done
 static uint32_t rcc_seen;
 static uint8_t rcc_changed;
 
-// Every word between the end of .bss and a little below the stack pointer
-// gets a pattern; whatever is still the pattern later was never used.
+// A pattern from the end of .bss to below the stack pointer; whatever still holds it was never used.
 static void paint_stack(void){
     uint32_t *p = &_ebss;
     uint32_t *const top = (uint32_t *)(__get_MSP() - 64u);
@@ -98,8 +97,7 @@ uint8_t health_take_stall(uint32_t *ms, uint32_t *pc, uint32_t *lr){
     return 1;
 }
 
-// SysTick, with the frame the interrupt stacked: if the main program has not
-// said it is alive for a while, note where it is (frame[6] = PC, [5] = LR).
+// SysTick: if the main program has not said it is alive for a while, note where it is (frame[6] PC, [5] LR).
 void app_stall_check(const uint32_t *frame){
     if(!stalled && !stall_ready && HAL_GetTick() - alive_ms > HEALTH_STALL_MS){
         stalled = 1;

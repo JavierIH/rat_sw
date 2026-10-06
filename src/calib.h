@@ -3,11 +3,7 @@
 
 #include <stdint.h>
 
-// Calibration experiments (CAL command). A known motion runs while SysTick
-// samples encoders, requested PWM and raw IR at a fixed period; then the
-// samples are dumped as '@D' lines together with every relevant constant.
-// tools/robot_monitor.py saves them as CSV in tools/calib_data/ and
-// tools/calib_analyze.py summarises them.
+// Calibration experiments (CAL): SysTick samples encoders, PWM and raw IR during a known motion; dumped as '@D' lines.
 
 typedef enum {
     CAL_NOISE,      // robot still: sensor noise (no motion)
@@ -24,9 +20,7 @@ void calib_tick_1ms(void);              // from SysTick
 uint8_t calib_moves(cal_test_t test);   // 1 if the robot will move
 // Runs `test` with its (validated) arguments and dumps the samples.
 void calib_run(cal_test_t test, int32_t a, int32_t b);
-// CAL RUN: motion.c marks where a continuous move starts and ends (the
-// recording goes on CAL_COAST_MS after it); main.c dumps it once the run is
-// over.
+// CAL RUN: motion.c marks a continuous move's start and end; main.c dumps it after the run.
 void calib_path_start(void);
 void calib_path_end(const char *result);
 void calib_run_finished(void);

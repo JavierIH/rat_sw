@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 
-// Persistence of the maze map, goal and runtime parameters in flash: a log of
-// records in two pages (storage.c), programmed during runs, erased only at
-// boot (docs/freezes.md).
+// Map, goal and parameters in flash: a log of records in two pages, programmed during runs, erased only at boot.
 
 typedef enum {
     STORAGE_LOADED,         // map, goal and parameters restored
@@ -22,12 +20,10 @@ typedef enum {
     STORAGE_FULL,           // no erased slot left until the next boot compacts (or SAVE)
 } storage_save_t;
 
-// Current map, goal and parameters. map_only (run ends): nothing written
-// when only the parameters changed.
+// Current map, goal and parameters; map_only (run ends): nothing written if only the parameters changed.
 storage_save_t storage_save(uint8_t map_only);
 storage_status_t storage_load(void);  // restores what the status says, nothing otherwise
-// Boot (or SAVE when full): frees every slot but the current record's, with
-// at most two page erases. Only with a healthy flash (power-on or probe).
+// Boot (or SAVE when full): frees every slot but the current record's (at most two erases); healthy flash only.
 uint8_t storage_needs_compact(void);
 uint8_t storage_compact(void);
 uint8_t storage_free_slots(void);

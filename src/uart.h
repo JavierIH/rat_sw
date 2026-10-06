@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 
-// Bluetooth console: USART3 + HC-05 at 9600 baud. Non-blocking both ways:
-// TX is a DMA-driven queue of whole messages, RX assembles lines in the
-// interrupt. No HAL types here, so strategy code can log on the host too.
+// Bluetooth console (USART3 + HC-05, 9600 baud): TX a DMA queue of whole messages, RX lines in the interrupt.
 
 #define UART_BAUDRATE 9600
 
@@ -14,8 +12,7 @@ void uart_start_receive(void);
 // After the system clock changed (sysclock.c): the baud rate from the new bus clock.
 void uart_retime(void);
 
-// Queue a message. It is silently DROPPED if the queue is full: logging must
-// never stall a control loop.
+// Queues a message, silently DROPPED if the queue is full: logging never stalls a control loop.
 void uart_send(const char *text);
 void print(const char *format, ...) __attribute__((format(printf, 1, 2)));
 

@@ -3,10 +3,7 @@
 
 #include <stdint.h>
 
-// Runtime-tunable parameters: changed live over Bluetooth (SPD, FAST, ACCEL,
-// CURVE, TURN, TACCEL, TURNTICKS, KP, KD, LOG, TELEM) and persisted with SAVE.
-// Defaults in robot_config.h. Speeds are physical units: the speed control
-// (control.h) makes the wheels follow them whatever the battery.
+// Runtime parameters, changed over Bluetooth and saved with SAVE (defaults in robot_config.h); physical units.
 typedef struct {
     float kp;               // centring: deg/s of turn per mm off-centre
     float kd;               // centring: deg of turn per mm the error changes
@@ -35,9 +32,7 @@ extern params_t params;
 
 void params_reset(void);
 
-// Fingerprint of the compiled-in parameter defaults. Parameters saved in
-// flash are only reused by firmware built with the same defaults, so
-// reflashing with new defaults never runs on stale settings.
+// Fingerprint of the parameter defaults: saved parameters are reused only by a firmware with the same defaults.
 uint32_t params_defaults_signature(void);
 
 #endif // PARAMS_H

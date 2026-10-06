@@ -15,10 +15,7 @@
 #include "robot_config.h"
 #include "uart.h"
 
-// Every move is a motion profile that the speed control (control.h) follows:
-// SysTick steps it every millisecond and drives the motors, so the robot
-// keeps moving smoothly while this code, in the main context, watches the
-// sensors, moves the target (front wall) and decides when the move is over.
+// Every move is a profile SysTick follows each ms; the main context watches the sensors and ends the move.
 
 #define FRONT_CONFIRM_MS    3       // consecutive 1 ms readings for a front-wall decision
 #define FRONT_ZONE_MM       (CELL_MM / 2)   // the front wall at the end of a move is tracked in its last half cell
@@ -47,8 +44,7 @@ static uint8_t moved;   // an action ran since the last checkpoint
 
 void motion_request_abort(void){ abort_flag = 1; }
 
-// A new run: nothing moved yet (step mode paused a speed run before its
-// first move for the last action of the search before it).
+// A new run: nothing moved yet (step mode pauses after the search's last action, not before a speed run).
 void motion_clear_abort(void){ abort_flag = 0; paused = 0; moved = 0; }
 uint8_t motion_abort_requested(void){ return abort_flag; }
 uint8_t motion_step_mode(void){ return step_mode; }
@@ -62,8 +58,7 @@ void motion_set_step_mode(uint8_t on){
     if(!on) paused = 0;
 }
 
-// Commands and the START button (= stop the run) are serviced from every
-// wait and control loop, so the robot reacts within a millisecond.
+// Commands and START (= stop) are serviced from every wait and control loop, within a millisecond.
 static void poll_inputs(void){
     health_alive();
     commands_poll();
@@ -132,26 +127,21 @@ static float curve_slip = CURVE_SLIP_DEG;   // deg more at CURVE_SLIP_VREF_MM_S
 static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
 static float curve_pre_slip = CURVE_PRE_SLIP_MM;    // mm more `pre` at CURVE_SLIP_VREF_MM_S...
 static float curve_pre_v0 = CURVE_PRE_V0_MM_S;      // ...and none up to this speed
-// Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM
-// the control asks, behind its back, as with a low battery.
+// Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM asked, as with a low battery.
 static float motor_scale = 1.0f;
 
-// Owned by SysTick while control_on; the main context only reads them, and
-// writes fwd.target (one aligned float store) to move the end of a straight.
+// Owned by SysTick while control_on; the main context only reads them and writes fwd.target.
 static profile_t fwd, rot;
 static control_t ctl;
 static steer_t steer;
 static volatile uint8_t control_on, steer_on;
 static volatile float steer_gain;
-// A path run (motion_run_path) steps `run` instead of the two profiles; it
-// writes them, so everything else reads fwd/rot as in any move. The main
-// context only writes run.stop_at and run.hold (one aligned store each).
+// A path run steps `run` instead of the profiles; the main context only writes run.stop_at and run.hold.
 static path_run_t run;
 static volatile uint8_t path_on;
 static uint8_t steer_blind;         // centring suspended by a curve (SysTick)
 
-// NMI (sysclock.c): the crystal failed and every timing is 9 times off until
-// the main context recovers the clock. Stop driving now and end the run.
+// NMI (sysclock.c): the crystal failed and every timing is off: stop driving and end the run.
 void clock_failure_hook(void){
     control_on = 0;
     path_on = 0;
@@ -159,8 +149,7 @@ void clock_failure_hook(void){
     motor_emergency_stop();
 }
 static int32_t tick_l, tick_r;      // encoder totals at the last SysTick
-// Where the robot was each of the last TRAIL_LEN ms (forward axis): the IR
-// report the past (IR_DELAY_MS), and must be added to the position then.
+// The forward position of the last TRAIL_LEN ms: the IR report the past (IR_DELAY_MS).
 #define TRAIL_LEN 64
 #define IR_DELAY_MAX 60     // TUNE limit
 _Static_assert(IR_DELAY_MAX < TRAIL_LEN, "IR delay too long");
@@ -189,9 +178,7 @@ void motion_tick_1ms(void){
     }
     float heading = 0.0f;
     if(steer_on){
-        // In a curve the side walls say nothing about the centre line, and
-        // right after it the IR still report the curve (IR_DELAY_MS): hold
-        // the heading offset, and start afresh in the new corridor.
+        // In a curve, and until the IR read the new corridor, hold the heading offset; then start afresh.
         if(path_on && !(run.s < run.curve_start && fwd_at_ir() >= run.last_curve_end)){
             steer_blind = 1;
             heading = steer.heading;
@@ -222,8 +209,7 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *id){
     *id = move_id;
 }
 
-// A move from rest. Nothing drives until control_go(); SysTick leaves the
-// state alone meanwhile.
+// A move from rest: nothing drives until control_go().
 static void control_begin(uint8_t steering){
     control_on = 0;
     path_on = 0;
@@ -263,9 +249,7 @@ static float fwd_actual(void){
 
 // ---- Move supervision ----------------------------------------------------------------------
 
-// Side walls sampled on the way into the last cell of a forward move, used by
-// the next motion_sense_walls() instead of reading them at the stop. Any other
-// action makes them stale.
+// Side walls sampled on the way into a move's last cell, for the next motion_sense_walls(); stale after any other action.
 static struct { uint8_t valid, n, votes_l, votes_r; } side_pass;
 
 static void side_pass_clear(void){
@@ -292,14 +276,11 @@ static void guard_start(guard_t *g, uint32_t timeout_ms){
     g->fwd_err_max = g->rot_err_max = 0.0f;
 }
 
-// PAUSE mid-move: brake and wait; on RESUME, carry on from where the robot
-// actually is, from standstill, to the same target.
+// PAUSE mid-move: brake and wait; RESUME carries on from where the robot is, to the same target.
 static void hold_while_paused(guard_t *g){
     const uint32_t since = HAL_GetTick();
     if(path_on){
-        // Brake to a stop on the path (in a curve too) and hold there: the
-        // path carries on from the same point, since its heading depends on
-        // the distance alone.
+        // Brake to a stop on the path (in a curve too) and hold: the path resumes from the same distance.
         run.hold = 1;
         while(paused && !abort_flag) poll_inputs();
         run.hold = 0;
@@ -317,9 +298,7 @@ static void hold_while_paused(guard_t *g){
     control_on = 1;
 }
 
-// Once per ms of every move: commands, pause, abort, timeout, and the
-// following error. Far behind the reference means something holds the robot
-// (a wall, a post) or the wheels slip: pushing on would only make it worse.
+// Every ms of a move: commands, pause, abort, timeout, and the following error (far behind: held or slipping).
 static move_result_t guard_check(guard_t *g){
     poll_inputs();
     if(paused && !abort_flag) hold_while_paused(g);
@@ -333,8 +312,7 @@ static move_result_t guard_check(guard_t *g){
     return MOVE_OK;
 }
 
-// 1 once the profiles are done and the robot has caught up with them (or
-// SETTLE_MAX_MS later: a few tenths of a mm of friction are not worth more).
+// 1 once the profiles are done and the robot caught up (or after SETTLE_MAX_MS).
 static uint8_t guard_settled(guard_t *g){
     if(fwd.active || rot.active) return 0;
     const uint32_t now = HAL_GetTick();
@@ -394,9 +372,7 @@ static uint8_t curve_from_tuning(curve_t *c){
     return 1;
 }
 
-// Fastest curve the motors can follow: the outer wheel's feedforward where a
-// ramp meets the arc (running v (1 + h / R) and accelerating h v^2 / (R
-// ramp), h the half track) within CURVE_PWM_SHARE of the limit.
+// Fastest curve the motors can follow: the outer wheel's feedforward where a ramp meets the arc, within CURVE_PWM_SHARE.
 static float curve_speed_limit(const curve_t *c){
     const float h = control_cfg.mm_per_deg * 57.29578f;
     const float kv = fmaxf(control_cfg.kv_l, control_cfg.kv_r);
@@ -454,8 +430,7 @@ static uint8_t grow_path(void){
     return ok;
 }
 
-// Every ms of a search leg: side readings of the next cell, and its decision
-// when due, with its front wall in view.
+// Every ms of a search leg: the next cell's side readings, and its decision when due.
 static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8_t front_seen){
     if(ex->stopping) return;
     const uint32_t now = HAL_GetTick();
@@ -467,8 +442,7 @@ static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8
             if(ir_mm(IR_SR) < WALL_DETECT_MM) ex->walls_r++;
         }
     }
-    // Due just before the reference must start braking for where it ends
-    // now: the cell's centre, or where a wall seen in front moved it.
+    // Due just before the reference must brake for its current end (the cell's centre or a wall ahead).
     if(!run.done && run.s < run.stop_at - v * v / (2.0f * run.accel) - late_margin) return;
 
     wall_sense_t w;
@@ -490,8 +464,7 @@ static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8
     ex->last_r = w.right;
     ex->samples = ex->walls_l = ex->walls_r = 0;
     ex->decided++;
-    // Straight on: one cell more, unless a wall in front already moved the
-    // end (then it stops in this cell, as if told to).
+    // Straight on: one cell more, unless a wall ahead already moved the end.
     if(next == NEXT_STRAIGHT && grow_path()){
         g->deadline += MOVE_TIMEOUT_PER_CELL_MS;
         ex->entry += CELL_MM;
@@ -500,12 +473,7 @@ static void explore_step(explorer_t *ex, guard_t *g, float v, float ir_at, uint8
     ex->stopping = 1;
 }
 
-// Every forward move: a whole path in one go (path.h), straights and smooth
-// curves, a plain straight being a path without curves. SysTick steps the
-// reference; this loop watches the sensors and decides when it is over. The
-// front sensors are used on straights only, with readings taken on them: to
-// stop at the right distance from a wall at the end, and to stop short, at a
-// cell centre, if a wall shows up where the (verified) map had a passage.
+// Every forward move is a path (path.h); the front sensors, on straights only, stop it at a wall or short of an unexpected one.
 static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered,
                               explorer_t *ex){
     side_pass_clear();
@@ -553,16 +521,12 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
             if(guard_settled(&g)) break;
             continue;
         }
-        // On the straight into the last cell (or into a short stop) the end
-        // of the straight is the end of the move.
+        // On the straight into the last cell (or a short stop) its end is the move's end.
         const uint8_t last_cell = run.next >= run.path.cells;
         const uint8_t ending = last_cell || short_stop;
         const float expected = short_stop ? planned_end : path_straight_end(&run);
 
-        // Side walls of the last cell, read on the way in: here the angled
-        // beams hit the middle of its walls. At the stop they aim a couple
-        // of cm from the next post, and caught it as phantom walls. The
-        // readings are IR_DELAY_MS old: count from where they were taken.
+        // The last cell's side walls, read on the way in (at the stop the beams catch the next post).
         if(last_cell && !short_stop && run.stop_at - ir_at <= SIDE_PASS_MM && side_pass.n < WALL_SAMPLES){
             side_pass.n++;
             if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
@@ -573,17 +537,12 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
             && fabsf(fl - fr - (float)FRONT_SQUARE_OFFSET_MM) < FRONT_IR_MAX_DIFF_MM;
         ir_seen = wall ? (uint8_t)(ir_seen < 255u ? ir_seen + 1u : ir_seen) : 0u;
         if(ir_seen >= FRONT_CONFIRM_MS && !run.done){
-            // Where the robot stops centred before this wall (FL/FR average,
-            // as in motion_align_front()). The reading is IR_DELAY_MS old:
-            // the wall is that far from where the robot was then (within 0.6
-            // mm on the robot; the plain reading put it 18 mm too far at 400
-            // mm/s).
+            // Where the robot stops centred before this wall, from the reading IR_DELAY_MS old.
             float end = ir_at + 0.5f * (fl + fr) - front_ref;
             const float soonest = run.s + v * v / (4.0f * run.accel);     // braking twice as hard
             float centre;
             if(end < expected - 0.5f * CELL_MM){
-                // Not the wall this straight leads to: one the map had as
-                // open. Stop at the centre of the cell before it.
+                // A wall the map had as open: stop at the centre of the cell before it.
                 if(!short_stop && path_straight_centre(&run, end, 1, &stop_cell, &centre) && centre >= soonest){
                     planned_end = run.stop_at = centre;
                     short_stop = 1;
@@ -592,17 +551,13 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
                 }
             }
             else if(ending && run.stop_at - at <= FRONT_ZONE_MM){
-                // The wall at the end is the best position reference: aim
-                // the stop at it. The reference brakes into the new end, so
-                // the robot stops there instead of coasting past a trigger.
+                // The wall at the end is the best reference: aim the stop at it.
                 end = fminf(fmaxf(end, planned_end - FRONT_EARLY_MAX_MM), planned_end + FRONT_LATE_MAX_MM);
                 run.stop_at = fmaxf(end, soonest);
                 if(!short_stop) stop = "IR";
             }
         }
-        // Something this close well before the end of the straight, with no
-        // room left to stop at a cell centre: brake now, farther out when
-        // going faster. The readings are IR_DELAY_MS old: count the way since.
+        // Something close well before the end, no room to stop at a cell centre: brake now.
         if(ir_at < expected - FRONT_ZONE_MM){
             const float near_mm = FRONT_EMERGENCY_MM + (at - ir_at) + v * v / (2.0f * EMERGENCY_DECEL);
             ir_emergency = (fl < near_mm && fr < near_mm) ? (uint8_t)(ir_emergency + 1u) : 0u;
@@ -656,8 +611,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
     }
     calib_path_end(move_result_name(result));
     if(emergency){
-        // Braked hard on a straight: back to the last cell centre passed,
-        // which the encoders know exactly.
+        // Braked hard on a straight: back to the last cell centre passed.
         side_pass_clear();
         float centre;
         if(path_straight_centre(&run, at, 0, &stop_cell, &centre)){
@@ -672,8 +626,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     return run_path(path, cruise_speed, curve_speed, entered, NULL);
 }
 
-// A search leg: a straight path that starts one cell long and grows as
-// explore_step() asks the search about each next cell.
+// A search leg: a straight path one cell long that grows as explore_step() decides each next cell.
 move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint8_t *entered){
     explorer_t ex = {0};
     ex.decide = decide;
@@ -703,8 +656,7 @@ move_result_t motion_drive_straight(int16_t speed, int32_t mm){
 
 // ---- Turns -------------------------------------------------------------------------------------
 
-// In place, `deg` clockwise (negative = left). The forward loop holds the
-// robot on its spot meanwhile.
+// In place, `deg` clockwise (negative = left); the forward loop holds the robot on its spot.
 static move_result_t rotate(float deg, float speed, guard_t *g){
     control_begin(0);
     profile_start(&rot, deg, speed, 0.0f, (float)params.turn_accel);
@@ -737,8 +689,7 @@ static float front_skew(void){
     return ir_mm(IR_FL) - ir_mm(IR_FR) - (float)FRONT_SQUARE_OFFSET_MM;
 }
 
-// Rotates in place by the yaw the front sensors see, so each stop facing a
-// wall resets the heading error the moves leave behind.
+// Rotates in place by the yaw the front sensors see, resetting the heading error at each stop facing a wall.
 static void square_to_front(void){
     const float skew = front_skew();
     if(fabsf(skew) <= SQUARE_TOL_MM || fabsf(skew) > SQUARE_MAX_SKEW_MM) return;
@@ -793,8 +744,7 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     out->right = votes[IR_SR] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
     motion_doubt_sides(out, fl_seen, fr_seen, sum[IR_FL] / WALL_SAMPLES, sum[IR_FR] / WALL_SAMPLES,
                        FRONT_SQUARE_OFFSET_MM, SIDE_YAW_DOUBT_MM, FRONT_WALL_REF_MM - SIDE_CLOSE_DOUBT_MM);
-    // Just arrived from a straight: the sides read on the way in are better
-    // than any reading from here (see SIDE_PASS_MM).
+    // Just arrived from a straight: the sides read on the way in are better (SIDE_PASS_MM).
     out->moving = side_pass.valid;
     if(side_pass.valid){
         out->left = side_pass.votes_l >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;

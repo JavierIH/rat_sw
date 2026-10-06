@@ -5,9 +5,7 @@
 #include "robot_config.h"
 #include "uart.h"
 
-// The last two 1 KB pages of the 64 KB part. platformio.ini caps the program
-// at 62 KB (board_upload.maximum_size), so the build fails before code could
-// reach them.
+// The last two 1 KB pages; platformio.ini caps the program at 62 KB.
 #define STORE_ADDR 0x0800F800u
 
 _Static_assert(FLASH_STORE_PAGE_SIZE == FLASH_PAGE_SIZE, "a store page must be exactly one flash page");
@@ -17,25 +15,7 @@ const void *flash_store_data(void){
 }
 
 // ---- Protection against a wedged flash (docs/freezes.md) ------------------------------
-// This chip (a clone: DBGMCU_IDCODE 0x307) sometimes wedges its flash until a
-// power cycle: every operation then takes ~9000 times longer (an erase ~200 s
-// instead of 22 ms, a halfword ~0.45 s instead of 56 us), and as the CPU runs
-// from the flash it stalls meanwhile. An erase cannot be cut short, so
-// storage.c erases only at boot; runs only program erased space, a halfword at
-// a time, each timed (one slow halfword costs well under a second, not
-// minutes). The flash times its program and erase with the HSI, whatever
-// clock runs the CPU. Motor transients alone can leave a running HSI crawling
-// while it still reads ready (10-04, robot on a stand: 280 hard reversals with
-// no flash operation, then a halfword at rest took 463 ms), restarting it
-// cured every wedge seen, and a reset on a crawling HSI does not boot (the
-// chip boots on it). So the HSI is off except during a flash operation
-// (sysclock.c stops it after the clock setup): each one starts it fresh and
-// stops it when done, and a reset always finds it stopped (the hardware
-// starts it). If a halfword is still slow, the HSI is restarted once more
-// and the write goes on; a second slow one or a failed one stops the write,
-// and the store refuses everything after it until a power cycle. The cycle
-// counter times them: it keeps counting while the CPU is stalled on the
-// flash (SysTick does not).
+// Flash ops are timed by the HSI, which motor transients can leave crawling: it runs only during an operation, started fresh.
 #define HALFWORD_SLOW_US    1000u   // normal: ~56 us
 #define ERASE_SLOW_MS       200u    // normal: ~22 ms
 #define SETTLE_EXTRA_MS     2000u   // waiting for the UART: at most this beyond FLASH_SETTLE_MS
@@ -61,9 +41,7 @@ static uint32_t cycles_per_us(void){
     return SystemCoreClock / 1000000u;
 }
 
-// Every wedged write began within ms of the end of a move; writes made with
-// the motors off a while and the UART quiet never wedged (92 of 92). Motors
-// off FLASH_SETTLE_MS and nothing left to send, bounded.
+// Every wedged write began within ms of a move's end: wait FLASH_SETTLE_MS with the motors off and the UART quiet.
 static void settle(void){
     const uint32_t t0 = HAL_GetTick();
     while((motor_idle_ms() < FLASH_SETTLE_MS || !uart_tx_idle()) && HAL_GetTick() - t0 < FLASH_SETTLE_MS + SETTLE_EXTRA_MS){
@@ -71,15 +49,13 @@ static void settle(void){
     }
 }
 
-// The flash times its erase and program with the HSI: it must run. Bounded by
-// iterations too, in case the cycle counter did not start.
+// The flash needs the HSI running; bounded by iterations too, in case the cycle counter did not start.
 static void hsi_wait(uint32_t ready){
     const uint32_t t = DWT->CYCCNT, limit = 10000u * cycles_per_us();
     for(uint32_t n = 0; ((RCC->CR & RCC_CR_HSIRDY) != 0) != ready && DWT->CYCCNT - t < limit && n < 200000u; n++){}
 }
 
-// The CPU runs on the HSI (the crystal failed): it can be neither stopped
-// nor restarted then (the RCC ignores clearing HSION).
+// Running on the HSI (crystal failed) it can be neither stopped nor restarted.
 static uint8_t hsi_runs_cpu(void){
     const uint32_t cfgr = RCC->CFGR, sws = cfgr & RCC_CFGR_SWS;
     return sws == RCC_CFGR_SWS_HSI || (sws == RCC_CFGR_SWS_PLL && !(cfgr & RCC_CFGR_PLLSRC));
@@ -95,8 +71,7 @@ static uint8_t hsi_restart(void){
     return (RCC->CR & RCC_CR_HSIRDY) != 0;
 }
 
-// At the start of every operation (see above). Running on the HSI it is on
-// already, and stays.
+// At the start of every operation (on the HSI it is on already).
 static uint8_t hsi_fresh(void){
     if(hsi_runs_cpu() || hsi_restart()) return 1;
     print("!! flash: the HSI does not start\n");
@@ -196,8 +171,7 @@ static uint8_t program(uint16_t offset, const void *data, uint16_t len){
               (unsigned long)slow_us, slow_right ? "right" : "WRONG", (unsigned long)after_us);
     }
     if(ok && right) return 1;
-    // The slow halfword landed wrong but the restart cured the flash: the
-    // store goes on (storage.c tries the next slot).
+    // The slow halfword landed wrong but the restart cured the flash: storage.c tries the next slot.
     if(ok && restarted) return 0;
     report(timing.worst_us == HALFWORD_FAILED ? "failed write" : ok ? "failed verify"
            : "SLOW write, cut", hal_error, rcc_cr, acr);

@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include "path.h"
 
-// Robot actions used by the strategies in search.c. Implemented by motion.c
-// on the robot and by the simulator in test/host, so this header stays free
-// of HAL types.
+// Robot actions for search.c, implemented by motion.c and by the host simulator (no HAL types here).
 
 typedef enum {
     MOVE_OK = 0,
@@ -18,8 +16,7 @@ typedef enum {
     MOVE_LOST,      // obstacle mid-move: position unknown
 } move_result_t;
 
-// A side reading can also be doubtful: the pose made a phantom wall likely
-// (see SIDE_YAW_DOUBT_MM). Doubtful readings must not be recorded.
+// A doubtful side reading (SIDE_YAW_DOUBT_MM: a likely phantom wall) is never recorded.
 typedef enum { SEEN_ABSENT = 0, SEEN_PRESENT = 1, SEEN_DOUBTFUL = 2 } sighting_t;
 typedef struct {
     uint8_t front, left, right;     // sighting_t (front never doubtful)
@@ -28,40 +25,22 @@ typedef struct {
 
 typedef enum { IND_GOAL, IND_DONE, IND_FAIL } indication_t;
 
-// Drives `cells` cells straight, cruising at `cruise_speed` mm/s (speed
-// control: speeds up and brakes at ACCEL and stops exactly at the end, or at
-// the calibrated distance from a wall seen in front).
+// Drives `cells` cells straight at `cruise_speed` mm/s, stopping at the end or at the calibrated distance from a wall ahead.
 move_result_t motion_forward(uint8_t cells, int16_t cruise_speed);
 // Turns in place: -1 = 90 deg left, +1 = 90 deg right, 2 = 180 deg.
 move_result_t motion_turn(int8_t quarter_turns);
-// Drives the whole path without stopping: straights at `cruise_speed`,
-// smooth curves at `curve_speed` (mm/s), stop at the centre of the last cell.
-// `entered` = cells of the path the robot is in when it stops: all of them
-// with MOVE_OK; with MOVE_BLOCKED it stopped at the centre of an earlier one,
-// on a straight, facing a wall the map had as open.
+// Drives the whole path without stopping (straights at `cruise_speed`, curves at `curve_speed`); `entered`: cells reached.
 move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int16_t curve_speed, uint8_t *entered);
 // ---- Search legs ----------------------------------------------------------------------
-// The search drives straight on through the cells without stopping and
-// decides each one on the way: motion_explore() starts from rest at a cell
-// centre, heading into the next cell, and calls `decide` once for every cell
-// it gets to, inside it, with its three walls in view (the same the robot
-// would see stopped there; a wall reads `SEEN_DOUBTFUL` if the readings did
-// not agree). Straight on, or stop at that cell's centre (to turn in place,
-// at a wall, at the goal...). No curves: those are for the speed run.
+// From rest at a cell centre, straight on; `decide` is called inside each cell, its three walls in view. No curves.
 typedef enum { NEXT_STRAIGHT, NEXT_STOP } next_move_t;
 typedef next_move_t (*next_cell_fn)(const wall_sense_t *walls, void *ctx);
-// `entered` = cells decided that the robot got to. MOVE_OK: stopped at the
-// centre of the one `decide` said NEXT_STOP for (or where a wall seen in
-// front ended the leg). MOVE_BLOCKED: stopped at the centre of cell
-// `entered` (0 = where it started), facing a wall where the map had a
-// passage.
+// `entered`: cells decided and reached; MOVE_BLOCKED: stopped at cell `entered`'s centre facing a wall the map had open.
 move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint8_t *entered);
 
-// Majority-voted wall readings: the front with the robot stopped, the sides
-// from the straight that just ended if there was one (see `moving`).
+// Majority-voted walls: the front stopped, the sides from the straight that just ended (`moving`).
 move_result_t motion_sense_walls(wall_sense_t *out);
-// Side readings exposed to phantom walls, given the front sensor votes and
-// their average readings (mm). Pure: shared with the host tests.
+// Side readings exposed to phantom walls, from the front sensors' votes and readings (mm).
 static inline void motion_doubt_sides(wall_sense_t *w, uint8_t fl_seen, uint8_t fr_seen,
                                       float fl_mm, float fr_mm, float square_offset,
                                       float yaw_doubt, float close_mm){
@@ -73,8 +52,7 @@ static inline void motion_doubt_sides(wall_sense_t *w, uint8_t fl_seen, uint8_t 
         doubt_left = too_close || skew < -yaw_doubt;
     }
     else{
-        // Something ahead on one side only (strong yaw or a post): the side
-        // beam on that side can be hitting it too.
+        // Something ahead on one side only (yaw or a post): that side's beam may hit it too.
         doubt_left = fl_seen;
         doubt_right = fr_seen;
     }
@@ -83,8 +61,7 @@ static inline void motion_doubt_sides(wall_sense_t *w, uint8_t fl_seen, uint8_t 
 }
 // If a wall is in front, nudges to the calibrated distance from it.
 void motion_align_front(void);
-// Between actions: handles commands, pause and single-step mode. Returns 0
-// when the run must stop.
+// Between actions: commands, pause and step mode. 0 when the run must stop.
 uint8_t motion_checkpoint(void);
 void motion_indicate(indication_t what);
 
@@ -118,9 +95,7 @@ uint8_t motion_abort_requested(void);
 void motion_set_paused(uint8_t paused);
 void motion_set_step_mode(uint8_t on);
 uint8_t motion_step_mode(void);
-// The search legs' decisions on the way: their planner time since the run
-// began (the worst one, its planner pops) and how many came late, with the
-// reference already braking. Printed after a run and in STATUS.
+// The search legs' decisions on the way: worst planner time and pops, and how many came late.
 void motion_leg_timing_reset(void);
 float motion_ticks_per_mm(void);        // WHEEL_TICKS_PER_MM, or TUNE TICKS_MM
 void motion_leg_timing_report(void);

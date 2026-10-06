@@ -72,9 +72,7 @@ void leds_all(uint8_t on){
     leds_set_mask(on ? 0x3F : 0x00);
 }
 
-// The boot sweep of the original firmware (develop, 7dccc63 led_animation()),
-// same order and timing: one LED runs 1 -> 6 -> 1, 50 ms per step. Drawn from
-// the time, so the idle loop can repeat it without blocking.
+// The boot sweep: one LED runs 1 -> 6 -> 1, 50 ms a step, drawn from the time (non-blocking).
 #define LED_SWEEP_STEP_MS 50
 
 void leds_sweep_frame(uint32_t ms){

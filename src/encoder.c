@@ -2,8 +2,7 @@
 #include "stm32f1xx_hal.h"
 #include "error.h"
 
-// Input filter: 6 samples at fDTS/4 (333 ns) must agree. Rejects motor PWM
-// noise spikes, orders of magnitude shorter than real encoder edges.
+// Input filter: 6 samples at fDTS/4 must agree (rejects PWM noise spikes).
 #define ENCODER_INPUT_FILTER 6
 
 static TIM_HandleTypeDef htim1;
@@ -48,8 +47,7 @@ void ENCODER_Init(void){
     last_r = (uint16_t)TIM2->CNT;
 }
 
-// Called every ms: a 16-bit counter cannot move 32768 ticks in that time, so
-// the signed difference is always the true increment.
+// Every ms: a 16-bit counter cannot move 32768 ticks, so the signed difference is the true increment.
 void encoder_tick(void){
     uint16_t l = (uint16_t)TIM1->CNT;
     uint16_t r = (uint16_t)TIM2->CNT;
@@ -61,10 +59,7 @@ void encoder_tick(void){
 }
 
 uint32_t encoder_idle_ms(void){
-    // Timestamp first: if SysTick fires between the two reads it only makes
-    // the timestamp older. Read the other way round, a tick in between made
-    // it newer than `now`, the difference wrapped around to ~4e9 ms and
-    // wait_still() returned while the wheels were still turning.
+    // Timestamp first: read the other way round, a tick in between wrapped the difference to ~4e9 ms.
     const uint32_t last = last_motion_ms;
     return HAL_GetTick() - last;
 }

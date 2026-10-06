@@ -37,13 +37,10 @@
 extern DMA_HandleTypeDef hdma_usart3_tx;
 extern UART_HandleTypeDef huart3;
 
-// Application hook run every 1 ms from SysTick. The robot firmware (main.c)
-// overrides it; the hardware test firmwares do not need one.
+// Hook run every 1 ms from SysTick (main.c overrides it).
 __weak void app_systick(void){}
 
-// Last resort for faults: the motors are stopped at register level (the HAL
-// may be corrupt) and the LEDs blink slowly, distinct from Error_Handler's
-// fast blink. Without this a crash mid-run left the wheels driving.
+// Faults: the motors stopped at register level and a slow LED blink (Error_Handler blinks fast).
 static void fault_halt(void){
     motor_emergency_stop();
     for(;;){
@@ -63,8 +60,7 @@ void SVC_Handler(void){}
 void DebugMon_Handler(void){}
 void PendSV_Handler(void){}
 
-// SysTick with the frame the interrupt stacked (health.c looks at where the
-// main program was). The robot firmware overrides the check.
+// SysTick with the stacked frame (health.c looks at where the main program was).
 __weak void app_stall_check(const uint32_t *frame){ (void)frame; }
 
 __attribute__((used)) void systick_with_frame(const uint32_t *frame){

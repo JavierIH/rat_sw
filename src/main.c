@@ -100,9 +100,7 @@ void app_systick(void){
     calib_tick_1ms();
 }
 
-// Idle: the boot sweep until a mode is chosen, then the mode's pair of LEDs
-// (1-2, 3-4, 5-6), briefly off twice a second as a heartbeat; in the race
-// menu LEDs 1..n for race n, blinking slowly (1-2 is not mode 1).
+// Idle LEDs: the boot sweep, then the mode's pair with a heartbeat; in the race menu LEDs 1..n blinking slowly.
 static void show_mode(void){
     const uint32_t t = HAL_GetTick();
     if(!mode_chosen){
@@ -133,8 +131,7 @@ static uint8_t countdown(uint32_t ms){
     return go;
 }
 
-// The main loops say they are alive and report what the health checks and
-// the clock security system caught meanwhile.
+// The main loops say they are alive and report what the health checks and the clock security caught.
 static void report_health(void){
     health_alive();
     uint32_t stall_ms, stall_pc, stall_lr;
@@ -154,8 +151,7 @@ static void report_health(void){
     }
 }
 
-// Erasing needs a second START press within 3 s, so a mis-selected mode
-// cannot wipe a map by accident.
+// Erasing needs a second START within 3 s.
 static void erase_map_confirmed(void){
     print("ERASE MAP: press START again within 3 s to confirm\n");
     uint32_t start = HAL_GetTick();
@@ -292,10 +288,7 @@ storage_save_t app_save_now(void){
     return storage_save(0);
 }
 
-// The saved records are a log that only grows during runs (storage.c): the
-// boot compacts it, the only time pages are erased on their own, and only
-// with a healthy flash: after a power-on, or when a probe says so (after a
-// reset it may still be wedged, docs/freezes.md).
+// The boot compacts the store, the only erase, and only with a healthy flash (power-on or a good probe).
 static void compact_store(void){
     if(!storage_needs_compact()) return;
     if(!health_power_on() && !flash_store_probe()){

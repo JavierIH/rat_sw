@@ -1,16 +1,13 @@
 #ifndef ROBOT_CONFIG_H
 #define ROBOT_CONFIG_H
 
-// Compile-time configuration, one line per constant: value, unit and why.
-// The measurements behind them are in docs/control.md. Values tunable live
-// (params.h, TUNE) only have their defaults here.
+// Compile-time configuration, one line per constant (value, unit, why); measurements in docs/measurements.md.
 
 // ---- Maze ------------------------------------------------------------------
 #define START_X                 0
 #define START_Y                 0
 
-// Default goal (inclusive cell rectangle): PRACTICE_MAZE comes from
-// platformio.ini; the GOAL command overrides it at runtime.
+// Default goal (inclusive cells; PRACTICE_MAZE from platformio.ini); GOAL overrides it at runtime.
 #if PRACTICE_MAZE
 #define GOAL_X0                 3   // 4x3 practice maze, single goal cell
 #define GOAL_Y0                 2
@@ -52,8 +49,7 @@
 #define SEARCH_LEG_SPEED_MAX    450     // mm/s: the fastest at which the front wall is known at the decision
 #define SEARCH_MIN_READINGS     3       // side readings that must all agree, else the side is doubtful
 #define SEARCH_FRONT_OPEN_MM    205.0f  // inside the cell at the decision: no wall in front above this
-// Phantom side walls: stopped yawed or too far forward, a side beam (at the
-// nose, 15 deg forward) hits the post or the front wall.
+// Phantom side walls: stopped yawed or too far forward, a side beam hits the post or the front wall.
 #define FRONT_SQUARE_OFFSET_MM  -15     // FL - FR square to a wall at the cell centre (median of 44 stops)
 #define SIDE_YAW_DOUBT_MM       10      // |FL - FR - offset| beyond this (~8 deg): doubt the side it turns towards
 #define SIDE_CLOSE_DOUBT_MM     25      // front wall this much closer than FRONT_WALL_REF_MM: doubt both sides
@@ -112,8 +108,7 @@
 #define START_DELAY_MS          5000    // countdown after START of a mode (hands away)
 #define CAL_DELAY_MS            2000    // countdown of a CAL test (sent over Bluetooth)
 #define COUNTDOWN_BLINK_MS      50      // every LED on/off this long during a countdown
-// Race presets: selecting 2.4-2.6 sets FAST and CURVE (the console can still
-// change them before START); 2.3, without curves, sets FAST_SAFE_SPEED.
+// Race presets: 2.4-2.6 set FAST and CURVE (the console can change them before START); 2.3 sets FAST_SAFE_SPEED.
 #define FAST_SAFE_SPEED         800     // mm/s, race 2.4
 #define FAST_SAFE_CURVE         300
 #define FAST_MID_SPEED          900     // mm/s, race 2.5

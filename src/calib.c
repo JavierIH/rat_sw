@@ -50,9 +50,7 @@ void calib_tick_1ms(void){
     }
     if(divider == 0){
         if(count >= CAL_CAPACITY){
-            // Full: halve the resolution instead of losing the end of the
-            // test. The even samples stay evenly spaced at twice the period,
-            // and this one lands exactly on the next slot of the new grid.
+            // Full: halve the resolution instead of losing the end (the samples stay evenly spaced).
             if(period_ms * 2u > CAL_MAX_PERIOD_MS){
                 recording = 0;
                 full = 1;       // the dump says so
@@ -68,8 +66,7 @@ void calib_tick_1ms(void){
         s->pwm_l = motor_get(MOTOR_L);
         s->pwm_r = motor_get(MOTOR_R);
         for(uint8_t i = 0; i < IR_COUNT; i++) s->ir[i] = ir_raw((ir_sensor_t)i);
-        // Every move restarts its profiles at 0: carry on from where the
-        // last one ended, so the recorded reference is continuous.
+        // Every move restarts its profiles at 0: carry on from the last one's end.
         float f, r;
         uint8_t id;
         motion_reference(&f, &r, &id);
@@ -210,8 +207,7 @@ static void dump(void){
     return;
 
 interrupted:
-    // The queue is usually full right now (that is what the dump was waiting
-    // for): wait for room, or this message would be dropped.
+    // The queue is usually full right now: wait for room, or this message would be dropped.
     uart_wait_space(1000);
     print("CAL: sending interrupted (CAL DUMP repeats it)\n");
 }
@@ -250,8 +246,7 @@ void calib_run(cal_test_t test, int32_t a, int32_t b){
             }
             break;
         case CAL_CURVE:{
-            // As in a speed run: straight into the next cell, curve inside
-            // it, stop at the centre of the cell after it.
+            // As in a speed run: into the next cell, curve inside it, stop at the next centre.
             static int8_t turns[2];
             turns[0] = (int8_t)a;
             const run_path_t path = {turns, 2};

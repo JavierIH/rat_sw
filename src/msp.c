@@ -49,8 +49,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 
     HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-    // The end of a DMA transmit (TC) and every received byte arrive on the
-    // USART3 interrupt.
+    // A DMA transmit's end and every received byte arrive on the USART3 interrupt.
     HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(USART3_IRQn);
 }
@@ -100,8 +99,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *hadc){
     gpio.Pin = GPIO_PIN_0 | GPIO_PIN_1;     // ADC1_IN8, ADC1_IN9
     HAL_GPIO_Init(GPIOB, &gpio);
 
-    // Circular, 16-bit samples. No DMA/ADC interrupts are enabled on purpose
-    // (see IR_Init).
+    // Circular, 16-bit samples, no DMA/ADC interrupts (see IR_Init).
     hdma_adc1.Instance = DMA1_Channel1;
     hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;

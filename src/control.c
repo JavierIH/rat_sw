@@ -40,8 +40,7 @@ float profile_remaining(const profile_t *p){
 
 float control_sqrt(float x){
     if(!(x > 0.0f)) return 0.0f;
-    // The exponent halved is within ~6 %; each Newton step squares the
-    // error: three reach float precision.
+    // Exponent halved (~6 %), then three Newton steps to float precision.
     union { float f; uint32_t u; } g = {x};
     g.u = (g.u >> 1) + 0x1FC00000u;
     float r = g.f;
@@ -49,10 +48,7 @@ float control_sqrt(float x){
     return r;
 }
 
-// Fastest speed for the end of this step from which a point `rem` ahead can
-// still be reached at `final` braking at `rate`, counted from where the step
-// ends: next^2 = final^2 + 2 rate (rem - (v + next) dt / 2). Solved for
-// `next`, it brakes at exactly `rate` every step.
+// Fastest end-of-step speed that still reaches `rem` at `final` braking at `rate`.
 float profile_brake_speed(float v, float rem, float final, float rate, float dt){
     const float a_dt = rate * dt;
     const float disc = a_dt * a_dt + 4.0f * (final * final + 2.0f * rate * (rem - 0.5f * v * dt));
@@ -117,9 +113,7 @@ void control_clear_errors(control_t *c){
     for(uint8_t i = 0; i < CONTROL_D_WINDOW; i++) c->fwd_hist[i] = c->rot_hist[i] = 0.0f;
 }
 
-// PWM that makes a wheel run at `v` while accelerating at `a` (motor model
-// from CAL STEP). The friction term fades in over the first 10 mm/s so that
-// it does not chatter around standstill.
+// PWM for a wheel at `v` accelerating at `a` (CAL STEP model); friction fades in over 10 mm/s.
 static float feedforward(float v, float a, float kv, const control_config_t *k){
     return kv * (v + k->tau * a) + k->ks * clampf(v * 0.1f, -1.0f, 1.0f);
 }
@@ -134,25 +128,18 @@ void control_step(control_t *c, const control_config_t *k, const profile_t *fwd,
     c->rot_error += rot->delta + (steer - c->steer_prev) - rot_moved;
     c->steer_prev = steer;
 
-    // Error change over the last CONTROL_D_WINDOW steps: a speed error with
-    // a quarter of the quantization noise of a single step.
+    // Error change over CONTROL_D_WINDOW steps: a speed error with 1/4 of a step's quantization noise.
     const float fwd_rate = (c->fwd_error - c->fwd_hist[c->slot]) / (CONTROL_D_WINDOW * dt);
     const float rot_rate = (c->rot_error - c->rot_hist[c->slot]) / (CONTROL_D_WINDOW * dt);
     c->fwd_hist[c->slot] = c->fwd_error;
     c->rot_hist[c->slot] = c->rot_error;
     c->slot = (uint8_t)((c->slot + 1u) % CONTROL_D_WINDOW);
 
-    // The integral (the motors' imbalance) only learns while the output has
-    // room, or it would wind up against the limit.
+    // The integral (motor imbalance) learns only while the output has room (no wind-up).
     if(!c->saturated){
         c->rot_integral = clampf(c->rot_integral + k->rot_ki * c->rot_error * dt, -k->rot_i_max, k->rot_i_max);
     }
-    // Arrived and stalled: the last mm / degree need a push the
-    // proportional part does not give against static friction. It builds up
-    // only while that axis is stuck, and drops the moment it moves: kept, it
-    // came out all at once when the wheels broke free (a turn overshot 2.7
-    // deg), and building it while they still coasted made a slow motor
-    // overshoot too.
+    // Stuck short of the target: a push against static friction, built while stuck, dropped once it moves.
     const uint8_t arrived = !fwd->active && !rot->active;
     if(dl + dr != 0){
         c->still_fwd = 0;
@@ -178,9 +165,7 @@ void control_step(control_t *c, const control_config_t *k, const profile_t *fwd,
     const float a_l = fwd->accel + rot->accel * k->mm_per_deg, a_r = fwd->accel - rot->accel * k->mm_per_deg;
     const float ff_l = feedforward(v_l, a_l, k->kv_l, k), ff_r = feedforward(v_r, a_r, k->kv_r, k);
 
-    // Common and differential parts. Out of room, the rotation keeps its
-    // share and the forward drive gives way: a robot that runs a bit slow
-    // stays straight, one that loses its heading hits a wall.
+    // Out of PWM the rotation keeps its share and the forward drive gives way (slow beats crooked).
     float common = 0.5f * (ff_l + ff_r) + u_fwd;
     float diff = clampf(0.5f * (ff_l - ff_r) + u_rot, -k->pwm_limit, k->pwm_limit);
     const float room = k->pwm_limit - absf(diff);
@@ -205,8 +190,7 @@ void steer_restart(steer_t *s){
     s->valid = 0;
 }
 
-// The wall follower most micromice use: the turn rate is a PD of the lateral
-// error, so the heading keeps turning while the robot is off-centre.
+// Wall follower: the turn rate is a PD of the lateral error.
 float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float gain){
     const uint8_t right = sr_mm < k->track_mm, left = sl_mm < k->track_mm;
     const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT

@@ -12,9 +12,7 @@ typedef enum {
 
 void SystemClock_Config(void);
 clock_source_t sysclock_source(void);
-// Main context: after a crystal failure, brings the clock back up at 64 MHz
-// on the internal oscillator. 1 once, when that happened (then the UART baud
-// rate needs uart_retime()).
+// Main context: after a crystal failure, back up at 64 MHz on the HSI; 1 once (then uart_retime()).
 uint8_t sysclock_recover(void);
 
 #endif // SYSCLOCK_H

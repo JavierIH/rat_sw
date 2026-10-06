@@ -19,8 +19,7 @@ static const uint8_t SCAN_POS[IR_COUNT] = {
     [IR_SR] = 1,    // CH7
 };
 
-// Calibration: mm = a*x^3 + b*x^2 + c*x + d, x = raw ADC counts (fitted on
-// the robot; raw tables in calib.txt). Monotonic over the whole ADC range.
+// mm = a*x^3 + b*x^2 + c*x + d, x = raw ADC counts (fitted on the robot; raw tables in calib.txt).
 #define CAL_FL  -0.00000002278f, 0.000132f,  -0.2627f, 237.7f
 #define CAL_FR  -0.00000003535f, 0.0001995f, -0.3834f, 317.6f
 #define CAL_SL  -0.00000005219f, 0.0002629f, -0.4566f, 325.6f
@@ -69,9 +68,7 @@ void IR_Init(void){
     }
     if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) Error_Handler();
 
-    // Circular DMA refreshes the buffer every ~450 us forever. Its interrupts
-    // are left disabled in the NVIC: nothing needs them, and they used to
-    // fire ~71000 times per second.
+    // Circular DMA refreshes the buffer every ~450 us; its interrupts stay off (they fired ~71000 times a second).
     if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buf, IR_OVERSAMPLE * IR_COUNT) != HAL_OK) Error_Handler();
 }
 
@@ -86,8 +83,7 @@ uint16_t ir_raw(ir_sensor_t ir){
     return (uint16_t)((raw_sum(ir) + IR_OVERSAMPLE / 2) / IR_OVERSAMPLE);
 }
 
-// Single precision on purpose: the Cortex-M3 has no FPU and double math is
-// several times slower in software. This runs in the 100 Hz control loop.
+// Single precision on purpose: the M3 has no FPU.
 float ir_mm(ir_sensor_t ir){
     if((unsigned)ir >= IR_COUNT) return IR_MAX_MM;
     const cubic_t *k = &CALIBRATION[ir];

@@ -2,15 +2,7 @@
 #include "error.h"
 #include "motor.h"
 
-// The robot runs on the 8 MHz crystal (HSE) x 9 = 72 MHz. If it does not
-// start at boot, the internal RC oscillator (HSI, 8 MHz +-1 %) / 2 x 16 =
-// 64 MHz runs the robot instead, and the clock security system watches the
-// crystal while running (see HAL_RCC_CSSCallback); no crystal failure has
-// ever been seen (the old ~200 s freezes were the flash: docs/freezes.md).
-// On the crystal the HSI is then stopped: only the flash operations need it,
-// and they start it (flash_store.c). Everything derives its timing from the
-// clocks set here: SysTick (1 ms), the UART baud rate (uart_retime), the
-// ADC. The PWM runs at 64 instead of 72 kHz, which the motors do not notice.
+// Crystal x 9 = 72 MHz, else HSI / 2 x 16 = 64 MHz (the CSS watches the crystal); the HSI is then stopped (flash_store.c).
 
 static volatile clock_source_t source = CLOCK_HSE;
 static volatile uint8_t crystal_failed;     // CSS fired: the main context must bring the PLL back
@@ -69,15 +61,12 @@ clock_source_t sysclock_source(void){
     return source;
 }
 
-// The robot's reaction to a crystal failure, from the NMI: motion.c stops the
-// control and aborts the run; the hardware test firmwares just stop the motors.
+// Reaction to a crystal failure, from the NMI: motion.c stops the control and aborts the run.
 __weak void clock_failure_hook(void){
     motor_emergency_stop();
 }
 
-// NMI, clock security system: the crystal stopped. The hardware has already
-// switched the system clock to the HSI (8 MHz) and stopped the PLL: timing
-// is 9 times off until sysclock_recover() runs.
+// NMI, clock security system: the crystal stopped; the hardware switched to the HSI (timing 9x off until recovered).
 void HAL_RCC_CSSCallback(void){
     source = CLOCK_HSI_FAILED;
     crystal_failed = 1;

@@ -5,8 +5,7 @@
 #include "sysclock.h"
 #include "uart.h"
 
-// LED + IR + encoder live panel (env diag_test) for tools/dashboard.py.
-// Motors are never driven (safe on ST-Link/USB power).
+// LED + IR + encoder panel (env diag_test) for tools/dashboard.py; the motors are never driven.
 #define WALL_MM 200
 
 int main(void){
@@ -25,8 +24,7 @@ int main(void){
         int sl = (int)ir_mm(IR_SL);
         int sr = (int)ir_mm(IR_SR);
 
-        // Same layout as the robot's sensor monitor mode, so the panel also
-        // checks that IR readings and LED wiring agree.
+        // The robot's sensor monitor layout: the panel also checks IR readings and LED wiring agree.
         uint8_t leds[6] = {sl < WALL_MM, fl < WALL_MM, fl < WALL_MM || fr < WALL_MM,
                            fl < WALL_MM || fr < WALL_MM, fr < WALL_MM, sr < WALL_MM};
         for(uint8_t i = 0; i < 6; i++) led_set((uint8_t)(i + 1), leds[i]);

@@ -1,12 +1,4 @@
-// Virtual robot (env:virtual): the robot firmware (main.c, the console, the
-// search, the races, the store on the real flash) on the real chip, with
-// motion.c replaced by the host tests' simulator (test/host/sim.c): every
-// move is resolved, cell by cell, in a 16x16 maze built in, and takes its
-// time for real. For testing the saves on the chip without a maze. Every run
-// starts with the virtual robot at the start facing north (as if carried
-// there). The wheels stay still unless `TUNE RUEDAS 1` (robot on a stand):
-// then each move turns them, open loop, at its speed, so the flash writes
-// come after real motor work as on the robot.
+// Virtual robot (env:virtual): motion.c replaced by the host simulator's 16x16 maze, in real time (tests saves).
 #define SIM_ON_ROBOT
 #include "../test/host/sim.c"
 
@@ -108,9 +100,7 @@ uint8_t motion_checkpoint(void){
     return !abort_flag;
 }
 
-// The move's time, for real, the wheels turning if asked to. STOP or START
-// cut the wait, but the move ends as planned (in the virtual maze): the run
-// stops at the next checkpoint.
+// The move's time, for real; STOP or START cut the wait, the run stops at the next checkpoint.
 void virtual_elapse(double seconds, int16_t speed, int8_t turn){
     moved = 1;
     if(wheels && turn){
@@ -156,18 +146,7 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
     *move_id = 0;
 }
 
-// ---- Flash stress (TUNE ESTRES n) -------------------------------------------------------
-// Tries to wedge the flash (docs/freezes.md) on two scratch pages under the store, never
-// the store itself: n rounds of halfword writes timed with the cycle counter while the
-// wheels turn, right after a hard stop, through a reversal or a turn in place, and the
-// pages erased right after the wheels stop (the conditions of the old wedges). Robot on
-// a stand, TUNE RUEDAS 1. Stops at the first slow operation, leaving the HSI alone, and
-// times one more halfword 1 s later: does the flash stay slow? START stops it between
-// rounds. TUNE INVERSION n: hard reversals with no flash operation, then 1 s at rest
-// and one timed halfword (the store only writes at rest). The HSI is handled as the
-// store does (started fresh for each operation, stopped after) unless TUNE HSI 1 keeps
-// it on all the time, as the firmware did before 10-04: then the motor transients can
-// leave it crawling, which is what the tests detect (a store save stops it again).
+// ---- Flash stress (TUNE STRESS n, TUNE REVERSAL n; robot on a stand): tries to wedge the flash (docs/freezes.md) --
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
 #define STRESS_ROUND_HW 64u             // halfwords a round: 8 rounds fill a page
 #define STRESS_SLOW_US  1000u           // a halfword normally takes ~56 us

@@ -102,8 +102,7 @@ void uart_flush(uint32_t timeout_ms){
     while(!uart_tx_idle() && HAL_GetTick() - start < timeout_ms){}
 }
 
-// Called while waiting: the application says it is alive (health.c), so a
-// long printout is not taken for a stalled program.
+// While waiting: the application says it is alive, so a long printout is not taken for a stall.
 __weak void uart_waiting(void){
 }
 
@@ -150,14 +149,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
     if(huart->Instance != USART3) return;
-    // An overrun (e.g. interrupts held off while flash is written, or a
-    // Bluetooth reconnect burst) makes the HAL abort reception for good.
-    // Restart it, dropping the damaged partial line; HAL_BUSY here just
-    // means reception survived the error.
+    // An overrun makes the HAL abort reception for good: restart it, dropping the partial line.
     rx_index = 0;
     HAL_UART_Receive_IT(&huart3, &rx_byte, 1);
-    // A DMA error ends the transmit without a completion callback: drop that
-    // message and keep the queue moving instead of stalling it forever.
+    // A DMA error ends the transmit without a callback: drop that message and keep the queue moving.
     if(tx_active && huart->gState == HAL_UART_STATE_READY){
         tx_active = 0;
         if(tx_count > 0) tx_drop_head();

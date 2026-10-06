@@ -8,14 +8,10 @@
 #include "robot_config.h"
 
 #define STORE_MAGIC     0x4D544152u     // "RATM"
-// 4: speeds in mm/s and deg/s; 5: curve speed; 6: two signatures; 7: a log of
-// packed records with a sequence number
+// 4: speeds in mm/s, deg/s; 5: curve speed; 6: two signatures; 7: a log with sequence numbers.
 #define STORE_VERSION   7u
 
-// The store is a log (docs/freezes.md): a save programs a new record into an
-// erased slot, and the valid record with the highest sequence number is the
-// current one. Erasing, the operation that can stall the robot for minutes
-// on this chip, happens only at boot (storage_compact()).
+// A log of records (docs/freezes.md): saves program an erased slot, the highest sequence wins; only the boot erases.
 typedef struct {
     uint32_t magic;
     uint16_t version;
@@ -40,8 +36,7 @@ static record_t record;     // static: too big for the stack budget
 static int8_t current = -1; // slot of the current record, -1 if none
 static uint32_t current_seq;
 
-// A firmware built for another maze (its default goal, or the virtual
-// robot's maze) must not load this map: it would be another maze's.
+// A firmware built for another maze (default goal, virtual robot) must not load this map.
 static uint32_t maze_defaults_signature(void){
 #ifdef VIRTUAL_ROBOT
     static const uint8_t maze[6] = {MAZE_SIZE, GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1, 'V'};
@@ -56,8 +51,7 @@ static uint32_t record_crc(const record_t *r){
 }
 
 static uint8_t params_sane(const params_t *p){
-    // Written by us with range-checked values; this only guards against a
-    // layout mix-up that the CRC could not catch.
+    // Guards against a layout mix-up the CRC could not catch.
     return p->kp >= 0.0f && p->kp <= 100.0f && p->kd >= 0.0f && p->kd <= 20.0f
         && p->search_speed >= SPEED_MIN && p->search_speed <= SPEED_MAX
         && p->fast_speed >= SPEED_MIN && p->fast_speed <= SPEED_MAX
@@ -153,16 +147,14 @@ storage_save_t storage_save(uint8_t map_only){
     record.crc = record_crc(&record);
     // What the current record already holds is not written again.
     if(current >= 0 && memcmp(slot_record((uint8_t)current), &record, sizeof(record)) == 0) return STORAGE_UNCHANGED;
-    // The end of a run saves the map: a race preset changes FAST/CURVE, and
-    // switching races would spend a slot (and a write) on each run.
+    // Run ends save the map only: switching race presets would spend a slot on each run.
     if(map_only && current >= 0 && memcmp(&slot_record((uint8_t)current)->maze, &record.maze, sizeof(record.maze)) == 0){
         return STORAGE_UNCHANGED;
     }
     int8_t slot = free_slot();
     if(slot < 0) return STORAGE_FULL;
     if(put((uint8_t)slot)) return STORAGE_WRITTEN;
-    // A slow halfword the flash recovered from may have landed wrong
-    // (flash_store.c): once more, in the next erased slot.
+    // A slow halfword the flash recovered from may have landed wrong: once more, in the next slot.
     if(flash_store_blocked() || (slot = free_slot()) < 0) return STORAGE_FAILED;
     return put((uint8_t)slot) ? STORAGE_WRITTEN : STORAGE_FAILED;
 }
@@ -180,8 +172,7 @@ storage_status_t storage_load(void){
     if(!params_sane(&record.params)) return STORAGE_CORRUPT;
     if(record.maze_signature != maze_defaults_signature()) return STORAGE_STALE;
     if(!maze_import(&record.maze)) return STORAGE_CORRUPT;
-    // New defaults in the firmware (tuned values written into the code):
-    // they replace the saved parameters, the map stays.
+    // New defaults in the firmware replace the saved parameters; the map stays.
     if(record.params_signature != params_defaults_signature()) return STORAGE_NEW_DEFAULTS;
     params = record.params;
     return STORAGE_LOADED;
@@ -194,10 +185,7 @@ uint8_t storage_needs_compact(void){
     return 0;
 }
 
-// Keeps the current record and frees every other slot with at most two page
-// erases, in an order that a power cut at any point cannot lose it: the
-// other page is erased, the record copied there (with a newer sequence
-// number), and only then its old page erased.
+// Keeps the current record and frees the rest with at most two page erases, power-cut safe.
 uint8_t storage_compact(void){
     if(current < 0){
         for(uint8_t p = 0; p < FLASH_STORE_PAGES; p++){

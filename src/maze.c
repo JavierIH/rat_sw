@@ -6,8 +6,7 @@
 #define EV_VERIFIED     2   // evidence <= -EV_VERIFIED: open for speed runs
 #define EV_BLOCKED      2   // evidence given to a passage the robot bumped into
 
-// One slot per interior wall, shared by the two cells it separates, so both
-// sides can never disagree.
+// One slot per interior wall, shared by both cells.
 static int8_t ev_north[MAZE_SIZE][MAZE_SIZE];   // wall between (x, y) and (x, y + 1)
 static int8_t ev_east[MAZE_SIZE][MAZE_SIZE];    // wall between (x, y) and (x + 1, y)
 static uint16_t visited_rows[MAZE_SIZE];
@@ -123,11 +122,7 @@ void maze_goal_cells(cellset_t *out){
 }
 
 // ---- Planner ------------------------------------------------------------------------
-// Label-correcting shortest paths (SPFA): with the small positive integer
-// costs used here each state is popped about once (1024 pops for the
-// empty 16x16). The loop is the search legs' decision time (~5000 pops in
-// the worst decision on the way), so it runs on locals with nothing called.
-// Each state is queued at most once at a time: the ring never overflows.
+// SPFA over locals (it is the legs' decision time, ~5000 pops at worst); each state queued at most once.
 
 _Static_assert((MAZE_STATES & (MAZE_STATES - 1)) == 0, "the queue ring wraps with a mask");
 
@@ -169,8 +164,7 @@ static inline uint8_t open_side(uint8_t x, uint8_t y, heading_t dir, int8_t limi
     }
 }
 
-// One edge into state t at cost c: queue it if that is cheaper (and it is
-// not queued already). Inlined: the loop's queue stays in registers.
+// An edge into state t at cost c: queue it if cheaper and not queued (inlined).
 static inline __attribute__((always_inline)) void relax(uint16_t *cost, uint32_t t, uint32_t c, uint32_t head,
                                                          uint32_t *count){
     if(c >= cost[t]) return;
@@ -182,10 +176,7 @@ static inline __attribute__((always_inline)) void relax(uint16_t *cost, uint32_t
     (*count)++;
 }
 
-// Pops the queue the callers seeded until it is empty. Each state (x, y, h)
-// has three edges: a cell forward (forward: out of its side h; backward: in
-// from the cell on its side opposite h, with the same heading) and the two
-// quarter turns.
+// Pops until empty; each state has three edges: a cell forward and the two quarter turns.
 static void spfa(uint16_t *cost, plan_mode_t mode, plan_costs_t costs, uint8_t backward){
     const int8_t limit = mode == PLAN_VERIFIED ? -EV_VERIFIED : 0;
     const uint32_t back = backward ? 2u : 0u, cell = costs.cell, turn = costs.turn;
@@ -240,9 +231,7 @@ action_t maze_best_action(const uint16_t *cost, uint8_t x, uint8_t y, heading_t 
     uint16_t here = cost[maze_state(x, y, h)];
     if(here == 0 || here == PLAN_INF) return ACT_NONE;
 
-    // Candidates in tie-break order: keep going straight, then turn around in
-    // one go (only ties when a single turn would be followed by another one),
-    // then right, then left.
+    // Tie-break order: straight on, a turn around in one go, right, left.
     uint32_t best = PLAN_INF;
     action_t action = ACT_NONE;
     if(passable(x, y, h, mode)){
@@ -271,9 +260,7 @@ uint8_t maze_route(const uint16_t *cost, uint8_t x, uint8_t y, heading_t h, plan
         case ACT_TURN_RIGHT:  *turn = 1;  h = heading_right(h); break;
         case ACT_TURN_AROUND: *turn = 2;  h = heading_back(h); break;
     }
-    // Past the first cell every turn of an optimal path falls between two
-    // cells (turning twice in one cell would be a detour): a turn inside the
-    // cell just entered.
+    // Past the first cell every turn of an optimal path is inside the cell just entered.
     while(*cells < max){
         action_t a = maze_best_action(cost, x, y, h, mode, costs);
         if(a == ACT_FORWARD){
