@@ -10,6 +10,7 @@
   format), `measurements.md` (the numbers behind `robot_config.h`),
   `testing.md` (what was validated on the robot, 16x16 readiness),
   `mazes.md` (the test layouts), `review.md` (outside review and work plan),
+  `lighting.md` (proposed check of the venue's light on the IR),
   `faults/` (investigations: `freezes.md`, `oshwdem2026.md`, `centring.md`).
   Read only what the issue needs; keep this file to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds

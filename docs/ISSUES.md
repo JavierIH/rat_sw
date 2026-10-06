@@ -10,7 +10,8 @@ commit when done. Details go in the docs it points to, not here.
   now the classic PD wall follower on the turn rate (KP 8, KD 0.6; side IR
   4-8 ms measured), better in the simulator in every case; merged into
   `develop` 10-06 (with the repo in English, one-line comments and the
-  reorganised docs), not flashed. Next: flash; crooked starts 30-35 deg at
+  reorganised docs), not flashed. Next: flash the `practice` build (`CAL`
+  is now only in `practice` and `dev`); crooked starts 30-35 deg at
   100-900, 180s at 600-900, `CAL CURVE`, races 2.4/2.5.
 
 - Issue 20, the IR delay (10-06; `docs/testing.md`, IR delay tests): the
@@ -27,10 +28,20 @@ commit when done. Details go in the docs it points to, not here.
   the user will bring them up. A smoke test of the competition firmware in
   the air needs ~30 cm clear around the sensors.
 
-- Issue 19, work plan of the review (`docs/review.md`): 8 items, by gain for
-  the effort; first a test on a large stretch of maze. Also the ideas left
-  from issue 15: cap the race return's curve speed, a SysTick stop if the
-  following error runs away while the main loop blocks, the SysTick load.
+- Issue 21, lighting check for competitions (10-06; `docs/lighting.md`): the
+  IR have no ambient subtraction; ~200 counts of extra light make an open
+  right side a phantom wall. Proposed: four quarter turns in the start
+  cell, per-sensor raw offsets measured, applied and saved, LED verdict.
+  Next: the user picks the trigger (4th menu entry recommended); then
+  validation 1-2 on the robot before implementing the correction.
+
+- Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
+  (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
+  (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
+  (HC-05 at 115200), 6 (hardware, the user's call), 8 (monitor draws the
+  robot's route). Ideas from issue 15: cap the race return's curve speed, a
+  SysTick stop if the following error runs away while the main loop
+  blocks, the SysTick load.
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item

@@ -106,7 +106,7 @@ means retuning a dozen constants (centre left 89 vs right 76, front offset
 | 2 | Delete the flash defences the stopped HSI supersedes (settle wait, UART-quiet wait, `RESET` refusal, ...), keeping the timing and the reactive restart | done 10-06: settle and UART waits, boot probe, `RESET` refusal and oscillator watch removed; timing, reactive restart and blocked state kept |
 | 3 | Two builds: competition (no calibration recorder, tunables, register dumps) and development (all of it): ~5 KB of flash and 6.4 KB of RAM back | done 10-06: `DEV_TOOLS` (CAL recorder, STATUS registers) in `practice` and the new `dev`; `competition` gets 6.5 KB of RAM and 5.4 KB of flash back; `TUNE` kept in all |
 | 4 | HC-05 at 115200 baud (AT+UART), then `UART_BAUDRATE` and the tools | open |
-| 5 | Split `motion.c`: control loop, moves, search legs, sensing | open |
+| 5 | Split `motion.c`: control loop, moves, search legs, sensing | declined 10-06: every part shares the move state (profiles, path run, guard, side pass, tunables); a split would turn ~20 file statics into globals behind an internal header, more coupling for 900 lines already in sections |
 | 6 | Hardware, the user's call: a filter on VDDA (ferrite or 10-47 ohm + 1 uF + 100 nF), bulk and ceramic capacitors at the H-bridge and across the motors; a gyro, if the hardware ever may change, is the largest single performance lever | open |
 | 7 | Distinct LED signals for a failed save / full log vs a failed run | done 10-06 (6f82f77): map not saved = halves alternating, START refused = LEDs 3-4 |
 | 8 | The monitor draws the robot's route instead of recomputing it; trim `AGENTS.md` to rules | open |
