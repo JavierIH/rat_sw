@@ -11,7 +11,7 @@
 // 4: speeds in mm/s, deg/s; 5: curve speed; 6: two signatures; 7: a log with sequence numbers.
 #define STORE_VERSION   7u
 
-// A log of records (docs/freezes.md): saves program an erased slot, the highest sequence wins; only the boot erases.
+// A log of records (docs/faults/freezes.md): saves program an erased slot, the highest sequence wins; only the boot erases.
 typedef struct {
     uint32_t magic;
     uint16_t version;

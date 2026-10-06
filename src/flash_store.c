@@ -14,7 +14,7 @@ const void *flash_store_data(void){
     return (const void *)STORE_ADDR;
 }
 
-// ---- Protection against a wedged flash (docs/freezes.md) ------------------------------
+// ---- Protection against a wedged flash (docs/faults/freezes.md) ------------------------------
 // Flash ops are timed by the HSI, which motor transients can leave crawling: it runs only during an operation, started fresh.
 #define HALFWORD_SLOW_US    1000u   // normal: ~56 us
 #define ERASE_SLOW_MS       200u    // normal: ~22 ms

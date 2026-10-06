@@ -146,7 +146,7 @@ void motion_reference(float *fwd_mm, float *rot_deg, uint8_t *move_id){
     *move_id = 0;
 }
 
-// ---- Flash stress (TUNE STRESS n, TUNE REVERSAL n; robot on a stand): tries to wedge the flash (docs/freezes.md) --
+// ---- Flash stress (TUNE STRESS n, TUNE REVERSAL n; robot on a stand): tries to wedge the flash (docs/faults/freezes.md) --
 #define STRESS_PAGE     0x0800F000u     // pages 60-61, under the store (0x0800F800)
 #define STRESS_ROUND_HW 64u             // halfwords a round: 8 rounds fill a page
 #define STRESS_SLOW_US  1000u           // a halfword normally takes ~56 us

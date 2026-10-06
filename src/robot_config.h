@@ -118,7 +118,7 @@
 #define BUTTON_DEBOUNCE_MS      20
 
 // ---- Flash store (flash_store.c) ----------------------------------------------------------
-#define FLASH_SETTLE_MS         1000    // a write waits until the motors are off this long (docs/freezes.md)
+#define FLASH_SETTLE_MS         1000    // a write waits until the motors are off this long (docs/faults/freezes.md)
 
 // ---- Planner / strategy ------------------------------------------------------------
 // Costs per cell and per 90 deg turn (host_tests --costs): a turn is half a cell.
@@ -126,7 +126,7 @@
 #define SEARCH_COST_TURN        1
 #define FAST_COST_CELL          2
 #define FAST_COST_TURN          1
-#define OPTIMIZE_MAX_STEPS      800     // actions after the goal to verify the best path (docs/competition.md)
+#define OPTIMIZE_MAX_STEPS      800     // actions after the goal to verify the best path (docs/testing.md)
 #define SEARCH_MAX_STEPS        2000    // hard budget of actions per run
 #define MAP_MAX_RECOVERIES      3       // "goal unreachable" map repairs allowed per run
 

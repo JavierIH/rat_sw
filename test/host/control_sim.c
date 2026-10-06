@@ -8,7 +8,7 @@
 #define DEAD_MAX 32
 #define FADE_MM 40.0f               // as STEER_FADE_MM in motion.c
 #define SIDE_BEAM_AHEAD_MM 20.0f    // where the angled side beams hit the walls, ahead of the robot's centre
-#define SIDE_IR_DELAY_MS 8          // side IR delay: 4-8 ms on in-place turns (docs/centring.md)
+#define SIDE_IR_DELAY_MS 8          // side IR delay: 4-8 ms on in-place turns (docs/faults/centring.md)
 
 typedef struct {
     float gain, tau, friction, stiction;
