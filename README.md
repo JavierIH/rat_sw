@@ -49,10 +49,14 @@ python3 tools/robot_monitor.py --replay tools/logs/<session>.log --speed 4
 ```
 
 Draws the maze while the robot explores it: confirmed and doubtful walls,
-visited cells (this run's in yellow), the robot and its heading, the **route
-it is about to take** (worked out with the firmware's own planner and
-costs), the candidate cells while it optimises and, stopped, the verified
-fast path. Next to it, the coloured log and the console.
+visited cells (this run's trail fading behind the robot), the robot and its
+heading, the **route it is about to take** (worked out with the firmware's
+own planner and costs, drawn as a trace between the cells), the candidate
+cells while it optimises and, stopped, the verified fast path; the goal lit,
+hex coordinates on the axes. Next to it, a status panel (mode, pose,
+explored share, fast path, link, RX activity), the coloured log and the
+console. Dark 256-colour theme of its own (the nearest 8 colours on simpler
+terminals); a splash screen until the first telemetry arrives.
 
 - Keys: Enter sends, Up/Down history, PgUp/PgDn scroll the log, Tab shows
   the help, **Ctrl+X sends STOP**, Esc quits. Local commands: `/full` (always

@@ -200,7 +200,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `tools/robot_monitor.py`: live maze monitor + console (curses). Rebuilds
   the map from the telemetry, recomputes the route with a Python port of the
   planner (costs read from `robot_config.h`), renders each frame into an
-  off-screen `Canvas` then blits it (clipped, resize-safe), records sessions
+  off-screen `Canvas` then blits it (clipped, resize-safe; colours in
+  `THEME`, 256 or the nearest 8), records sessions
   to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
   `tools/calib_data/` (`/note` appends measurements).
 - `tools/calib_analyze.py`: reports and suggested constants from those CSVs;
