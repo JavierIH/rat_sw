@@ -5,15 +5,13 @@
   and next step. Work on one; before stopping, close it or update its entry
   (result and next step in a line or two), so the next session resumes from
   the file alone. One session per issue.
-- Details live in `docs/`: `control.md` (design notes and measurements of
-  motion, sensing, curves, search legs), `history.md` (what was validated
-  on the robot), `freezes.md` (the freeze investigation),
-  `oshwdem2026.md` (the competition's lost map; the flash wedge's cause,
-  motor transients, reproduced and fixed), `centring.md` (the centring far
-  from the centre line: crooked starts, GitHub issue #1), `review.md` (outside review of
-  the project and the work plan it suggests), `mazes.md` (the test layouts
-  A-D, drawn). Read only what the issue needs; keep this file
-  to rules and commands.
+- Details live in `docs/` (index: `docs/README.md`): `design.md` (how and
+  why: motion, sensing, centring, curves, search legs, health, telemetry
+  format), `measurements.md` (the numbers behind `robot_config.h`),
+  `testing.md` (what was validated on the robot, 16x16 readiness),
+  `mazes.md` (the test layouts), `review.md` (outside review and work plan),
+  `faults/` (investigations: `freezes.md`, `oshwdem2026.md`, `centring.md`).
+  Read only what the issue needs; keep this file to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
   `/dev/rfcomm0`, logs to `tools/logs/`, saves `@D` dumps) and
   `tools/robot.sh [-w regex] [-t s] "CMD" ...`. Only one program may hold
@@ -85,7 +83,7 @@ Environments in `platformio.ini` (`default_envs = competition`):
   (`SIM_ON_ROBOT`): every move is resolved cell by cell in a built-in 16x16
   maze (`VIRTUAL_SEED`) and takes its simulated time for real; each run
   starts with the virtual robot at the start. The wheels stay still unless
-  `TUNE RUEDAS 1` (robot on a stand): then each move turns them open loop
+  `TUNE WHEELS 1` (robot on a stand): then each move turns them open loop
   at its speed (ramped), so the writes follow real motor work. Console,
   LEDs, menus and the
   store on the real flash are the robot's: for testing saves (power cuts,
@@ -135,9 +133,9 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `robot_config.h`: every compile-time constant with its unit (geometry,
   calibration, thresholds, planner costs) and the defaults of the runtime
   parameters, one line each; the measurements behind them are in
-  `docs/control.md`.
+  `docs/measurements.md`.
 - `params.c/.h`: runtime parameters in physical units (`SPD`, `FAST`,
-  `CURVE`, `ACCEL`, `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KI`, `LOG`,
+  `CURVE`, `ACCEL`, `TURN`, `TACCEL`, `TURNTICKS`, `KP`, `KD`, `LOG`,
   `TELEM`), persisted with the map.
 - `maze.c/.h` (pure): map + planner.
   - Walls carry signed evidence in [-3, 3], one slot per wall shared by both
@@ -148,8 +146,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
     and per 90 deg turn (SPFA). Optimal in time, not only in cells.
   - `maze_route()`: the optimal path as the speed run drives it, an in-place
     turn first and then every cell with the turn made inside it.
-- `search.c/.h` (pure): strategies. `search_explore()` (phases META ->
-  OPTIM -> VUELTA; at rest it senses, plans and turns in place, and every
+- `search.c/.h` (pure): strategies. `search_explore()` (phases GOAL ->
+  OPTIM -> RETURN; at rest it senses, plans and turns in place, and every
   move forward is a leg decided cell by cell in `explore_next()`), `search_fast_run()` (the whole verified route in one
   move, replanned at every stop, falls back to exploring if the map proves
   wrong). Also `search_print_map()` (ASCII map).
@@ -173,8 +171,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `storage.c/.h` (pure) + `flash_store.c/.h`: CRC-32 protected records (map
   packed in nibbles, goal, parameters) as a log in the last two flash pages
   (six slots): saves only program erased slots, the boot erases.
-- `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format
-  documented in `telemetry.h`).
+- `telemetry.c/.h` (pure): compact `@` lines for the live monitor (format in
+  `docs/design.md`).
 - `calib.c/.h`: calibration recorder (CAL command): samples encoders,
   requested PWM (`motor_get()`), raw IR and the profile reference from
   SysTick into a 320-sample buffer (6.4 KB; when full it halves its
@@ -196,7 +194,7 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   planner (costs read from `robot_config.h`), renders each frame into an
   off-screen `Canvas` then blits it (clipped, resize-safe), records sessions
   to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
-  `tools/calib_data/` (`/nota` appends measurements).
+  `tools/calib_data/` (`/note` appends measurements).
 - `tools/calib_analyze.py`: reports and suggested constants from those CSVs;
   `--chain` follows the encoder heading against the walls over a session.
 - `tools/dashboard.py`: live panel for `diag_test`.
@@ -231,11 +229,11 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   such a flash, the robot will need a new search.
 
 ## Bluetooth console (9600 baud, one command per line, case-insensitive)
-Every command is in the table of README.md ("Consola Bluetooth"; the
+Every command is in the table of README.md ("Bluetooth console"; the
 firmware has no HELP, to save flash). Main ones: `MODE n`, `START`, `STOP`, `PAUSE`,
 `RESUME`, `STEP ON|OFF` (alias `DEBUG`), `STATUS`, `MAP`, `IR`, `WALLS`,
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
-`KP f`, `KI f`, `TUNE [name value]` (control constants live, not saved),
+`KP f`, `KD f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
 `SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset),
@@ -254,13 +252,13 @@ search leg; the dump comes when the run ends).
 ## Conventions / hard-won gotchas
 - Keep it simple (the user's rule since 2026-09-30, when the code had grown
   too complicated): a new constant or `TUNE` knob goes in only with a
-  measurement that justifies it, written in `docs/control.md`. One that stays
+  measurement that justifies it, written in `docs/measurements.md`. One that stays
   at its neutral value after its test is deleted (code, `TUNE` entry, dump
   fields); its history stays in the docs. Look for the cause before stacking
   another correction on the same effect, and delete superseded code paths
   instead of keeping them switchable. `robot_config.h` keeps one line per
   constant (value, unit, the reason in a sentence): dates, measurements and
-  experiment histories go to `docs/control.md`.
+  experiment histories go to `docs/measurements.md`.
 - `stm32f1xx_hal_conf.h` needs `board_build.stm32cube.custom_config_header =
   yes`, or the framework silently uses its own copy.
 - `src/system_stm32f1xx.c` (vendor file) has CRLF line endings: edit it
@@ -286,7 +284,7 @@ search leg; the dump comes when the run ends).
   front squaring. Confirm it with the robot centred and squared by hand to a
   wall: `CAL NOISE`, then `calib_analyze.py` prints the value.
 - Speed control, sensing, curves and search legs: the reasons and the
-  measurements are in `docs/control.md`; read the section before changing
+  measurements are in `docs/design.md`; read the section before changing
   that code. The rules:
   - Every move is a profile (or a path) that two position loops follow in
     SysTick, forward mm and rotation deg, with a motor-model feedforward;
@@ -294,19 +292,15 @@ search leg; the dump comes when the run ends).
     `host_tests --control` first, then `TUNE` on the robot, then write the
     validated values into `robot_config.h`. `ACCEL` 3000 is near the grip
     limit.
-  - The IR report where the robot was `IR_DELAY_MS` (50) ago: pair readings
-    with the `trail` positions; use the front sensors only with readings
-    taken on a straight.
-  - Centring: `KP` deg per mm, falling as 1/speed above `STEER_VREF_MM_S`
-    (500; more weaves, 900 swung a speed run into a wall). The bias comes
-    from the observer (`KI`, `STEER_OBSERVER_MM`): never integrate the
-    lateral error itself (it learned an off-centre start as a heading error
-    and aimed a speed run at a wall).
-  - Never clamp as a transient what the walls agree on (both within
-    `STEER_AGREE_MM`, or one alone nearer than on the centre line): it ran a
-    crooked robot along a wall for a whole straight. Test centring changes
-    with crooked and off-centre starts too (`docs/centring.md`), not only
-    with the few degrees a turn leaves.
+  - The front IR are paired with where the robot was `IR_DELAY_MS` (50)
+    ago (the `trail` positions), and used only with readings taken on a
+    straight; the side IR answer in 4-8 ms (in-place turns), so the front's
+    50 is under test (`docs/faults/centring.md`).
+  - Centring: the classic wall follower, a PD on the turn rate (`KP` deg/s
+    per mm off-centre, `KD` deg per mm the error changes): no yaw to learn,
+    no delay to predict. Test centring changes with crooked (30-35 deg) and
+    off-centre starts too, not only with the few degrees a turn leaves: the
+    old controller passed those and ran a crooked robot along a wall.
   - Side walls are read on the way in (`SIDE_PASS_MM`), not at the stop
     (posts give phantoms); right after a turn only "no wall" is recorded.
     Squaring on a front wall only within `SQUARE_MAX_SKEW_MM`.
@@ -321,16 +315,16 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal), so the practice and competition
-  builds use the same RAM (86.2 %: ~2.8 KB left for the stack) and flash
-  (93.9 % of 62 KB, 3.8 KB left). Keep that headroom: report sizes after every change,
+  builds use the same RAM (84.3 %: ~3.2 KB left for the stack) and flash
+  (91.7 % of 62 KB, 5.1 KB left). Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
-- Health checks and clock (details in `docs/control.md`): `STATUS` shows the
+- Health checks and clock (details in `docs/design.md`): `STATUS` shows the
   stack never used, the reset cause, RCC/FLASH registers, the chip's
   identity and the flash's free slots and last write's times; "!! ..." lines
   report stalls, unrequested oscillator changes, crystal failures and slow
   or failed flash operations. Clock: crystal x 9 = 72 MHz, else HSI 64 MHz
   (at boot, or after a crystal failure; never on purpose).
-- Flash (`docs/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
+- Flash (`docs/faults/freezes.md`): the chip is a clone (IDCODE 0x307) whose flash
   sometimes wedges until a power cycle, every operation ~9000x slower (an
   erase ~200 s, stalling the CPU). Hard motor reversals alone cause it (10-04,
   on a stand): the HSI, which times the flash, crawls until restarted. So
@@ -353,7 +347,7 @@ search leg; the dump comes when the run ends).
   change the per-cell `@C` lines do not cover must be followed by
   `telemetry_map()` (see the map repair in `plan_explore()`).
 - `tools/robot_monitor.py` ports `maze_plan_to/from`, `maze_best_action`
-  (same tie order), `maze_route()` with the route text of the log ("2D1I3":
+  (same tie order), `maze_route()` with the route text of the log ("2R1L3":
   cells, then a curve right/left in the last of them) and the OPTIM
   candidates. Change both together; the transcript tests fail if they
   diverge.

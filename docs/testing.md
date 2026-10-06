@@ -1,9 +1,81 @@
-# Getting ready for the 16x16 without a 16x16
+# Testing on the robot
+
+What has been verified on the robot (and in the simulator), with numbers, and
+how the 16x16 parts are tested without a 16x16. Open problems: docs/ISSUES.md;
+the test layouts: docs/mazes.md.
+
+## Validation history
+
+### Status up to 2026-09-26
+Verified on the PC simulator (hundreds of random 16x16 and 4x3 mazes, with and
+without sensor noise): searches always complete, the verified speed-run path
+is optimal with perfect sensing, and nothing crashes (also with 20% of side
+readings doubtful). The speed control is tested on the simulated robot
+(exact distances and angles, centring from bad starts, +-20% model errors).
+On the practice maze with the speed control: search + return in 19.4 s at
+SPD 600 (22.3 s at 400), the same map every time and no doubtful wall;
+3-cell straights at 700 mm/s stop within ~2 mm of the front-wall reference
+and centre (900 works but runs out of PWM at the end of the acceleration);
+turns within 0.2 deg each (TURNTICKS 405); FRONT_SQUARE_OFFSET_MM confirmed
+with CAL NOISE (-15.4).
+
+Smooth curves on the robot (practice maze): the first speed run at FAST 700
+/ CURVE 400 drove the 9-cell route with 4 curves (a U-turn included) in one
+move, 3.14 s to the goal, tracking within 2.7 mm / 2.6 deg, and the IR stop
+at the goal landed 0.5 mm from the encoders' plan after 1.49 m; the return
+at 600/400 took 3.27 s. Six CAL CURVE at 300 mm/s: the curve itself turns
+89-90 deg on the encoders and, with the maze's lateral bias taken out
+(two left and two right between (2,0) and (3,1)), ends 1.6 +- 3 mm early:
+CURVE_PRE/POST/ANGLE stay at 0/0/90. The heading offset the centring holds
+through a curve (up to 3.2 deg in these tests) is its learned bias, the
+misalignment of the encoders' frame: in the one test where it could be
+checked (start heading measured on a wall, 3.35 deg off) it put the robot
+into the curve within 0.1 deg of the corridor, and the exit came out centred
+once the maze's lateral bias was taken out. Keep holding it. Raising the
+speeds (practice maze, 9 cells, 4 curves): CURVE 400 / 450 / 480 (478, the
+motor cap) reached the goal in 3.28 / 2.98 / 2.79 s, FAST 900 in 2.74-2.92 s
+(3 of 3 clean). Motors that cannot keep up (a low battery) used to fall
+24-42 mm behind the reference at FAST 800-900 in the simulator, and as the
+curves follow the reference's distance they started early and cut inside.
+The reference now slows down while the robot lags (`PATH_LAG_*`): on the
+robot at FAST 900 with `TUNE MOTOR_SCALE 0.8` (the motors get 80 % of the
+PWM, as with a LiPo at its cutoff) the run slowed to 81 % where needed,
+stayed within 4.1 mm of the reference and took 2.84 s instead of 2.76, as
+the simulator predicted (4.3 mm, 78 %). Defaults FAST 900, CURVE 480.
+
+Search legs (straight on without stopping, the default): on the robot on
+the practice maze and on layouts B and C (the 4x3 rearranged; goal (3,2)):
+maps right; layout B 7.4 s against 8.5 s stopping in every cell, its speed
+runs 1.48-1.69 s and clean, IR stops within 3.5 mm of the plan. 1-cell
+legs left some sides doubtful (fixed by `SEARCH_SIDE_FROM_MM` 20, not yet
+on the robot). Still to validate: long straights.
+
+Layout C (2026-09-26; route 1R1L1R2, a staircase of three curves in
+consecutive cells, then 2 cells along the north border): the speed run
+drifted onto the north wall on the last straight, scraped it, and wedged
+turning at the goal. Reproduced in step mode (IR at the goal): it arrived
+yawed 5.5 deg and 24 mm off-centre. Cause: the start was 8-12 mm off-centre
+(where the search's final 180 turn left it) and the centring's integral
+learned that as ~5 deg of bias in the first cell (the simulator reproduces
+3.3 deg for 10 mm), then aimed the last straight at the wall. With
+`TUNE BIAS_WIN 0` (no integral) the same run arrived square, 17 mm off.
+Fixed by the bias observer (not yet on the robot). Also measured: single
+curves at 478 mm/s turn ~2.4 deg less than the encoders say (4.9 for a
+right plus a left; single measurements scatter +-3 deg), and one exited
+12 mm wide; at 300 mm/s they matched. Not compensated yet: re-measure with
+`CAL RUN` on the staircase once the observer is on the robot.
+
+Layout D (2026-09-26; route N 2 cells, E 3 to the goal): two searches with
+`CONT ON` at 450 mm/s made the same 13 actions and the same map; every leg
+(2 N, 3 E, 3 W, 2 S) decided its next cell in time and ended on the front
+wall 0.3-0.5 mm short of its target, tracking error <= 1.7 mm / 2.7 deg.
+
+## Getting ready for the 16x16 without a 16x16
 
 The robot has only driven the 4x3 practice maze. What changes in a 16x16,
 and how each part is tested without one (issue 11).
 
-## What is the same
+### What is the same
 
 The firmware is the same code: the map, the planner and the flash record
 are sized 16x16 in every build (`PRACTICE_MAZE` only changes the goal), and
@@ -22,13 +94,13 @@ uk2026-minos-classic 228 vs 214 (+6.5 %); 800 reaches it in all three, ~1
 min more of search in them (the other 517 finish under 400). Set to 800
 (09-27, next flash).
 
-## What changes, and the test for each
+### What changes, and the test for each
 
 1. **Decision time in the search legs** (CPU). Each cell decided on the way
    must be ready within `SEARCH_LATE_MARGIN_MM` (8 mm, 17.8 ms at 450). The
    worst 16x16 decision pops 3811 planner states, the practice maze's 3072
    (`host_tests --timing`), so a practice search measures it: the robot
-   prints `decisiones en marcha: N, la peor X us (P pops), tarde L` after
+   prints `decisions on the way: N, worst X us (P pops), late L` after
    the run. Cost a pop = X / P. Real mazes are worse than random ones: the
    worst decision in the 520 pops 5144. `tools/plan_cycles.py` (emulated
    M3, a cycle model) gave 235 cycles a pop, ~17 ms for 5144: no margin.
@@ -36,7 +108,7 @@ min more of search in them (the other 517 finish under 400). Set to 800
    mazes identical): 133 cycles a pop, ~9.5 ms + the rest of the decision.
    If the robot still reports late ones: `TUNE LATE_MARGIN`.
    Measured (09-27): 1024 pops 4493 us (layout E), 3072 pops 13001 us
-   (layout G, the OPTIM -> VUELTA decision: 3 plans), so 4.15 us a pop
+   (layout G, the OPTIM -> RETURN decision: 3 plans), so 4.15 us a pop
    and ~240 us fixed: 2.25x the emulator's model (the 1 ms control
    interrupt takes a large share of the CPU). The 16x16 worst: ~21.6 ms,
    ~4 ms late at 450: the reference has begun braking and the leg dips
@@ -66,10 +138,10 @@ min more of search in them (the other 517 finish under 400). Set to 800
    Done 09-27 (layout H, `GOAL 2 1 3 2`, centre post in): the search
    reached (2,2) after 5 actions, verified the path from there without
    entering the block and was back in 11 (8 decisions on the way, worst
-   4474 us, none late). Races 2.4 and 2.5 there and back: `2D2` in one leg,
+   4474 us, none late). Races 2.4 and 2.5 there and back: `2R2` in one leg,
    the stop in (2,2) on the encoders with only the north border in view
    (err 2.7/2.8 mm, 4.0/3.0 deg; the 180 turn absorbs it), the return
-   `fin=IR`, err <= 2.3 mm / 3.6 deg. No "!!" except "flash sin hueco" (no
+   `end=IR`, err <= 2.3 mm / 3.6 deg. No "!!" except "flash full" (no
    power cycle after `ERASE`: the map stayed in RAM). The speed run stops
    in the goal's first cell, so the open interior is only seen, never
    driven, as it will be in the 16x16.
@@ -80,25 +152,25 @@ min more of search in them (the other 517 finish under 400). Set to 800
    at the stops, the pace of the runs as the battery drops.
    Done 09-27 on G (12:54-13:04, a 4 min pause in the middle): a search
    (23 actions, 14 decisions on the way, none late) and 20 races alternating
-   2.4/2.5, all `Fin: OK`, every stop `fin=IR`, err <= 2.8 mm / 3.5 deg, no
+   2.4/2.5, all `End: OK`, every stop `end=IR`, err <= 2.8 mm / 3.5 deg, no
    stall or clock line, stack 1316 B never used. No pace drop: 2.5 to the
    goal 2.58-2.87 s, 2.4 3.14-3.38 s, the first and the last alike. Found:
    selecting a race sets FAST/CURVE, saved in the map's record, so each
    switch of race wrote a record: the six slots were gone after three
-   races ("!! flash sin hueco", harmless: the map stays in RAM). Fixed in
+   races ("!! flash full", harmless: the map stays in RAM). Fixed in
    a6d42d2 (not flashed yet): the run's end writes only a changed map.
    Until then, one race preset per power-on (the boot compacts). One flash
-   wedge on those writes, cleared by the HSI restart (`docs/freezes.md`,
+   wedge on those writes, cleared by the HSI restart (`docs/faults/freezes.md`,
    n=3).
 
-## Competition day checklist
+### Competition day checklist
 
 - Goal: the default build is the competition one (goal 7 7 8 8; the 4x3 is
   `pio run -e practice`). A flash with another default goal ignores the
   saved record (the map and parameters go).
 - `ERASE` (or mode 3) before the first search in the competition maze: it
   also puts the goal back to 7 7 8 8 (after any `GOAL` used to practise).
-  `STATUS` must show `meta (7,7)-(8,8)`.
+  `STATUS` must show `goal (7,7)-(8,8)`.
 - Battery full; `STATUS`: no "!!", stack margin, flash slots free.
 - `IR` at the start with nothing around the nose: FL/FR ~230 and SL/SR
   far. A reflective floor reads as walls (a room floor gave FR ~70 and SL

@@ -3,7 +3,7 @@
 The investigation of GitHub issue #1 ("Slow centering after turns: replace
 the bias observer with a PD wall follower"): what was measured on the robot,
 how the faults were found and reproduced, what was changed and what is
-still open. Design notes of the centring as a whole: `docs/control.md`.
+still open. The centring as it is now: `docs/design.md`.
 
 ## 1. Summary
 
@@ -25,12 +25,14 @@ still open. Design notes of the centring as a whole: `docs/control.md`.
   Flashed and seen on the robot: the first part (21:02 build: back from
   ~50 mm off and ~20 deg at 450) and the rest (22:09 build: 35 deg at 100
   and 300 back without touching). A D term (`STEER_KD`) was tried and
-  removed (the user's call). Open: the swing at 800, and the IR delay the
-  centring assumes, which the recordings put far below 50 ms (section 7).
+  removed (the user's call). The recordings then put the side IR delay at
+  4-8 ms, not the 66 ms the controller compensated (section 7).
+- 10-06: the whole controller replaced by the classic PD wall follower on
+  the turn rate (section 8, branch `pd-steering`, not flashed yet).
 
 ## 2. The issue's proposal, in the simulator
 
-`host_tests --control`, "recta 720 mm tras un giro": yaw +-4 deg (what an
+`host_tests --control`, "straight 720 mm after a turn": yaw +-4 deg (what an
 in-place turn leaves), centred, walls +-2 mm, mean of 16 seeds; |y| at the
 next cell's centre (180 mm) at 300 / 600 / 900 mm/s, and the sum of the mean
 |y| (mm) + |yaw| (deg) at 180-630 mm over 300-900 (lower is better). With
@@ -101,12 +103,12 @@ clamps apart at 25; build 21:02:07):
   (open, section 7).
 - 21-20-16, ~30 deg crooked, tail by the right wall, 900: crossed the lane
   in 120 mm, touched the left wall at 180 mm (SL 11, FL 50), backed up to
-  the start (`BLOQUEADO`, as designed). The heading rose at the 0.2 deg/mm
+  the start (`BLOCKED`, as designed). The heading rose at the 0.2 deg/mm
   limit; at 865 mm/s the tyres allow ~0.25 deg/mm anyway (3.3 m/s^2).
 - 21-26-28, ~35 deg crooked, 100: at rest SL and SR disagreed by 32 mm;
   SR lost its wall at 31 mm (its beam runs along it); the heading rose
   exactly 0.2 deg/mm (+2 at 60 mm, +8 at 91, +17 at 135) and stopped at +17
-  (one wall: clamped); into the wall at 150 mm (`PERDIDO`).
+  (one wall: clamped); into the wall at 150 mm (`LOST`).
 
 All but the D term (build 22:09:56):
 
@@ -156,7 +158,7 @@ All but the D term (build 22:09:56):
 
 Physical limit: ~3.3 m/s^2 sideways (the curves' grip): at 865 mm/s ~0.25
 deg/mm. A robot placed 30 deg or more crooked at 900 may touch the wall
-whatever the control does (it backs up: `BLOQUEADO`).
+whatever the control does (it backs up: `BLOCKED`).
 
 ## 5. Changes
 
@@ -195,7 +197,7 @@ removed the swing of fault 6; removed before flashing, at the user's call.
   linear model of before could not reproduce 21-26-28.
 - `sim_result_t`: `y_at[]` (y and yaw every 90 mm) and `y_max` (48: touching
   a wall).
-- `host_tests --control`: "recta 720 mm tras un giro" (the table of 2).
+- `host_tests --control`: "straight 720 mm after a turn" (the table of 2).
 - `test_speed_control()`: the robot's runs as cases, which fail on the old
   code: 20-31-33 (27 mm off, 11 deg, 450), 20 deg centred (450), 30 deg with
   the tail 38 mm off (450) and 35 deg 30 mm off (100, 21-26-28): no wall
@@ -221,34 +223,73 @@ Before the changes the first two touched the wall at every speed and the
 third ran the whole straight 30-35 mm off. Small errors are as before
 (after a turn: 3.7-6.2 mm at 180 mm, ~1 from 360).
 
-## 7. Open
+## 7. The IR delay
 
-- **The IR delay.** The firmware assumes 50 ms (`IR_DELAY_MS`) plus half the
-  side average (16): the centring predicts 66 ms of motion; the simulator's
-  plant has 50 ms too. The only measurement was a front wall approached at
-  400 mm/s (`docs/control.md`, measurements: "18 mm farther"); the side
-  sensors were never measured. From the recordings (10-05, no robot
-  needed):
-  - In-place turns (127 `CAL TURN` recordings at <= 4 ms), the reading
-    fitted against the encoder angle delayed d, first 25 deg (the readings
-    move only with the angle, ~1 mm/deg): SL median 8 ms (52 turns,
-    quartiles 4-8), SR 4 ms (60, 0-4), FL 8 ms (13), FR 4 ms (42, 0-12).
-  - Approaches to the end wall of today's straights (300-900 mm/s), the
-    reading against the final reading plus the encoder distance still to
-    go, delayed d: FL ~10-28 ms (median ~16), FR ~26-34 ms (median ~28).
-    This method also absorbs any scale error of the calibration.
-  So the delay looks far shorter than 50 ms, the side sensors' above all.
-  If so, the centring's prediction counts motion the readings already
-  show: it overestimates the motion to the centre, the effect blamed in
-  fault 6 for the swing at 800, and the simulator inherited the same 50.
-  Next: `TUNE IR_DELAY 10` on the robot (no flash; it moves the front
-  wall's tracking too: check the stops) on the 800 placement and after
-  turns, and the simulator with the measured delay.
-- The swing at 600-800 (fault 6), if a shorter delay does not cure it:
-  slowing down while far off (the user's idea: back to ~450 mm/s until
-  within ~10 mm, then resume), or learning a big yaw faster at the start.
-- The straights at 600-800 that started 9-21 deg crooked after a 179 deg
-  turn from a square stop (21-10-53 .. 21-13-53). Not explained; the false
-  bias of fault 5 (fixed since) is a candidate. Repeat the 180 series.
-- Validation still to do: 30-35 deg placements at 450-900 with the D term,
-  180s at 600-900 (no weave), races 2.4/2.5 on the 4x3.
+The firmware assumed 50 ms (`IR_DELAY_MS`) plus half the side average (16):
+the centring predicted 66 ms of motion, and the simulator's robot had 50 ms
+too. The only measurement was a front wall approached at 400 mm/s
+(`docs/measurements.md`: "18 mm farther"); the side sensors were never
+measured. From the recordings (10-05, no robot needed):
+
+- In-place turns (127 `CAL TURN` recordings at <= 4 ms), the reading fitted
+  against the encoder angle delayed d, first 25 deg (the readings move only
+  with the angle, ~1 mm/deg): SL median 8 ms (52 turns, quartiles 4-8), SR
+  4 ms (60, 0-4), FL 8 ms (13), FR 4 ms (42, 0-12).
+- Approaches to the end wall of the 10-05 straights (300-900 mm/s), the
+  reading against the final reading plus the encoder distance still to go,
+  delayed d: FL ~10-28 ms (median ~16), FR ~26-34 ms (median ~28). This
+  method also absorbs any scale error of the calibration.
+
+So the side delay is far shorter than 66 ms: the old prediction counted
+motion the readings already showed, overestimating the motion to the centre
+(the swing of fault 6). The motors short-brake at 0 (TB6612FNG: PWM low with
+one input high), and the encoders count any coasting, so neither explains
+the front's 50 ms; a slide with the wheels stopped would.
+
+## 8. The PD wall follower (10-06, branch `pd-steering`)
+
+The user's call: the classic wall follower of strong micromice (UKMARS
+mazerunner and most others) with the side IR 5-10 ms late, and every piece
+of the old controller removed.
+
+- `steer_step()`: the heading offset turns at `KP` deg/s per mm off-centre
+  plus `KD` deg per mm the error changes; both walls averaged, one wall that
+  one, none: heading held; 16 ms average, error clamp 25 mm, no derivative
+  across a change of walls. Removed: the observer (`KI`,
+  `STEER_OBSERVER_MM`), the 66 ms prediction, the slew limit, the agreement
+  and far-pull rules, the heading clamps and curvature limit, `STEER_VREF`
+  and their `TUNE` entries (RAM -392 B, flash -1.2 KB). `KI` became `KD` in
+  the parameters, same layout: a flash keeps the map, the parameters start
+  from the new defaults.
+- Simulator: side IR 8 ms late (`SIDE_IR_DELAY_MS` in `control_sim.c`).
+  Grid over KP 3-10 and KD 0.3-1.5 on a turn's yaw, 15 mm off, a curve exit
+  (15 mm, 4 deg), the robot's 11 deg / 27 mm, 30 and 35 deg and the 800
+  swing case, at 300-900 mm/s: KP 8, KD 0.6 balanced (ends 0.5-0.9 mm off,
+  second half 1.4-2.0 mm, 35 deg 4.1; ~2-3 zero crossings a straight;
+  the same with the delay at 5, 10 or 20 ms). KP 3 KD 0.3 touched the wall
+  at 35 deg; KD 1.5 weaved.
+- Against the old controller on the same robot model (mean of 300-900 mm/s,
+  largest offset / largest in the second half, mm):
+
+| Case | Old | PD |
+|---|---|---|
+| after a turn (4 deg) | 6 / 2.0 | 3 / 1.4 |
+| 15 mm off | 15 / 5.2 | 15 / 1.4 |
+| curve exit (15 mm, 4 deg) | 17 / 8.1 | 15 / 1.4 |
+| 35 deg crooked | 40 / 24.6 | 30 / 4.1 |
+| the 800 swing case | 29 / 12.5 | 25 / 2.0 |
+
+  The zero crossings rise from ~1 to ~2-3 a straight: +-0.5 mm wobbles at
+  the centre, now that it gets there.
+- Curves are untouched: the centring holds its offset through them and
+  resumes in the new corridor; their exits are the "curve exit" case.
+
+## 9. Open
+
+- Flash the branch and check on the robot: crooked starts of 30-35 deg at
+  100-900 mm/s, 180s at 600-900 (no weave), `CAL CURVE`, races 2.4/2.5;
+  `KP`/`KD` are live parameters.
+- The front delay: wall approaches at 100 and 600 mm/s; a mismatch that
+  grows with the speed is delay, a constant one calibration or slip.
+- The straights at 800 that started 9-21 deg crooked after a 179 deg turn
+  from a square stop (21-10-53 .. 21-13-53): repeat the 180 series.

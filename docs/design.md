@@ -1,8 +1,8 @@
-# Motion, control and sensing: design notes
+# Design notes
 
-Why the speed control, the centring, the IR handling, the curves and the
-search legs are the way they are, with the measurements behind each choice.
-Read the section you are about to touch; AGENTS.md has the rules.
+Why the speed control, the centring, the IR handling, the curves, the search
+legs, the health checks and the telemetry are the way they are. The numbers
+behind the constants: docs/measurements.md. AGENTS.md has the rules.
 
 - Speed control: every move is a motion profile (ramps at `ACCEL` or
   `TACCEL`, cruises, arrives at rest exactly on its target) that two position
@@ -24,8 +24,11 @@ Read the section you are about to touch; AGENTS.md has the rules.
   `robot_config.h`.
 - `ACCEL` 3000 mm/s^2 is near the grip limit: at 5000 the wheels slipped
   when braking (the encoders stopped on target, the robot 6 mm further).
-- The IR (Sharp-type, a new value every ~16 ms) report where the robot was
-  `IR_DELAY_MS` (50) earlier. `motion.c` keeps the forward position of the
+- The IR (Sharp-type, a new value every ~16 ms) report the past. The front
+  sensors are paired with where the robot was `IR_DELAY_MS` (50) earlier (a
+  wall approach at 400 mm/s); on in-place turns all four respond in 4-8 ms
+  and wall approaches give FL ~16 / FR ~28 ms, so the 50 is open
+  (`docs/faults/centring.md`, section 7). `motion.c` keeps the forward position of the
   last 64 ms (`trail`) and pairs each reading with where it was taken. The
   wall at the end of a straight is tracked from `FRONT_TRACK_MM` (170) and
   the stop aimed at `FRONT_TRACK_REF_MM` from it: stops within ~2 mm at
@@ -33,60 +36,29 @@ Read the section you are about to touch; AGENTS.md has the rules.
   cell, both front sensors closer than `FRONT_EMERGENCY_MM` plus the braking
   distance is an obstacle: brake and back up to the last cell centre passed
   (`MOVE_BLOCKED`). A wall seen square from farther away, where the map had a
-  passage, stops the move at the centre of the cell before it (`fin=PARED`).
-- Centring (`steer_step()`): the heading offset is proportional to the
-  lateral error (`KP` deg per mm), so it converges over the same distance at
-  any speed; above `STEER_VREF_MM_S` KP scales as 1/speed (it weaved at 700;
-  `TUNE STEER_VREF 900` on a speed run swung it into a wall). The bias (the
-  encoder heading that is parallel to the walls: the misalignment a turn
-  leaves) is learned by an observer: the encoders predict how the readings
-  should move, and what they do beyond that, per mm travelled, is bias still
-  missing (`KI`, the same units as before, and `STEER_OBSERVER_MM`, how
-  slowly the prediction follows the readings; a new wall restarts it). An
-  off-centre robot moving parallel teaches it nothing. The old integral of
-  the lateral error (removed 2026-09-30, with `STEER_BIAS_WINDOW_MM`) took
-  a start 8-12 mm off-centre for ~5 deg of bias in the first cell of a speed
-  run, carried it through the curves and aimed the last straight at the
-  wall (layout C: it arrived yawed 5.5 deg and 24 mm off, and once scraped
-  and wedged). The encoders' sideways motion since the reading is added to
-  the lateral error (a Smith predictor for the IR delay). Readings are slew-limited (posts and wall edges jump), averaged
-  over a sensor period and referred to `SIDE_CENTER_L/R_MM` (89/76: SL reads
-  long and SR short; measured with 180 deg turns, which mirror the robot
-  across the centre line; confirmed on 2026-09-27 at 88.1/75.3 by rounds of
-  four quarter turns at three offsets, where the front sensors facing the
-  side walls measure the offset: slopes 0.95 (SL) and 0.99 (SR), so the
-  curves follow the sideways motion. A 180 deg pair is only valid with the
-  robot centred front to back: 12-17 mm off, the beams of the heading facing
-  the near wall land by the post and read up to 1.5x the true motion).
-  Convergence (issue 14, layout I, 09-27, `CAL STRAIGHT 3` after a 180,
-  `calib_analyze.py` error every 45 mm): no weave at 300-600; the error
-  that lingered (-1.5..-3 mm to the end of 3 cells) was the yaw left by the
-  turn, learned by the observer over ~300 mm (with `STEER_OBSERVER_MM` 40,
-  KI 8 is ~critically damped, time constant ~85 mm) and held at yaw/KP. KI
-  16 (damping ~0.75): ~0 from the second cell in 4 runs; 24 weaved (up to
-  +5.5 deg). At 800 `STEER_VREF` 400/500/600 made no difference beyond the
-  run-to-run spread; the one repeated feature is a 2-4 mm step where two
-  walls hand over to one (the post), not a growing weave.
-  Defaults since 09-27 (evening, races on the 4x3): KP 0.5 KI 20. KP 1.0
-  KI 20 weaved (heading error at the goal 4.9-5.1 deg at 900); KP 0.5 KI 20
-  on a 9-cell, 6-curve route, races 2.5 and 2.6 there and back: end error
-  <= 3.3 mm / 1.9 deg, the user saw no weave.
-  With both walls their average is used, unless one reading is implausible:
-  the angled beams catch posts and walls ahead (`STEER_ERROR_MAX_MM`, the
-  error clamped at 25), which once swerved the robot 35 deg. Trusted however
-  far off (10-05, GitHub issue #1, `docs/centring.md`): both walls agreeing
-  within `STEER_AGREE_MM`, or one wall alone nearer than on the centre line;
-  clamping them ran a crooked robot along a wall for a whole straight.
-  Beyond `STEER_FAR_MM` a stronger pull (`STEER_KP_FAR`), damped by
-  `STEER_KD` (the encoders' yaw to the corridor). Pull and bias are clamped
-  apart (`STEER_MAX_DEG` 40), the offset curvature-limited
-  (`STEER_CURVE_DEG_PER_MM` 0.4), and it fades out over the last 40 mm so
-  the robot stops parallel. A change of walls restarts the reading filter
-  with the observer (followed at the slew rate, it taught ~2.4 deg of false
-  bias). A PD wall follower without the bias (the issue's proposal) settles
-  yaw/KP off-centre.
+  passage, stops the move at the centre of the cell before it (`end=WALL`).
+- Centring (`steer_step()`, since 10-06, GitHub issue #1): the wall follower
+  most micromice use, a PD on the turn rate. The heading offset added to the
+  rotation reference turns at `KP` deg/s per mm off-centre plus `KD` deg per
+  mm the error changes, so it keeps turning while the robot is off-centre
+  and no yaw has to be learned. Both walls: their average; one: that one;
+  none: the heading is held. Readings averaged over one sensor period
+  (`STEER_AVERAGE_MS` 16: they step ~2 mm every ~16 ms), the error clamped
+  at `STEER_ERROR_MAX_MM` (25), no derivative across a change of walls (a
+  new reference). It fades out over the last 40 mm of a move and before
+  every curve, and holds its offset through a curve until the IR read the
+  new corridor. Defaults KP 8, KD 0.6, chosen in the simulator with the side
+  IR 8 ms late (robust from 5 to 20 ms): against the old controller on the
+  same robot model every case ends closer to the centre, crooked starts of
+  30-35 deg included (`docs/faults/centring.md`). The controller it replaced
+  (a P on the heading plus a yaw observer and a 66 ms delay prediction, KI,
+  `STEER_VREF`, the agreement and far-pull rules) and why: the same doc.
+  Side centres `SIDE_CENTER_L/R_MM` (89/76: SL reads long and SR short),
+  confirmed on 2026-09-27 at 88.1/75.3 by rounds of four quarter turns at
+  three offsets (slopes 0.95 SL, 0.99 SR); a 180 deg pair is only valid with
+  the robot centred front to back (12-17 mm off, the beams land by the post).
 - Side walls after a straight are read on the way in, `SIDE_PASS_MM` before
-  its end, where the angled beams hit the middle of the walls (`lados=` in
+  its end, where the angled beams hit the middle of the walls (`sides=` in
   the log). Read at the stop they caught the next post as phantom walls (9 in
   the first logs, some at 82-98 mm). `wall_sense_t.moving` says which way
   they were read. Read at the stop right after a turn they gave 5 phantoms in
@@ -129,9 +101,8 @@ Read the section you are about to touch; AGENTS.md has the rules.
   brake after the last curve, and by the motors (`CURVE_PWM_SHARE`: ~480
   mm/s; in the simulator 700 fell 15-57 mm behind and cut inside). The
   centring holds its offset through a curve and restarts in the new
-  corridor once the delayed IR read it; its KI (the heading misalignment) is
-  kept across curves. The front sensors are only used with readings taken on
-  a straight.
+  corridor once the delayed IR read it. The front sensors are only used with
+  readings taken on a straight.
 - Tuning the curves: `CAL CURVE [+-1] [mm/s]` from a cell centre (one cell, a
   curve, one cell; best with side walls and a front wall in the last cell),
   then `calib_analyze.py` suggests `TUNE CURVE_PRE` (from where the side
@@ -144,9 +115,9 @@ Read the section you are about to touch; AGENTS.md has the rules.
   between the two directions and cancels in the average), never from one
   run. `TUNE CURVE_R|CURVE_RAMP` change the
   shape and refuse shapes that do not fit a cell. `LOG 2` prints each route
-  as `ruta N celdas, C curvas: fin=... v=vmax/vcurva`.
+  as `route N cells, C curves: end=... v=vmax/vcurve`.
 - Curve slip: moving, the wheels slip sideways and a curve turns less than
-  the encoders say, the more the faster. Layout C's staircase (1D1I1D2, net
+  the encoders say, the more the faster. Layout C's staircase (1R1L1R2, net
   one curve) at 478 mm/s, heading the centring had to hold on the last
   straight (average over it, 2026-09-26): `CURVE_ANGLE` 90 -> +2.4 and
   +3..+5 deg, 92.5 -> -0.2 and -3.1 (runs after a search start ~8 mm off
@@ -184,7 +155,7 @@ Read the section you are about to touch; AGENTS.md has the rules.
 - Curve angle on the ring (layout F, 2026-09-26 20:03-20:31, CURVE_SLIP
   2.0, 300 mm/s): four `CAL CURVE` of one side round the island, back to
   the same spot. Physical rotation from FL-FR at a border stop (`CAL
-  STRAIGHT 1` ending `fin=IR`: same distance every time; FL-FR facing the
+  STRAIGHT 1` ending `end=IR`: same distance every time; FL-FR facing the
   island after a turn was off by several degrees: the end spot varies
   +-15 mm), against the encoder totals `IR` prints; in-place turns in +-
   pairs cancel. Without centring (`KP 0`, `KI 0`): right loop physical
@@ -214,13 +185,9 @@ Read the section you are about to touch; AGENTS.md has the rules.
   turn: the walls put it at ~359, and L4 had 0.38 m and two 180s more. The
   robot was re-placed by hand between 20:08 and 20:12 (-9 deg in the
   chain). The side readings also move ~1 mm per degree of yaw (the sensors
-  at the nose, `SIDE_LEVER_MM`): the firmware's observer ignores it, so
-  every turn of the centring looks like a lateral surprise and moves the
-  bias against it (the heading a move ends with is that bias).
-  Compensating it (`SIDE_LEVER` 55) gave no clear gain on the robot, and
-  in the simulator with KI 20 it helped 1-cell straights a little (bias
-  0.83 -> 0.80 deg at 450) but left 2- and 3-cell ones worse (0.35 ->
-  1.02, 0.32 -> 1.09 deg): removed 2026-09-30.
+  at the nose, `SIDE_LEVER_MM`, the simulator's `side_lever_mm`): to the
+  PD it is extra damping. Compensating it in the old observer
+  (`SIDE_LEVER` 55) gave no clear gain: removed 2026-09-30.
   At 400 and 480 (21:06-21:22, centring on: KP 0.7 KI 8, CURVE_ANGLE 90,
   CURVE_SLIP 2.0; one right and one left loop each, same moves; every
   move OK, tracking <= 2.1 mm / 2.7 deg, <= ~10 mm off-centre at the
@@ -287,84 +254,6 @@ Read the section you are about to touch; AGENTS.md has the rules.
   more routes tie, so the search's OPTIM phase needs a larger budget
   (`OPTIMIZE_MAX_STEPS` 800: 400 left 3 of the 520 real mazes short).
 
-## Measurements behind robot_config.h
-
-What the constants' old comments recorded, where the notes above do not
-already have it (robot_config.h keeps one line per constant).
-
-- Odometry: `WHEEL_TICKS_PER_MM` 9.05 from 1-, 2- and 3-cell straights
-  measured with a ruler (4885 ticks ~ 540 mm). `TICKS_PER_TURN`: with the
-  speed control 400 turned 355.3 deg per 360, 405 turned 360.8 right /
-  359.4 left and the side readings did not move after 8 turns; at 403 the
-  90s end ~0.4 deg short.
-- IR delay: at 400 mm/s the front wall read 18 mm farther than it was;
-  the position 50 ms earlier plus the reading matched it within 0.6 mm
-  over a whole approach (`CAL STRAIGHT 3 400`). `FRONT_TRACK_MM` 170:
-  tracking from 140, at 500 mm/s the robot learnt about the wall with ~20
-  mm left, too late to brake if it was not where planned; beyond 150 the
-  readings err short (the wall looks closer), so it brakes a bit early and
-  the target recedes as they improve. `FRONT_TRACK_REF_MM` 92: aiming at
-  94 (`FRONT_WALL_REF_MM`) itself ended 2-4 mm long (a front realignment
-  in 5 of a search's stops); at 92 the stops read 93-94.
-- Side centre readings, before the 09-27 rounds: 180 deg pairs gave SR
-  87/65 and SL 76/101 (twice alike); centring on 84 kept the robot ~8 mm
-  towards the left wall; hand-centred readings SR 76-80, SL 84-89.
-- Search legs: the front reads reliably under ~170 mm, which with the 50
-  ms delay comes ~14 mm + 50 ms of travel into the cell (a wall reads ~135
-  at the decision, none over `SEARCH_FRONT_OPEN_MM`). Up to ~500 mm/s that
-  is before the decision; 450 leaves ~12 mm (25 ms) to spare. Faster, the
-  robot would decide blind and brake harder at walls (at 600, ~4100
-  mm/s^2; the wheels slipped at 5000).
-- `FRONT_SQUARE_OFFSET_MM` -15: median of 44 IR stops on the practice maze
-  (sd 5.7 mm), confirmed with `CAL NOISE` (-15.4, -16.2). `SIDE_YAW_DOUBT_MM`
-  10 is ~8 deg of yaw.
-- Motor model (`CAL STEP` 200/400/600, open loop): PWM = KV v + KS, first
-  order, `TAU` 34-79 ms (shorter at higher PWM), no dead time; both wheels
-  alike (393/393 mm/s at PWM 400). The battery changes KV; the loops absorb
-  it. KS: 100 PWM ran at 73 mm/s, turns cruise 25 PWM above KV v.
-- Loop gains, chosen on the simulated robot: ~5 Hz bandwidth, damping
-  ~0.7, tolerant of +-20 % in KV and TAU; without the D terms it
-  oscillated. `ROT_KP` 20 let the heading stick until 2-4 deg of error and
-  then jump (S-curves); 40/0.6 on the robot: heading oscillation 0.83 ->
-  0.35 deg rms, tracking error 3.9 -> 1.5 deg max; `ROT_KD` 0.8 took the
-  lateral noise at 700 mm/s from +-2.0 to +-0.8 mm. Settling: 70 PWM never
-  moved the wheels, 100 did; the integrals build that push within ~50 ms.
-  `SETTLE_DEG` 0.5 waited 200 ms more per turn.
-- Centring: `STEER_MAX_DEG` 8 could not even get parallel. The side IR
-  step ~2.4 mm every ~16 ms and the heading follows its target ~50 ms
-  late: KP 1 with 0.35 deg/mm (`STEER_CURVE_DEG_PER_MM`) and a 16 ms
-  average made fast small S-curves (~5.5 Hz, +-2 deg); 0.2 and 32 ms are
-  gentler (the simulator with a slower heading response agrees: heading
-  error 3.8 -> 1.5 deg); 0.4 since 10-05 (with 0.2 a robot 35 deg crooked
-  reached the wall: `docs/centring.md`). `STEER_VREF_MM_S`: at 700 mm/s KP 0.7 weaved (1.0
-  deg rms, 4 Hz), 0.5 did not (0.67), the same as KP 0.7 at 400. KP 1.0
-  also weaved with `ROT_KP` 20.
-- Curves at 400 mm/s: 2.3 m/s^2 sideways (braking at 5 slipped, 3 was near
-  the grip limit), 4400 deg/s^2 at the ramps (in-place turns use 5000),
-  outer wheel at 560 mm/s. The robot follows the reference a few ms late,
-  so a curve may need to start earlier (`CURVE_PRE` < 0: exits displaced to
-  the outside). `CURVE_PWM_SHARE`: the outer wheel's feedforward peaks where
-  a ramp meets the arc (fastest and still accelerating); in the simulator
-  500 mm/s still tracked within 1 mm, 600 saturated for a moment.
-  `SQUARE_MM_PER_DEG` 1.2: 1.07-1.16 mm per tick over 4 turns in the
-  `TURNTICKS` calibration.
-- Planner costs over 600 random mazes on the path reference (`host_tests
-  --costs`). `OPTIMIZE_MAX_STEPS`: one simulated 16x16 maze in 100 needed
-  more than 300 (docs/competition.md for the 520 real ones).
-- Parameter defaults. SPD: practice-maze search + return 22.3 s at 400
-  mm/s, 20.3 s at 500 (a 10 ms pause before sensing), 19.4 s at 600 (no
-  pause), same map every time (1-cell moves
-  barely cruise at 3000 mm/s^2). FAST: on 3-cell straights 700 stopped
-  within ~2 mm of the front-wall reference and centred (0.98 s), 900 too
-  (0.92 s) but out of PWM at the end of the acceleration (the motor model
-  holds ~937 mm/s); practice-maze speed runs at 900 with CURVE 480: 3 of 3
-  clean, within 2.4 mm / 3.1 deg. With motors 20 % weaker (a low battery)
-  900 is out of PWM: the path's reference slows to the robot's pace
-  (`PATH_LAG_*`), within 4.3 mm of it in the simulator (24 mm, and curves
-  cut 47 mm inside, without). CURVE: practice-maze speed runs (9 cells, 4
-  curves, a U-turn) 400 in 3.28 s, 450 in 2.98 s, 480 (478) in 2.79 s,
-  within 2.5 mm and 1.9 / 2.7 / 3.1 deg.
-
 ## Health checks and clock
 
 - Health checks (`health.c`), for rare failures on the robot: the free
@@ -372,14 +261,14 @@ already have it (robot_config.h keeps one line per constant).
   (static estimate of the deepest chain: ~1.65 KB); if the main program
   stops calling `health_alive()` (every wait loop does) for more than
   `HEALTH_STALL_MS`, SysTick notes the program counter it interrupted and
-  the main loop prints "!! el programa estuvo parado N ms en PC=..." when it
+  the main loop prints "!! the program stalled N ms at PC=..." when it
   resumes (map the PC with `arm-none-eabi-addr2line -e firmware.elf`); the
   banner says why the last reset happened. Until 0221cd6 that report was
   only printed in mode 5 (it had gone into the sensor monitor's loop), so
   earlier logs saying nothing about stalls prove nothing. `health_alive()`
   also watches the oscillator bits of RCC->CR against those the clock setup
   left (`health_clock_baseline()` after every intended change): a change is
-  reported ("!! osciladores cambiados sin pedirlo") and the HSI turned back
+  reported ("!! oscillators changed unasked") and the HSI turned back
   on. Every flash write checks the HSI (the flash needs it to erase and
   program) and starts it if stopped, times itself with the DWT cycle
   counter and SysTick, and prints "!! flash: ..." with RCC_CR, FLASH_SR and
@@ -392,6 +281,30 @@ already have it (robot_config.h keeps one line per constant).
   crystal while running: on a failure the NMI stops the motors and aborts
   the run (`clock_failure_hook()` in motion.c), and the main loop brings the
   clock back to 64 MHz (`sysclock_recover()`, `uart_retime()`) and reports
-  "!! fallo del cristal". (A `CLOCK HSI` command made that switch on
+  "!! crystal failure". (A `CLOCK HSI` command made that switch on
   purpose, to test it; removed on 2026-09-26 to save flash.)
-- OPEN INVESTIGATION, freezes: see "Freezes (open)" at the end.
+
+## Telemetry (`telemetry.c`)
+
+Machine-readable lines for tools/robot_monitor.py (live maze view). All
+start with '@', are at most 21 bytes and are only sent between actions,
+never from a control loop. TELEM OFF silences them. `@D` lines are
+calibration dumps (`calib.c`).
+
+```
+  @M<m>                      selected run, app_mode_t 1-8
+  @A<a>                      activity (telemetry_activity_t)
+  @P<x><y><h>                pose: x, y one hex digit each, h one of NESW
+  @C<x><y><h><n><e><s><w>    pose after sensing + that cell's four walls:
+                             '#' wall, 'o' open (verified), '.' open (seen
+                             once), '?' unknown
+  @R<y><16 cells>            map row y, one char per cell from
+                             0-9A-V = bits 0-1 north wall, bits 2-3 east
+                             wall (0 unknown, 1 wall, 2 open once,
+                             3 open verified), bit 4 visited
+  @G<x0><y0><x1><y1>         goal rectangle
+  @Y<n>                      full sync follows: forget the map, rows 0..n
+```
+
+While running, every sensing also sends one map row in rotation, so the
+monitor's copy converges even when the UART queue drops a line.

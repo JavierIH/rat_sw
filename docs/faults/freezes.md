@@ -50,7 +50,7 @@ before.
 Validated on the robot (09-26 16:15, layout D, right after a power-on, no
 "!!" line): `ERASE` and the search wrote once each (1st halfword 56 us,
 worst 63 us, 9 ms a record); speed runs saved while the map still changed
-(2), then "Mapa ya guardado (sin cambios)" (2); `SAVE` until the log was
+(2), then "Map already saved (unchanged)" (2); `SAVE` until the log was
 full, then one compacted (erase 22 ms) and saved. No wedge in these 7
 writes, so the "LENTA, cortada" path is still unseen on the robot: if a
 "!! flash" line ever appears, copy it here. IDCODE read 0 after this
@@ -60,7 +60,7 @@ power-on (the 0x307 reads followed flashes, with the debug block enabled);
 ## History of the investigation
 Symptom: the whole robot freezes for ~200 s (no output, no reply, LEDs all
 off, motors off), then carries on by itself. Flash writes around then hang
-and fail (`SAVE` at rest: 199 s, then "error escribiendo la flash"; map
+and fail (`SAVE` at rest: 199 s, then "error writing the flash"; map
 saves after a freeze: 14-67 s, failed). Once, a software `RESET` did not
 boot at all (LEDs off) until a power cycle; after a power cycle everything
 works again for a while.
@@ -68,15 +68,15 @@ works again for a while.
 Occurrences:
 1. 21:1x, firmware built 21:14 (commit 1090d04, first with search legs,
    `motion_explore()` + `path_grow()`), first run after flashing: a search
-   with curves. Froze 204 s at the goal right after "Meta alcanzada" (save
+   with curves. Froze 204 s at the goal right after "Goal reached" (save
    failed), then 205 s at the start before the final turn (save failed after
    14 s); `SAVE` at rest 199 s, failed; `RESET` -> no boot; power cycle ->
    fine, and a stop-per-cell search and a search with curves ran clean.
 2. 22:05, firmware built 21:59 (1028e8d + health checks), after a
    straight-leg search (fine, 21.4 s) and a speed run: arrived at the start
    facing the south wall and froze 196 s before turning north; the save
-   then took 67 s and failed; "Fin: OK". No stall report ("el programa
-   estuvo parado") and no crystal report.
+   then took 67 s and failed; "End: OK". No stall report ("the program
+   stalled") and no crystal report.
 
 What this says:
 - CORRECTED 2026-09-26: the stall report was only printed in mode 5 (see
@@ -167,7 +167,7 @@ failed, so once stuck the flash stays stuck (as on 09-25).
   diagnostic line was cut before "despues FLASH_SR" (print buffer).
 - SysTick counted 18 and 2 ms of those ~200 s: the CPU itself was stalled
   on the flash bus (not looping in the HAL's 50 s timeout, which it never
-  reached). The first freeze's queued lines ("giro der", "En la salida")
+  reached). The first freeze's queued lines ("turn right", "At the start")
   came out ~7 s before its error line: a long stall (erase?) then ~7 s of
   shorter ones.
 - Before and after both writes: RCC_CR=030b4d83 (HSI on and ready,
@@ -223,15 +223,15 @@ drives SYSCLK (RM0008/PM0075: the HSI must be on to program or erase); the
 crystal only clocks the CPU, buses and peripherals.
 
 The fix on the robot (09-27 ~12:55, layout G, firmware 67461bf, first
-run-end save after a power-on, race 2.3): "!! flash: 2 bytes en 447518 us
-(dato bien): HSI reiniciado; despues, peor 63 us (normal ~56)", then "Mapa
-guardado" and the robot carried on. Second time a HSI restart cleared the
+run-end save after a power-on, race 2.3): "!! flash: 2 bytes in 447518 us
+(data right): HSI restarted; then worst 63 us (normal ~56)", then "Map
+saved" and the robot carried on. Second time a HSI restart cleared the
 wedge (n=2), the first with the write completing by itself.
 
 Third time (09-27 ~12:56, same power-on, layout G, the endurance test of
 issue 11: the save after race 2.4's return, the second save since the
-power-on): "!! flash: 2 bytes en 310190 us (dato bien): HSI reiniciado;
-despues, peor 63 us (normal ~56)", then "Mapa guardado" and the next race
+power-on): "!! flash: 2 bytes in 310190 us (data right): HSI restarted;
+then worst 63 us (normal ~56)", then "Map saved" and the next race
 went on. n=3; two wedges in one power-on, ~4 min apart, both cleared.
 
 OSHWDEM 2026, 2026-10-03 (firmware Sep 30 19:46, no Bluetooth log): the
@@ -252,14 +252,14 @@ slow blinks in flash, three fast ones only in RAM.
 
 With the virtual robot (`env:virtual`, wheels in the air, log
 2026-10-04_19-29-11) the wedge was produced on demand:
-- `TUNE ESTRES` (halfword writes on scratch pages while the wheels turn,
+- `TUNE STRESS` (halfword writes on scratch pages while the wheels turn,
   after a hard stop, through a reversal, turning in place): ~13,000 normal
   halfwords (56-63 us), then two slow ones (2.1 ms), both while the wheels
   reversed (+700 to -700 PWM); after the second a halfword landed wrong and
   the flash stayed wedged: the next erase took ~192 s (the CPU stalled, the
   robot frozen with one LED lit), a store write's first halfword 435 ms, and
   the store's HSI restart cured it (63 us after; n=4 cures, every one).
-- `TUNE INVERSION` (hard reversals with no flash operation during them, then
+- `TUNE REVERSAL` (hard reversals with no flash operation during them, then
   1 s with the motors off, as the store waits, and one timed halfword): after
   280 reversals the halfword took 463 ms. So motor transients alone wedge
   it: the store's settle (motors off 1 s) does not protect, and a save after
@@ -276,7 +276,7 @@ except during a flash operation, which starts it fresh (the reactive
 restart on a slow halfword stays); before that, a restart every 10 ms
 (286a4fd) and a restart first thing in SystemInit (did not help: the reset
 still did not boot). The whole account, with the evidence and how to
-reproduce it: `docs/oshwdem2026.md`.
+reproduce it: `docs/faults/oshwdem2026.md`.
 
 Closed 2026-10-05: the HSI stopped except during flash operations, validated
-on the stand (`docs/oshwdem2026.md`, section 2.4).
+on the stand (`docs/faults/oshwdem2026.md`, section 2.4).
