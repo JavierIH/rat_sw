@@ -6,13 +6,12 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- GitHub issue #1, centring (`docs/faults/centring.md`): the 10-05 fixes
-  are on `develop` (flashed 22:09); on branch `pd-steering` the whole
-  controller is the classic PD wall follower on the turn rate (KP 8, KD
-  0.6; side IR 4-8 ms measured), better in the simulator in every case, not
-  flashed. The branch also has the repo in English, condensed comments and
-  these reorganised docs. Next: flash the branch; crooked starts 30-35 deg
-  at 100-900, 180s at 600-900, `CAL CURVE`, races 2.4/2.5; then merge.
+- GitHub issue #1, centring (`docs/faults/centring.md`): the controller is
+  now the classic PD wall follower on the turn rate (KP 8, KD 0.6; side IR
+  4-8 ms measured), better in the simulator in every case; merged into
+  `develop` 10-06 (with the repo in English, one-line comments and the
+  reorganised docs), not flashed. Next: flash; crooked starts 30-35 deg at
+  100-900, 180s at 600-900, `CAL CURVE`, races 2.4/2.5.
 
 - Issue 20, the IR delay (10-06; `docs/testing.md`, IR delay tests): the
   front readings are paired with the position 50 ms back, but every
