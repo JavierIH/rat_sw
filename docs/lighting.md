@@ -10,8 +10,9 @@ console's `CHECK` (`src/light_check.c`), reporting only: no correction is
 applied and no LED code is shown yet. Run on the PC against a synthetic
 start cell (centred and 10 mm off, +100 counts everywhere, +250 on SR, a
 lamp shining into the front beams, flicker, a wall missing, saturation),
-every case gave the verdict below and the robot ended facing north. Not
-yet run on the robot.
+every case gave the verdict below and the robot ended facing north. On
+the robot (10-08): FAIL at home, for the geometry, not the light
+(validation 1 below): the check needs redesigning before a trigger.
 
 ## Why
 
@@ -137,6 +138,39 @@ switched on).
    with one wall, and a search on a layout with open sides, with and
    without the correction.
 4. Sunlight, if possible: the worst case (saturation).
+
+### Validation 1 on the robot (10-08, home, dim light)
+
+Start cell of layout I with a wall east of (0,0), three placements
+(shift in mm, open reading in mm):
+
+| placement | FL | FR | SL | SR | SL open | SR open |
+|---|---|---|---|---|---|---|
+| centred | -3.8 | -9.9 | -1.1 | +1.9 | 193 | 109 |
+| ~10 mm left | -1.9 | -8.8 | -3.0 | +4.8 | 275 | 71 |
+| ~10 mm right | -2.9 | -7.2 | -1.6 | +2.7 | 118 | 165 |
+
+Verdict FAIL every time, for two reasons that are not the light:
+
+- The side sensors' "open" headings are not open. Beamed 15 deg forward,
+  SR facing west reaches the west wall of (0,1) (the border: always there
+  in a competition) and SL facing east the east side of (0,1) (here a
+  wall). Their readings follow the placement (SR 71-165), so open space
+  can only be checked with the fronts facing north (222-231 / 291-307
+  here; at least ~270 mm in any competition start).
+- The means move 1.9-2.9 mm with the placement, against a 3 mm verdict
+  threshold, and both fronts read close (FL -2.9, FR -8.6 on average).
+  The east-west mean cancels the sideways placement but not the cell's
+  real width (an added wall a few mm in reads as light) nor the yaw of
+  the placement: FL-FR was -9.3 here against the -15 the references
+  assume (`FRONT_SQUARE_OFFSET_MM`), which alone moves FR by ~6 mm.
+
+So the shifts the check can resolve (a few mm) are the size of the maze's
+and the placement's tolerances. What it can see reliably is a large shift
+(the ~200 counts that make an open side a wall, 20+ mm) and an open front
+that reads short. To decide with the user: keep only those (fronts' open
+reading facing north, large shifts, noise, saturation) or drop the
+correction idea.
 
 ## Cost
 
