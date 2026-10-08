@@ -6,32 +6,25 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Next session
 
-- With the robot: the session planned in `docs/testing.md` ("Next robot
-  session"): one flash of `practice`, then issues #1, 20, 21 and the
-  SysTick load in short batches. Write each result into its issue.
-- Waiting on the user: the trigger of `CHECK` without the console (a 4th
-  menu entry recommended); review item 8 (recommended: keep the monitor's
-  planner port, the transcript tests' cross-check of the firmware); the
-  hardware of item 6; the race 2.4 crash at OSHWDEM (issue 17).
-- Nothing left that can be done without the robot or those answers.
+- Without the robot: GitHub issue #1, the heading kick at wall ends
+  (`docs/faults/centring.md`, section 10): posts in the simulator, then
+  the fix. Then the robot session in `docs/testing.md` ("Next robot
+  session": the 10-08 `SLIPPED` case, wall ends at 300-900, races).
+- Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
+  shows it cannot resolve a few mm); review item 8 (recommended: keep the
+  monitor's planner port, the transcript tests' cross-check of the
+  firmware); the hardware of item 6; the race 2.4 crash at OSHWDEM
+  (issue 17).
 
 ## Open
 
-- GitHub issue #1, centring (`docs/faults/centring.md`): the controller is
-  now the classic PD wall follower on the turn rate (KP 8, KD 0.6; side IR
-  4-8 ms measured), better in the simulator in every case; merged into
-  `develop` 10-06 (with the repo in English, one-line comments and the
-  reorganised docs), not flashed. Next: the robot session planned in
-  `docs/testing.md` (flash `practice`; crooked starts 30-35 deg at 100-900,
-  180s at 600-900, `CAL CURVE`, races 2.4/2.5).
-
-- Issue 20, the IR delay (10-06; `docs/testing.md`, IR delay tests): the
-  front readings are paired with the position 50 ms back, but every
-  recording says 4-8 ms on in-place turns (all four sensors) and FL ~18 /
-  FR ~34 ms approaching walls. Next: the robot tests written there (turns,
-  approaches at 100-900, `ACCEL 2000`; steps 3-4 of the planned session),
-  analysed with `calib_analyze.py --delay`; then `TUNE IR_DELAY` and the
-  stops on end walls.
+- GitHub issue #1, centring (`docs/faults/centring.md`): the PD wall
+  follower (KP 8, KD 0.6), on the robot since 10-08: crooked starts of
+  21-39 deg at 100-900, 36 mm off, 180s and curves all centred within 1-2
+  cells, no touch (section 9). Open: at wall ends the edge readings
+  (SR 123-145, then 61-64 at the post) stay under 130, KD turns the jump
+  into a ~15 deg heading step: kicks of 4-12 deg, once `MOVE_SLIPPED`
+  (section 10). Next: posts in the simulator, the fix, then the robot.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,
@@ -42,11 +35,12 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 21, lighting check for competitions (10-06; `docs/lighting.md`): the
   IR have no ambient subtraction; ~200 counts of extra light make an open
-  right side a phantom wall. Proposed: four quarter turns in the start
-  cell, per-sensor raw offsets measured, applied and saved, LED verdict.
-  `CHECK` (report only) is in, tested on the PC against a synthetic cell.
-  Next: on the robot, validation 1-2 with `CHECK`; the user picks the
-  trigger (4th menu entry recommended); then the correction.
+  right side a phantom wall. `CHECK` (report only) ran on the robot 10-08:
+  FAIL at home for the geometry (the side beams' "open" headings see the
+  walls of (0,1); the cell's width and the placement's yaw move the fronts
+  by 3-6 mm). Next: the user decides what to keep (fronts' open reading
+  facing north, large shifts, noise; or drop the correction), then the
+  trigger.
 
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
@@ -55,14 +49,21 @@ commit when done. Details go in the docs it points to, not here.
   user's call), 8 (monitor draws the robot's route: the user's call). Ideas
   from issue 15: a SysTick stop if the following error runs away while the
   main loop blocks (no such failure seen: only with one); the SysTick
-  load: `STATUS` shows the slowest tick since 10-06, read it after a race
-  (the return's curves are capped at 300 since 10-06).
+  load: 424 us worst after a search (10-08); read it after a race (the
+  return's curves are capped at 300 since 10-06).
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item
   1), and the oscillation check along a baseboard at 300/450/600/800.
 
 ## Closed
+
+- 2026-10-08 The IR delay (issue 20; `docs/measurements.md`): 8 wall
+  approaches at 100-900 mm/s (two at each) gave FL 16-24 / FR 24-32 ms at 600-900 (the
+  same ms at both speeds: a delay, no slide), in-place turns 0-8 ms on all
+  four. `IR_DELAY_MS` 50 -> 22 (the user's call: stops alike, ~40 ms less
+  crawl at the end), goes with the next flash; `SEARCH_LEG_SPEED_MAX`
+  stays 450 (robust before fast).
 
 - 2026-10-06 Review of 09-30 (issue 15): (a) map repairs only at rest, their
   first pass keeping the robot's cell's walls (test_repair_at_rest), and (b)

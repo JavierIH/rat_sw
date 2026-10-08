@@ -4,45 +4,45 @@ What has been verified on the robot (and in the simulator), with numbers, and
 how the 16x16 parts are tested without a 16x16. Open problems: docs/ISSUES.md;
 the test layouts: docs/mazes.md.
 
-## Next robot session (plan, 10-06)
+## Next robot session (plan)
 
-One flash for GitHub issue #1 (centring), issue 20 (IR delay), issue 21
-(lighting) and the SysTick load (issue 19). Motion in short batches, a
-few minutes each (battery); stop at any wall touch or surprise and
-restore safe values before going on.
+After the fix of the wall ends (`docs/faults/centring.md`, section 10),
+one flash of `practice` (it also brings `IR_DELAY_MS` 22), layout I with
+a wall east of (0,0):
 
-- Maze: layout I (`docs/mazes.md`) plus a wall east of (0,0), so the start
-  is closed on three sides as in a competition. Row 2 stays a 4-cell
-  straight with walls on both sides.
-- Flash `pio run -e practice -t upload` (`CAL` is only in `practice` and
-  `dev` now). The saved map and goal load, the parameters restart from the
-  new defaults (`KD` replaced `KI`); the layout is new anyway: `ERASE`.
+1. `CAL STRAIGHT 2 300` from (1,2) east right after `CAL CURVE 1 300`
+   from (0,1) north (the 10-08 `SLIPPED`), then 3-cell straights past
+   wall ends at 300-900: `err=` well under 15 deg, no kick.
+2. A search, then races 2.4 twice and, only if clean, 2.5 twice;
+   `STATUS` after a race: "SysTick worst" (issue 19).
 
-1. Boot, no motion (2 min): the banner; `STATUS` with no "!!" line, note
-   "SysTick worst" and the stack.
-2. Lighting, in-place turns only (1 min): at (0,0) facing north, `CHECK`
-   three times: centred, ~10 mm left, ~10 mm right. Expected: every shift
-   under 3 mm, `light: OK`, the same numbers whatever the placement
-   (validation 1 of `docs/lighting.md`; write them there).
-3. IR delay, turns (2 min): the same cell, `CAL TURN 1` and `CAL TURN -1`,
-   five each (IR delay tests 1 below). Expected 4-8 ms on all four.
-4. IR delay, approaches (5 min): at (0,2) facing east, `CAL STRAIGHT 3
-   <v>` onto the end wall at 100, 300, 600, 900, two each (IR delay tests
-   2); then `calib_analyze.py --delay` and, if it calls for it, test 3.
-5. Centring, issue #1 (10 min, slow speeds first): at (0,2) facing east,
-   placed 30-35 deg crooked, nose to the left wall and then to the right
-   one, `CAL STRAIGHT 3 <v>` at 100, 300, 600, 900; then ~25 mm off the
-   centre line, square. Expected: on the centre line within about a cell,
-   no touch, no weave. Then the 180s: `CAL TURN 2` and `CAL STRAIGHT 3
-   <v>` at 600 and 900 (the straights after a 179 deg turn started 9-21
-   deg crooked).
-6. Curves (5 min): `CAL CURVE 1 300` from (0,1) facing north (ends at
-   (1,2)), `CAL CURVE -1 300` from (3,1) facing north (ends at (2,2)),
-   then both at 400. Expected: end within a few mm of the cell centre.
-7. Search and races (10 min): the robot at (0,0) facing north, `HOME`,
-   mode 1, then race 2.4 twice and, only if clean, 2.5 twice (the return's
-   curves now stop at 300). Expected `End: OK` and the save blinks; then
-   `STATUS`: "SysTick worst" after a race (issue 19).
+## Robot session of 10-08 (results)
+
+The plan of 10-06, flashed `practice` 18:58 (KP 8 / KD 0.6), layout I
+with a wall east of (0,0). Recordings `tools/calib_data/2026-10-08_*`.
+
+1. Boot: no "!!", stack 2240 B free, SysTick worst 5 us at rest.
+2. Lighting, `CHECK` three times (centred, ~10 mm left and right): FAIL
+   every time, and not for the light: the side sensors' "open" headings
+   are not open (`docs/lighting.md`, validation 1).
+3. IR delay, turns: wheels cleaned first (the user saw short turns);
+   `CAL TURN 4` facing a wall left FL-FR unchanged: exactly 360 deg
+   (encoders 357.2). Ten `CAL TURN` +-1: FL 0 (0-4), SL 4 (0-8), SR 0
+   (0-4) ms, as expected.
+4. IR delay, approaches: 8 runs at 100-900 mm/s, all `end=IR`; FL
+   16-24 / FR 24-32 ms at 600-900. `IR_DELAY_MS` 50 -> 22
+   (`docs/measurements.md`; issue 20 closed).
+5. Centring: crooked starts of 21-39 deg at 100-900 both ways, 36 mm
+   off-centre at 300/900, 180s at 600/900: all centred within 1-2 cells,
+   no touch, no weave (`docs/faults/centring.md`, section 9). But the
+   wall ends kick the heading (4-12 deg), and once it was a `MOVE_SLIPPED`
+   (section 10).
+6. Curves: `CAL CURVE` +-1 at 300 and 400, exits 2.3-5.1 mm off, no
+   left/right bias.
+7. A search: `End: OK`, map right, legs `end=IR` within 1 mm; after it
+   SysTick worst 424 us, flash writes 56-64 us a halfword (9 ms), planner
+   worst 4.3 ms (1024 pops), late 0. Races not run: they wait for the
+   fix of the wall ends.
 
 ## Validation history
 
@@ -259,6 +259,10 @@ for the 9600-baud UART (the 2001 pops are ~8 ms). Fix: issue 15 (a).
   START on the button).
 
 ## IR delay tests
+
+Done 10-08 (session above): FL 16-24 / FR 24-32 ms on approaches at
+600-900 mm/s, 0-8 ms on turns; `IR_DELAY_MS` is now 22. The plan as it
+was:
 
 The firmware pairs the front readings with where the robot was
 `IR_DELAY_MS` (50 ms) earlier (the wall tracking at the end of straights,
