@@ -5,6 +5,9 @@ the bias observer with a PD wall follower"): what was measured on the robot,
 how the faults were found and reproduced, what was changed and what is
 still open. The centring as it is now: `docs/design.md`.
 
+10-08 on the robot: crooked and off-centre starts solved (section 9); open:
+the heading kick at wall ends, once a `MOVE_SLIPPED` (section 10).
+
 ## 1. Summary
 
 - The issue's proposal (a PD on the lateral error, no bias) was worse in the
@@ -300,12 +303,87 @@ of the old controller removed.
   (it also damps). From any real start the PD is what keeps the robot on
   the route. `test_path_centring` and `host_tests --control` keep it.
 
-## 9. Open
+## 9. On the robot (10-08)
 
-- Flash the branch and check on the robot: crooked starts of 30-35 deg at
-  100-900 mm/s, 180s at 600-900 (no weave), `CAL CURVE`, races 2.4/2.5;
-  `KP`/`KD` are live parameters.
-- The front delay: wall approaches at 100 and 600 mm/s; a mismatch that
-  grows with the speed is delay, a constant one calibration or slip.
-- The straights at 800 that started 9-21 deg crooked after a 179 deg turn
-  from a square stop (21-10-53 .. 21-13-53): repeat the 180 series.
+Flashed with `practice` (KP 8, KD 0.6); layout I with a wall east of
+(0,0); `CAL STRAIGHT 3` along row 2 (one wall continuous, the other only
+in the middle two cells). Recordings `tools/calib_data/2026-10-08_*`.
+
+- Crooked starts, centred, every one `end=IR` square to the end wall, no
+  touch (the start angle is the turn the encoders measured; "centred" is
+  where the error per 45 mm reaches 0):
+
+| v mm/s | nose left, from (0,2) E | nose right, from (3,2) W |
+|---|---|---|
+| 100 | 23 deg, centred at ~90 mm | 21 deg, ~90 mm |
+| 300 | 32 deg, ~135 mm | 29 deg, ~135 mm |
+| 600 | 39 deg, ~225 mm | 28 deg, ~180 mm |
+| 900 | 28 deg, ~300 mm (10 mm off at most) | 25 deg, ~180 mm |
+
+  Second halves within +-0.8-1.0 mm (+-2 at 100). The simulator gave 12-15
+  mm at most for 30-35 deg at 600-900; the robot ~10.
+- Square, 36 mm off-centre (SR 40): at 300 centred at ~90 mm (+3 mm
+  overshoot); at 900 one overshoot of +10 mm, settled in two cells.
+- After 180s (`CAL TURN 2`, then 3 cells at 600-900, 8 runs): starts up to
+  8 mm off, centred in 1-2 cells, then +-1-2.5 mm. No weave anywhere.
+- `CAL CURVE` +-1 at 300 and 400: exits 2.3-5.1 mm off, mostly the entry
+  offset carried through (no left/right bias: `CURVE_PRE` stays 0).
+- A search (mode 1): `End: OK`, four legs at 450 `end=IR` within 1 mm.
+
+The crooked and off-centre starts of 10-05 are solved. What is left is the
+wall ends (section 10).
+
+## 10. Wall ends: the heading kick at the posts (10-08)
+
+Evidence: every straight past a side wall's end or start shows a heading
+kick: the move's `err=` (largest rotation following error) 4-9 deg in the
+`CAL STRAIGHT` runs, 11.7 and 11.3 deg in the search's first two legs
+(450 mm/s), against `ROT_ERROR_MAX_DEG` 15. Once it crossed it: `CAL
+STRAIGHT 2 300` from (1,2) east, right after a `CAL CURVE`, ended
+`end=SLIPPED` at 241.6 of 360 mm, err 15.67 deg
+(`2026-10-08_20-04-52_straight.csv`). In a race or a search that ends
+the run.
+
+What the recording shows, at the end of the right wall (the post at the
+(2,2)/(3,2) boundary; SR centred reads 76):
+
+- SR 76 -> 123 -> 121 -> 145 -> 119 -> 63 -> 64 -> 61 -> 115 -> 168 over
+  ~25 mm, every 8 ms. The beam, 15 deg forward, leaves the wall and
+  catches the post's edge and end on the way.
+- All but the 145 stay under `SIDE_WALL_TRACK_MM` (130): `steer_step()`
+  still sees both walls, so the derivative is not reset. The error jumps
+  ~24 mm (clamped at 25): `KD` 0.6 turns that into a ~15 deg step of the
+  heading reference, and `KP` integrates the false error on top: the
+  centring asked +18 deg within ~50 ms.
+- The rotation loop saturated (PWM 1000 / -785), the robot turned 18 deg
+  right in ~60 ms, and the rotation error passed 15 deg: `MOVE_SLIPPED`.
+- The same edge readings at the start of a wall (SR 131 -> 99 -> 64 -> 77
+  entering a two-wall stretch) give the smaller kicks: there the reading
+  starts above 130, so the mode change resets the derivative and only the
+  P term and the post's short readings (61-64) act.
+
+How to reproduce: `CAL STRAIGHT 2 300` past a wall end with the robot a
+few mm off the centre line (here the exit of a curve). The reading's
+path through the 115-130 band depends on the lateral position and the
+heading at the post, which is why most runs passed.
+
+Why the simulator missed it: `control_sim.c` models the 15 deg beams
+along continuous walls, not their ends; `sim_path_walls()` has per-cell
+walls but no post geometry.
+
+Fix options (first reproduce in the simulator with posts and the beam
+geometry, then choose):
+
+- Accept a side reading for centring only within a band around its
+  centred value (e.g. +-25 mm, the error clamp), so a wall that is ending
+  drops out (mode change, derivative reset) instead of feeding the error.
+- Reject a reading that changes faster than the robot can move sideways
+  (several mm in one 16 ms sensor period on a straight).
+- Limit how fast the heading reference may change (deg/s), so no reading
+  can ask more than the rotation loop follows.
+
+## 11. Open
+
+- The wall ends (section 10): model posts in the simulator, choose the
+  fix, then `CAL STRAIGHT` past wall ends at 300-900 and the races 2.4/2.5
+  (not run on 10-08: they wait for the fix).
