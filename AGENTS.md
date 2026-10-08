@@ -304,10 +304,10 @@ search leg; the dump comes when the run ends).
     `host_tests --control` first, then `TUNE` on the robot, then write the
     validated values into `robot_config.h`. `ACCEL` 3000 is near the grip
     limit.
-  - The front IR are paired with where the robot was `IR_DELAY_MS` (50)
-    ago (the `trail` positions), and used only with readings taken on a
-    straight; the side IR answer in 4-8 ms (in-place turns), so the front's
-    50 is under test (`docs/faults/centring.md`).
+  - The front IR are paired with where the robot was `IR_DELAY_MS` (22,
+    measured on wall approaches 10-08) ago (the `trail` positions), and
+    used only with readings taken on a straight; the side IR answer in
+    0-8 ms (in-place turns).
   - Centring: the classic wall follower, a PD on the turn rate (`KP` deg/s
     per mm off-centre, `KD` deg per mm the error changes): no yaw to learn,
     no delay to predict. Test centring changes with crooked (30-35 deg) and

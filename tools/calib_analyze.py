@@ -35,7 +35,7 @@ import sys
 
 CELL_MM = 180
 SENSORS = ("fl", "fr", "sl", "sr")
-IR_DELAY_MS = 50            # as in robot_config.h: the IR report the robot's past
+IR_DELAY_MS = 22            # as in robot_config.h: the IR report the robot's past
 SQUARE_MM_PER_DEG = 1.2     # as in robot_config.h: FL - FR per degree of yaw
 # Side readings move ~1 mm per degree of yaw (sensors at the nose); fitted on the ring, 2026-09-26.
 SIDE_LEVER_MM = 55.0        # per radian

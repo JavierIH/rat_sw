@@ -10,7 +10,13 @@ The numbers behind the constants that docs/design.md does not already give
   90s end ~0.4 deg short.
 - IR delay: at 400 mm/s the front wall read 18 mm farther than it was;
   the position 50 ms earlier plus the reading matched it within 0.6 mm
-  over a whole approach (`CAL STRAIGHT 3 400`). `FRONT_TRACK_MM` 170:
+  over a whole approach (`CAL STRAIGHT 3 400`). 22 since 10-08: 8
+  approaches of `CAL STRAIGHT 3`, two at each of 100, 300, 600 and 900
+  mm/s (`calib_analyze.py --delay`), gave FL 16-24 / FR 24-32 ms at 600-900, the same ms at both
+  speeds (a delay, not a slide or an offset; at 100-300 a 2 mm calibration
+  error scatters them to 8-58); in-place turns 0-8 ms on all four. With
+  `TUNE IR_DELAY 22` the stops read 92-93 (91.5-94.5 at 50) and the
+  reference ends ~40 ms sooner. `FRONT_TRACK_MM` 170:
   tracking from 140, at 500 mm/s the robot learnt about the wall with ~20
   mm left, too late to brake if it was not where planned; beyond 150 the
   readings err short (the wall looks closer), so it brakes a bit early and
@@ -20,8 +26,9 @@ The numbers behind the constants that docs/design.md does not already give
 - Side centre readings, before the 09-27 rounds: 180 deg pairs gave SR
   87/65 and SL 76/101 (twice alike); centring on 84 kept the robot ~8 mm
   towards the left wall; hand-centred readings SR 76-80, SL 84-89.
-- Search legs: the front reads reliably under ~170 mm, which with the 50
-  ms delay comes ~14 mm + 50 ms of travel into the cell (a wall reads ~135
+- Search legs (set with the old 50 ms delay; at 22 the margin is wider,
+  the cap stays: robust before fast): the front reads reliably under ~170
+  mm, which with the 50 ms delay comes ~14 mm + 50 ms of travel into the cell (a wall reads ~135
   at the decision, none over `SEARCH_FRONT_OPEN_MM`). Up to ~500 mm/s that
   is before the decision; 450 leaves ~12 mm (25 ms) to spare. Faster, the
   robot would decide blind and brake harder at walls (at 600, ~4100

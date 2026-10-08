@@ -25,10 +25,9 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
 - `ACCEL` 3000 mm/s^2 is near the grip limit: at 5000 the wheels slipped
   when braking (the encoders stopped on target, the robot 6 mm further).
 - The IR (Sharp-type, a new value every ~16 ms) report the past. The front
-  sensors are paired with where the robot was `IR_DELAY_MS` (50) earlier (a
-  wall approach at 400 mm/s); on in-place turns all four respond in 4-8 ms
-  and wall approaches give FL ~16 / FR ~28 ms, so the 50 is open
-  (`docs/faults/centring.md`, section 7). `motion.c` keeps the forward position of the
+  sensors are paired with where the robot was `IR_DELAY_MS` (22) earlier
+  (wall approaches at 600-900 mm/s: FL 16-24, FR 24-32 ms; in-place turns
+  0-8 ms on all four; `docs/measurements.md`). `motion.c` keeps the forward position of the
   last 64 ms (`trail`) and pairs each reading with where it was taken. The
   wall at the end of a straight is tracked from `FRONT_TRACK_MM` (170) and
   the stop aimed at `FRONT_TRACK_REF_MM` from it: stops within ~2 mm at
