@@ -22,6 +22,7 @@ typedef struct {
     float wall_error_mm;        // each wall of each cell off by up to this much (a real maze: ~3, up to 7)
     float curve_slip;           // deg a 90 deg curve at CURVE_SLIP_VREF_MM_S turns less than the encoders say (~v^2)
     float side_lever_mm;        // side readings' shift per radian of yaw (sensors at the nose, angled beams)
+    uint32_t walls_l, walls_r;  // bit i: a wall on that side of the i-th cell (0: the start); a curve's inner side is open
     uint32_t seed;
 } plant_t;
 
@@ -33,6 +34,7 @@ typedef struct {
     float y_end;                // mm left of the centre at the end
     float y_late;               // largest |y| over the second half of the move
     float y_max;                // largest |y| over the whole move (48: touching a wall)
+    float yaw_max;              // largest |yaw| over the whole move, deg
     float yaw_end;              // deg to the right of the corridor at the end
     float fwd_err_max, rot_err_max;
     float rot_error_end;        // deg the rotation loop stopped short of its reference
