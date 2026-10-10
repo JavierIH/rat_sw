@@ -251,7 +251,8 @@ firmware has no HELP, to save flash). Main ones: `MODE n`, `START`, `STOP`, `PAU
 default, or stopping in every cell; until reset),
 `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`practice`/`dev` builds; `RUN` arms the recorder
 for the next continuous move of a run: the speed run to the goal, or a
-search leg; the dump comes when the run ends).
+search leg; the dump comes when the run ends), `REMOTE` + `GO F|L|R|B` (`practice`/`dev`:
+the console decides every cell, `search_remote()`; tutorial-jev's `conducir.py` asks Jev).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,

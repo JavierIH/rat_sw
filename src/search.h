@@ -20,6 +20,13 @@ search_mode_t search_mode(void);
 // Left- or right-hand wall follower: past the goal it goes on until STOP, so it ends RUN_ABORTED.
 run_result_t search_wall_follow(uint8_t left_hand);
 
+// Remote driver (REMOTE): stopped in every cell, `decide` gets the walls the map holds there (it reports them: the
+// console's prints "remote (x,y)H walls front=1 left=0 right=? back=0") and returns the turn before the next cell
+// (0 straight, -1 left, 1 right, 2 back) or REMOTE_STOP. Ends RUN_OK at the goal.
+#define REMOTE_STOP 9
+typedef int8_t (*remote_decide_fn)(const char walls[4], void *ctx);    // front, left, right, back: '1' wall, '0' open, '?'
+run_result_t search_remote(remote_decide_fn decide, void *ctx);
+
 // 1 while the robot is known to be at the start cell facing north.
 uint8_t search_ready(void);
 void search_set_home(void);     // the robot was placed at the start facing north

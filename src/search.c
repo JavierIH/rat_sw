@@ -584,6 +584,47 @@ run_result_t search_wall_follow(uint8_t left_hand){
     }
 }
 
+// ---- Remote driver ---------------------------------------------------------------------
+
+static char wall_char(heading_t dir){
+    static const char CHAR[3] = {'?', '1', '0'};    // wall_state_t
+    return CHAR[maze_wall(pose.x, pose.y, dir)];
+}
+
+run_result_t search_remote(remote_decide_fn decide, void *ctx){
+    uint32_t moves = 0;
+    pose_reset();
+    ready = 0;
+    telemetry_activity(TM_FOLLOW);
+    print("== REMOTE: GO F|L|R|B in every cell, STOP ends ==\n");
+    for(;;){
+        if(maze_is_goal(pose.x, pose.y)){
+            print("Goal reached (remote) at (%u,%u) after %lu moves\n", pose.x, pose.y, (unsigned long)moves);
+            motion_indicate(IND_GOAL);
+            return RUN_OK;
+        }
+        if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, "remote");
+        wall_sense_t w;
+        move_result_t r = sense_here(&w, 0);
+        if(r != MOVE_OK) return fail_move(r, "sensing");
+        // The map's view: this sighting plus the border and earlier ones; '?' = no evidence either way.
+        const char walls[4] = {wall_char(pose.h), wall_char(heading_left(pose.h)), wall_char(heading_right(pose.h)),
+                               wall_char(heading_back(pose.h))};
+        const int8_t q = decide(walls, ctx);
+        if(q == REMOTE_STOP) return fail_move(MOVE_ABORTED, "remote");
+        // Whoever decides, the robot never turns to drive into a wall it knows: it says so and asks again.
+        const heading_t to = (heading_t)((pose.h + q + 4) & 3);
+        if(maze_wall(pose.x, pose.y, to) == WALL_PRESENT){
+            print("remote: wall that way (%c), not moving\n", HEADING_CHAR[to]);
+            continue;
+        }
+        r = turn_by(q);
+        if(r == MOVE_OK) r = forward(1, params.search_speed);
+        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "move");
+        moves++;
+    }
+}
+
 // ---- Reports ---------------------------------------------------------------------------
 
 uint16_t search_fast_path_cost(void){

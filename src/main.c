@@ -56,6 +56,40 @@ void app_request_cal(cal_test_t test, int32_t a, int32_t b){
     cal_b = b;
     cal_requested = 1;
 }
+
+static volatile uint8_t remote_requested;
+static volatile uint8_t remote_waiting;
+static int8_t remote_turn;
+
+void app_request_remote(void){ remote_requested = 1; }
+
+uint8_t app_remote_go(int8_t quarter_turns){
+    if(!remote_waiting) return 0;
+    remote_turn = quarter_turns;
+    remote_waiting = 0;
+    return 1;
+}
+
+// REMOTE's decisions: the next GO from the console; STOP or START end the run. First the cell, its walls and the IR
+// as they read now (mm), for a driver that judges the walls itself. The robot is stopped: wait for the queue to empty
+// first, as print drops a line when it is full and the driver waits for both (10-10: the IR line lost at (0,2)).
+static int8_t console_decide(const char walls[4], void *ctx){
+    static const char HEADING[4] = {'N', 'E', 'S', 'W'};
+    (void)ctx;
+    uint8_t x, y;
+    heading_t h;
+    search_pose(&x, &y, &h);
+    uart_flush(1000);
+    print("remote (%u,%u)%c walls front=%c left=%c right=%c back=%c\n", x, y, HEADING[h],
+          walls[0], walls[1], walls[2], walls[3]);
+    print("remote ir FL=%d FR=%d SL=%d SR=%d\n", (int)ir_mm(IR_FL), (int)ir_mm(IR_FR), (int)ir_mm(IR_SL),
+          (int)ir_mm(IR_SR));
+    uint8_t go_on = 1;
+    remote_waiting = 1;
+    while(remote_waiting && go_on) go_on = motion_checkpoint();
+    remote_waiting = 0;
+    return go_on ? remote_turn : REMOTE_STOP;
+}
 #endif
 
 uint8_t app_set_mode(uint8_t m, uint8_t r){
@@ -190,7 +224,8 @@ static void run_mode(uint8_t m){
         motion_indicate(IND_REFUSED);   // START did something: no path
     }
     else{
-        print("Mode %s: starts in %u ms (START or STOP cancels)\n", app_mode_label(), START_DELAY_MS);
+        print("Mode %s: starts in %u ms (START or STOP cancels)\n", m == MODE_REMOTE ? "REMOTE" : app_mode_label(),
+              START_DELAY_MS);
         leds_all(1);
         uint32_t countdown_start = HAL_GetTick();
         sync_telemetry(TM_COUNTDOWN);   // the monitor starts the run with the full map
@@ -210,6 +245,9 @@ static void run_mode(uint8_t m){
                 case MODE_FAST_SAFE:
                 case MODE_FAST_MID:
                 case MODE_FAST:         r = search_fast_run(1); break;
+#if DEV_TOOLS
+                case MODE_REMOTE:       r = search_remote(console_decide, NULL); break;
+#endif
                 default: break;
             }
             motion_stop();
@@ -360,6 +398,10 @@ int main(void){
         if(cal_requested){
             cal_requested = 0;
             run_calibration();
+        }
+        if(remote_requested){
+            remote_requested = 0;
+            run_mode(MODE_REMOTE);
         }
 #endif
         show_mode();

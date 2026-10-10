@@ -105,6 +105,8 @@ reference. "Stopped" = refused during a run.
 | `HOME` | "the robot is at the start facing north" | yes |
 | `SYNC` | sends map and state to the monitor again | yes |
 | `CAL ...` | calibration tests (below; `practice` and `dev` builds) | yes |
+| `REMOTE` | the console drives, from the start facing north (`practice` and `dev` builds): in every cell the robot prints `remote (x,y)H walls front= left= right= back=` (1 wall, 0 open, ? unknown), then `remote ir FL= FR= SL= SR=` (mm, as they read now), and waits for `GO`; it ends at the goal or with STOP | yes |
+| `GO F\|L\|R\|B` | REMOTE's next cell: straight on, or after turning left, right or back; into a wall the robot knows it does not move, says so and asks again | |
 | `RESET` | resets the micro | |
 
 ## Calibration data

@@ -15,9 +15,10 @@ typedef enum {
     MODE_ERASE,         // erase the saved map (confirm with START)
     MODE_NO_CURVES,     // speed run turning in place, straights at FAST_SAFE_SPEED, return, save
     MODE_FAST_MID,      // speed run at FAST_MID_* (set when selected), return, save
+    MODE_REMOTE,        // console only (REMOTE): GO decides every cell; never the menu's mode nor an @M
 } app_mode_t;
 
-#define MODE_COUNT 8
+#define MODE_COUNT 8    // the menu's modes (MODE_NAME); MODE_REMOTE is not one
 
 // SELECT cycles modes 1-3; START on mode 2 opens the race menu (SELECT cycles, START launches; only a reset leaves).
 enum { MENU_SEARCH = 1, MENU_RACE, MENU_ERASE };
@@ -32,6 +33,8 @@ void app_request_start(void);
 void app_telemetry_sync(void);          // full map/state for the monitor (robot stopped)
 void app_request_cal(cal_test_t test, int32_t a, int32_t b);    // run from the main loop
 void app_request_check(void);           // CHECK (docs/lighting.md), run from the main loop
+void app_request_remote(void);          // REMOTE, run from the main loop
+uint8_t app_remote_go(int8_t quarter_turns);    // GO: 0 unless a REMOTE run waits for a decision
 // SAVE, ERASE, mode 3 (at rest): storage_save(0), compacting first if full.
 storage_save_t app_save_now(void);
 

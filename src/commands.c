@@ -458,6 +458,27 @@ static void cmd_cal(const char *args){
 }
 #endif
 
+#if DEV_TOOLS
+static void cmd_remote(const char *args){
+    (void)args;
+    app_request_remote();
+}
+
+// GO F|L|R|B: REMOTE's next cell (straight on, left, right, back).
+static void cmd_go(const char *args){
+    static const char DIRS[] = "FLRB";
+    static const int8_t TURN[4] = {0, -1, 1, 2};
+    const char *p = skip_spaces(args);
+    const char *d = *p ? strchr(DIRS, *p) : NULL;
+    if(!d || !at_end(p + 1)){
+        print("GO F|L|R|B\n");
+        return;
+    }
+    if(app_remote_go(TURN[d - DIRS])) print("go %c\n", *d);
+    else print("GO: only while REMOTE waits for a decision\n");
+}
+#endif
+
 static void cmd_check(const char *args){
     (void)args;
     app_request_check();
@@ -497,6 +518,8 @@ static const command_t COMMANDS[] = {
     {"SYNC",      cmd_sync,       1},
 #if DEV_TOOLS
     {"CAL",       cmd_cal,        1},
+    {"REMOTE",    cmd_remote,     1},
+    {"GO",        cmd_go,         0},
 #endif
     {"DEFAULTS",  cmd_defaults,   0},
     {"IR",        cmd_ir,         0},

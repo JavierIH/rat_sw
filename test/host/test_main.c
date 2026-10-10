@@ -862,6 +862,52 @@ static void test_wall_followers(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// REMOTE's decider in the tests: a list of turns, or the right hand (script NULL); counts the questions.
+typedef struct {
+    const int8_t *script;
+    int asked;
+} remote_test_t;
+
+static int8_t remote_test_decide(const char walls[4], void *ctx){
+    remote_test_t *t = ctx;
+    const int8_t q = t->script ? t->script[t->asked]
+                   : walls[2] != '1' ? 1 : walls[0] != '1' ? 0 : walls[1] != '1' ? -1 : 2;
+    t->asked++;
+    return q;
+}
+
+// REMOTE: the right hand over the console reaches the goal; a turn into a known wall leaves the robot in place.
+static void test_remote(void){
+    maze_set_goal(7, 7, 8, 8);
+    int ok = 0;
+    for(uint32_t m = 1; m <= 40; m++){
+        truth_generate(m * 40503u, 0);     // perfect maze: the right hand reaches every cell
+        maze_init();
+        sim_reset(0.0, m);
+        sim_abort_after_cells(600);
+        remote_test_t t = {NULL, 0};
+        const run_result_t r = search_remote(remote_test_decide, &t);
+        uint8_t x, y;
+        heading_t h;
+        search_pose(&x, &y, &h);
+        ok += r == RUN_OK && maze_is_goal(x, y) && t.asked == (int)sim_stats.forward_cells
+              && sim_stats.crashes == 0 && sim_stats.blocked == 0;
+    }
+    printf("remote: the right hand over the console reaches the goal %d/40\n", ok);
+    CHECK_EQ(ok, 40);
+
+    // At the start facing north, LEFT (the west border) and BACK (the south one) are refused without moving.
+    static const int8_t SCRIPT[3] = {-1, 2, REMOTE_STOP};
+    truth_generate(40503u, 0);
+    maze_init();
+    sim_reset(0.0, 1);
+    remote_test_t t = {SCRIPT, 0};
+    CHECK_EQ(search_remote(remote_test_decide, &t), RUN_ABORTED);
+    CHECK_EQ(t.asked, 3);
+    CHECK_EQ(sim_stats.actions, 0);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 static void test_practice_maze(void){
     printf("simulation (4x3 practice maze, goal (3,2)):\n");
     maze_set_goal(3, 2, 3, 2);
@@ -2131,6 +2177,7 @@ int main(int argc, char **argv){
     test_search_modes();
     test_practice_maze();
     test_wall_followers();
+    test_remote();
     test_competition_mazes();
     test_profile();
     test_steering_pd();
