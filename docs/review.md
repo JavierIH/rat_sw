@@ -110,3 +110,68 @@ means retuning a dozen constants (centre left 89 vs right 76, front offset
 | 6 | Hardware, the user's call: a filter on VDDA (ferrite or 10-47 ohm + 1 uF + 100 nF), bulk and ceramic capacitors at the H-bridge and across the motors; a gyro, if the hardware ever may change, is the largest single performance lever | open |
 | 7 | Distinct LED signals for a failed save / full log vs a failed run | done 10-06 (6f82f77): map not saved = halves alternating, START refused = LEDs 3-4 |
 | 8 | The monitor draws the robot's route instead of recomputing it; trim `AGENTS.md` to rules | open |
+
+## Review of 2026-10-22 (paused)
+
+The user asked for a critical review of everything, from scratch; paused at
+the user's request. Read in full: every firmware module in `src/`, the
+control simulator, this file, `design.md`, `testing.md`,
+`faults/centring.md`; only skimmed: the tools, `test_main.c`, `sim.c`.
+
+### Done
+
+- Issue #1, the wall-end kick: fixed in the simulator (d42d8f1,
+  `docs/faults/centring.md` section 11). The host tests pass again (7
+  checks failed since 0cfc91f, so CI was red). Waits for the robot.
+
+### To do (found, small, no robot needed)
+
+1. `motion.c`: `end=OBSTACULO` (the emergency brake) -> `OBSTACLE`, and
+   add it to the translation list in `docs/README.md`.
+2. README, console table: `START` launches after 5 s (`START_DELAY_MS`),
+   not 2 (that is `CAL`).
+3. Spanish left in comments: `commands.c` ("Consola Bluetooth"), `app.h`
+   ("2.4 RAPIDA SEGURA"), `platformio.ini` and `test_virtual.c` ("TUNE
+   RUEDAS 1").
+4. `robot_config.h`: the empty "Flash store" section.
+5. `params.c`: the defaults written twice (`DEFAULTS` and `params`); one
+   initializer macro (item 6 of the 10-04 review, never done).
+6. `commands.c`, `cmd_tune()`: its upper-casing loop is redundant
+   (`commands_poll()` already upper-cases the line).
+7. AGENTS.md memory figures: now competition RAM 52.7 % / flash 85.3 %,
+   practice and dev RAM 84.4 % / flash 93.9 % (3.9 KB left).
+8. `docs/img/robot_monitor.gif` is untracked: commit it (for the README?)
+   or delete it.
+
+### Still to review
+
+`tools/robot_monitor.py` and `tools/calib_analyze.py` (structure only so
+far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
+`docs/mazes.md`, `docs/faults/freezes.md`, `docs/faults/oshwdem2026.md`.
+
+### Questions and proposals (the user's call, or a measurement first)
+
+1. Search turn cost: `SEARCH_COST_TURN` 1 (half a cell) as in the speed
+   run, but in the search every turn is a stop, ~0.3 s in place and a
+   start (~1.5 cells of time). Proposal: time 16x16 searches in the
+   simulator with 2 and 3 before deciding; it changes the search's routes
+   (the monitor reads the costs from `robot_config.h`).
+2. Front at rest: when only one front sensor sees a wall,
+   `motion_sense_walls()` records the front as open (evidence -1), against
+   the rule "never turn a doubtful reading into absent". Make it doubtful
+   (not recorded)? Rare (stopped at a centre both see it), and a move
+   stops at the wall anyway.
+3. Wall ends: in the simulator a short edge reading that comes before the
+   step away still counts once (~2 deg); every robot recording stepped
+   away first. If the robot shows it, a large step inwards that comes
+   back could be held too (careful: crooked starts close in by 13-20 mm
+   per sensor period).
+4. SysTick worst 424 us after a search (10-08): no cause known. A flash
+   halfword stall is ~56 us; find what takes the rest, not only read it
+   after a race (issue 19).
+5. `CURVE_PRE`, `CURVE_POST` (0) and `CURVE_ANGLE` (90) still sit at their
+   neutral values (kept 09-30 for `calib_analyze.py`'s suggestions): keep
+   them?
+6. The flash stress tools of the virtual env (`TUNE STRESS`, `REVERSAL`,
+   `HSI`): the wedge is fixed (10-05). Keep them to reproduce it, or
+   delete them?

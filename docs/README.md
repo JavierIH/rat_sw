@@ -8,7 +8,7 @@
 | [testing.md](testing.md) | what was validated on the robot, getting ready for a 16x16 without one, the competition checklist |
 | [mazes.md](mazes.md) | the practice maze's test layouts A-I, drawn |
 | [lighting.md](lighting.md) | proposal: an automatic check of the venue's light on the IR at a competition (issue 21) |
-| [review.md](review.md) | outside review of the project (2026-10-04) and the work plan it suggests |
+| [review.md](review.md) | outside reviews of the project (2026-10-04, 2026-10-22: paused, its to-do list and questions) and the work plan |
 | [faults/freezes.md](faults/freezes.md) | the flash wedges (2026-09): the investigation |
 | [faults/oshwdem2026.md](faults/oshwdem2026.md) | OSHWDEM 2026: the lost map, the flash wedge's cause (motor transients) and fix, other faults |
 | [faults/centring.md](faults/centring.md) | the centring far from the centre line (GitHub issue #1): crooked starts, the IR delay, the PD wall follower |

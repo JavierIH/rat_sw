@@ -92,8 +92,8 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
   Handing that rest to the next move (`TURN_CARRY`) made 90+90 turn as a
   180 in the simulator (179.85 vs 179.62 deg), but gave no gain on the
   robot (layout D) and would need its own `TURNTICKS`: removed 2026-09-30.
-- Smooth curves (`path.c`, speed run only; search moves still stop in every
-  cell). A curve enters its cell on the centre line and leaves on the centre
+- Smooth curves (`path.c`, speed run only; the search's legs turn in
+  place). A curve enters its cell on the centre line and leaves on the centre
   line through the side edge: `pre` mm straight, the clothoid-arc-clothoid
   (`CURVE_RADIUS_MM` 70, `CURVE_RAMP_MM` 30), `post` mm straight. It advances
   85.5 mm along each axis, so 4.5 mm are left before and after it and curves

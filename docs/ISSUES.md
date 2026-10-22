@@ -9,6 +9,8 @@ commit when done. Details go in the docs it points to, not here.
 - The robot session in `docs/testing.md` ("Next robot session"): the
   fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
   wall ends at 300-900, crooked starts, then a search and the races.
+- Without the robot: issue 22, the review's small fixes
+  (`docs/review.md`, "Review of 2026-10-22").
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -16,6 +18,11 @@ commit when done. Details go in the docs it points to, not here.
   (issue 17).
 
 ## Open
+
+- Issue 22, review of 10-22 (`docs/review.md`, last section): paused at
+  the user's request. Done: issue #1's fix (simulator). Left: 8 small
+  fixes listed there, the tools and tests not yet reviewed, and 6
+  questions for the user. Next: the small fixes (no robot needed).
 
 - GitHub issue #1, centring (`docs/faults/centring.md`): the PD wall
   follower (KP 8, KD 0.6), on the robot since 10-08: crooked starts of
