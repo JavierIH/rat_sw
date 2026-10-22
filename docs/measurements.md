@@ -57,6 +57,24 @@ The numbers behind the constants that docs/design.md does not already give
   reached the wall: `docs/faults/centring.md`). `STEER_VREF_MM_S`: at 700 mm/s KP 0.7 weaved (1.0
   deg rms, 4 Hz), 0.5 did not (0.67), the same as KP 0.7 at 400. KP 1.0
   also weaved with `ROT_KP` 20.
+- Side readings at wall ends (`STEER_JUMP_MM` 8, `STEER_HOLD_MM` 20;
+  10-22, from the 62 `CAL STRAIGHT` recordings of 10-05 and 10-08): with
+  both readings within 15 mm of the centred value, consecutive samples
+  (2-8 ms apart) changed < 4 mm in 98.7 % of 13,989 pairs and < 8 mm in
+  99.7 %; the rarer larger steps up were wall ends (+9..+19, then the
+  side leaves range; +47 at the 10-08 `SLIPPED`). Crooked starts close
+  in by 13-20 mm per sensor period, always downwards (the side read
+  long). The edge readings after a wall end's first step last 5-16 mm of
+  travel (74 events, 100-900 mm/s; the 10-08 one 123/145/119, then
+  61-64), the same mm at every speed: a hold in mm, not ms. Replayed
+  open loop through `steer_step()`, the worst 50-ms heading change past
+  the first 250 mm fell from 23.7 to 3.1 deg at the 10-08 `SLIPPED`,
+  15.8 -> 1.6, 11.9 -> 2.6 at other wall ends (mean of all 5.8 -> 4.3).
+  In the simulator with posts (sweep of 6-12 mm by 10-30 mm): the
+  staircase that left the path by 56-66 mm stays within 1-7 mm; 8/20
+  keeps the crooked starts as before (|y| at the cell centres 2.81 ->
+  2.90 mm, 2.77-3.6 over the sweep); 10-12 with 20 let one edge
+  through (23 mm off).
 - Curves at 400 mm/s: 2.3 m/s^2 sideways (braking at 5 slipped, 3 was near
   the grip limit), 4400 deg/s^2 at the ramps (in-place turns use 5000),
   outer wheel at 560 mm/s. The robot follows the reference a few ms late,

@@ -112,6 +112,8 @@ static steer_config_t steer_cfg = {
     .center_l_mm = SIDE_CENTER_L_MM,
     .center_r_mm = SIDE_CENTER_R_MM,
     .error_max_mm = STEER_ERROR_MAX_MM,
+    .jump_mm = STEER_JUMP_MM,
+    .hold_mm = STEER_HOLD_MM,
     .average_steps = STEER_AVERAGE_MS,      // ms: one step each
     // kp, kd: the parameters, set per move
 };
@@ -189,7 +191,7 @@ void motion_tick_1ms(void){
                 steer_restart(&steer);
                 steer_blind = 0;
             }
-            heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), CONTROL_DT_S, steer_gain);
+            heading = steer_step(&steer, &steer_cfg, ir_mm(IR_SL), ir_mm(IR_SR), CONTROL_DT_S, fwd.delta, steer_gain);
             static const uint8_t WALL_LEDS[4] = {0x00, 0x07, 0x38, 0x3F};   // none, right, left, both
             leds_set_mask(WALL_LEDS[steer.wall & 3u]);
         }
@@ -805,6 +807,8 @@ static const tunable_t TUNABLES[] = {
     {"SETTLE_DEG", &settle_deg, 0.1f, 5.0f, 2},
     {"CENTER_L", &steer_cfg.center_l_mm, 40.0f, 130.0f, 1},
     {"CENTER_R", &steer_cfg.center_r_mm, 40.0f, 130.0f, 1},
+    {"STEER_JUMP", &steer_cfg.jump_mm, 2.0f, 100.0f, 0},
+    {"STEER_HOLD", &steer_cfg.hold_mm, 0.0f, 60.0f, 0},     // 0: no hold, the centring before 10-22
     {"IR_DELAY", &ir_delay, 0.0f, IR_DELAY_MAX, 0},
     {"FRONT_TRACK", &front_track, 100.0f, 250.0f, 0},
     {"FRONT_REF", &front_ref, 60.0f, 130.0f, 1},
@@ -836,8 +840,9 @@ void motion_curve_info(uint8_t line){
               format_fixed(e, sizeof(e), c.length, 1), (int)curve_speed_limit(&c));
     }
     else if(line == 2){
-        print("@D INFO curve_pre_slip=%s curve_pre_v0=%d\n", format_fixed(a, sizeof(a), curve_pre_slip, 1),
-              (int)curve_pre_v0);
+        print("@D INFO curve_pre_slip=%s curve_pre_v0=%d steer_jump_mm=%d steer_hold_mm=%d\n",
+              format_fixed(a, sizeof(a), curve_pre_slip, 1), (int)curve_pre_v0, (int)steer_cfg.jump_mm,
+              (int)steer_cfg.hold_mm);
     }
     else{
         // WHEEL_DIFF in millionths: format_fixed() stops at 3 decimals.

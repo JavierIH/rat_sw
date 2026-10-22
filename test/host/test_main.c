@@ -1287,33 +1287,47 @@ static void test_profile(void){
 static void test_steering_pd(void){
     const steer_config_t k = {
         .kp = 10.0f, .kd = 1.0f, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = 84.0f, .center_r_mm = 84.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = 1,
+        .error_max_mm = STEER_ERROR_MAX_MM, .jump_mm = STEER_JUMP_MM, .hold_mm = STEER_HOLD_MM, .average_steps = 1,
     };
-    const float dt = 0.001f;
+    const float dt = 0.001f, ds = 0.5f;     // 500 mm/s
+    const int hold_steps = (int)(STEER_HOLD_MM / ds);
     steer_t s;
     steer_reset(&s);
     // Centred between both walls: no turn.
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 84.0f, 84.0f, dt, 1.0f);
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 84.0f, 84.0f, dt, ds, 1.0f);
     CHECK(fabsf(s.heading) < 0.01f);
-    // 10 mm left of the centre: KD * 10 at once, then KP * 10 deg/s, to the right.
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, dt, 1.0f);
-    CHECK(fabsf(s.heading - (k.kd * 10.0f + k.kp * 10.0f * 0.1f)) < 0.2f);
+    // Starting 10 mm left of the centre: KP * 10 deg/s to the right, no derivative on the first reading.
+    steer_reset(&s);
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 74.0f, 94.0f, dt, ds, 1.0f);
+    CHECK(fabsf(s.heading - k.kp * 10.0f * 0.1f) < 0.02f);
     // No walls: the heading is held.
     const float held = s.heading;
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 250.0f, 250.0f, dt, 1.0f);
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 250.0f, 250.0f, dt, ds, 1.0f);
     CHECK(fabsf(s.heading - held) < 0.001f);
-    // A wall appearing (another reference): no derivative kick.
-    steer_step(&s, &k, 60.0f, 250.0f, dt, 1.0f);
-    CHECK(fabsf(s.heading - held - k.kp * 24.0f * dt) < 0.01f);
+    // A wall appearing counts once it read steady over STEER_HOLD_MM (the jump spans 2 ms), then without a derivative kick.
+    for(int i = 0; i <= hold_steps; i++) steer_step(&s, &k, 60.0f, 250.0f, dt, ds, 1.0f);
+    CHECK(fabsf(s.heading - held) < 0.001f && s.wall == STEER_WALL_NONE);
+    steer_step(&s, &k, 60.0f, 250.0f, dt, ds, 1.0f);
+    CHECK(fabsf(s.heading - held - k.kp * 24.0f * dt) < 0.01f && s.wall == STEER_WALL_LEFT);
     // The error clamped; gain 0 (a move's end): no change.
     const float before = s.heading;
-    for(int i = 0; i < 100; i++) steer_step(&s, &k, 10.0f, 250.0f, dt, 0.0f);
+    for(int i = 0; i < 100; i++) steer_step(&s, &k, 10.0f, 250.0f, dt, ds, 0.0f);
     CHECK(fabsf(s.heading - before) < 0.001f);
     // The D term: the error growing 1 mm turns KD deg more.
     steer_reset(&s);
-    steer_step(&s, &k, 84.0f, 84.0f, dt, 1.0f);
-    steer_step(&s, &k, 83.0f, 85.0f, dt, 1.0f);
+    steer_step(&s, &k, 84.0f, 84.0f, dt, ds, 1.0f);
+    steer_step(&s, &k, 83.0f, 85.0f, dt, ds, 1.0f);
     CHECK(fabsf(s.heading - (k.kd * 1.0f + k.kp * 1.0f * dt)) < 0.001f);
+    // A wall's end: the right reading jumps away and reads edges; the left wall alone keeps the heading.
+    steer_reset(&s);
+    for(int i = 0; i < 20; i++) steer_step(&s, &k, 84.0f, 84.0f, dt, ds, 1.0f);
+    const float edge[6] = {120.0f, 121.0f, 125.0f, 70.0f, 71.0f, 118.0f};
+    for(int i = 0; i < 60; i++) steer_step(&s, &k, 84.0f, edge[i / 10], dt, ds, 1.0f);
+    CHECK(fabsf(s.heading) < 0.001f && s.wall == STEER_WALL_LEFT);
+    // A side in use may close in fast (a crooked start straightening): it keeps counting.
+    steer_reset(&s);
+    for(int i = 0; i < 40; i++) steer_step(&s, &k, 84.0f, 120.0f - (float)i, dt, ds, 1.0f);
+    CHECK(s.wall == STEER_WALL_BOTH);
 }
 
 static void test_speed_control(void){

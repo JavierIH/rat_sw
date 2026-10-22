@@ -44,7 +44,11 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
   none: the heading is held. Readings averaged over one sensor period
   (`STEER_AVERAGE_MS` 16: they step ~2 mm every ~16 ms), the error clamped
   at `STEER_ERROR_MAX_MM` (25), no derivative across a change of walls (a
-  new reference). It fades out over the last 40 mm of a move and before
+  new reference). A side whose reading goes `STEER_JUMP_MM` (8) farther
+  within 2 ms (a wall's end) stops counting until it reads steady over
+  `STEER_HOLD_MM` (20) mm, and so does a wall that appears: the edges of
+  a wall read short and long for ~5-16 mm (`docs/faults/centring.md`,
+  section 11). It fades out over the last 40 mm of a move and before
   every curve, and holds its offset through a curve until the IR read the
   new corridor. Defaults KP 8, KD 0.6, chosen in the simulator with the side
   IR 8 ms late (robust from 5 to 20 ms): against the old controller on the

@@ -152,7 +152,8 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
     const steer_config_t sk = {
         .kp = kp, .kd = kd, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
         .center_r_mm = LANE_WIDTH_MM / 2.0f,
-        .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = STEER_AVERAGE_MS,
+        .error_max_mm = STEER_ERROR_MAX_MM, .jump_mm = STEER_JUMP_MM, .hold_mm = STEER_HOLD_MM,
+        .average_steps = STEER_AVERAGE_MS,
     };
     profile_t fwd, rot;
     control_t c;
@@ -209,7 +210,7 @@ static sim_result_t run(const plant_t *p, float mm, float speed, float accel, fl
             const float sr = held_r, sl = held_l;
             const float remaining = fwd.target - (fwd.pos - c.fwd_error);
             const float gain = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;  // as motion.c
-            heading = steer_step(&s, &sk, sl, sr, dt, gain);
+            heading = steer_step(&s, &sk, sl, sr, dt, fwd.delta, gain);
         }
         control_step(&c, &k, &fwd, &rot, heading, dl, dr, dt);
         if(abs(c.pwm_l) > r.pwm_max) r.pwm_max = abs(c.pwm_l);
@@ -388,7 +389,7 @@ static path_result_t path_run(const plant_t *p, const run_path_t *path, const cu
                 }
                 const float remaining = fminf(pr.curve_start, pr.stop_at) - at;
                 const float gain = remaining < FADE_MM ? fmaxf(remaining, 0.0f) / FADE_MM : 1.0f;
-                heading = steer_step(&st, sk, held_l, held_r, dt, gain);
+                heading = steer_step(&st, sk, held_l, held_r, dt, fwd.delta, gain);
             }
         }
         control_step(&c, &k, &fwd, &rot, heading, dl, dr, dt);
@@ -447,7 +448,8 @@ path_result_t sim_path_walls(const plant_t *p, const run_path_t *path, const cur
                              float v_curve, float accel, float kp, float kd){
     const steer_config_t sk = {
         .kp = kp, .kd = kd, .track_mm = SIDE_WALL_TRACK_MM, .center_l_mm = LANE_WIDTH_MM / 2.0f,
-        .center_r_mm = LANE_WIDTH_MM / 2.0f, .error_max_mm = STEER_ERROR_MAX_MM, .average_steps = STEER_AVERAGE_MS,
+        .center_r_mm = LANE_WIDTH_MM / 2.0f, .error_max_mm = STEER_ERROR_MAX_MM, .jump_mm = STEER_JUMP_MM,
+        .hold_mm = STEER_HOLD_MM, .average_steps = STEER_AVERAGE_MS,
     };
     return path_run(p, path, curve, v_straight, v_curve, accel, &sk);
 }

@@ -6,7 +6,9 @@ how the faults were found and reproduced, what was changed and what is
 still open. The centring as it is now: `docs/design.md`.
 
 10-08 on the robot: crooked and off-centre starts solved (section 9); open:
-the heading kick at wall ends, once a `MOVE_SLIPPED` (section 10).
+the heading kick at wall ends, once a `MOVE_SLIPPED` (section 10). 10-22:
+fixed in the simulator, a side that jumps away stops counting for 20 mm
+(section 11); waits for the robot.
 
 ## 1. Summary
 
@@ -382,8 +384,47 @@ geometry, then choose):
 - Limit how fast the heading reference may change (deg/s), so no reading
   can ask more than the rotation loop follows.
 
-## 11. Open
+## 11. The fix: a side that jumps away stops counting (10-22)
 
-- The wall ends (section 10): model posts in the simulator, choose the
-  fix, then `CAL STRAIGHT` past wall ends at 300-900 and the races 2.4/2.5
-  (not run on 10-08: they wait for the fix).
+The simulator got posts and wall ends on 10-10 (`control_sim.c`: the
+beam's spot mixes the face and the far return, some edge readings come
+out short); `test_path_centring` then failed as the robot does: a
+staircase entered with a kick left the path by 56-66 mm (the heading
+offset is held through every curve of a staircase).
+
+Of the three options of section 10, the data chose the second, made
+one-sided and measured in mm (`docs/measurements.md`, side readings at
+wall ends):
+
+- A side reading that goes farther by `STEER_JUMP_MM` (8) or more within
+  2 ms (a step can straddle the ADC's window) stops counting as a wall
+  until it has read steady over `STEER_HOLD_MM` (20) mm of travel. In
+  the recordings normal steps are under 4 mm (98.7 %); the first step of
+  a wall end is +9..+47.
+- Only steps away count for a side in use: crooked starts close in by
+  13-20 mm per sensor period, always downwards, and must keep steering.
+  A side not in use (out of range, or held) restarts its hold on any
+  step, either way: the start of a wall reads edges too (131, 99, 64, 77).
+- Losing or regaining a side is a change of reference, so as before no
+  derivative crosses it: the edge readings never reach `KD`.
+- The band (option 1) would have dropped the far wall of a robot 36 mm
+  off-centre, which centres today; the rate limit (option 3) would still
+  let the false error integrate.
+
+Results: in the simulator the staircases stay within 1-7 mm of the path
+(the test passes again), crooked starts unchanged (2.81 -> 2.90 mm mean
+at the cell centres); the recorded readings replayed open loop ask 3.1
+instead of 23.7 deg at the 10-08 `SLIPPED`. `TUNE STEER_HOLD 0` gives
+back the old centring exactly; `TUNE STEER_JUMP` moves the threshold.
+The CAL dumps carry both (`steer_jump_mm`, `steer_hold_mm`).
+
+What is left: in the simulator a short edge reading that comes before
+the step away (30 % of edges there; on the robot every recorded one
+came after it) still counts once (a ~2 deg kick).
+
+## 12. Open
+
+- The fix of section 11 on the robot: `CAL STRAIGHT` past wall ends at
+  300-900 (the 10-08 `SLIPPED` case first), then the races 2.4/2.5 (not
+  run on 10-08: they waited for the fix). `docs/testing.md`, next robot
+  session.

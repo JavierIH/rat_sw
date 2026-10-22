@@ -185,14 +185,31 @@ void steer_reset(steer_t *s){
 void steer_restart(steer_t *s){
     s->error = s->sum = 0.0f;
     for(uint8_t i = 0; i < STEER_AVERAGE_MAX; i++) s->hist[i] = 0.0f;
+    s->hold[0] = s->hold[1] = 0.0f;
     s->slot = 0;
     s->wall = STEER_WALL_NONE;
     s->valid = 0;
+    s->fresh = 1;
+}
+
+// In range and steady over hold_mm: a wall's end first reads farther, then edges for ~7-16 mm (10-08 recordings);
+// a side in use may still close in fast (a crooked start straightening), one not in use may not jump at all.
+static uint8_t side_counts(steer_t *s, const steer_config_t *k, uint8_t side, float mm, float ds){
+    float *last = s->last[side];
+    if(s->fresh) last[0] = last[1] = mm;
+    const uint8_t counted = last[0] < k->track_mm && s->hold[side] <= 0.0f;
+    const float jump = mm - last[1];    // over 2 ms: the ADC's window can split a step between two readings
+    last[1] = last[0];
+    last[0] = mm;
+    if(mm >= k->track_mm || jump >= k->jump_mm || (!counted && jump <= -k->jump_mm)) s->hold[side] = k->hold_mm;
+    else if(s->hold[side] > 0.0f) s->hold[side] -= ds;
+    return mm < k->track_mm && s->hold[side] <= 0.0f;
 }
 
 // Wall follower: the turn rate is a PD of the lateral error.
-float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float gain){
-    const uint8_t right = sr_mm < k->track_mm, left = sl_mm < k->track_mm;
+float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float ds, float gain){
+    const uint8_t left = side_counts(s, k, 0, sl_mm, ds), right = side_counts(s, k, 1, sr_mm, ds);
+    s->fresh = 0;
     const uint8_t walls = right && left ? STEER_WALL_BOTH : right ? STEER_WALL_RIGHT
                         : left ? STEER_WALL_LEFT : STEER_WALL_NONE;
     if(walls != s->wall) s->valid = 0;          // another reference: no derivative across the change

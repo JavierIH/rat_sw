@@ -87,6 +87,8 @@ typedef struct {
     float center_l_mm;      // SL reading with the robot on the centre line
     float center_r_mm;      // SR reading with the robot on the centre line
     float error_max_mm;     // clamp of the lateral error
+    float jump_mm;          // a side reading this much farther than 2 ms before (a wall's end) stops counting...
+    float hold_mm;          // ...until it reads steady over this many mm travelled; so does a wall that appears
     uint8_t average_steps;  // side readings averaged over this many steps (<= STEER_AVERAGE_MAX)
 } steer_config_t;
 
@@ -97,15 +99,18 @@ typedef struct {
     float error;            // lateral error, averaged, mm (> 0: left of the centre line)
     float sum;              // of the last average_steps errors
     float hist[STEER_AVERAGE_MAX];
+    float last[2][2];       // each side's (left, right) last two readings, mm
+    float hold[2];          // mm each side must still read steady before it counts
     uint8_t slot;
     uint8_t wall;           // steer_wall_t in use
     uint8_t valid;          // error holds a reading
+    uint8_t fresh;          // no readings yet: the next ones start the history
 } steer_t;
 
 void steer_reset(steer_t *s);
 // A new corridor (after a curve): forget the readings, keep the heading offset.
 void steer_restart(steer_t *s);
-// One period of the wall follower: side readings (mm), dt (s), gain (fades to 0 at a move's end); returns the heading offset.
-float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float gain);
+// One period of the wall follower: side readings (mm), dt (s), ds (mm travelled), gain (fades to 0 at a move's end).
+float steer_step(steer_t *s, const steer_config_t *k, float sl_mm, float sr_mm, float dt, float ds, float gain);
 
 #endif // CONTROL_H

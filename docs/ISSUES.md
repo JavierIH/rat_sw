@@ -6,10 +6,9 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Next session
 
-- Without the robot: GitHub issue #1, the heading kick at wall ends
-  (`docs/faults/centring.md`, section 10): posts in the simulator, then
-  the fix. Then the robot session in `docs/testing.md` ("Next robot
-  session": the 10-08 `SLIPPED` case, wall ends at 300-900, races).
+- The robot session in `docs/testing.md` ("Next robot session"): the
+  fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
+  wall ends at 300-900, crooked starts, then a search and the races.
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -21,10 +20,10 @@ commit when done. Details go in the docs it points to, not here.
 - GitHub issue #1, centring (`docs/faults/centring.md`): the PD wall
   follower (KP 8, KD 0.6), on the robot since 10-08: crooked starts of
   21-39 deg at 100-900, 36 mm off, 180s and curves all centred within 1-2
-  cells, no touch (section 9). Open: at wall ends the edge readings
-  (SR 123-145, then 61-64 at the post) stay under 130, KD turns the jump
-  into a ~15 deg heading step: kicks of 4-12 deg, once `MOVE_SLIPPED`
-  (section 10). Next: posts in the simulator, the fix, then the robot.
+  cells, no touch (section 9). The wall-end kick (4-12 deg, once
+  `MOVE_SLIPPED`, section 10) fixed in the simulator 10-22: a side reading
+  that jumps 8 mm away stops counting until steady over 20 mm (section
+  11; `TUNE STEER_HOLD 0` = the old centring). Next: the robot.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,

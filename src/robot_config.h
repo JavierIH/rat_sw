@@ -92,6 +92,8 @@
 // ---- Wall centring (steer_step in control.c; KP, KD in params.h) ----------------------------
 #define STEER_AVERAGE_MS        16      // side readings averaged over one sensor period (they step every ~16 ms)
 #define STEER_ERROR_MAX_MM      25      // clamp of the lateral error
+#define STEER_JUMP_MM           8       // a side reading this much farther within 2 ms: a wall's end, the side stops counting...
+#define STEER_HOLD_MM           20      // ...until steady this far; a wall appearing waits as long (edges read for 7-16 mm)
 
 // ---- Smooth curves (speed run, path.h) ------------------------------------------------
 #define CURVE_RADIUS_MM         70.0f   // clothoid-arc-clothoid of this radius...

@@ -6,13 +6,17 @@ the test layouts: docs/mazes.md.
 
 ## Next robot session (plan)
 
-After the fix of the wall ends (`docs/faults/centring.md`, section 10),
-one flash of `practice` (it also brings `IR_DELAY_MS` 22), layout I with
-a wall east of (0,0):
+The fix of the wall ends is in (`docs/faults/centring.md`, section 11,
+simulator only): one flash of `practice` (it also brings `IR_DELAY_MS`
+22), layout I with a wall east of (0,0):
 
 1. `CAL STRAIGHT 2 300` from (1,2) east right after `CAL CURVE 1 300`
    from (0,1) north (the 10-08 `SLIPPED`), then 3-cell straights past
-   wall ends at 300-900: `err=` well under 15 deg, no kick.
+   wall ends at 300-900: `err=` well under 15 deg, no kick (10-08: 4-12
+   deg). If one still kicks, the same straight with `TUNE STEER_HOLD 0`
+   (the old centring) tells whether the rule acted; the dumps carry
+   `steer_jump_mm` / `steer_hold_mm`. Then two crooked starts (~30 deg)
+   at 300 and 900, which must centre as on 10-08.
 2. A search, then races 2.4 twice and, only if clean, 2.5 twice;
    `STATUS` after a race: "SysTick worst" (issue 19).
 
