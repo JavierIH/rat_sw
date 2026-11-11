@@ -15,7 +15,7 @@
 #define VIRTUAL_OPENINGS 30u    // walls knocked out to make loops
 #define WHEEL_RAMP_PWM  4       // PWM per ms: 0 to full in 0.25 s (the profiles' accel)
 
-// ---- Wheels (TUNE RUEDAS 1, robot on a stand) -------------------------------------------
+// ---- Wheels (TUNE WHEELS 1, robot on a stand) -------------------------------------------
 
 static uint8_t wheels;
 static volatile int16_t wheel_target[2], wheel_pwm[2];  // MOTOR_R, MOTOR_L

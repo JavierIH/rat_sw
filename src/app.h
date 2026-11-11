@@ -27,7 +27,7 @@ enum { MENU_SEARCH = 1, MENU_RACE, MENU_ERASE };
 uint8_t app_run_active(void);
 uint8_t app_mode(void);                 // app_mode_t
 uint8_t app_set_mode(uint8_t menu, uint8_t race);   // race 0: the last one; 0 if out of range
-const char *app_mode_label(void);       // "2.4 RAPIDA SEGURA"
+const char *app_mode_label(void);       // "2.4 SAFE RACE"
 void app_request_start(void);
 void app_telemetry_sync(void);          // full map/state for the monitor (robot stopped)
 void app_request_cal(cal_test_t test, int32_t a, int32_t b);    // run from the main loop

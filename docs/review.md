@@ -126,6 +126,9 @@ control simulator, this file, `design.md`, `testing.md`,
 
 ### To do (found, small, no robot needed)
 
+Items 1-6 done 11-11 (flash -24 B: `competition` 53984 B, `practice`
+59428 B); 7 done 11-11; 8 is the user's call.
+
 1. `motion.c`: `end=OBSTACULO` (the emergency brake) -> `OBSTACLE`, and
    add it to the translation list in `docs/README.md`.
 2. README, console table: `START` launches after 5 s (`START_DELAY_MS`),

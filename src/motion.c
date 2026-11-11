@@ -570,7 +570,7 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
             if(ir_emergency >= FRONT_CONFIRM_MS){
                 result = MOVE_LOST;
                 emergency = 1;
-                stop = "OBSTACULO";
+                stop = "OBSTACLE";
                 break;
             }
         }

@@ -16,7 +16,8 @@
 Logs and recordings before 2026-10-06 are in Spanish. The firmware's
 messages now read: `fin=` `end=`, `lados=` `sides=`, `PARED` `WALL`,
 `BLOQUEADO` `BLOCKED`, `PERDIDO` `LOST`, `ABORTADO` `ABORTED`, `ATASCADO`
-`STALLED`, `DESLIZAMIENTO` `SLIPPED`, `FALLO` `FAILED`; phases
+`STALLED`, `DESLIZAMIENTO` `SLIPPED`, `FALLO` `FAILED`, `OBSTACULO`
+`OBSTACLE` (until 2026-11-11); phases
 `META`/`VUELTA` `GOAL`/`RETURN`, `RAPIDA` `FAST`; actions `AVANZA`, `IZQ`,
 `DER`, `MEDIA VUELTA` `FORWARD`, `LEFT`, `RIGHT`, `U-TURN`; route texts with
 `D`/`I` (derecha/izquierda) now `R`/`L` (`2D1I3` = `2R1L3`); `TUNE RUEDAS`,
