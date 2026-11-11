@@ -276,7 +276,6 @@ static void cmd_tune(const char *args){
     }
     memcpy(name, p, len);
     name[len] = '\0';
-    for(size_t i = 0; i < len; i++) if(name[i] >= 'a' && name[i] <= 'z') name[i] = (char)(name[i] - 'a' + 'A');
     p = skip_spaces(p + len);
     const uint8_t negative = *p == '-';
     if(negative) p++;
@@ -471,7 +470,7 @@ static void cmd_reset(const char *args){
     NVIC_SystemReset();
 }
 
-// The commands and what they do: README.md, "Consola Bluetooth".
+// The commands and what they do: README.md, "Bluetooth console".
 static const command_t COMMANDS[] = {
     {"STATUS",    cmd_status,     0},
     {"MODE",      cmd_mode,       1},
