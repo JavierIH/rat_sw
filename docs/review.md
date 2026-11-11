@@ -386,8 +386,10 @@ should be.
 - `leds_flash()` blocks up to 1.2 s in `HAL_Delay()` without polling STOP
   (`gpio.c`): only at rest, and the press is kept by the debounce in
   SysTick and taken at the next checkpoint. Left as it is (11-11).
-- `curve_setup()` runs before every forward move (`motion.c:485`: 65
-  Simpson steps in soft float, at rest): time it.
+- `curve_setup()` runs before every forward move (65 Simpson steps in
+  soft float, at rest): ~2.1 ms on the emulated M3 (`plan_cycles.py`'s
+  model, 152000 cycles), as long as one plan. 0.3 s in a whole search.
+  Left as it is (11-11): caching it would add state for `TUNE`.
 - The unexplained SysTick peak (424 us, question 4 of 10-22): the CAL
   recorder halves its buffer inside SysTick (`calib.c:96`, 160 struct
   copies), and `STATUS`'s worst is since boot, CAL tests included. Check:
@@ -397,8 +399,14 @@ should be.
 - Spanish left beyond the 10-22 list (the monitor's two replay
   messages and a docstring, `plan_cycles.py`'s output, `docs/mazes.md`)
   and `save_map()`'s comment ("3 fast = only in RAM"): fixed 11-11.
-- The wall followers (races 2.1, 2.2) still write the RAM map as they go
-  and never save: by design, not looked at yet.
+- The wall followers (races 2.1, 2.2) write the RAM map as they go and
+  never save: what they record is what a search would (the same legs),
+  and a later search or `SAVE` stores it. By design; nothing to change.
+- Race 2.3 (turns in place) plans with `FAST_COST_TURN` 1 although its
+  turns are stops. Measured 11-11 (300 random mazes with loops, there
+  and back, everything planned with turn cost 1 / 2 / 3 / 4 / 6): race
+  2.3 48.16 / 48.05 / 48.04 / 48.04 / 48.04 s, race 2.4 19.71 / 19.78 /
+  19.79 / 19.81 / 19.81 s. 0.2 % to gain: stays 1.
 
 ### Next steps
 
@@ -406,7 +414,6 @@ A3 and A4 done 11-11 (A4 waits for its robot check).
 
 Step 2 done 11-11 (above).
 
-3. The notes left above (`curve_setup()`'s time, the SysTick peak on
-   the robot, `CHECK`'s size, the wall followers' map, race 2.3's
-   costs); a second pass over `commands.c`, `main.c` and
-   `robot_monitor.py`; `calib_analyze.py`.
+3. The SysTick peak on the robot, `CHECK`'s size (issue 21); a second
+   pass over `commands.c`, `main.c` and `robot_monitor.py`;
+   `calib_analyze.py`.
