@@ -7,6 +7,7 @@
 | [measurements.md](measurements.md) | the numbers behind the constants in `src/robot_config.h` |
 | [testing.md](testing.md) | what was validated on the robot, getting ready for a 16x16 without one, the competition checklist |
 | [mazes.md](mazes.md) | the practice maze's test layouts A-I, drawn |
+| [roadmap.md](roadmap.md) | what to do next, in order: robustness, simplicity, efficiency, each with its numbers |
 | [lighting.md](lighting.md) | the venue's light on the IR: the manual check, and the automatic one that was tried and removed (issue 21) |
 | [review.md](review.md) | outside reviews of the project (2026-10-04, 2026-10-22: paused, its to-do list and questions) and the work plan |
 | [faults/freezes.md](faults/freezes.md) | the flash wedges (2026-09): the investigation |

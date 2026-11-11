@@ -9,7 +9,8 @@
   why: motion, sensing, centring, curves, search legs, health, telemetry
   format), `measurements.md` (the numbers behind `robot_config.h`),
   `testing.md` (what was validated on the robot, 16x16 readiness),
-  `mazes.md` (the test layouts), `review.md` (outside review and work plan),
+  `mazes.md` (the test layouts), `roadmap.md` (what to do next, in order,
+  with the numbers), `review.md` (the reviews and audits: history),
   `lighting.md` (the venue's light on the IR: the manual check),
   `faults/` (investigations: `freezes.md`, `oshwdem2026.md`, `centring.md`).
   Read only what the issue needs; keep this file to rules and commands.

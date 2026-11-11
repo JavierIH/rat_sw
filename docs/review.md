@@ -186,7 +186,7 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
    `HSI`): the wedge is fixed (10-05). Keep them to reproduce it, or
    delete them?
 
-## Audit of 2026-11-11 (in progress)
+## Audit of 2026-11-11
 
 The user asked for an audit of `src/` and `tools/robot_monitor.py`: bugs,
 simplification and efficiency, ranked, each with its evidence; nothing is
@@ -382,6 +382,22 @@ should be.
   passage two wrong sightings verified (the risk named in A1's option a),
   and 7 in 6000 end at the start for a wall "seen" twice in front. Both
   end the race with the map untouched.
+
+**A6. The wall followers wrote the map (rule; read, fixed 11-11).**
+- Where: `search_wall_follow()` (races 2.1, 2.2) recorded every cell in
+  the RAM map through `sense_here()` and `leg_enter_cell()`. A later race
+  read it and a later save stored it, from a pose nothing checks, and
+  over the walls an old map believed.
+- The user's rule: no race changes the map. They now follow the walls on
+  a blank map of their own and the map comes back when they end
+  (`maze_export()` / `maze_import()`, 292 B of stack). `telemetry_map()`
+  sends `@Y` itself so the monitor follows the swap.
+  `test_races_only_read` covers the six entries of the race menu and
+  fails on the old code. Flash +36 B. Robot: `docs/testing.md`, step 6.
+
+`CHECK` removed 11-11 (issue 21 closed, `docs/lighting.md`): -1.7 KB.
+
+What to do next is in `docs/roadmap.md`.
 
 ### Noted, not verified yet
 

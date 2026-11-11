@@ -6,15 +6,13 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Next session
 
-- The robot session in `docs/testing.md` ("Next robot session"): the
-  fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
-  wall ends at 300-900, crooked starts, then a search and the races,
-  the read-only races (step 3), the sides with `CONT OFF` (step 4) and
-  the doubtful front (step 5).
-- Without the robot: issue 22, on branch `audit-11-11` (not merged into
-  `develop`): the audit (`docs/review.md`, "Audit of 2026-11-11") is
-  done but what needs the robot. Merge the branch after the robot
-  session.
+- `docs/roadmap.md` has the order of work and its numbers. First: one
+  flash of `practice` and the robot session in `docs/testing.md` ("Next
+  robot session", steps 1-6: wall ends, a search and the races, the
+  read-only races, the sides with `CONT OFF`, the doubtful front, the
+  followers' own map), then merge `audit-11-11` into `develop`.
+- Without the robot: nothing pending on the branch; do not stack more
+  behaviour changes on it before the robot session.
 - Waiting on the user: review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
   firmware); the hardware of item 6; the race 2.4 crash at OSHWDEM
@@ -34,7 +32,9 @@ commit when done. Details go in the docs it points to, not here.
   measured, stay. Step 3: notes closed, `commands.c` and `main.c` read
   again, nothing found; the Python tools read (`calib_analyze.py`
   crashed on a damaged row; its pre-speed-control analyses deleted).
-  Left: the SysTick peak (robot); questions 3-6 of 10-22.
+  A6: the wall followers no longer write the map (a blank map of
+  their own). `CHECK` removed. Left: the robot; questions 3-6 of 10-22;
+  the plan is `docs/roadmap.md`.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,

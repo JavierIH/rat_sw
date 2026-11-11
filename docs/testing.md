@@ -33,6 +33,11 @@ simulator only): one flash of `practice` (it also brings `IR_DELAY_MS`
    walls of the cell it ends in, and the map must be right.
 5. A front only one sensor sees is doubtful: the robot stopped by hand
    ~30 deg yawed near a wall ahead, `WALLS`: `front=?` (it was `0`).
+6. The followers leave the map alone: after the search, `MODE 2 1`,
+   START, `STOP` after a few cells. The monitor shows a blank map while
+   it follows and the search's map again at the end; `MAP` and `STATUS`
+   (cells visited, fast path cost, free slots) as before it; "stack
+   never used" about 1.9 KB. Robot back at the start: race 2.4 runs.
 
 ## Robot session of 10-08 (results)
 
