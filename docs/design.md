@@ -306,7 +306,7 @@ calibration dumps (`calib.c`).
                              wall (0 unknown, 1 wall, 2 open once,
                              3 open verified), bit 4 visited
   @G<x0><y0><x1><y1>         goal rectangle
-  @Y<n>                      full sync follows: forget the map, rows 0..n
+  @Y<n>                      the whole map follows: forget it, rows 0..n
 ```
 
 While running, every sensing also sends one map row in rotation, so the

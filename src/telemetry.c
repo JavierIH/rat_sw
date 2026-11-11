@@ -78,6 +78,8 @@ void telemetry_background_row(void){
 void telemetry_map(void){
     if(!params.telemetry) return;
     uint8_t rows = rows_in_use();
+    uart_wait_space(500);
+    print("@Y%c\n", HEX[(rows - 1u) & 15u]);     // the monitor forgets its copy: rows not sent are blank
     for(uint8_t row = 0; row < rows; row++){
         uart_wait_space(500);
         send_row(row);
@@ -86,8 +88,6 @@ void telemetry_map(void){
 
 void telemetry_sync(uint8_t mode, telemetry_activity_t activity, uint8_t x, uint8_t y, heading_t h){
     if(!params.telemetry) return;
-    uart_wait_space(500);
-    print("@Y%c\n", HEX[(rows_in_use() - 1u) & 15u]);
     uart_wait_space(500);
     send_goal();
     uart_wait_space(500);

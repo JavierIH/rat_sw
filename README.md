@@ -25,10 +25,12 @@ maps it, works out the fastest route and runs it.
 Modes: 1 search, 2 race, 3 erase the map and go back to the build's default
 goal (press START again within 3 s). The race menu (slow blink; only a reset
 leaves it): 1 left wall follower, 2 right wall follower (past the goal they
-go on until STOP), 3 no curves (verified path, straights at `FAST` 800,
+go on until STOP; they explore on a blank map of their own, the map of the
+search is back when they end), 3 no curves (verified path, straights at `FAST` 800,
 turns in place; there and back), 4 `FAST 800 CURVE 300`, 5 `FAST 900 CURVE
 400`, 6 `FAST 900 CURVE 480`. Picking a race sets `FAST` and `CURVE`; the
-console can change them before START.
+console can change them before START. No race changes the map or writes
+the flash.
 
 At a competition: `ERASE` (or mode 3) if the maze is new → mode 1 → race
 2.4, and the faster ones once the previous one goes well.

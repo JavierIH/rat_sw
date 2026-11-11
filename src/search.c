@@ -519,7 +519,7 @@ static next_move_t follow_next(const wall_sense_t *w, void *ctx){
     return NEXT_STOP;
 }
 
-run_result_t search_wall_follow(uint8_t left_hand){
+static run_result_t follow_walls(uint8_t left_hand){
     const int8_t near_turn = left_hand ? -1 : 1;
     follow_t f = {.left_hand = left_hand};
     uint8_t sides_recorded = 0;     // this cell's sides were read on the way in, at the end of a leg
@@ -566,6 +566,19 @@ run_result_t search_wall_follow(uint8_t left_hand){
         }
         if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, "move");
     }
+}
+
+// A race like the others: the map is as it was when it ends. It follows the walls on a blank map of its own (what it
+// sees, not what a search believed).
+run_result_t search_wall_follow(uint8_t left_hand){
+    maze_snapshot_t kept;
+    maze_export(&kept);
+    maze_init();
+    telemetry_map();
+    const run_result_t r = follow_walls(left_hand);
+    maze_import(&kept);
+    telemetry_map();
+    return r;
 }
 
 // ---- Reports ---------------------------------------------------------------------------

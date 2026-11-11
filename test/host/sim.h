@@ -18,6 +18,7 @@ typedef struct {
     uint32_t crashes;       // drove through a wall past the first cell: position lost
     uint32_t actions;
     uint32_t legs, stops;   // motion_explore() calls; moves that ended at rest (any kind)
+    uint32_t goal_signals;  // motion_indicate(IND_GOAL): a follower passing through the goal
     uint32_t wall_stops;    // search legs that stopped at a front wall seen on the way (expected)
     uint32_t decides, decide_pops, decide_pops_max;     // search legs' decisions on the way: planner work
     uint32_t decide_waits;  // ... and their waits for the UART (must stay 0: the robot is moving)

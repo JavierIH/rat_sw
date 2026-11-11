@@ -495,6 +495,15 @@ static void test_races_only_read(void){
         sim_reset(0.0, 10u + (uint32_t)k);
         CHECK_EQ(search_fast_run(1), RUN_OK);
     }
+    // Race 2.3, and the wall followers (2.1, 2.2), which explore on a map of their own.
+    sim_reset(0.0, 20);
+    CHECK_EQ(search_fast_run(0), RUN_OK);
+    for(uint8_t left = 0; left < 2; left++){
+        sim_reset(0.0, 30u + left);
+        sim_abort_after_cells(40);
+        CHECK_EQ(search_wall_follow(left), RUN_ABORTED);
+        CHECK(sim_stats.forward_cells >= 40);
+    }
     maze_export(&after);
     CHECK(memcmp(&before, &after, sizeof(before)) == 0);
     CHECK_EQ(fake_flash_programs, programs);
@@ -888,7 +897,7 @@ static void test_wall_followers(void){
                 sim_abort_after_cells(600);
                 runs += mode == 0;
                 run_result_t r = search_wall_follow(left);
-                ok[mode] += r == RUN_ABORTED && maze_is_visited(7, 7) && sim_stats.forward_cells >= 600
+                ok[mode] += r == RUN_ABORTED && sim_stats.goal_signals == 1 && sim_stats.forward_cells >= 600
                             && sim_stats.crashes == 0 && sim_stats.blocked == 0 && sim_stats.wall_stops == 0;
                 cells[mode] += sim_stats.forward_cells;
                 stops[mode] += sim_stats.stops;

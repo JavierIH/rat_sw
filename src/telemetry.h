@@ -24,7 +24,7 @@ void telemetry_activity(telemetry_activity_t activity);
 void telemetry_pose(uint8_t x, uint8_t y, heading_t h);
 void telemetry_cell(uint8_t x, uint8_t y, heading_t h);
 void telemetry_background_row(void);
-// Every map row in use, waiting for UART space (robot stopped): after a map repair.
+// The whole map anew (@Y, then every row in use), waiting for UART space (robot stopped): after a map repair or swap.
 void telemetry_map(void);
 // Goal, mode, activity, pose and every map row; waits for UART space (robot stopped only).
 void telemetry_sync(uint8_t mode, telemetry_activity_t activity, uint8_t x, uint8_t y, heading_t h);

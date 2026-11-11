@@ -395,6 +395,6 @@ uint8_t motion_checkpoint(void){
 }
 
 void motion_indicate(indication_t what){
-    (void)what;
+    sim_stats.goal_signals += what == IND_GOAL;
 }
 #endif
