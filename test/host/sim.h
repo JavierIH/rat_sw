@@ -46,6 +46,7 @@ void sim_abort_after(uint32_t actions);               // 0 = never
 void sim_abort_after_cells(uint32_t cells);           // STOP at the first stop past that many cells
 void sim_false_block(uint32_t path);                  // that path or search leg of the run (1 = the first) stops blocked, no wall there
 void sim_side_doubt(double probability);               // side readings reported doubtful
+void sim_front_doubt(double probability);              // front readings at rest reported doubtful (one sensor only)
 uint32_t sim_rand(void);
 #ifdef SIM_ON_ROBOT
 void virtual_elapse(double seconds, int16_t speed, int8_t turn);

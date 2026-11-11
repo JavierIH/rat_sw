@@ -285,6 +285,8 @@ search leg; the dump comes when the run ends).
   (`search_ready()` = 0).
 - Never drive forward while the front sensors see a wall, whatever the map
   says: the sighting raises the wall's evidence and the planner converges.
+  A front that only one sensor sees at rest is `SEEN_DOUBTFUL`: not
+  recorded either way.
 - Side readings can be `SEEN_DOUBTFUL` (`motion_doubt_sides()`): with
   something in front, a "wall" reading on the side exposed by the pose (too
   close to the front wall, FL-FR skew, or only one front sensor seeing

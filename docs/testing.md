@@ -31,6 +31,8 @@ simulator only): one flash of `practice` (it also brings `IR_DELAY_MS`
 4. The sides on the way in, sampled every 8 ms (audit A4): `CONT OFF`,
    `LOG 2`, a search. Every `forward 1:` line's `sides=` must match the
    walls of the cell it ends in, and the map must be right.
+5. A front only one sensor sees is doubtful: the robot stopped by hand
+   ~30 deg yawed near a wall ahead, `WALLS`: `front=?` (it was `0`).
 
 ## Robot session of 10-08 (results)
 

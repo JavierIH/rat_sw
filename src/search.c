@@ -67,7 +67,7 @@ void search_pose(uint8_t *x, uint8_t *y, heading_t *h){
 
 static const char SIGHTING_CHAR[3] = {'0', '1', '?'};
 
-// Senses the three visible walls into the map; doubtful sides are left out (confirmed later from a better pose).
+// Senses the three visible walls into the map; doubtful readings are left out (confirmed later from a better pose).
 static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
     move_result_t r = motion_sense_walls(w);
     if(r != MOVE_OK) return r;
@@ -75,7 +75,7 @@ static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
     if(sides_recorded){
         w->left = w->left == SEEN_PRESENT ? SEEN_DOUBTFUL : w->left;
         w->right = w->right == SEEN_PRESENT ? SEEN_DOUBTFUL : w->right;
-        maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
+        if(w->front != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
         maze_mark_visited(pose.x, pose.y);
         telemetry_cell(pose.x, pose.y, pose.h);
         telemetry_background_row();
@@ -86,7 +86,7 @@ static move_result_t sense_here(wall_sense_t *w, uint8_t sides_recorded){
         if(w->left == SEEN_PRESENT) w->left = SEEN_DOUBTFUL;
         if(w->right == SEEN_PRESENT) w->right = SEEN_DOUBTFUL;
     }
-    maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
+    if(w->front != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, pose.h, w->front == SEEN_PRESENT);
     if(w->left != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_left(pose.h), w->left == SEEN_PRESENT);
     if(w->right != SEEN_DOUBTFUL) maze_observe(pose.x, pose.y, heading_right(pose.h), w->right == SEEN_PRESENT);
     maze_mark_visited(pose.x, pose.y);

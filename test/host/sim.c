@@ -11,7 +11,7 @@ heading_t sim_h;
 
 static uint8_t truth[MAZE_SIZE][MAZE_SIZE];
 static double noise;
-static double side_doubt;
+static double side_doubt, front_doubt;
 static uint8_t sides_fresh;     // a straight just ended: sides read on the way in (as motion.c)
 static uint32_t rng_state = 1;
 static uint32_t abort_after;
@@ -182,11 +182,16 @@ void sim_reset(double sensor_noise, uint32_t seed){
     abort_after_cells = 0;
     false_block = 0;
     side_doubt = 0.0;
+    front_doubt = 0.0;
     sides_fresh = 0;
 }
 
 void sim_side_doubt(double probability){
     side_doubt = probability;
+}
+
+void sim_front_doubt(double probability){
+    front_doubt = probability;
 }
 
 void sim_abort_after(uint32_t actions){
@@ -244,6 +249,7 @@ move_result_t motion_sense_walls(wall_sense_t *out){
     out->right = noisy(truth_wall(sim_x, sim_y, heading_right(sim_h)));
     if(side_doubt > 0.0 && rand_unit() < side_doubt) out->left = SEEN_DOUBTFUL;
     if(side_doubt > 0.0 && rand_unit() < side_doubt) out->right = SEEN_DOUBTFUL;
+    if(front_doubt > 0.0 && rand_unit() < front_doubt) out->front = SEEN_DOUBTFUL;
     out->moving = sides_fresh;
     sides_fresh = 0;
     return MOVE_OK;

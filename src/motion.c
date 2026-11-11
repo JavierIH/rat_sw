@@ -745,7 +745,8 @@ move_result_t motion_sense_walls(wall_sense_t *out){
         }
     }
     uint8_t fl_seen = votes[IR_FL] >= WALL_VOTES, fr_seen = votes[IR_FR] >= WALL_VOTES;
-    out->front = fl_seen && fr_seen ? SEEN_PRESENT : SEEN_ABSENT;
+    // Only one front sensor sees it (yawed, or a post): not a wall to record, and not an open way either.
+    out->front = fl_seen && fr_seen ? SEEN_PRESENT : fl_seen || fr_seen ? SEEN_DOUBTFUL : SEEN_ABSENT;
     out->left = votes[IR_SL] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
     out->right = votes[IR_SR] >= WALL_VOTES ? SEEN_PRESENT : SEEN_ABSENT;
     motion_doubt_sides(out, fl_seen, fr_seen, sum[IR_FL] / WALL_SAMPLES, sum[IR_FR] / WALL_SAMPLES,

@@ -797,6 +797,46 @@ static void test_competition_mazes(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// A front reading at rest that only one sensor makes is not recorded: the search still ends with the right map.
+static void test_front_doubt(void){
+    maze_set_goal(1, 0, 1, 0);
+    truth_reset(0);
+    truth_set_wall(0, 0, NORTH, 1);
+    maze_init();
+    params_reset();
+    sim_reset(0.0, 1);
+    sim_front_doubt(1.0);
+    sim_abort_after(1);     // the turn towards the goal
+    search_set_home();
+    CHECK(search_explore() != RUN_OK);
+    CHECK_EQ(maze_evidence(0, 0, NORTH), 0);    // not "seen open"
+
+    maze_set_goal(7, 7, 8, 8);
+    summary_t s = {0};
+    for(uint32_t m = 1; m <= 30; m++){
+        truth_generate(m * 2654435761u + 7u, 40);
+        truth_competition_goal(m);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        sim_front_doubt(0.3);
+        search_set_home();
+        s.runs++;
+        s.search_ok += search_explore() == RUN_OK && search_ready();
+        s.consistent += map_matches_truth();
+        s.optimal += search_fast_path_cost() == true_optimum();
+        s.crashes += sim_stats.crashes;
+    }
+    printf("30%% doubtful fronts at rest: search ok %d, map ok %d, optimal %d of %d\n", s.search_ok, s.consistent,
+           s.optimal, s.runs);
+    CHECK_EQ(s.search_ok, s.runs);
+    CHECK_EQ(s.consistent, s.runs);
+    CHECK_EQ(s.optimal, s.runs);
+    CHECK_EQ(s.crashes, 0);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 // Both ways the search moves on the same mazes: straight legs, the same verified optimum, fewer stops.
 static void test_search_modes(void){
     maze_set_goal(7, 7, 8, 8);
@@ -2230,6 +2270,7 @@ int main(int argc, char **argv){
     test_run_control();
     test_repair_at_rest();
     test_repair_escalates();
+    test_front_doubt();
     test_fast_run_surprise_wall();
     test_race_false_block();
     test_blocked_leg_keeps_turned();

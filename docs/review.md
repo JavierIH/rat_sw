@@ -165,6 +165,12 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
    the rule "never turn a doubtful reading into absent". Make it doubtful
    (not recorded)? Rare (stopped at a centre both see it), and a move
    stops at the wall anyway.
+   Done 11-11: doubtful, not recorded (`motion_sense_walls()`,
+   `sense_here()`); the robot still drives on and the move decides. It
+   matters more since races only read the map: two such readings made a
+   wall a verified passage. `sim_front_doubt()`, `test_front_doubt`
+   (the evidence stays 0; 30 searches with 30 % doubtful fronts all
+   right). Flash +20 B. Robot: `WALLS` yawed by a wall shows `front=?`.
 3. Wall ends: in the simulator a short edge reading that comes before the
    step away still counts once (~2 deg); every robot recording stepped
    away first. If the robot shows it, a large step inwards that comes
@@ -414,6 +420,10 @@ A3 and A4 done 11-11 (A4 waits for its robot check).
 
 Step 2 done 11-11 (above).
 
-3. The SysTick peak on the robot, `CHECK`'s size (issue 21); a second
-   pass over `commands.c`, `main.c` and `robot_monitor.py`;
-   `calib_analyze.py`.
+Second pass over `commands.c` and `main.c` done 11-11: nothing found
+(`ERASE` with a full store compacts first; `PAUSE` with no run is
+cleared at the next start). The Python tools: `pyflakes` clean, 35 tests
+OK; `robot_monitor.py` and `calib_analyze.py` not read line by line.
+
+3. Left: the SysTick peak on the robot, `CHECK`'s size (issue 21), a
+   full read of `robot_monitor.py` and `calib_analyze.py`.
