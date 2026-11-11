@@ -226,6 +226,8 @@ ground: the virtual firmware moves them blind.
   the goal. Each save shows on the LEDs: three slow blinks, in flash; three
   fast, only in RAM (do not reset or power off). START refused for lack of a
   verified path blinks fast too.
+- Since 2026-11-11 (c41d383) a race saves nothing: it only reads the map
+  (`docs/review.md`, audit of 11-11, A1 and A2).
 - Validated: host tests (a STOP on the way back finds the goal's save in
   flash; a race stopped at its goal too); virtual robot on the chip: a power
   cut 13 s into the way back (t=3405) kept the map, the next race ran at
@@ -281,4 +283,7 @@ ground: the virtual firmware moves them blind.
   + 100 nF at VDDA, bulk and ceramic capacitors at the H-bridge and across
   the motors may remove the cause. `TUNE HSI 1` + `TUNE REVERSAL` measure
   the wedge rate before and after.
-- The race 2.4 crash; the slow buttons.
+- The race 2.4 crash; the slow buttons. Why no race would start after the
+  crash: a candidate with evidence, the blocked race marking a wall on its
+  verified path (`docs/review.md`, audit of 11-11, A1; races only read the
+  map since c41d383).

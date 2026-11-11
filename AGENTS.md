@@ -35,11 +35,11 @@ unknown maze, maps it, finds the fastest route and runs it:
    in every cell.
 2. **Speed run** (races 2.4-2.6; 2.3 turns in place instead): drive the verified fastest path in one continuous
    move: straights at `FAST`, every turn a smooth curve at `CURVE` (no stop,
-   no turning in place). At the goal, stopped, save the map if it changed
-   (never back at the start: a failed return must lose nothing; a race that
-   does not reach the goal saves nothing). Then return to the start the
-   same way at `SPD`, its curves at most at the safe race's 300
-   (`FAST_SAFE_CURVE`: the return is not timed).
+   no turning in place). Then return to the start the same way at `SPD`,
+   its curves at most at the safe race's 300 (`FAST_SAFE_CURVE`: the return
+   is not timed). A race only reads the map: it records nothing and saves
+   nothing, and a wall where the verified route goes (the pose is wrong)
+   ends the run there, the map as it was (`docs/review.md`, audit of 11-11).
 
 Goal configuration:
 - Competition 16x16: goal = center 2x2 block, the default build
@@ -94,8 +94,7 @@ Environments in `platformio.ini` (`default_envs = competition`):
   LEDs, menus and the
   store on the real flash are the robot's: for testing saves (power cuts,
   full logs, compaction) without a maze. STOP ends a run at the end of the
-  current move (a race stopped on its way to the goal still gets there and
-  saves). Its records carry another maze signature: the real firmware
+  current move (a race stopped on its way to the goal still gets there). Its records carry another maze signature: the real firmware
   ignores them (`ERASE` after flashing it back).
 
 Commands:
@@ -155,8 +154,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `search.c/.h` (pure): strategies. `search_explore()` (phases GOAL ->
   OPTIM -> RETURN; at rest it senses, plans and turns in place, and every
   move forward is a leg decided cell by cell in `explore_next()`), `search_fast_run()` (the whole verified route in one
-  move, replanned at every stop, falls back to exploring if the map proves
-  wrong). Also `search_print_map()` (ASCII map).
+  move, replanned at every stop; it only reads the map, and a wall on the
+  route ends the run). Also `search_print_map()` (ASCII map).
 - `control.c/.h` (pure): the speed control. Trapezoidal motion profiles, two
   position loops (forward mm, rotation deg) with a motor-model feedforward,
   settling integrals against static friction, and the wall centring
@@ -345,8 +344,8 @@ search leg; the dump comes when the run ends).
   (sysclock.c stops it after the clock setup; a reset always finds it
   stopped: on a crawling one the chip does not boot at all). Nothing erases
   during runs: the map
-  is saved at rest (the search at the goal and at its end; a race at the
-  goal), only if it changed, into an erased
+  is saved at rest (the search at the goal and at its end; races write
+  nothing), only if it changed, into an erased
   slot, a halfword at a time, each timed (the flash controller runs on the
   HSI: the first slow halfword restarts it and the write goes on; a second
   one stops it and blocks the store until a power cycle); only the boot

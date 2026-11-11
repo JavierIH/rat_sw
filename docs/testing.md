@@ -19,6 +19,15 @@ simulator only): one flash of `practice` (it also brings `IR_DELAY_MS`
    at 300 and 900, which must centre as on 10-08.
 2. A search, then races 2.4 twice and, only if clean, 2.5 twice;
    `STATUS` after a race: "SysTick worst" (issue 19).
+3. Races only read the map (c41d383; `docs/review.md`, audit of 11-11).
+   In the races of step 2: no "Map saved" line at the goal (the robot
+   turns round at once), `STATUS` shows the same free slots as after the
+   search, `MAP` the same map. Then a spare wall piece across the route,
+   on a straight, two cells ahead of where the straight starts (layout I:
+   between (2,2) and (3,2)), `MODE 2 4` and `FAST 400` (curves stay at
+   300): the robot stops a cell before it (`end=WALL`), `!! FAST: BLOCKED
+   at (2,2)E`, three fast blinks, `End: FAILED`. `MAP` must show no wall
+   there; piece out, robot back at the start: the next race 2.4 runs.
 
 ## Robot session of 10-08 (results)
 

@@ -8,10 +8,10 @@ maps it, works out the fastest route and runs it.
   shorten the fast path until the best one is verified, returns to the start
   exploring on the way and saves again if it learnt something.
 - **Speed run** (mode 2, races 4-6): drives the verified path in one move,
-  straights at `FAST` and every turn a smooth curve at `CURVE`; at the goal
-  it saves the map if it changed (never on the way back; a race that does
-  not reach the goal saves nothing) and returns to the start by itself
-  (at `SPD`, curves at most at 300: the return is not timed).
+  straights at `FAST` and every turn a smooth curve at `CURVE`, and returns
+  to the start by itself (at `SPD`, curves at most at 300: the return is not
+  timed). It only reads the map, nothing recorded or saved: a wall where
+  the verified path goes means the robot is lost, and the run ends there.
 - The planner minimises **time** (cells and turns), not just cells.
 - The map, the goal and the parameters survive resets.
 
@@ -151,8 +151,8 @@ python3 -m unittest discover -s tools -p 'test_*.py'   # monitor and analysis
 Hardware test environments: `pio run -e uart_test` and `pio run -e
 diag_test` (the latter with `tools/dashboard.py`). `pio run -e virtual -t
 upload`: the virtual robot, the robot firmware with a built-in 16x16 maze;
-search and races run through it at real speed and save to the real flash
-(to test saves without a maze). The wheels stay still unless `TUNE WHEELS 1`
+search and races run through it at real speed, the search saving to the
+real flash (to test saves without a maze). The wheels stay still unless `TUNE WHEELS 1`
 (robot on a stand only: they turn with every move). Every race starts with
 the virtual robot at the start. Back on the real firmware its map is
 ignored (send `ERASE`). Architecture and conventions: [AGENTS.md](AGENTS.md);
