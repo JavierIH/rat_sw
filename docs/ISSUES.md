@@ -8,11 +8,13 @@ commit when done. Details go in the docs it points to, not here.
 
 - The robot session in `docs/testing.md` ("Next robot session"): the
   fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
-  wall ends at 300-900, crooked starts, then a search and the races.
-- Without the robot: issue 22. First the user's answer to the audit's
-  step 1 (`docs/review.md`, "Audit of 2026-11-11": A1/A2, option a or b),
-  then its step 2 (efficiency). Small steps, each written there before
-  stopping. The small fixes of 10-22 are still to do.
+  wall ends at 300-900, crooked starts, then a search and the races, and
+  the read-only races (step 3).
+- Without the robot: issue 22, on branch `audit-11-11` (not merged into
+  `develop`). The audit's step 2 (efficiency) in `docs/review.md`, "Audit
+  of 2026-11-11"; A3/A4 if the user says so. Small steps, each written
+  there and committed before stopping. The small fixes of 10-22 are
+  still to do.
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -23,11 +25,13 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
   two sections). 10-22: issue #1's fix done (simulator); 8 small fixes
-  and 6 questions left. Audit, step 1 done 11-11 (docs only, no code
-  touched): A1 a race marks walls on the verified path from a wrong pose
-  and can wipe the map (robot log 09-26, simulator), A2 races spend flash
-  slots on nothing (23 of 523 sessions end "flash full"), A3/A4 low.
-  Waiting on the user: A1/A2 option a (races only read the map) or b.
+  and 6 questions left (item 7, the memory figures, done 11-11). Audit,
+  step 1 done 11-11: A1 a race marked walls on the verified path from a
+  wrong pose and could wipe the map (robot log 09-26, simulator), A2 races
+  spent flash slots on nothing. Both fixed 11-11 with option a, the user's
+  choice (c41d383: races only read the map; before/after numbers in the
+  section), in the simulator: waits for the robot (`docs/testing.md`,
+  step 3). A3/A4 (low) wait for the user's go. Branch `audit-11-11`.
   Next: step 2, efficiency (search turn cost, `--costs`, SysTick).
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map

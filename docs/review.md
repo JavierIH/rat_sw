@@ -270,10 +270,26 @@ A1 and A2 have one cause: a race writes the map. Two ways out:
   OK. More code (a map-only reload in `storage.c`), and a lost robot that
   gets to "its" goal still saves a wrong map.
 
-Either changes the robot's behaviour in races. Robot test (practice maze,
-race 2.4 only): two races, no "Map saved" line and the same free slots in
-`STATUS`; then a hand in front of the robot on a straight: it stops, `End:
-FAILED`, `MAP` as before, the next race starts.
+Done 11-11, option a (the user's choice), c41d383: `run_route()` moves
+only the pose, `drive_to()` lost its exploring branch and its budget,
+`search_fast_run()` its save. Same harnesses, before -> after: a blocked
+stop with nothing there on the leg out of the start, the race OK with the
+map wiped and saved in 523 -> the race ends there, RAM and flash maps
+untouched in 523; on the leg out of the goal, over half the walls lost in
+81 and a wrong wall kept in 37 -> 0 and 0; slots written by races 1/2/3:
+286/369/25 mazes -> 0; "flash full" at the third race: 23 -> 0. One
+addition to what was written above: a wall in front of the route at rest
+ends the run only when seen twice. Ending at the first sighting cost 2-4
+races in 100 in the noise suites (fast ok 97/96/98 at 1 %, 3 % and 3 %
+with the competition goal); looking again keeps them at 100. Host tests
+3911 checks, 0 failures (`test_fast_run_surprise_wall` rewritten,
+`test_race_false_block` and `test_races_only_read` new; `sim_false_block()`
+in the simulator, 41738c9), tools 35 OK, the 523 real mazes as before.
+Flash: `practice` 59596 -> 59432 B, `competition` 54156 -> 53984 B; RAM
+the same. The monitor's exploring overlay for races went too (89aaaf1).
+It changes the robot's behaviour in races: to validate on the robot
+(`docs/testing.md`, next session, step 3). The race no longer blinks at
+the goal: it turns round at once.
 
 **A3. A leg that never left its cell clears `turned` (bug, low; read).**
 - Where: `search.c:353` (`drive_leg()`: `turned = 0` whatever `entered`);
@@ -293,8 +309,8 @@ FAILED`, `MAP` as before, the next race starts.
   consecutive ms; the IR give a new value every ~16 ms, so the 4-of-5 vote
   is one reading. The search's legs do it right (`explore_step()`: one
   every `WALL_SAMPLE_MS` over 50 mm, unanimous).
-- It only feeds the moves that are not search legs: `CONT OFF`, the
-  followers' single cells, the end of a race's route (gone with option a).
+- It only feeds the moves that are not search legs: `CONT OFF` and the
+  followers' single cells (races do not use the sides since c41d383).
 - Fix: sample every `WALL_SAMPLE_MS` there too. Measure first on the `CAL
   STRAIGHT` recordings how often 5 ms and 32 ms disagree. Needs a robot
   check with `CONT OFF`.
@@ -316,8 +332,14 @@ FAILED`, `MAP` as before, the next race starts.
 - Spanish left beyond the 10-22 list: `robot_monitor.py` (four messages
   and the "2D1I3" docstring), `plan_cycles.py`'s output,
   `docs/mazes.md:20`.
+- `save_map()`'s comment in `search.c` still says "3 fast = only in RAM":
+  the LED halves alternate since 10-06.
+- The wall followers (races 2.1, 2.2) still write the RAM map as they go
+  and never save: by design, not looked at yet.
 
 ### Next steps
+
+A3 and A4 wait for the user's go.
 
 2. Efficiency: `SEARCH_COST_TURN` 2 and 3 against 1 on the 523 mazes
    (question 1 of 10-22), `--costs`, the SysTick load.
