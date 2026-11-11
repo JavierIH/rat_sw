@@ -406,5 +406,7 @@ A3 and A4 done 11-11 (A4 waits for its robot check).
 
 Step 2 done 11-11 (above).
 
-3. The notes above; a second pass over `commands.c`, `main.c` and
+3. The notes left above (`curve_setup()`'s time, the SysTick peak on
+   the robot, `CHECK`'s size, the wall followers' map, race 2.3's
+   costs); a second pass over `commands.c`, `main.c` and
    `robot_monitor.py`; `calib_analyze.py`.
