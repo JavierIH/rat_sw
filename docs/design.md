@@ -62,7 +62,8 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
   the robot centred front to back (12-17 mm off, the beams land by the post).
 - Side walls after a straight are read on the way in, `SIDE_PASS_MM` before
   its end, where the angled beams hit the middle of the walls (`sides=` in
-  the log). Read at the stop they caught the next post as phantom walls (9 in
+  the log), five samples `WALL_SAMPLE_MS` apart (three sensor readings).
+  Read at the stop they caught the next post as phantom walls (9 in
   the first logs, some at 82-98 mm). `wall_sense_t.moving` says which way
   they were read. Read at the stop right after a turn they gave 5 phantoms in
   14, so `sense_here()` then records only "no wall" (those walls were seen

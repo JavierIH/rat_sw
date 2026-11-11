@@ -319,6 +319,16 @@ the goal: it turns round at once.
 - Fix: sample every `WALL_SAMPLE_MS` there too. Measure first on the `CAL
   STRAIGHT` recordings how often 5 ms and 32 ms disagree. Needs a robot
   check with `CONT OFF`.
+- Measured 11-11 on the `CAL STRAIGHT` recordings (102 at 8 ms a sample
+  that ended OK, 204 sides; scratch script): the first reading past the
+  point against 4 of 5 readings 8 ms apart from it: 0 verdicts differ, 1
+  side with mixed votes (by the 140 mm threshold). So no wrong wall is
+  expected from either; the fix only makes the vote what it says.
+- Done 11-11: one sample every `WALL_SAMPLE_MS` (a countdown in
+  `side_pass`): 32 ms, 19 mm at 600 mm/s, inside the window the legs
+  read (110 to 60 mm before the centre). RAM +4 B, flash +24 B
+  (`competition` 54008 B, `practice` 59460 B). The host tests do not run
+  `motion.c`: robot check in `docs/testing.md`, next session, step 4.
 
 ### Noted, not verified yet
 
@@ -344,7 +354,7 @@ the goal: it turns round at once.
 
 ### Next steps
 
-A3 and A4 wait for the user's go.
+A3 and A4 done 11-11 (A4 waits for its robot check).
 
 2. Efficiency: `SEARCH_COST_TURN` 2 and 3 against 1 on the 523 mazes
    (question 1 of 10-22), `--costs`, the SysTick load.

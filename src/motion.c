@@ -252,13 +252,14 @@ static float fwd_actual(void){
 // ---- Move supervision ----------------------------------------------------------------------
 
 // Side walls sampled on the way into a move's last cell, for the next motion_sense_walls(); stale after any other action.
-static struct { uint8_t valid, n, votes_l, votes_r; } side_pass;
+static struct { uint8_t valid, n, votes_l, votes_r, wait; } side_pass;   // wait: ms to the next sample
 
 static void side_pass_clear(void){
     side_pass.valid = 0;
     side_pass.n = 0;
     side_pass.votes_l = 0;
     side_pass.votes_r = 0;
+    side_pass.wait = 0;
 }
 
 typedef struct {
@@ -527,10 +528,15 @@ static move_result_t run_path(const run_path_t *path, int16_t cruise_speed, int1
         const float expected = short_stop ? planned_end : path_straight_end(&run);
 
         // The last cell's side walls, read on the way in (at the stop the beams catch the next post).
+        // One sample every WALL_SAMPLE_MS: the sensors give a new reading every ~16 ms.
         if(last_cell && !short_stop && run.stop_at - ir_at <= SIDE_PASS_MM && side_pass.n < WALL_SAMPLES){
-            side_pass.n++;
-            if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
-            if(ir_mm(IR_SR) < WALL_DETECT_MM) side_pass.votes_r++;
+            if(side_pass.wait) side_pass.wait--;
+            else{
+                side_pass.wait = WALL_SAMPLE_MS - 1;
+                side_pass.n++;
+                if(ir_mm(IR_SL) < WALL_DETECT_MM) side_pass.votes_l++;
+                if(ir_mm(IR_SR) < WALL_DETECT_MM) side_pass.votes_r++;
+            }
         }
         const float fl = ir_mm(IR_FL), fr = ir_mm(IR_FR);
         const uint8_t wall = fl < front_track && fr < front_track
