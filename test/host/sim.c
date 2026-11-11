@@ -16,6 +16,7 @@ static uint8_t sides_fresh;     // a straight just ended: sides read on the way 
 static uint32_t rng_state = 1;
 static uint32_t abort_after;
 static uint32_t abort_after_cells;
+static uint32_t false_block;    // this path of the run stops blocked with no wall there; 0: none
 
 uint32_t sim_rand(void){
     // xorshift32
@@ -179,6 +180,7 @@ void sim_reset(double sensor_noise, uint32_t seed){
     rng_state = seed ? seed : 1;
     abort_after = 0;
     abort_after_cells = 0;
+    false_block = 0;
     side_doubt = 0.0;
     sides_fresh = 0;
 }
@@ -193,6 +195,10 @@ void sim_abort_after(uint32_t actions){
 
 void sim_abort_after_cells(uint32_t cells){
     abort_after_cells = cells;
+}
+
+void sim_false_block(uint32_t path){
+    false_block = path;
 }
 
 // ---- Time model ----------------------------------------------------------------
@@ -329,6 +335,11 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     sim_stats.actions++;
     sim_stats.paths++;
     *entered = 0;
+    // A yawed robot braking at a side wall and backing up: blocked where it started, the way ahead open.
+    if(sim_stats.paths == false_block){
+        sim_stats.blocked++;
+        return MOVE_BLOCKED;
+    }
     double mm = 0.0;
     for(uint8_t i = 0; i < path->cells; i++){
         if(truth_wall(sim_x, sim_y, sim_h)){

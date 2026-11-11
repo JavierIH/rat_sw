@@ -44,6 +44,7 @@ void truth_load_into_map(void);
 void sim_reset(double sensor_noise, uint32_t seed);   // robot at (0,0) facing north
 void sim_abort_after(uint32_t actions);               // 0 = never
 void sim_abort_after_cells(uint32_t cells);           // STOP at the first stop past that many cells
+void sim_false_block(uint32_t path);                  // that motion_run_path() of the run (1 = the first) stops blocked, no wall there
 void sim_side_doubt(double probability);               // side readings reported doubtful
 uint32_t sim_rand(void);
 #ifdef SIM_ON_ROBOT
