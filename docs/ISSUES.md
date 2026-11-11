@@ -12,9 +12,9 @@ commit when done. Details go in the docs it points to, not here.
   the read-only races (step 3), the sides with `CONT OFF` (step 4) and
   the doubtful front (step 5).
 - Without the robot: issue 22, on branch `audit-11-11` (not merged into
-  `develop`): only a full read of `robot_monitor.py` and
-  `calib_analyze.py` is left of the audit (`docs/review.md`, "Audit of
-  2026-11-11"). Merge the branch after the robot session.
+  `develop`): the audit (`docs/review.md`, "Audit of 2026-11-11") is
+  done but what needs the robot. Merge the branch after the robot
+  session.
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -33,8 +33,9 @@ commit when done. Details go in the docs it points to, not here.
   now 0); a front only one sensor sees at rest is doubtful (question 2
   of 10-22). Step 2: `SEARCH_COST_TURN` 1 and `FAST_COST_*` 2/1
   measured, stay. Step 3: notes closed, `commands.c` and `main.c` read
-  again, nothing found. Left: the two Python tools read in full; the
-  SysTick peak (robot); questions 3-6 of 10-22.
+  again, nothing found; the Python tools read (`calib_analyze.py`
+  crashed on a damaged row; its pre-speed-control analyses deleted).
+  Left: the SysTick peak (robot); questions 3-6 of 10-22.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,

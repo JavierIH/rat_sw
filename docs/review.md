@@ -425,5 +425,21 @@ Second pass over `commands.c` and `main.c` done 11-11: nothing found
 cleared at the next start). The Python tools: `pyflakes` clean, 35 tests
 OK; `robot_monitor.py` and `calib_analyze.py` not read line by line.
 
-3. Left: the SysTick peak on the robot, `CHECK`'s size (issue 21), a
-   full read of `robot_monitor.py` and `calib_analyze.py`.
+The Python tools read in full 11-11 (`robot_monitor.py` but its drawing
+code, `calib_analyze.py`):
+- `calib_analyze.py` stopped with an `IndexError` on a recording with a
+  row cut on the radio link (two of the 575 have one: 09-25 17:59 and
+  10-08 20:09), so a report over the whole folder gave nothing. Damaged
+  rows are now left out and counted in the report.
+- Its analyses of the moves recorded before the speed control (32
+  recordings of 09-23/24) suggested constants that no longer exist
+  (`CELL_TICKS`, `MOVE_EXTRA_TICKS`, `TICKS_PER_TURN`): deleted, 127
+  lines; those recordings are listed as "not analysed".
+- `test_calib_analyze.py` checked that the report did not say "no
+  coinciden", the Spanish of a message that now reads "they disagree":
+  it could never fail. Fixed.
+- Three Spanish strings in each tool. `robot_monitor.py`: nothing else
+  (the planner port is the transcript tests' business).
+Tools tests: 34 OK.
+
+3. Left: the SysTick peak on the robot, `CHECK`'s size (issue 21).
