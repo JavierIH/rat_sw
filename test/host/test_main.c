@@ -1096,6 +1096,26 @@ static void test_race_false_block(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// A search leg that brakes and backs up without leaving the cell it turned in: the sides at rest are still not
+// recorded as walls (stopped after a turn the beams catch posts).
+static void test_blocked_leg_keeps_turned(void){
+    maze_set_goal(1, 1, 1, 1);
+    truth_reset(0);
+    truth_set_wall(0, 1, NORTH, 1);
+    maze_init();
+    params_reset();
+    sim_reset(0.0, 1);
+    sim_false_block(2);     // the leg east out of (0,1), right after the turn
+    sim_abort_after(4);     // leg, turn, blocked leg, the turn away: stop there
+    search_set_home();
+    CHECK(search_explore() != RUN_OK);
+    CHECK(sim_x == 0 && sim_y == 1);
+    CHECK_EQ(sim_stats.legs, 2);
+    CHECK_EQ(maze_evidence(0, 1, EAST), 1);     // blocked (2), then seen open at rest
+    CHECK_EQ(maze_evidence(0, 1, NORTH), 2);    // seen on the way in and in front; not again as a side at rest
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 // Race 2.3: the verified route with turns in place, there and back, home and ready.
 static void test_fast_run_no_curves(void){
     maze_set_goal(7, 7, 8, 8);
@@ -2192,6 +2212,7 @@ int main(int argc, char **argv){
     test_repair_at_rest();
     test_fast_run_surprise_wall();
     test_race_false_block();
+    test_blocked_leg_keeps_turned();
     test_fast_run_no_curves();
     test_race_return_curves();
     test_search_modes();

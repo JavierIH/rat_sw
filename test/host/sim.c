@@ -16,7 +16,7 @@ static uint8_t sides_fresh;     // a straight just ended: sides read on the way 
 static uint32_t rng_state = 1;
 static uint32_t abort_after;
 static uint32_t abort_after_cells;
-static uint32_t false_block;    // this path of the run stops blocked with no wall there; 0: none
+static uint32_t false_block;    // this path or leg of the run stops blocked with no wall there; 0: none
 
 uint32_t sim_rand(void){
     // xorshift32
@@ -284,6 +284,10 @@ move_result_t motion_explore(int16_t speed, next_cell_fn decide, void *ctx, uint
     sim_stats.actions++;
     sim_stats.legs++;
     *entered = 0;
+    if(sim_stats.paths + sim_stats.legs == false_block){
+        sim_stats.blocked++;
+        return MOVE_BLOCKED;
+    }
     double cells_s = 0.0;   // spent cell by cell on the way; the rest at the stop
     for(;;){
         // Leaving through an unexpected front wall (read open wrongly) stops it at the centre.
@@ -336,7 +340,7 @@ move_result_t motion_run_path(const run_path_t *path, int16_t cruise_speed, int1
     sim_stats.paths++;
     *entered = 0;
     // A yawed robot braking at a side wall and backing up: blocked where it started, the way ahead open.
-    if(sim_stats.paths == false_block){
+    if(sim_stats.paths + sim_stats.legs == false_block){
         sim_stats.blocked++;
         return MOVE_BLOCKED;
     }

@@ -302,6 +302,11 @@ the goal: it turns round at once.
 - Fix: `if(entered) turned = 0;`. Risk: none seen. The simulator's rest
   readings have no phantoms, so only a unit test of the flag covers it.
   No robot test needed.
+- Done 11-11: `if(entered) turned = 0;`. `sim_false_block()` now also
+  blocks a search leg where it starts; `test_blocked_leg_keeps_turned`
+  (a turn, a leg blocked in its cell, the sides at rest: the wall that
+  was in front keeps its evidence 2; without the fix it went to 3). Host
+  tests 3916 checks, 0 failures; sizes unchanged.
 
 **A4. The side walls read "on the way in" are one sensor reading
 (robustness, low; read).**

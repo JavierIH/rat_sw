@@ -342,7 +342,7 @@ static move_result_t drive_leg(next_cell_fn decide, void *ctx, uint8_t *reached)
     uint8_t entered = 0;
     leg_decided = 0;
     move_result_t r = motion_explore(speed, decide, ctx, &entered);
-    turned = 0;
+    if(entered) turned = 0;     // stopped where it turned: its sides at rest still only count as "no wall"
     *reached = entered;
     if(entered < leg_decided){
         // Stopped short (an obstacle: backed up to a cell centre).
