@@ -181,7 +181,7 @@ static run_result_t fail_plan(const char *why){
     return RUN_FAILED;
 }
 
-// At rest (a flash write stalls the CPU); LEDs: 3 slow blinks = in flash, 3 fast = only in RAM.
+// At rest (a flash write stalls the CPU); LEDs: 3 slow blinks = in flash, the halves alternating = only in RAM.
 static void save_map(void){
     const storage_save_t r = storage_save(1);
     switch(r){

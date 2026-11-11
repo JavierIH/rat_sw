@@ -17,7 +17,7 @@ How to read the drawings:
   (0,1) and (1,1).
 - On the right, the speed run: each cell shows the direction the robot
   leaves it in. The route text is how the log prints it: a number of cells,
-  then a curve right (D, derecha) or left (I, izquierda) in the last of them.
+  then a curve right (R) or left (L) in the last of them.
 - If the robot's route or `MAP` differs from the drawing, a wall is missing
   or out of place.
 

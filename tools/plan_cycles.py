@@ -80,5 +80,5 @@ for name, args, stack in (('maze_plan_to', (targets, 0, 2 | (1 << 8), cost), ())
     n = pops() - p0
     # Cortex-M3, flash 2 wait states + prefetch: ~1 cycle an instruction, +1 a data access, +3 a taken branch.
     cycles = s['ins'] + s['mem'] + 3 * s['br']
-    print(f"{name}: {n} pops, {s['ins']} instr, {s['mem']} accesos, {s['br']} saltos -> "
-          f"{s['ins'] / n:.0f} instr/pop, ~{cycles / n:.0f} ciclos/pop, ~{cycles / 72:.0f} us")
+    print(f"{name}: {n} pops, {s['ins']} instr, {s['mem']} accesses, {s['br']} branches -> "
+          f"{s['ins'] / n:.0f} instr/pop, ~{cycles / n:.0f} cycles/pop, ~{cycles / 72:.0f} us")

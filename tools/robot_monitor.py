@@ -391,7 +391,7 @@ class Planner:
 
 def route_text(turns, limit=ROUTE_TEXT_MAX):
     """The route as the firmware logs it: cells straight ahead, then D/I for a
-    curve right/left in the last of them ("2D1I3"), cut with '+'."""
+    curve right/left in the last of them ("2R1L3"), cut with '+'."""
     text, run = "", 0
     for i, t in enumerate(turns):
         run += 1
@@ -1221,9 +1221,9 @@ class ReplayLink(threading.Thread):
             with open(self.path, encoding="utf-8", errors="replace") as f:
                 records = [line.rstrip("\n") for line in f]
         except OSError as exc:
-            self.on_status(False, "no se puede leer %s: %s" % (name, exc))
+            self.on_status(False, "cannot read %s: %s" % (name, exc))
             return
-        self.on_status(True, "reproduciendo " + name)
+        self.on_status(True, "replaying " + name)
         previous = None
         for i, record in enumerate(records):
             fields = record.split("\t", 2)

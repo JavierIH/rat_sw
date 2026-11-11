@@ -380,9 +380,12 @@ should be.
 ### Noted, not verified yet
 
 - `explore_next()` counts an action the path then refuses to grow
-  (`search.c:379`, `motion.c:468`): a budget off by one, rare.
+  (`search.c`, `motion.c`'s `explore_step()`): one action too many in a
+  budget of 2000 that a 16x16 search uses a quarter of. Left as it is
+  (11-11).
 - `leds_flash()` blocks up to 1.2 s in `HAL_Delay()` without polling STOP
-  (`gpio.c:106`).
+  (`gpio.c`): only at rest, and the press is kept by the debounce in
+  SysTick and taken at the next checkpoint. Left as it is (11-11).
 - `curve_setup()` runs before every forward move (`motion.c:485`: 65
   Simpson steps in soft float, at rest): time it.
 - The unexplained SysTick peak (424 us, question 4 of 10-22): the CAL
@@ -391,11 +394,9 @@ should be.
   `STATUS` after a search with no CAL test since boot.
 - `CHECK`: `light_check()` alone is 1116 B of flash in `competition`
   (issue 21, waiting on the user).
-- Spanish left beyond the 10-22 list: `robot_monitor.py` (four messages
-  and the "2D1I3" docstring), `plan_cycles.py`'s output,
-  `docs/mazes.md:20`.
-- `save_map()`'s comment in `search.c` still says "3 fast = only in RAM":
-  the LED halves alternate since 10-06.
+- Spanish left beyond the 10-22 list (the monitor's two replay
+  messages and a docstring, `plan_cycles.py`'s output, `docs/mazes.md`)
+  and `save_map()`'s comment ("3 fast = only in RAM"): fixed 11-11.
 - The wall followers (races 2.1, 2.2) still write the RAM map as they go
   and never save: by design, not looked at yet.
 

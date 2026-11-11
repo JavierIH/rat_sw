@@ -417,7 +417,7 @@ class TestTerminal(unittest.TestCase):
     def test_replay_draws_and_quits(self):
         text = self.run_monitor(self.args, 40, 120)
         self.assertIn("RAT", text)
-        self.assertIn("reproduciendo", text)
+        self.assertIn("replaying", text)
 
     def test_small_terminal_keys_and_resize(self):
         keys = b"STATUS\r\t\t/full\r/ascii\r"
