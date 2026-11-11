@@ -156,6 +156,7 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
    start (~1.5 cells of time). Proposal: time 16x16 searches in the
    simulator with 2 and 3 before deciding; it changes the search's routes
    (the monitor reads the costs from `robot_config.h`).
+   Measured 11-11 (audit, step 2): no gain, stays 1.
 2. Front at rest: when only one front sensor sees a wall,
    `motion_sense_walls()` records the front as open (evidence -1), against
    the rule "never turn a doubtful reading into absent". Make it doubtful
@@ -330,6 +331,30 @@ the goal: it turns round at once.
   (`competition` 54008 B, `practice` 59460 B). The host tests do not run
   `motion.c`: robot check in `docs/testing.md`, next session, step 4.
 
+### Step 2 (11-11): efficiency, the planner's costs
+
+Nothing to change: both measurements say the costs are where they
+should be.
+
+- `SEARCH_COST_TURN` (question 1 of 10-22), the whole cycle on the 523
+  real mazes, perfect sensing / 3 % noise, average search: 1 (now)
+  182.1 / 195.2 s; 2: 182.3 / 195.0; 3: 182.5 / 194.6; 4: 183.0 / 194.8.
+  Within 0.5 %: a dearer turn saves a stop per search and pays it in
+  cells (129 -> 128 stops, 273 -> 277 cells). Every perfect search
+  optimal with all four. Stays 1; question 1 closed.
+- `FAST_COST_*`, `--costs` on 600 random mazes: 2/1 is the best pair at
+  900/400 and 900/480 (the best route in 198 of 200 on the open mazes).
+  At 800/300 2/2 wins by 3 ms in 6.4 s: nothing. Stays 2/1. Race 2.3
+  (turns in place) plans with the same costs and `--costs` does not time
+  it: not looked at, it is the fallback.
+- The SysTick load cannot be measured off the robot: `STATUS` after a
+  race is in the next robot session (`docs/testing.md`, step 2), the
+  424 us peak in the notes below.
+- Found on the way: with `SEARCH_COST_TURN` 2 one search of 1046 failed
+  under 3 % noise (`shiba.txt`, no verified path at the end; none with
+  1, 3 or 4). Noise can still end a search without a path: to look at
+  in step 3 with its seed (maze 523 files in order, seed = index + 1).
+
 ### Noted, not verified yet
 
 - `explore_next()` counts an action the path then refuses to grow
@@ -356,7 +381,7 @@ the goal: it turns round at once.
 
 A3 and A4 done 11-11 (A4 waits for its robot check).
 
-2. Efficiency: `SEARCH_COST_TURN` 2 and 3 against 1 on the 523 mazes
-   (question 1 of 10-22), `--costs`, the SysTick load.
+Step 2 done 11-11 (above).
+
 3. The notes above; a second pass over `commands.c`, `main.c` and
    `robot_monitor.py`; `calib_analyze.py`.
