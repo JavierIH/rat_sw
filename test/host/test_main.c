@@ -469,8 +469,8 @@ static void test_storage_map_only(void){
     CHECK_EQ(maze_evidence(12, 12, NORTH), -2);
 }
 
-// Races there and back on layout I switching presets: saved until the goal's walls saturate, then no slot spent.
-static void test_races_settle_map(void){
+// Races there and back on layout I switching presets: they only read the map, nothing is written.
+static void test_races_only_read(void){
     fake_flash_wipe();
     params_reset();
     truth_reset(1);
@@ -487,15 +487,17 @@ static void test_races_settle_map(void){
     sim_reset(0.0, 1);
     search_set_home();
     CHECK_EQ(search_explore(), RUN_OK);
-    uint8_t free_after[5];
+    maze_snapshot_t before, after;
+    maze_export(&before);
+    const int programs = fake_flash_programs;
     for(int k = 0; k < 5; k++){
         params.fast_speed = (int16_t)(k & 1 ? 900 : 800);
         sim_reset(0.0, 10u + (uint32_t)k);
         CHECK_EQ(search_fast_run(1), RUN_OK);
-        free_after[k] = storage_free_slots();
     }
-    CHECK_EQ(free_after[4], free_after[2]);
-    CHECK(free_after[2] + 2 >= free_after[0]);
+    maze_export(&after);
+    CHECK(memcmp(&before, &after, sizeof(before)) == 0);
+    CHECK_EQ(fake_flash_programs, programs);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
@@ -957,18 +959,17 @@ static void test_run_control(void){
     CHECK(path_cost != PLAN_INF);
     CHECK(search_fast_path_cost() != PLAN_INF);     // at least the way it drove
 
-    // A race saves at the goal: STOP there (its route is one leg) loses nothing.
+    // A race stopped at its goal (its route is one leg): the map as it was, nothing written.
     maze_init();
     sim_reset(0.0, 1);
     CHECK_EQ(search_explore(), RUN_OK);
-    fake_flash_wipe();
+    const int programs = fake_flash_programs;
     sim_reset(0.0, 1);
     search_set_home();
     sim_abort_after_cells(1);
     CHECK_EQ(search_fast_run(1), RUN_ABORTED);
     CHECK(maze_is_goal(sim_x, sim_y));
-    maze_init();
-    CHECK_EQ(storage_load(), STORAGE_LOADED);
+    CHECK_EQ(fake_flash_programs, programs);
     CHECK_EQ(search_fast_path_cost(), path_cost);
 
     // A phantom wall sealing off the goal is repaired, not fatal.
@@ -998,7 +999,16 @@ static void test_run_control(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
-// A wall appears on the verified route: the speed run stops at the cell before it, notes it and drives around.
+// 1 if a race that could not go on left the map and the store as they were, the robot not ready.
+static int race_lost_nothing(run_result_t r, const maze_snapshot_t *before, int programs){
+    maze_snapshot_t after;
+    maze_export(&after);
+    return r == RUN_FAILED && !search_ready() && sim_stats.blocked == 1 && sim_stats.crashes == 0
+        && memcmp(before, &after, sizeof(after)) == 0 && fake_flash_programs == programs;
+}
+
+// A wall on the verified route (the maze changed, or the robot is not where it thinks): the race stops at the cell
+// before it and ends; map and store untouched; with the wall gone the next race runs.
 static void test_fast_run_surprise_wall(void){
     maze_set_goal(7, 7, 8, 8);
     cellset_t goal;
@@ -1029,17 +1039,58 @@ static void test_fast_run_surprise_wall(void){
             y = (uint8_t)(y + heading_dy(h));
             h = (heading_t)((h + turns[i] + 4) & 3);
         }
-        if(!placed || true_optimum() == PLAN_INF) continue;
+        if(!placed) continue;
         runs++;
+        maze_snapshot_t before;
+        maze_export(&before);
+        const int programs = fake_flash_programs;
         sim_reset(0.0, m + 1u);
-        run_result_t r = search_fast_run(1);
-        const int good = r == RUN_OK && sim_stats.blocked == 1 && sim_stats.crashes == 0
-                      && maze_wall(x, y, h) == WALL_PRESENT && sim_x == START_X && sim_y == START_Y && search_ready();
+        int good = race_lost_nothing(search_fast_run(1), &before, programs) && sim_x == x && sim_y == y;
+        truth_set_wall(x, y, h, 0);
+        sim_reset(0.0, m + 2u);
+        search_set_home();
+        good = good && search_fast_run(1) == RUN_OK && sim_x == START_X && sim_y == START_Y && search_ready();
         ok += good;
-        if(!good) printf("  surprise wall, maze %u: result %d blocked %u crashes %u\n", m, r, sim_stats.blocked,
-                         sim_stats.crashes);
+        if(!good) printf("  wall on the route, maze %u: blocked %u crashes %u\n", m, sim_stats.blocked, sim_stats.crashes);
     }
-    printf("speed runs with a wall the map had as open: %d/%d finished\n", ok, runs);
+    printf("races with a wall on the verified route: %d/%d ended there, map and store untouched\n", ok, runs);
+    CHECK(runs >= 10);
+    CHECK_EQ(ok, runs);
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
+// A race that stops blocked with nothing there (a yawed robot braking at a side wall, as on the robot 2026-09-26):
+// on the way out or on the way back it ends there and writes nothing; the next race runs.
+static void test_race_false_block(void){
+    maze_set_goal(7, 7, 8, 8);
+    int runs = 0, ok = 0;
+    for(uint32_t m = 1; m <= 10; m++){
+        truth_generate(m * 7919u, 40);
+        truth_competition_goal(m);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.0, m);
+        search_set_home();
+        if(search_explore() != RUN_OK) continue;
+        maze_snapshot_t before;
+        maze_export(&before);
+        const int programs = fake_flash_programs;
+        for(uint32_t path = 1; path <= 2; path++){     // the leg out of the start, the leg out of the goal
+            runs++;
+            sim_reset(0.0, m + path);
+            sim_false_block(path);
+            search_set_home();
+            int good = race_lost_nothing(search_fast_run(1), &before, programs)
+                    && (path == 1 ? sim_x == START_X && sim_y == START_Y : maze_is_goal(sim_x, sim_y));
+            sim_reset(0.0, m + 10u);
+            search_set_home();
+            good = good && search_fast_run(1) == RUN_OK && search_ready();
+            ok += good;
+            if(!good) printf("  false block, maze %u, path %u\n", m, path);
+        }
+    }
+    printf("races blocked with nothing there: %d/%d ended there, map and store untouched\n", ok, runs);
     CHECK(runs >= 10);
     CHECK_EQ(ok, runs);
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
@@ -2135,11 +2186,12 @@ int main(int argc, char **argv){
     test_planner_against_reference();
     test_storage();
     test_storage_map_only();
-    test_races_settle_map();
+    test_races_only_read();
     test_sqrt();
     test_run_control();
     test_repair_at_rest();
     test_fast_run_surprise_wall();
+    test_race_false_block();
     test_fast_run_no_curves();
     test_race_return_curves();
     test_search_modes();

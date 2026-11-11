@@ -10,7 +10,7 @@ typedef enum { RUN_OK, RUN_ABORTED, RUN_FAILED } run_result_t;
 
 // Explores to the goal, then the cells that could still shorten the speed run, returns exploring, faces north, saves.
 run_result_t search_explore(void);
-// Speed run over verified passages, back to the start and save; refused if no verified path. Without curves it turns in place.
+// Speed run over verified passages and back to the start, the map only read; refused if no verified path. Without curves it turns in place.
 run_result_t search_fast_run(uint8_t curves);
 // How the search moves forward (CONT OFF/ON, until reset): stopping in every cell, or straights decided cell by cell (default).
 typedef enum { SEARCH_STOP_EACH, SEARCH_STRAIGHTS } search_mode_t;

@@ -135,20 +135,12 @@ static move_result_t run_route(int16_t speed, int16_t curve_speed){
     uint8_t entered = 0;
     move_result_t r = motion_run_path(&route, speed, curve_speed, &entered);
     for(uint8_t i = 0; i < entered; i++){
-        maze_mark_crossed(pose.x, pose.y, pose.h);
         pose.x = (uint8_t)(pose.x + heading_dx(pose.h));
         pose.y = (uint8_t)(pose.y + heading_dy(pose.h));
         pose.h = (heading_t)((pose.h + route.turn[i] + 4) & 3);
     }
-    if(entered) turned = 0;
     if(r == MOVE_OK || r == MOVE_BLOCKED) telemetry_pose(pose.x, pose.y, pose.h);
-    if(r == MOVE_OK){
-        motion_align_front();
-    }
-    else if(r == MOVE_BLOCKED){
-        maze_mark_blocked(pose.x, pose.y, pose.h);
-        telemetry_cell(pose.x, pose.y, pose.h);
-    }
+    if(r == MOVE_OK) motion_align_front();
     return r;
 }
 
@@ -440,46 +432,39 @@ static const char *route_text(char *text){
     return text;
 }
 
-// Drives the verified route to `targets` in one go, replanned at every stop (explores if none); curve_speed 0: turns in place.
+// A race's way: the verified route to `targets` in one go, replanned at every stop; curve_speed 0: turns in place.
+// Races only read the map: a wall where the verified route goes means the pose is wrong, and the run ends there.
 static run_result_t drive_to(const cellset_t *targets, int16_t speed, int16_t curve_speed, const char *tag,
-                             uint16_t *steps){
-    uint8_t repairs = 0;
+                             uint16_t *legs){
     while(!cellset_has(targets, pose.x, pose.y)){
         if(!motion_checkpoint()) return fail_move(MOVE_ABORTED, tag);
-        if(++*steps > SEARCH_MAX_STEPS) return fail_plan("action budget spent");
         wall_sense_t w;
-        move_result_t r = sense_here(&w, 0);
+        move_result_t r = motion_sense_walls(&w);
         if(r != MOVE_OK) return fail_move(r, "sensing");
 
         maze_plan_to(targets, PLAN_VERIFIED, FAST_COSTS, cost_a);
         int8_t turn;
-        if(maze_route(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, route_turn, PATH_MAX_CELLS,
-                      &route.cells)){
-            if(turn == 0 && w.front == SEEN_PRESENT) continue;
-            for(uint8_t i = 0; !curve_speed && i < route.cells; i++){
-                if(!route_turn[i]) continue;
-                route_turn[i] = 0;
-                route.cells = (uint8_t)(i + 1u);
-            }
-            if(params.log_level >= 1){
-                char text[ROUTE_TEXT_MAX + 2];
-                print("%s (%u,%u)%c turn %d + route %s (%u cells)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
-                      route_text(text), route.cells);
-            }
-            r = turn_by(turn);
-            if(r == MOVE_OK && route.cells) r = run_route(speed, curve_speed);
+        if(!maze_route(cost_a, pose.x, pose.y, pose.h, PLAN_VERIFIED, FAST_COSTS, &turn, route_turn, PATH_MAX_CELLS,
+                       &route.cells)) return fail_plan("no verified route");
+        if(turn == 0 && w.front == SEEN_PRESENT){
+            // A wall where the route goes: look again (one wrong sighting must not end a race).
+            r = motion_sense_walls(&w);
+            if(r != MOVE_OK || w.front == SEEN_PRESENT) return fail_move(r != MOVE_OK ? r : MOVE_BLOCKED, tag);
         }
-        else{
-            if(plan_explore(targets, &repairs, 1) == REPLAN_UNREACHABLE) return fail_plan("target unreachable");
-            action_t a = maze_best_action(cost_a, pose.x, pose.y, pose.h, PLAN_OPTIMISTIC, SEARCH_COSTS);
-            if(params.log_level >= 1){
-                print("%s (%u,%u)%c no verified path -> %s\n", tag, pose.x, pose.y,
-                      HEADING_CHAR[pose.h], ACTION_NAME[a]);
-            }
-            if(a == ACT_FORWARD && w.front == SEEN_PRESENT) continue;
-            r = do_action(a);
+        for(uint8_t i = 0; !curve_speed && i < route.cells; i++){
+            if(!route_turn[i]) continue;
+            route_turn[i] = 0;
+            route.cells = (uint8_t)(i + 1u);
         }
-        if(r != MOVE_OK && r != MOVE_BLOCKED) return fail_move(r, tag);
+        if(params.log_level >= 1){
+            char text[ROUTE_TEXT_MAX + 2];
+            print("%s (%u,%u)%c turn %d + route %s (%u cells)\n", tag, pose.x, pose.y, HEADING_CHAR[pose.h], turn,
+                  route_text(text), route.cells);
+        }
+        ++*legs;
+        r = turn_by(turn);
+        if(r == MOVE_OK && route.cells) r = run_route(speed, curve_speed);
+        if(r != MOVE_OK) return fail_move(r, tag);
     }
     return RUN_OK;
 }
@@ -502,10 +487,8 @@ run_result_t search_fast_run(uint8_t curves){
     run_result_t res = drive_to(&goal, params.fast_speed, curves ? params.curve_speed : 0, "FAST", &steps);
     if(res != RUN_OK) return res;
     print("Goal reached in the speed run after %u legs\n", steps);
-    // Saved here, never back at the start: a failed return loses nothing.
-    save_map();
     telemetry_activity(TM_RETURN);
-    // Not timed, and the map is saved: no faster curves than the safe race's.
+    // Not timed: no faster curves than the safe race's.
     const int16_t back = params.curve_speed < FAST_SAFE_CURVE ? params.curve_speed : FAST_SAFE_CURVE;
     res = drive_to(&home, params.search_speed, curves ? back : 0, "RETURN", &steps);
     if(res != RUN_OK) return res;
