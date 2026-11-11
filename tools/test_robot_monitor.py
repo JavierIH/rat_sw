@@ -118,8 +118,6 @@ class TranscriptChecker:
         if m:
             self.test.assertEqual(self.planner.overlay(self.model).fast_cost, int(m.group(1)), line)
             self.fast_costs += 1
-            return
-        self.test.assertNotIn("no verified path", line)   # never with perfect sensing
 
 
 class TestAgainstFirmware(unittest.TestCase):

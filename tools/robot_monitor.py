@@ -384,9 +384,6 @@ class Planner:
             targets = goal if act == "F" else {self.start}
             cost = self.plan_to(model, targets, True, self.fast)
             route = self.follow(model, cost, *pose, True, self.fast)[0]
-            if not route:   # no verified route: the robot explores step by step
-                cost = self.plan_to(model, targets, False, self.search)
-                route = self.follow(model, cost, *pose, False, self.search)[0]
         self._cache_key = key
         self._cache = Overlay(fast_cost if fast_cost < INF else None, fast_path, fast_turns, route, cands)
         return self._cache
