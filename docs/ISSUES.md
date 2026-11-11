@@ -9,13 +9,12 @@ commit when done. Details go in the docs it points to, not here.
 - The robot session in `docs/testing.md` ("Next robot session"): the
   fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
   wall ends at 300-900, crooked starts, then a search and the races,
-  the read-only races (step 3) and the sides with `CONT OFF` (step 4).
+  the read-only races (step 3), the sides with `CONT OFF` (step 4) and
+  the doubtful front (step 5).
 - Without the robot: issue 22, on branch `audit-11-11` (not merged into
-  `develop`). The audit's step 3 in `docs/review.md`, "Audit of
-  2026-11-11": the notes left (`curve_setup()`'s time, the wall
-  followers' map, race 2.3's costs), a second pass over `commands.c`,
-  `main.c`, `robot_monitor.py`; `calib_analyze.py`. Small steps, each
-  written there and committed.
+  `develop`): only a full read of `robot_monitor.py` and
+  `calib_analyze.py` is left of the audit (`docs/review.md`, "Audit of
+  2026-11-11"). Merge the branch after the robot session.
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -26,13 +25,16 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
   two sections), branch `audit-11-11`. 10-22: every small fix done but
-  the untracked `docs/img/` (the user's call); 5 questions left. Audit,
+  the untracked `docs/img/` (the user's call); questions 3-6 left. Audit,
   all in the simulator, waiting for the robot (`docs/testing.md`, steps
   3-4): A1/A2 races only read the map (c41d383); A3 a leg blocked in its
   cell keeps "just turned"; A4 the sides on the way in sampled every 8
   ms; A5 the map repair looped under noise (14 searches in 6000 failed,
-  now 0). Step 2: `SEARCH_COST_TURN` 1 and `FAST_COST_*` 2/1 measured,
-  stay. Next: step 3 (the notes left, second pass, `calib_analyze.py`).
+  now 0); a front only one sensor sees at rest is doubtful (question 2
+  of 10-22). Step 2: `SEARCH_COST_TURN` 1 and `FAST_COST_*` 2/1
+  measured, stay. Step 3: notes closed, `commands.c` and `main.c` read
+  again, nothing found. Left: the two Python tools read in full; the
+  SysTick peak (robot); questions 3-6 of 10-22.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,
