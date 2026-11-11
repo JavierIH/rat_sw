@@ -390,7 +390,7 @@ class Planner:
 
 
 def route_text(turns, limit=ROUTE_TEXT_MAX):
-    """The route as the firmware logs it: cells straight ahead, then D/I for a
+    """The route as the firmware logs it: cells straight ahead, then R/L for a
     curve right/left in the last of them ("2R1L3"), cut with '+'."""
     text, run = "", 0
     for i, t in enumerate(turns):
@@ -1580,14 +1580,14 @@ def parse_args(argv=None):
     parser.add_argument("--log-dir", default=LOG_DIR, help="folder of recorded sessions")
     parser.add_argument("--calib-dir", default=CALIB_DIR, help="folder of calibration data")
     parser.add_argument("--full", action="store_true", help="always draw the whole 16x16 maze")
-    parser.add_argument("--ascii", action="store_true", help="solo caracteres ASCII")
+    parser.add_argument("--ascii", action="store_true", help="ASCII characters only")
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
     if not args.replay and serial is None:
-        print("Falta pyserial: pip install pyserial (o usa --replay)", file=sys.stderr)
+        print("pyserial is missing: pip install pyserial (or use --replay)", file=sys.stderr)
         return 1
     locale.setlocale(locale.LC_ALL, "")
     os.environ.setdefault("ESCDELAY", "50")     # Esc quits promptly (curses waits 1 s by default)
