@@ -175,3 +175,151 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
 6. The flash stress tools of the virtual env (`TUNE STRESS`, `REVERSAL`,
    `HSI`): the wedge is fixed (10-05). Keep them to reproduce it, or
    delete them?
+
+## Audit of 2026-11-11 (in progress)
+
+The user asked for an audit of `src/` and `tools/robot_monitor.py`: bugs,
+simplification and efficiency, ranked, each with its evidence; nothing is
+fixed until the user picks. It goes in small steps, each written here
+before stopping (the user's rule, 11-11). Line numbers are those of
+45075fe.
+
+Baselines (11-11): `make -C test/host` 3939 checks, 0 failures.
+`--mazefile` on a fresh clone of the maze files: 523 of 525 classic 16x16
+load (520 on 09-27); search 182.1 s on average (195.2 with 3 % noise),
+every one optimal with perfect sensing, no blocked move, no crash, worst
+decision 5144 pops. Sizes: `practice` RAM 84.4 % (17288 B), flash 93.9 %
+(59596 B, 3892 left); `competition` RAM 52.7 % (10800 B), flash 85.3 %
+(54156 B, 9332 left).
+
+### Step 1 (11-11): everything read once; the races write the map
+
+Read in full: every module of `src/` but the vendor files, `sim.c`,
+`robot_monitor.py`. Not yet: `calib_analyze.py`, `control_sim.c`, most of
+`test_main.c`. "Measured" below: reproduced in the simulator or found in a
+robot log; "read": from the code alone.
+
+**A1. A race writes walls into the map from a pose it cannot check (bug,
+high; measured).**
+- Where: `search.c:148-151` (`run_route()`: a route that ends
+  `MOVE_BLOCKED` marks a wall, +2 even over a crossed passage at -3),
+  `search.c:472-481` (`drive_to()` then repairs the map and explores),
+  `search.c:225` (the repair's second pass forgets every wall of the map),
+  `search.c:506` (the race saves that map at the goal).
+- Why it is wrong: the route's passages are verified (crossed, or seen
+  open twice). A wall "found" on one means the robot is not where it
+  thinks, or is yawed. The simulator never blocks a race with the pose
+  right: 0 in 1046 cycles on the real mazes (half of them with 3 %
+  noise), 0 in the 900 random ones.
+- On the robot, 2026-09-26 19:31 (practice maze, a race's return;
+  `tools/logs/2026-09-26_11-22-09.log`, untracked, t=29370-29375):
+  `ruta 9 celdas, 0 curvas: fin=OBSTACULO dist=168.78/1433.59mm ...
+  IR(FL=57 FR=113)`, `obstaculo delante: marcha atras OK`, `!! destino
+  inalcanzable segun el mapa: olvido 1 paredes dudosas (reparacion 1/3)`,
+  then step by step "sin camino verificado", a second repair, `Fin:
+  FALLO`. Right after the 180 at the goal it braked for something close
+  ahead on the left (most likely yawed), 169 mm into a passage it had
+  driven seconds before, and the wall went onto that passage. A `RESET`
+  reloaded the map (cost 24).
+- In the simulator (scratch harness over `sim.c`, not in the repo: after
+  a perfect search one `motion_run_path()` call returns `MOVE_BLOCKED`
+  with nothing there; 523 real mazes). On the leg out of the start: the
+  race still ends OK in all 523, but the map goes from 172 known walls
+  (average) to 1, and that map is saved at the goal: the flash copy keeps
+  0 walls in 523 of 523. On the leg out of the goal: the RAM map loses
+  over half its walls in 81 mazes and keeps a wall that does not exist in
+  37 (the flash copy, saved just before at the goal, is right).
+- It fits issue 17's open question (why no race would start after the
+  2.4 crash at OSHWDEM): that firmware (6e19649) had this same code, and
+  a START without a verified path only printed to the console. A stop at
+  a wall while off the route, the wall marked on the verified path, the
+  run ending `IND_FAIL`, no verified path left in RAM. No log of that
+  day: it cannot be proved.
+
+**A2. Races spend flash slots to save nothing (robustness, medium;
+measured).**
+- Where: `search.c:451` (`sense_here()` at every stop of a race),
+  `search.c:138` (crossings), `search.c:506` (the save at the goal).
+- Evidence (scratch harness, 523 real mazes, perfect sensing; a store as
+  the boot leaves it, `ERASE`, a search, six races): after the search 2
+  slots are free. Race 1 writes one in 286 mazes, race 2 in 369, race 3
+  in 25, none after: the evidence of the walls at the start and the goal
+  saturating, and passages going from seen twice to crossed. In 23 of 523
+  the third race ends `!! flash full: the map is only in RAM` with the LED
+  halves alternating (no reset, no power cycle), over a flash copy that
+  races exactly the same.
+- Each of those saves is also a flash write right after braking at the
+  goal.
+
+A1 and A2 have one cause: a race writes the map. Two ways out:
+
+- a. Races only read the map (recommended). No sighting, crossing or wall
+  recorded, no repair, no exploring, no save: nothing changes. A route
+  that ends `MOVE_BLOCKED`, or a wall in front before a leg, ends the run
+  as position lost (`RUN_FAILED`, the map untouched). `motion.c` does not
+  change: it still stops short of the wall. Deletes `drive_to()`'s
+  exploring branch and the race's save; `test_fast_run_surprise_wall`
+  turns into "the run fails, map and flash unchanged, the next race
+  starts". Risk: a passage on the route verified by two wrong sightings
+  and never crossed fails every race at that wall until a new search
+  (none in the 1946 simulated cycles above). It changes two of the user's
+  rules (a race "saves at the goal if the map changed"; it "falls back to
+  exploring if the map proves wrong"): the user's call.
+- b. Keep the healing: in a race record only a `MOVE_BLOCKED`, never
+  repair, and put the flash copy's map back when the race does not end
+  OK. More code (a map-only reload in `storage.c`), and a lost robot that
+  gets to "its" goal still saves a wrong map.
+
+Either changes the robot's behaviour in races. Robot test (practice maze,
+race 2.4 only): two races, no "Map saved" line and the same free slots in
+`STATUS`; then a hand in front of the robot on a straight: it stops, `End:
+FAILED`, `MAP` as before, the next race starts.
+
+**A3. A leg that never left its cell clears `turned` (bug, low; read).**
+- Where: `search.c:353` (`drive_leg()`: `turned = 0` whatever `entered`);
+  `forward()` (`search.c:117`) and `run_route()` (`search.c:143`) clear it
+  only when the robot moved on.
+- Scenario: a turn in place, a leg, an obstacle stop and back-up in the
+  same cell (`entered` 0). The next `sense_here()` records the sides read
+  at rest as walls, against the rule that right after a turn only "no
+  wall" counts (5 phantoms in 14).
+- Fix: `if(entered) turned = 0;`. Risk: none seen. The simulator's rest
+  readings have no phantoms, so only a unit test of the flag covers it.
+  No robot test needed.
+
+**A4. The side walls read "on the way in" are one sensor reading
+(robustness, low; read).**
+- Where: `motion.c:530-534`: `side_pass` takes its 5 samples in 5
+  consecutive ms; the IR give a new value every ~16 ms, so the 4-of-5 vote
+  is one reading. The search's legs do it right (`explore_step()`: one
+  every `WALL_SAMPLE_MS` over 50 mm, unanimous).
+- It only feeds the moves that are not search legs: `CONT OFF`, the
+  followers' single cells, the end of a race's route (gone with option a).
+- Fix: sample every `WALL_SAMPLE_MS` there too. Measure first on the `CAL
+  STRAIGHT` recordings how often 5 ms and 32 ms disagree. Needs a robot
+  check with `CONT OFF`.
+
+### Noted, not verified yet
+
+- `explore_next()` counts an action the path then refuses to grow
+  (`search.c:379`, `motion.c:468`): a budget off by one, rare.
+- `leds_flash()` blocks up to 1.2 s in `HAL_Delay()` without polling STOP
+  (`gpio.c:106`).
+- `curve_setup()` runs before every forward move (`motion.c:485`: 65
+  Simpson steps in soft float, at rest): time it.
+- The unexplained SysTick peak (424 us, question 4 of 10-22): the CAL
+  recorder halves its buffer inside SysTick (`calib.c:96`, 160 struct
+  copies), and `STATUS`'s worst is since boot, CAL tests included. Check:
+  `STATUS` after a search with no CAL test since boot.
+- `CHECK`: `light_check()` alone is 1116 B of flash in `competition`
+  (issue 21, waiting on the user).
+- Spanish left beyond the 10-22 list: `robot_monitor.py` (four messages
+  and the "2D1I3" docstring), `plan_cycles.py`'s output,
+  `docs/mazes.md:20`.
+
+### Next steps
+
+2. Efficiency: `SEARCH_COST_TURN` 2 and 3 against 1 on the 523 mazes
+   (question 1 of 10-22), `--costs`, the SysTick load.
+3. The notes above; a second pass over `commands.c`, `main.c` and
+   `robot_monitor.py`; `calib_analyze.py`.

@@ -9,8 +9,10 @@ commit when done. Details go in the docs it points to, not here.
 - The robot session in `docs/testing.md` ("Next robot session"): the
   fix of the wall ends (GitHub issue #1) on the 10-08 `SLIPPED` case,
   wall ends at 300-900, crooked starts, then a search and the races.
-- Without the robot: issue 22, the review's small fixes
-  (`docs/review.md`, "Review of 2026-10-22").
+- Without the robot: issue 22. First the user's answer to the audit's
+  step 1 (`docs/review.md`, "Audit of 2026-11-11": A1/A2, option a or b),
+  then its step 2 (efficiency). Small steps, each written there before
+  stopping. The small fixes of 10-22 are still to do.
 - Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
   shows it cannot resolve a few mm); review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -19,10 +21,22 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Open
 
-- Issue 22, review of 10-22 (`docs/review.md`, last section): paused at
-  the user's request. Done: issue #1's fix (simulator). Left: 8 small
-  fixes listed there, the tools and tests not yet reviewed, and 6
-  questions for the user. Next: the small fixes (no robot needed).
+- Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
+  two sections). 10-22: issue #1's fix done (simulator); 8 small fixes
+  and 6 questions left. Audit, step 1 done 11-11 (docs only, no code
+  touched): A1 a race marks walls on the verified path from a wrong pose
+  and can wipe the map (robot log 09-26, simulator), A2 races spend flash
+  slots on nothing (23 of 523 sessions end "flash full"), A3/A4 low.
+  Waiting on the user: A1/A2 option a (races only read the map) or b.
+  Next: step 2, efficiency (search turn cost, `--costs`, SysTick).
+
+- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
+  loss is solved (saves at the goal, the flash wedge fixed: issue 18,
+  closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and
+  why no race would start after it (a wall marked on the verified path?
+  A candidate with evidence: `docs/review.md`, audit of 11-11, A1);
+  the user will bring them up. A smoke test of the competition firmware in
+  the air needs ~30 cm clear around the sensors.
 
 - GitHub issue #1, centring (`docs/faults/centring.md`): the PD wall
   follower (KP 8, KD 0.6), on the robot since 10-08: crooked starts of
@@ -31,13 +45,6 @@ commit when done. Details go in the docs it points to, not here.
   `MOVE_SLIPPED`, section 10) fixed in the simulator 10-22: a side reading
   that jumps 8 mm away stops counting until steady over 20 mm (section
   11; `TUNE STEER_HOLD 0` = the old centring). Next: the robot.
-
-- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
-  loss is solved (saves at the goal, the flash wedge fixed: issue 18,
-  closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and
-  why no race would start after it (a wall marked on the verified path?);
-  the user will bring them up. A smoke test of the competition firmware in
-  the air needs ~30 cm clear around the sensors.
 
 - Issue 21, lighting check for competitions (10-06; `docs/lighting.md`): the
   IR have no ambient subtraction; ~200 counts of extra light make an open
