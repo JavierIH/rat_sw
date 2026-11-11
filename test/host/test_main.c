@@ -1266,6 +1266,25 @@ static void test_repair_at_rest(void){
     maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
 }
 
+// Repairs forget firmer walls each time. Forgetting only the walls seen once looped: it opened a way through real
+// walls, seen again in passing, and the phantom seen twice that sealed the goal stayed (14 searches in 6000 at 3% noise).
+static void test_repair_escalates(void){
+    maze_set_goal(7, 7, 8, 8);
+    const uint32_t mazes[] = {1211, 1480, 2274};    // failed "target unreachable" after 3 repairs
+    for(size_t i = 0; i < sizeof(mazes) / sizeof(mazes[0]); i++){
+        truth_generate(mazes[i] * 2654435761u, 40);
+        truth_competition_goal(mazes[i]);
+        maze_init();
+        params_reset();
+        fake_flash_wipe();
+        sim_reset(0.03, mazes[i]);
+        search_set_home();
+        CHECK_EQ(search_explore(), RUN_OK);
+        CHECK(search_ready());
+    }
+    maze_set_goal(GOAL_X0, GOAL_Y0, GOAL_X1, GOAL_Y1);
+}
+
 static void transcript(uint32_t seed, uint16_t openings, int practice, int phantom){
     host_verbose = 1;
     if(practice){
@@ -2210,6 +2229,7 @@ int main(int argc, char **argv){
     test_sqrt();
     test_run_control();
     test_repair_at_rest();
+    test_repair_escalates();
     test_fast_run_surprise_wall();
     test_race_false_block();
     test_blocked_leg_keeps_turned();

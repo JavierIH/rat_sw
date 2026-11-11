@@ -353,10 +353,29 @@ should be.
 - The SysTick load cannot be measured off the robot: `STATUS` after a
   race is in the next robot session (`docs/testing.md`, step 2), the
   424 us peak in the notes below.
-- Found on the way: with `SEARCH_COST_TURN` 2 one search of 1046 failed
-  under 3 % noise (`shiba.txt`, no verified path at the end; none with
-  1, 3 or 4). Noise can still end a search without a path: to look at
-  in step 3 with its seed (maze 523 files in order, seed = index + 1).
+- Found on the way: one search failed under 3 % noise (`shiba.txt` with
+  cost 2), "target unreachable" after the three repairs. See A5.
+
+**A5. The map repair loops (bug, medium; measured, fixed 11-11).**
+- Where: `plan_explore()` (`search.c`): every repair first forgot only
+  the walls seen once.
+- Why it is wrong: a phantom wall seen twice seals the goal; forgetting
+  the walls seen once opens a way through real walls, the robot sees
+  them again in passing (once), the goal is sealed again, and the next
+  repair does the same. The phantom stays; the third repair ends the
+  search (`euro-58.txt`: the same dead end at (11,8) every time; with 10
+  repairs allowed it looped 10 times).
+- Measured, 3 % noise: 4 searches of 4184 failed on the real mazes
+  (eight passes with other seeds), 14 of 6000 on random 16x16 with the
+  competition goal. No such failure without noise.
+- Fix: repair n forgets the walls with evidence up to n (seen once,
+  twice, any). 0 of 4184 and 0 of 6000; average search time the same
+  (193.6-196.0 s against 193.6-195.8). `test_repair_escalates` (three of
+  the seeds that failed). Host tests 3922 checks, 0 failures; flash +4 B.
+- Left as it was: at 3 % noise 1 race in ~3000 stops at a wall on a
+  passage two wrong sightings verified (the risk named in A1's option a),
+  and 7 in 6000 end at the start for a wall "seen" twice in front. Both
+  end the race with the map untouched.
 
 ### Noted, not verified yet
 

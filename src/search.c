@@ -205,13 +205,14 @@ static run_result_t finish_at_start(uint16_t steps){
 
 // ---- Planning helpers ----------------------------------------------------------------
 
-// Plans to `targets`; if phantom walls sealed them off, forgets doubtful walls (not this cell's) instead of giving up, at rest only.
+// Plans to `targets`; if phantom walls sealed them off, forgets walls (not this cell's) instead of giving up, at rest only:
+// those seen once in the first repair, twice in the second, any in the third.
 static replan_t plan_explore(const cellset_t *targets, uint8_t *repairs, uint8_t at_rest){
     maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     if(cost_a[pose_state()] != PLAN_INF) return REPLAN_OK;
     if(!at_rest || *repairs >= MAP_MAX_RECOVERIES) return REPLAN_UNREACHABLE;
     (*repairs)++;
-    uint16_t forgotten = maze_forget_walls(1, pose.x, pose.y);
+    uint16_t forgotten = maze_forget_walls((int8_t)*repairs, pose.x, pose.y);     // firmer walls each time
     maze_plan_to(targets, PLAN_OPTIMISTIC, SEARCH_COSTS, cost_a);
     if(cost_a[pose_state()] == PLAN_INF){
         forgotten = (uint16_t)(forgotten + maze_forget_walls(INT8_MAX, MAZE_SIZE, MAZE_SIZE));
