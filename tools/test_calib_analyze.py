@@ -383,42 +383,6 @@ class TestCalibAnalyze(unittest.TestCase):
                 f.write("# wheel_diff_ppm=-3000\n" + text)
         self.assertEqual(ca.chain(paths), trimmed)
 
-    def straight(self, cells, true_ticks_per_mm, coast):
-        target = cells * 1620 + 140
-        rows, pos = [], 0.0
-        while pos < target:
-            pos = min(target, pos + 300 * 9 * 5 / 1000.0)     # 300 mm/s, 5 ms samples
-            rows.append((pos, pos, 150, 150, 0, 0, 0, 0))
-        for k in range(1, 30):
-            rows.append((pos + coast * (1 - math.exp(-k / 3.0)),) * 2 + (0, 0, 0, 0, 0, 0))
-        final = pos + coast * (1 - math.exp(-29 / 3.0))
-        measured = final / true_ticks_per_mm
-        return save(self.tmp.name, "straight %d 150" % cells, 5, rows, ["measured %.1f mm" % measured])
-
-    def test_straights_split_cell_and_move_calibration(self):
-        # 9.5 ticks/mm and 60 ticks of coasting: N cells need N*1710 - 60 ticks at the brake point.
-        one = self.straight(1, 9.5, 60)
-        three = self.straight(3, 9.5, 60)
-        text = ca.report([one, three])
-        self.assertAlmostEqual(number(r"CELL_TICKS ~ (\d+)", text), 1710, delta=3)
-        self.assertAlmostEqual(number(r"MOVE_EXTRA_TICKS ~ (-?\d+)", text), -60, delta=6)
-        self.assertAlmostEqual(number(r"\((\d+) ticks coasting", text), 60, delta=2)
-
-    def test_turn_overshoot_and_angle(self):
-        rows, rot = [], 0.0
-        for _ in range(4):
-            while rot % 455 < 430 or not rows:
-                rot += 2
-                rows.append((rot, -rot, 110, -110, 0, 0, 0, 0))
-                if rot % 455 >= 430:
-                    break
-            for k in range(1, 31):
-                rows.append((rot + 25 * min(1, k / 5.0),) + (-(rot + 25 * min(1, k / 5.0)),) + (0,) * 6)
-            rot += 25
-        text = ca.report([save(self.tmp.name, "turn 4", 5, rows, ["angle 380"])])
-        self.assertEqual(len(re.findall(r"overshoot 25\)", text)), 4, text)
-        self.assertAlmostEqual(number(r"TICKS_PER_TURN suggested (\d+)", text), 90 * 4 * 455 / 380 - 25, delta=3)
-
     def test_ir_sweep_recovers_the_curve(self):
         start, rows = 40, []
         for i in range(200):
@@ -458,7 +422,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"TUNE CENTER_L ([\d.]+)", text), 88, delta=1)
         self.assertAlmostEqual(number(r"TUNE CENTER_R ([\d.]+)", text), 77, delta=1)
         self.assertAlmostEqual(number(r"([-+\d.]+) mm by SR", text), 6, delta=1)
-        self.assertNotIn("no coinciden", text)
+        self.assertNotIn("they disagree", text)
         # Without the turn, or with a wall missing, no centres.
         self.assertNotIn("TUNE CENTER_L", ca.report([paths[0], paths[2]]))
         self.assertIn("wall is missing", ca.report([paths[0], paths[1], still(94, 150)]))
@@ -489,10 +453,19 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertIn("dropped", text)
         self.assertIn("points at least 10 mm apart", text)
 
-    def test_missing_measurements_ask_for_notes(self):
+    def test_moves_without_a_reference_are_not_analysed(self):
         rows = [(i * 10, i * 10, 150, 150, 0, 0, 0, 0) for i in range(50)] + [(500, 500) + (0,) * 6]
         text = ca.report([save(self.tmp.name, "straight 1 150", 5, rows)])
-        self.assertIn("/note measured", text)
+        self.assertIn("not analysed", text)
+
+    def test_damaged_rows_are_left_out(self):
+        rows = [(0, 0, 0, 0, 100, 100, 100, 100)] * 20
+        path = save(self.tmp.name, "noise 200", 10, rows)
+        with open(path, "a") as f:
+            f.write("190,0,0,0,1\n200,0,x,0,100,100,100,100\n")
+        text = ca.report([path])
+        self.assertIn("2 damaged rows", text)
+        self.assertIn("20 samples", text)
 
     def test_ir_delay(self):
         # An in-place turn (5000 deg/s^2) with SL reading the angle 8 ms late, +1.2 mm/deg.

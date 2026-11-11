@@ -15,12 +15,12 @@ CAL CURVE (a cell, a smooth curve, a cell) needs no notes: the side walls
 after the curve, the front wall at the end and FL-FR there suggest
 CURVE_PRE, CURVE_POST and CURVE_ANGLE.
 
-Recordings from the speed-control firmware carry the profile reference
-(ref_fwd, ref_rot): straights and turns then report how closely the wheels
-followed it, the centring and the real distance/angle. Open-loop steps
-(CAL STEP) at two or more PWMs give the motor model constants
-(MOTOR_KV_L/R, MOTOR_KS_PWM, MOTOR_TAU_S). Older recordings (no reference)
-are still analysed as before.
+Straights, turns and curves carry the profile reference (ref_fwd, ref_rot)
+and report how closely the wheels followed it, the centring and the real
+distance/angle. Open-loop steps (CAL STEP) at two or more PWMs give the
+motor model constants (MOTOR_KV_L/R, MOTOR_KS_PWM, MOTOR_TAU_S). Moves
+recorded before the speed control (2026-09-23/24, no reference) are listed
+but not analysed.
 
     python3 tools/calib_analyze.py --chain tools/calib_data/2026-09-26_20-*.csv
 
@@ -98,7 +98,14 @@ def load(path):
             elif columns is None:
                 columns = line.split(",")
             elif line.strip():
-                rows.append([int(v) for v in line.split(",")])
+                try:
+                    row = [int(v) for v in line.split(",")]
+                except ValueError:
+                    row = []
+                if len(row) == len(columns):
+                    rows.append(row)
+                else:
+                    meta["bad_rows"] = str(int(meta.get("bad_rows", 0)) + 1)     # cut on the radio link
     data = {c: [r[i] for r in rows] for i, c in enumerate(columns or [])}
     for c in ("enc_l", "enc_r", "ref_fwd", "ref_rot"):     # int16 on the robot: unwrap long recordings
         if c in data:
@@ -146,18 +153,6 @@ def speed_mm_s(rec, ticks, smooth=3):
 
 def motor_on(rec, i):
     return rec.data["pwm_l"][i] != 0 or rec.data["pwm_r"][i] != 0
-
-
-def stop_index(rec):
-    """First sample with both motors off after they had been on. The cut
-    happened between it and the previous sample, the last one driving."""
-    started = False
-    for i in range(rec.n):
-        if motor_on(rec, i):
-            started = True
-        elif started:
-            return i
-    return rec.n - 1
 
 
 def fit_cubic(xs, ys):
@@ -294,16 +289,11 @@ def side_fit(rec, points, out):
     worst = max(max(abs(sl - (cl + kl * x)), abs(sr - (cr + kr * x))) for x, sl, sr in points)
     old_l, old_r = rec.number("center_l", cl), rec.number("center_r", cr)
     out.append("Side sensors from %d points, robot from %+.1f to %+.1f mm: SL = %.1f %+.3f x, SR = %.1f %+.3f x"
-               " (residuo max %.1f mm)" % (len(points), min(xs), max(xs), cl, kl, cr, kr, worst))
+               " (max residual %.1f mm)" % (len(points), min(xs), max(xs), cl, kl, cr, kr, worst))
     out.append("  slope SL %.2f, SR %.2f (1: the curve follows the motion; more than 10 %% off,"
                " recalibrate that sensor's curve)" % (kl, -kr))
     out.append("  centring: TUNE CENTER_L %.1f, TUNE CENTER_R %.1f (now %.1f / %.1f): with both walls the"
                " robot would centre %.1f mm more to the right" % (cl, cr, old_l, old_r, ((cl - old_l) - (cr - old_r)) / 2))
-
-
-def controlled(rec):
-    """Recorded by the speed-control firmware (profile reference present)."""
-    return "ref_fwd" in rec.data
 
 
 def side_errors(rec, upto):
@@ -474,7 +464,7 @@ def analyze_curve_controlled(rec, out):
     if saturated:
         out.append("  ! PWM at the limit in %d samples of %d: lower CURVE" % (saturated, len(pwm)))
     out.append("  encoders: %+.2f deg in the curve, %+.2f over the whole move (asked %+.2f); centring"
-               " held in the curve %+.2f" % (rot[b] - rot[a], rot[end - 1], direction * angle, ref_r[a]))
+               " held in the curve %+.2f" % (rot[min(b, rec.n - 1)] - rot[a], rot[end - 1], direction * angle, ref_r[a]))
 
     # Sideways, once the side readings come from the exit corridor (IR_DELAY_MS after the curve).
     errors = dict(side_errors(rec, end))
@@ -523,96 +513,6 @@ def analyze_curve_controlled(rec, out):
                        " average several)" % (90.0 / k, angle))
     else:
         out.append("  (no wall ahead at the end: with one, CURVE_POST and CURVE_ANGLE get calibrated)")
-
-
-def analyze_straight(rec, out, measured_pairs):
-    cells = rec.args[0] if rec.args else 1
-    pwm = rec.args[1] if len(rec.args) > 1 else rec.number("spd")
-    tpm = rec.number("ticks_per_mm", 9)
-    extra = rec.number("move_extra_ticks", 140)
-    if extra >= 2 ** 31:    # dumps before Sep 24 printed it unsigned
-        extra -= 2 ** 32
-    target = cells * rec.number("cell_ticks", 1620) + extra
-    ticks = average_ticks(rec)
-    stop = stop_index(rec)
-    at_stop, final = ticks[max(0, stop - 1)], ticks[-1]
-    coast = final - at_stop
-    out.append("Straight of %d cell(s) at PWM %s (%s)" % (cells, int(pwm) if pwm is not None else "?", rec.meta.get("result", "?")))
-    out.append("  target %d ticks | on braking %d | final %d -> %.1f mm (%d ticks coasting = %.1f mm)"
-               % (target, at_stop, final, final / tpm, coast, coast / tpm))
-    diff = rec.data["enc_l"][-1] - rec.data["enc_r"][-1]
-    out.append("  final left-right difference: %d ticks (%.1f mm)" % (diff, diff / tpm))
-    v = speed_mm_s(rec, ticks)
-    moving = [v[i] for i in range(stop) if motor_on(rec, i)]
-    if moving:
-        cruise = sorted(moving)[len(moving) * 3 // 4:]
-        out.append("  top speed %.0f mm/s, cruise ~%.0f mm/s" % (max(moving), mean(cruise)))
-    steer = [(l - r) / 2 for i, (l, r) in enumerate(zip(rec.data["pwm_l"], rec.data["pwm_r"])) if motor_on(rec, i)]
-    if steer:
-        out.append("  steering correction (PWM): mean %+.1f, deviation %.1f" % (mean(steer), stdev(steer)))
-        if abs(mean(steer)) > 15:
-            out.append("  ! it always corrects to the same side: the motors differ (compensate it)")
-    lane = rec.number("lane_mm", 168)
-    errors = []
-    for raw in rec.data["raw_sr"][:stop]:
-        mm = rec.ir_mm("sr", raw)
-        if mm is not None and mm < rec.number("side_track_mm", 130):
-            errors.append(mm - lane / 2)
-    if len(errors) > 5:
-        crossings = sum(1 for a, b in zip(errors, errors[1:]) if (a < 0) != (b < 0))
-        seconds = len(errors) * rec.period / 1000.0
-        out.append("  centring on the right wall: error %+.1f +- %.1f mm, %.1f crossings/s"
-                   % (mean(errors), stdev(errors), crossings / seconds if seconds else 0))
-        if crossings / max(seconds, 1e-9) > 4:
-            out.append("  ! it oscillates: lower KP or raise KD")
-    measured = rec.note_value("measured")
-    if measured:
-        per_mm = final / measured
-        needed = at_stop + (cells * CELL_MM - measured) * per_mm
-        out.append("  measured %.0f mm -> %.2f real ticks/mm (config %.0f)" % (measured, per_mm, tpm))
-        out.append("  for %d mm it would have to brake at %.0f ticks (now %d): %+.0f ticks"
-                   % (cells * CELL_MM, needed, target, needed - target))
-        measured_pairs.append((cells, needed))
-    else:
-        out.append("  (note the real distance with: /note measured <mm> mm)")
-
-
-def analyze_turn(rec, out):
-    quarters = rec.args[0] if rec.args else 4
-    direction = 1 if quarters > 0 else -1
-    tpt = rec.number("ticks_per_turn", 422)
-    rot = [direction * (l - r) / 2 for l, r in zip(rec.data["enc_l"], rec.data["enc_r"])]
-    segments, start = [], None
-    for i in range(rec.n):
-        on = motor_on(rec, i)
-        if on and start is None:
-            start = i
-        elif not on and start is not None:
-            segments.append((start, i))
-            start = None
-    out.append("Turn of %d quarters (%s), %d stretches found" % (abs(quarters), rec.meta.get("result", "?"), len(segments)))
-    overshoots = []
-    for k, (a, b) in enumerate(segments):
-        # From rest before the motors start to rest again before the next turn (or the end).
-        rest = rot[a - 1] if a > 0 else rot[a]
-        end = segments[k + 1][0] - 1 if k + 1 < len(segments) else rec.n - 1
-        turned_at_stop = rot[b - 1] - rest
-        turned = rot[end] - rest
-        overshoots.append(turned - turned_at_stop)
-        out.append("  turn %d: on braking %.0f ticks, settled %.0f (overshoot %.0f)"
-                   % (k + 1, turned_at_stop, turned, turned - turned_at_stop))
-    if overshoots:
-        out.append("  mean overshoot %.1f +- %.1f ticks (current threshold %d)" % (mean(overshoots), stdev(overshoots), tpt))
-    angle = rec.note_value("angle")
-    if angle and segments:
-        first = segments[0][0]
-        total = rot[-1] - (rot[first - 1] if first > 0 else rot[first])
-        per_degree = total / angle
-        suggested = 90 * per_degree - mean(overshoots)
-        out.append("  measured %.0f deg -> %.2f ticks/deg; TICKS_PER_TURN suggested %.0f (now %d):"
-                   " try it with TURNTICKS %.0f" % (angle, per_degree, suggested, tpt, suggested))
-    else:
-        out.append("  (note the real angle turned with: /note angle <deg>)")
 
 
 def analyze_step(rec, out, motor_points=None):
@@ -673,7 +573,7 @@ def analyze_ir(rec, out):
         if d >= next_at:
             table.append((d, rec.data["raw_fl"][i], rec.data["raw_fr"][i]))
             next_at += step
-    out.append("  %9s  %7s  %7s" % ("distancia", "raw FL", "raw FR"))
+    out.append("  %9s  %7s  %7s" % ("distance", "raw FL", "raw FR"))
     for d, fl, fr in table:
         out.append("  %7.0f mm  %7d  %7d" % (d + (start or 0), fl, fr))
     if start is None or len(back) < 8:
@@ -860,11 +760,13 @@ def wrap90(deg):
     return (deg + 45.0) % 90.0 - 45.0
 
 
-ANALYSES = {"noise": analyze_noise, "turn": analyze_turn, "ir": analyze_ir, "run": analyze_run}
+MOVES = ("straight", "turn", "curve", "run")    # need the profile reference
+ANALYSES = {"noise": analyze_noise, "ir": analyze_ir, "run": analyze_run, "straight": analyze_straight_controlled,
+            "turn": analyze_turn_controlled, "curve": analyze_curve_controlled}
 
 
 def report(paths):
-    out, measured_pairs, motor_points = [], [], []
+    out, motor_points = [], []
     mirror = None   # readings of the last CAL NOISE, quarters turned since
     stations, turned = None, 0          # a round's readings by heading (quarters)
     side_points, side_rec = [], None    # (offset, SL, SR) from the rounds
@@ -873,32 +775,24 @@ def report(paths):
         out.append("=" * 72)
         out.append("%s  [%s, %d samples every %.0f ms, firmware %s]"
                    % (path, rec.test, rec.n, rec.period, rec.meta.get("build", "?")))
-        if "accel" in rec.meta:
-            gain2 = "kd" if "kd" in rec.meta else "ki"     # the centring's second gain (KI before 10-05)
-            out.append("  SPD %s FAST %s CURVE %s ACCEL %s TURN %s TACCEL %s KP %s %s %s" % tuple(
-                [rec.meta.get(k, "?") for k in ("spd", "fast", "curve", "accel", "turn", "turn_accel", "kp")]
-                + [gain2.upper(), rec.meta.get(gain2, "?")]))
-        else:
-            out.append("  SPD %s FAST %s TURN %s KP %s KI %s KD %s KE %s" % tuple(
-                rec.meta.get(k, "?") for k in ("spd", "fast", "turn", "kp", "ki", "kd", "ke")))
+        gain2 = "kd" if "kd" in rec.meta else "ki"     # the centring's second gain (KI before 10-05)
+        out.append("  SPD %s FAST %s CURVE %s ACCEL %s TURN %s TACCEL %s KP %s %s %s" % tuple(
+            [rec.meta.get(k, "?") for k in ("spd", "fast", "curve", "accel", "turn", "turn_accel", "kp")]
+            + [gain2.upper(), rec.meta.get(gain2, "?")]))
         for note in rec.notes:
             out.append("  note: " + note)
+        if "bad_rows" in rec.meta:
+            out.append("  ! %s damaged rows left out (the radio link)" % rec.meta["bad_rows"])
         if rec.n == 0:
             out.append("  no samples")
-        elif rec.kind == "straight" and controlled(rec):
-            analyze_straight_controlled(rec, out)
-        elif rec.kind == "straight":
-            analyze_straight(rec, out, measured_pairs)
-        elif rec.kind == "turn" and controlled(rec):
-            analyze_turn_controlled(rec, out)
-        elif rec.kind == "curve" and controlled(rec):
-            analyze_curve_controlled(rec, out)
+        elif rec.kind in MOVES and "ref_fwd" not in rec.data:
+            out.append("  recorded before the speed control (no reference): not analysed")
         elif rec.kind == "step":
             analyze_step(rec, out, motor_points)
         elif rec.kind in ANALYSES:
             ANALYSES[rec.kind](rec, out)
         else:
-            out.append("  prueba desconocida: %s" % rec.kind)
+            out.append("  unknown test: %s" % rec.kind)
         # The side sensors: CAL NOISE, CAL TURN 2, CAL NOISE in a corridor, or rounds (side_round).
         if rec.kind == "noise" and rec.n:
             means = rest_means(rec)
@@ -923,18 +817,6 @@ def report(paths):
     if side_rec:
         out.append("=" * 72)
         side_fit(side_rec, side_points, out)
-    lengths = {cells for cells, _ in measured_pairs}
-    if len(lengths) >= 2:
-        # needed(N) = N * CELL_TICKS + MOVE_EXTRA_TICKS, least squares over all measured straights.
-        n = len(measured_pairs)
-        sx = sum(c for c, _ in measured_pairs)
-        sy = sum(t for _, t in measured_pairs)
-        sxx = sum(c * c for c, _ in measured_pairs)
-        sxy = sum(c * t for c, t in measured_pairs)
-        cell = (n * sxy - sx * sy) / (n * sxx - sx * sx)
-        extra = (sy - cell * sx) / n
-        out.append("=" * 72)
-        out.append("From %d measured straights: CELL_TICKS ~ %.0f, MOVE_EXTRA_TICKS ~ %.0f" % (n, cell, extra))
     if len({p for p, _, _, _, _ in motor_points}) >= 2:
         out.append("=" * 72)
         out.extend(motor_model(motor_points))
