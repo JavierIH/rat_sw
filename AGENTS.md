@@ -10,7 +10,7 @@
   format), `measurements.md` (the numbers behind `robot_config.h`),
   `testing.md` (what was validated on the robot, 16x16 readiness),
   `mazes.md` (the test layouts), `review.md` (outside review and work plan),
-  `lighting.md` (proposed check of the venue's light on the IR),
+  `lighting.md` (the venue's light on the IR: the manual check),
   `faults/` (investigations: `freezes.md`, `oshwdem2026.md`, `centring.md`).
   Read only what the issue needs; keep this file to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
@@ -186,8 +186,6 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   SysTick into a 320-sample buffer (6.4 KB; when full it halves its
   resolution instead of dropping the end), then dumps them as `@D` lines
   with every constant.
-- `light_check.c/.h`: `CHECK`, four quarter turns in the start cell measure
-  how the venue's light shifts each IR (`docs/lighting.md`).
 - `commands.c/.h`: Bluetooth console (table in `COMMANDS[]`).
 - `main.c`: init, mode selection UI, run dispatch, `app_systick()`.
 - Drivers: `motor`, `pwm`, `encoder`, `infrared`, `gpio`, `uart`, `msp.c`
@@ -249,8 +247,7 @@ firmware has no HELP, to save flash). Main ones: `MODE n`, `START`, `STOP`, `PAU
 `SPD n`, `FAST n`, `CURVE n`, `ACCEL n`, `TURN n`, `TACCEL n`, `TURNTICKS n`,
 `KP f`, `KD f`, `TUNE [name value]` (control constants live, not saved),
 `LOG 0-2`, `DEFAULTS`, `GOAL x y [x1 y1]`, `SAVE`, `ERASE`, `HOME`, `RESET`,
-`SYNC`, `TELEM ON|OFF`, `CHECK` (lighting check in the start cell,
-`docs/lighting.md`), `CONT ON|OFF` (search straights without stopping, the
+`SYNC`, `TELEM ON|OFF`, `CONT ON|OFF` (search straights without stopping, the
 default, or stopping in every cell; until reset),
 `CAL NOISE|STRAIGHT|TURN|CURVE|STEP|IR|DUMP|RUN` (`practice`/`dev` builds; `RUN` arms the recorder
 for the next continuous move of a run: the speed run to the goal, or a
@@ -258,7 +255,7 @@ search leg; the dump comes when the run ends).
 - Lines starting with `@` are telemetry for the monitor (`@D` = calibration
   dump); human-readable output never starts with `@`.
 - Commands that block, write flash or use the planner (`MAP`, `WALLS`,
-  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `CONT`, `SYNC`, `CAL`, `CHECK`) are refused
+  `SAVE`, `ERASE`, `GOAL`, `HOME`, `MODE`, `CONT`, `SYNC`, `CAL`) are refused
   during a run. `CAL` only validates and queues the test: it runs from the
   main loop, so `STOP` keeps working during the test and the dump.
 - Decimals are parsed by hand (`parse_decimal`): this nano-libc has no `%f`
@@ -332,8 +329,8 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal). With the tools (`practice`,
-  `dev`): RAM 84.4 % (~3.1 KB left for the stack), flash 93.6 % of 62 KB
-  (4.0 KB left); `competition`: RAM 52.7 %, flash 85.0 % (9.3 KB left).
+  `dev`): RAM 84.4 % (~3.1 KB left for the stack), flash 91.0 % of 62 KB
+  (5.7 KB left); `competition`: RAM 52.7 %, flash 82.4 % (11.2 KB left).
   Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/design.md`): `STATUS` shows the

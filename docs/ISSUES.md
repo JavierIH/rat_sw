@@ -15,8 +15,7 @@ commit when done. Details go in the docs it points to, not here.
   `develop`): the audit (`docs/review.md`, "Audit of 2026-11-11") is
   done but what needs the robot. Merge the branch after the robot
   session.
-- Waiting on the user: what to keep of `CHECK` (issue 21: the 10-08 run
-  shows it cannot resolve a few mm); review item 8 (recommended: keep the
+- Waiting on the user: review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
   firmware); the hardware of item 6; the race 2.4 crash at OSHWDEM
   (issue 17).
@@ -53,15 +52,6 @@ commit when done. Details go in the docs it points to, not here.
   that jumps 8 mm away stops counting until steady over 20 mm (section
   11; `TUNE STEER_HOLD 0` = the old centring). Next: the robot.
 
-- Issue 21, lighting check for competitions (10-06; `docs/lighting.md`): the
-  IR have no ambient subtraction; ~200 counts of extra light make an open
-  right side a phantom wall. `CHECK` (report only) ran on the robot 10-08:
-  FAIL at home for the geometry (the side beams' "open" headings see the
-  walls of (0,1); the cell's width and the placement's yaw move the fronts
-  by 3-6 mm). Next: the user decides what to keep (fronts' open reading
-  facing north, large shifts, noise; or drop the correction), then the
-  trigger.
-
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
   (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
@@ -77,6 +67,14 @@ commit when done. Details go in the docs it points to, not here.
   1), and the oscillation check along a baseboard at 300/450/600/800.
 
 ## Closed
+
+- 2026-11-11 Lighting check (issue 21; `docs/lighting.md`): `CHECK`
+  removed. On the robot (10-08) it gave FAIL at home under good light:
+  the shifts it resolved (a few mm) are the size of the placement's and
+  the maze's tolerances. Flash -1.7 KB. The competition checklist reads
+  the light with `IR` (`docs/testing.md`); the IR still have no ambient
+  subtraction (hardware), so a strong lamp can still make an open right
+  side a wall: shade it.
 
 - 2026-10-08 The IR delay (issue 20; `docs/measurements.md`): 8 wall
   approaches at 100-900 mm/s (two at each) gave FL 16-24 / FR 24-32 ms at 600-900 (the

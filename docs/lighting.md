@@ -1,4 +1,23 @@
-# Lighting check (proposal, issue 21)
+# Lighting check (tried and removed, issue 21)
+
+Status (11-11): `CHECK` is gone from the firmware (the last commit with
+it: ed8d87c; `src/light_check.c`, 103 lines, 1.7 KB of flash). It gave FAIL at
+home under good light, every time (validation 1 below): what it could
+resolve, a few mm, is the size of the maze's and the placement's
+tolerances, so its verdict said nothing about the light. What it could
+see, a large shift, the checklist's `IR` shows too:
+
+- Start cell, facing north, placed as for a run: `IR` must read FL and FR
+  above ~220 mm (open; 222-231 / 291-307 at home), SL ~89 and SR ~76 mm.
+- An open right side (the robot by hand in a cell without that wall): SR
+  above 160 mm (~182 at home). Under 140 it is a phantom wall: shade the
+  maze or the lamp; the firmware has no correction.
+
+The rest of this file is the proposal as it was, for whoever tries again:
+an automatic check needs something the placement does not move (the
+fronts' open reading facing north, a large shift, the noise).
+
+## The proposal (10-06)
 
 A short automatic routine to run at a competition before the first search:
 it measures how the venue's light changes the IR readings, corrects them
