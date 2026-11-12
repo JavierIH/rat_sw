@@ -10,8 +10,9 @@ commit when done. Details go in the docs it points to, not here.
   flash of `practice` and the robot session in `docs/testing.md` ("Next
   robot session", steps 1-6: wall ends, a search and the races, the
   read-only races, the sides with `CONT OFF`, the doubtful front, the
-  followers' own map), then merge `audit-11-11` into `develop`.
-- Without the robot: nothing pending on the branch; do not stack more
+  followers' own map). The audit is in `develop` since 11-12: it is
+  ahead of the robot until that flash.
+- Without the robot: nothing pending; do not stack more
   behaviour changes on it before the robot session.
 - Waiting on the user: review item 8 (recommended: keep the
   monitor's planner port, the transcript tests' cross-check of the
@@ -21,7 +22,7 @@ commit when done. Details go in the docs it points to, not here.
 ## Open
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
-  two sections), branch `audit-11-11`. 10-22: every small fix done but
+  two sections; in `develop`). 10-22: every small fix done but
   the untracked `docs/img/` (the user's call); questions 3-6 left. Audit,
   all in the simulator, waiting for the robot (`docs/testing.md`, steps
   3-4): A1/A2 races only read the map (c41d383); A3 a leg blocked in its

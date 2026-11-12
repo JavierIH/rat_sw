@@ -44,8 +44,9 @@ In order. The first two are worth more than any new code.
 1. **Validate on the robot what only the simulator has seen.** Eight
    changes wait behind one flash (`practice`), and flashing means taking
    the robot apart: one flash, then the session of `testing.md` ("Next
-   robot session", steps 1-6), then merge `audit-11-11` into `develop`.
-   Until then do not stack more behaviour changes on the branch.
+   robot session", steps 1-6). The code is already in `develop` (merged
+   11-12), so `develop` is ahead of the robot until that flash.
+   Until then do not stack more behaviour changes on it.
 2. **A large maze.** The robot has never run more than the 4x3
    (issue 11). Two things only a long run shows:
    - the decisions on the way. On the practice maze the worst took 4.3 ms
