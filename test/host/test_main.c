@@ -2130,6 +2130,8 @@ static int mazefile_load(const char *path){
 // --mazefile <file>...: the whole cycle on each maze, perfect and 3% noise; names the failures.
 static void mazefile_report(int count, char **paths){
     summary_t sums[2] = {{0}};
+    double longest[2] = {0.0};
+    int over_300[2] = {0}, over_420[2] = {0};   // of the competition's 7 minutes: under 2 left for the races, none
     for(int i = 0; i < count; i++){
         for(int k = 0; k < 2; k++){
             if(!mazefile_load(paths[i])){
@@ -2158,6 +2160,9 @@ static void mazefile_report(int count, char **paths){
             s->search_stops += one.search_stops;
             s->search_cells += one.search_cells;
             s->search_seconds += one.search_seconds;
+            if(one.search_seconds > longest[k]) longest[k] = one.search_seconds;
+            over_300[k] += one.search_seconds > 300.0;
+            over_420[k] += one.search_seconds > 420.0;
             s->fast_cells += one.fast_cells;
             s->fast_curves += one.fast_curves;
             s->fast_turns += one.fast_turns;
@@ -2169,6 +2174,8 @@ static void mazefile_report(int count, char **paths){
     print_summary("perfect sensing", &sums[0]);
     print_summary("3% noise", &sums[1]);
     printf("  worst decision on the way: %u pops (perfect), %u (3%% noise)\n", sums[0].decide_pops_max, sums[1].decide_pops_max);
+    printf("  longest search: %.0f s (perfect), %.0f s (3%% noise); over 300 s: %d and %d; over 420 s: %d and %d\n",
+           longest[0], longest[1], over_300[0], over_300[1], over_420[0], over_420[1]);
 }
 
 // --timing: the planner's pops in each decision on the way (the robot must decide within SEARCH_LATE_MARGIN_MM).
