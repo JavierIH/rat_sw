@@ -15,7 +15,8 @@
   `faults/` (investigations: `freezes.md`, `oshwdem2026.md`, `centring.md`).
   Read only what the issue needs; keep this file to rules and commands.
 - The robot over Bluetooth: `python3 tools/bt_logger.py &` (holds
-  `/dev/rfcomm0`, logs to `tools/logs/`, saves `@D` dumps) and
+  `/dev/rfcomm0`, or without it an RFCOMM socket, no root; logs to
+  `tools/logs/`, saves `@D` dumps) and
   `tools/robot.sh [-w regex] [-t s] "CMD" ...`. Only one program may hold
   the port (close `robot_monitor.py` first). Keep outputs short: grep the
   lines that matter, summarise recordings with `tools/calib_analyze.py`.
