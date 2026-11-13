@@ -13,14 +13,10 @@ state of each issue in `ISSUES.md`.
   182 s on average; 0 searches fail in 4184 with 3 % noise (4 before
   11-11); the race's route to the goal takes 17.5 s at 900/400.
   `make -C test/host`: 3963 checks; tools: 34 tests.
-- Robot: the last flash is 10-08. Everything below is in the code and in
-  the simulator only:
-  - the wall-end hold of the centring (GitHub issue #1), `IR_DELAY_MS` 22;
-  - races only read the map (2.3-2.6 on 11-11, the followers 2.1/2.2 too);
-  - a leg blocked in its cell keeps "just turned" (A3), the sides on the
-    way in sampled every 8 ms (A4), map repairs that escalate (A5);
-  - a front only one sensor sees at rest is doubtful;
-  - `CHECK` removed.
+- Robot: flashed 11-13 (`practice`) with all of it, and validated that
+  day (`docs/testing.md`, session of 11-13): the wall-end hold of the
+  centring (GitHub issue #1), `IR_DELAY_MS` 22, races that only read the
+  map, the audit's A3-A5, the doubtful front, the followers' own map.
 - Sizes: `competition` RAM 52.7 %, flash 82.4 % (11.2 KB free);
   `practice`/`dev` RAM 84.4 %, flash 91.0 % (5.7 KB free).
 
@@ -41,12 +37,8 @@ state of each issue in `ISSUES.md`.
 
 In order. The first two are worth more than any new code.
 
-1. **Validate on the robot what only the simulator has seen.** Eight
-   changes wait behind one flash (`practice`), and flashing means taking
-   the robot apart: one flash, then the session of `testing.md` ("Next
-   robot session", steps 1-6). The code is already in `develop` (merged
-   11-12), so `develop` is ahead of the robot until that flash.
-   Until then do not stack more behaviour changes on it.
+1. **Validate on the robot what only the simulator has seen.** Done
+   11-13: one flash, steps 1-6 of the session all passed.
 2. **A large maze.** The robot has never run more than the 4x3
    (issue 11). Two things only a long run shows:
    - the decisions on the way. On the practice maze the worst took 4.3 ms
@@ -76,8 +68,8 @@ In order. The first two are worth more than any new code.
    failure, so there is nothing to show for it. Only if the robot shows
    the failure.
 6. **The stack with a follower.** Races 2.1/2.2 keep the map's copy on
-   the stack (292 B): read "stack never used" in `STATUS` after one
-   (2240 B after a search on 10-08; about 1.9 KB expected).
+   the stack (292 B). Read 11-13 (`practice`): 1632 B never used after
+   one (1856 after the search, 2232 at boot). Enough; nothing to do.
 
 Not planned: a SysTick stop when the following error runs away while the
 main loop blocks (never seen), a lock on the map (the test covers it).
@@ -153,7 +145,7 @@ race is 17.5 s to the goal.
 
 ## Order
 
-1. The robot session and the merge (robustness 1).
+1. The robot session (robustness 1): done 11-13.
 2. The large maze (robustness 2), then one way to search (simplicity 1)
    and the legs' speed (efficiency 2).
 3. The rules of the next competition, then `OPTIM` (efficiency 1).

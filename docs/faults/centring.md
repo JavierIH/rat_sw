@@ -8,7 +8,7 @@ still open. The centring as it is now: `docs/design.md`.
 10-08 on the robot: crooked and off-centre starts solved (section 9); open:
 the heading kick at wall ends, once a `MOVE_SLIPPED` (section 10). 10-22:
 fixed in the simulator, a side that jumps away stops counting for 20 mm
-(section 11); waits for the robot.
+(section 11). 11-13: validated on the robot (section 12); closed.
 
 ## 1. Summary
 
@@ -422,9 +422,23 @@ What is left: in the simulator a short edge reading that comes before
 the step away (30 % of edges there; on the robot every recorded one
 came after it) still counts once (a ~2 deg kick).
 
-## 12. Open
+## 12. The fix on the robot (11-13)
 
-- The fix of section 11 on the robot: `CAL STRAIGHT` past wall ends at
-  300-900 (the 10-08 `SLIPPED` case first), then the races 2.4/2.5 (not
-  run on 10-08: they waited for the fix). `docs/testing.md`, next robot
-  session.
+Flashed 11-13, layout I with a wall east of (0,0)
+(`tools/calib_data/2026-11-13_*`; `docs/testing.md`, session of 11-13):
+
+- The 10-08 `SLIPPED` case (`CAL STRAIGHT 2 300` from (1,2) east right
+  after a `CAL CURVE`): `end=IR`, err 1.73 deg (15.67 then).
+- Row 2 past its wall ends, 3 cells at 300, 450, 600, 900: err 2.10,
+  2.31, 2.55, 1.84 deg (4-12 on 10-08). The search's legs at 450: <=
+  2.34 deg (11.7); races 2.4 and 2.5: <= 3.6 deg.
+- Crooked starts still centre: ~30 deg at 300 within a cell (per 45 mm:
+  `+9 +9 +5 +2 +0 -1 ...`, the centring asked 32 deg), ~20 deg at 900
+  within two cells (`-7 +7 +13 +12 +8 +5 +2 -0 ...`), no touch.
+- A limit seen by accident: placed so crooked that neither side read
+  within `SIDE_WALL_TRACK_MM` (SL 146 / SR 182, FR already at 130), the
+  centring had nothing to follow (asked 0 deg) and the robot drove its
+  heading into the wall: `end=WALL` at 114 mm, touching. No turn leaves
+  the robot like that; only a placement by hand does.
+
+Nothing open.

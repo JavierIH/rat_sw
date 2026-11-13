@@ -6,38 +6,57 @@ the test layouts: docs/mazes.md.
 
 ## Next robot session (plan)
 
-The fix of the wall ends is in (`docs/faults/centring.md`, section 11,
-simulator only): one flash of `practice` (it also brings `IR_DELAY_MS`
-22), layout I with a wall east of (0,0):
+Nothing waits for the robot. Next by `docs/roadmap.md`: the large maze
+(a long stretch), with it the two ways to search compared and the legs
+at 600. Charge the battery first (11-13: `pace=90-95%` at 900).
 
-1. `CAL STRAIGHT 2 300` from (1,2) east right after `CAL CURVE 1 300`
-   from (0,1) north (the 10-08 `SLIPPED`), then 3-cell straights past
-   wall ends at 300-900: `err=` well under 15 deg, no kick (10-08: 4-12
-   deg). If one still kicks, the same straight with `TUNE STEER_HOLD 0`
-   (the old centring) tells whether the rule acted; the dumps carry
-   `steer_jump_mm` / `steer_hold_mm`. Then two crooked starts (~30 deg)
-   at 300 and 900, which must centre as on 10-08.
-2. A search, then races 2.4 twice and, only if clean, 2.5 twice;
-   `STATUS` after a race: "SysTick worst" (issue 19).
-3. Races only read the map (c41d383; `docs/review.md`, audit of 11-11).
-   In the races of step 2: no "Map saved" line at the goal (the robot
-   turns round at once), `STATUS` shows the same free slots as after the
-   search, `MAP` the same map. Then a spare wall piece across the route,
-   on a straight, two cells ahead of where the straight starts (layout I:
-   between (2,2) and (3,2)), `MODE 2 4` and `FAST 400` (curves stay at
-   300): the robot stops a cell before it (`end=WALL`), `!! FAST: BLOCKED
-   at (2,2)E`, three fast blinks, `End: FAILED`. `MAP` must show no wall
-   there; piece out, robot back at the start: the next race 2.4 runs.
-4. The sides on the way in, sampled every 8 ms (audit A4): `CONT OFF`,
-   `LOG 2`, a search. Every `forward 1:` line's `sides=` must match the
-   walls of the cell it ends in, and the map must be right.
-5. A front only one sensor sees is doubtful: the robot stopped by hand
-   ~30 deg yawed near a wall ahead, `WALLS`: `front=?` (it was `0`).
-6. The followers leave the map alone: after the search, `MODE 2 1`,
-   START, `STOP` after a few cells. The monitor shows a blank map while
-   it follows and the search's map again at the end; `MAP` and `STATUS`
-   (cells visited, fast path cost, free slots) as before it; "stack
-   never used" about 1.9 KB. Robot back at the start: race 2.4 runs.
+## Robot session of 11-13 (results)
+
+Flashed `practice` 20:11 (the audit of 11-11, the wall-end hold,
+`IR_DELAY_MS` 22), layout I with a wall east of (0,0), some dust on the
+floor. Log `tools/logs/2026-11-13_20-12-41.log`, recordings
+`tools/calib_data/2026-11-13_*`. No "!!" line but the one step 3 asks for.
+
+1. Wall ends (`docs/faults/centring.md`, section 12). The 10-08
+   `SLIPPED` case, `CAL STRAIGHT 2 300` from (1,2) east right after
+   `CAL CURVE 1 300`: `end=IR`, err 1.73 deg (10-08: 15.67). Row 2 past
+   its wall ends, 3 cells at 300/450/600/900 and 300 again: err
+   2.10/2.31/2.55/1.84/2.06 deg, all `end=IR` (10-08: 4-12). Crooked
+   starts by hand: ~30 deg at 300 centred within a cell (+9 mm -> 0, the
+   centring asked 32 deg), ~20 deg at 900 within two cells (+13
+   mm at worst), no touch. One start far more crooked (FR 130 at rest, SL
+   146 / SR 182: no side within `SIDE_WALL_TRACK_MM`) got no centring at
+   all and stopped on the front wall after 114 mm (`end=WALL`, it touched).
+2. A search: `End: OK`, map right, 6 cells, 4 legs `end=IR`, err <= 2.34
+   deg (10-08: 11.7), planner worst 4.3 ms, late 0. Race 2.4 three times
+   and 2.5 twice, there and back: every route `end=IR`, err <= 3.6 deg,
+   distances within 6 mm between runs (2.4: 867.5-873.4 mm, 2.5: 876.2
+   and 876.6). 2.5 printed `pace=95%`: out of PWM at 900 (the battery,
+   see below). `STATUS` after the races: SysTick worst 444 us (issue 19).
+3. Races only read the map: no "Map saved" in any race, the free slots
+   and `MAP` as after the search. A wall piece between (2,2) and (3,2),
+   `MODE 2 4`, `FAST 400`: `end=WALL` at 685 mm, stopped in (2,2) at FL
+   79 / FR 95, `!! FAST: BLOCKED at (2,2)E`, `End: FAILED`; `MAP` without
+   that wall, nothing saved. Piece out: race 2.4 ran clean.
+4. `CONT OFF`, `LOG 2`, a search after `ERASE`: the 10 `forward 1:`
+   lines' `sides=` all match the walls of their cells (11 10 | 11 11 10 |
+   11 11 01 | 11 11), map right.
+5. The doubtful front: in (3,2) facing the east wall, yawed ~40 deg
+   towards the open south: FL 83 / FR 156, `front=? left=? right=0` (in
+   (2,2), walls on both sides, a yawed robot's other front sensor finds
+   the side wall: `front=1` at 30 and at 45 deg, which is right).
+6. The followers' own map: `STEP ON`, `MODE 2 1`: goal after 5 actions,
+   then down column 3 and along row 0 (cells the search never visited),
+   `STOP` at (1,0)W. `MAP` and `STATUS` as before it (6 cells visited,
+   fast path cost 11, the same free slots). Stack never used: 1632 B
+   (1856 after the search; 2232 at boot).
+
+The battery: no voltage reading, so the PWM tells. Cruising at 300 the
+motors asked 354/307 (10-08: 311-350 / 284-314), at 900 948/927 (10-08:
+863-914 / 846-899): ~5 % lower than on 10-08. At 900 the path slowed to
+the robot's pace (`pace=95%` in race 2.5, 90 % in the crooked 900
+straight), following within 3.6 mm. The flash log was full at the end (5
+saves: 2 searches, `ERASE`): the next power-on compacts it.
 
 ## Robot session of 10-08 (results)
 

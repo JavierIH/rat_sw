@@ -6,36 +6,24 @@ commit when done. Details go in the docs it points to, not here.
 
 ## Next session
 
-- `docs/roadmap.md` has the order of work and its numbers. First: one
-  flash of `practice` and the robot session in `docs/testing.md` ("Next
-  robot session", steps 1-6: wall ends, a search and the races, the
-  read-only races, the sides with `CONT OFF`, the doubtful front, the
-  followers' own map). The audit is in `develop` since 11-12: it is
-  ahead of the robot until that flash.
-- Without the robot: nothing pending; do not stack more
-  behaviour changes on it before the robot session.
-- Waiting on the user: review item 8 (recommended: keep the
-  monitor's planner port, the transcript tests' cross-check of the
-  firmware); the hardware of item 6; the race 2.4 crash at OSHWDEM
-  (issue 17).
+- The robot runs what `develop` has since the flash of 11-13
+  (`practice`), validated that day (`docs/testing.md`, session of 11-13):
+  nothing waits for the robot. For a competition flash `competition`.
+- Next by `docs/roadmap.md`: the large maze (issue 11), then one way to
+  search and the legs at 600. Without the robot: nothing pending.
+- Waiting on the user: the rules of the next competition (does the
+  search time score? then the OPTIM phase becomes a setting); review
+  item 8 (recommended: keep the monitor's planner port, the transcript
+  tests' cross-check of the firmware); the hardware of item 6; the race
+  2.4 crash at OSHWDEM (issue 17); closing GitHub issue #1.
 
 ## Open
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
-  two sections; in `develop`). 10-22: every small fix done but
-  the untracked `docs/img/` (the user's call); questions 3-6 left. Audit,
-  all in the simulator, waiting for the robot (`docs/testing.md`, steps
-  3-4): A1/A2 races only read the map (c41d383); A3 a leg blocked in its
-  cell keeps "just turned"; A4 the sides on the way in sampled every 8
-  ms; A5 the map repair looped under noise (14 searches in 6000 failed,
-  now 0); a front only one sensor sees at rest is doubtful (question 2
-  of 10-22). Step 2: `SEARCH_COST_TURN` 1 and `FAST_COST_*` 2/1
-  measured, stay. Step 3: notes closed, `commands.c` and `main.c` read
-  again, nothing found; the Python tools read (`calib_analyze.py`
-  crashed on a damaged row; its pre-speed-control analyses deleted).
-  A6: the wall followers no longer write the map (a blank map of
-  their own). `CHECK` removed. Left: the robot; questions 3-6 of 10-22;
-  the plan is `docs/roadmap.md`.
+  two sections). The audit (A1-A6, the doubtful front) is validated on
+  the robot (11-13, `docs/testing.md`). Left: questions 3-6 of 10-22 and
+  the untracked `docs/img/` (the user's calls); the plan is
+  `docs/roadmap.md`.
 
 - Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
   loss is solved (saves at the goal, the flash wedge fixed: issue 18,
@@ -45,29 +33,31 @@ commit when done. Details go in the docs it points to, not here.
   the user will bring them up. A smoke test of the competition firmware in
   the air needs ~30 cm clear around the sensors.
 
-- GitHub issue #1, centring (`docs/faults/centring.md`): the PD wall
-  follower (KP 8, KD 0.6), on the robot since 10-08: crooked starts of
-  21-39 deg at 100-900, 36 mm off, 180s and curves all centred within 1-2
-  cells, no touch (section 9). The wall-end kick (4-12 deg, once
-  `MOVE_SLIPPED`, section 10) fixed in the simulator 10-22: a side reading
-  that jumps 8 mm away stops counting until steady over 20 mm (section
-  11; `TUNE STEER_HOLD 0` = the old centring). Next: the robot.
-
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
   (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
   (HC-05 at 115200: the module in AT mode, on the robot), 6 (hardware, the
   user's call), 8 (monitor draws the robot's route: the user's call). Ideas
   from issue 15: a SysTick stop if the following error runs away while the
-  main loop blocks (no such failure seen: only with one); the SysTick
-  load: 424 us worst after a search (10-08); read it after a race (the
-  return's curves are capped at 300 since 10-06).
+  main loop blocks (no such failure seen: only with one). The SysTick
+  load: 444 us worst after searches and races (11-13).
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item
   1), and the oscillation check along a baseboard at 300/450/600/800.
 
 ## Closed
+
+- 2026-11-13 Robot session after the flash of `practice`
+  (`docs/testing.md`, session of 11-13), steps 1-6 all passed. Centring
+  at wall ends (GitHub issue #1, `docs/faults/centring.md`, section 12):
+  the 10-08 `SLIPPED` case 1.7 deg, 3-cell straights at 300-900 1.8-2.6
+  deg (4-12 before), crooked starts still centre. A search, races 2.4
+  (x3) and 2.5 (x2) clean; races read only (a wall on the route:
+  `BLOCKED`, map and flash untouched); sides with `CONT OFF` right; the
+  one-sensor front `?`; the follower left the map alone. Battery ~5 %
+  under 10-08: `pace=90-95%` at 900. `bt_logger.py` no longer needs
+  `/dev/rfcomm0` (an RFCOMM socket, no root).
 
 - 2026-11-11 Lighting check (issue 21; `docs/lighting.md`): `CHECK`
   removed. On the robot (10-08) it gave FAIL at home under good light:
