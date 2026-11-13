@@ -123,11 +123,24 @@ race is 17.5 s to the goal.
    | 400 | 181.4 s | 17.49 s | 520 |
    | 800 (now) | 182.1 s | 17.49 s | 523 |
 
-   If only the best run counts, 800 is right. If the search time counts
-   (the classic rule adds 1/30 of it to the run), the 50 s cost 1.7 s to
-   win 0.7 s: no OPTIM is better at every row. It is a compile-time
-   constant today; make it a console setting (`OPTIM n`, not saved, as
-   `CONT`) once the rules of the next competition are known.
+   The user's competition (told 11-13): 7 minutes for the search and
+   the races together, the search time does not score. So 800 stays and
+   no console setting is added. What the 7 minutes cost, on the 523 real
+   mazes (`host_tests --mazefile` prints it):
+
+   | `OPTIMIZE_MAX_STEPS` | longest search | over 300 s | over 420 s |
+   |---|---|---|---|
+   | 1 | 447 s | 6 | 2 |
+   | 200 | 447 s | 7 | 2 |
+   | 800 (now) | 447 s | 16 | 2 |
+
+   A race there and back is ~50 s (5 s countdown, ~17.5 s, the return at
+   600): the average search (182 s) leaves time for four, and 507 of 523
+   leave two minutes or more. OPTIM moves 10 mazes (2 %) across that
+   line and none across the 7 minutes; the two over 420 s are long on the
+   way to the goal. With 3 % noise: 32 over 300 s, 2 over 420. If a maze
+   turns out that long: the map is saved at the goal, so `STOP`, the
+   robot to the start and a new search goes on from that map.
 2. **The legs' speed.** `SEARCH_LEG_SPEED_MAX` 450 -> 600 takes the search
    from 182 to 161 s (300: 230 s). It was kept at 450 on 10-08 (robust
    before fast). To raise it: the decisions must fit (~7.3 of the 8 mm
@@ -148,6 +161,6 @@ race is 17.5 s to the goal.
 1. The robot session (robustness 1): done 11-13.
 2. The large maze (robustness 2), then one way to search (simplicity 1)
    and the legs' speed (efficiency 2).
-3. The rules of the next competition, then `OPTIM` (efficiency 1).
+3. `OPTIM` (efficiency 1): decided 11-13 with the rules, 800 stays.
 4. After the next competition: the logs (robustness 3), race 2.6, the
    stress tools, the neutral knobs.

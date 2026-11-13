@@ -11,11 +11,13 @@ commit when done. Details go in the docs it points to, not here.
   nothing waits for the robot. For a competition flash `competition`.
 - Next by `docs/roadmap.md`: the large maze (issue 11), then one way to
   search and the legs at 600. Without the robot: nothing pending.
-- Waiting on the user: the rules of the next competition (does the
-  search time score? then the OPTIM phase becomes a setting); review
-  item 8 (recommended: keep the monitor's planner port, the transcript
-  tests' cross-check of the firmware); the hardware of item 6; the race
-  2.4 crash at OSHWDEM (issue 17); closing GitHub issue #1.
+- The competition gives 7 minutes for the search and the races
+  together (the user, 11-13): the OPTIM phase stays as it is, no
+  setting (`docs/roadmap.md`, efficiency 1: 16 of 523 real mazes leave
+  under 2 minutes for the races, 2 none).
+- Waiting on the user: review item 8 (recommended: keep the monitor's
+  planner port, the transcript tests' cross-check of the firmware); the
+  hardware of item 6; the race 2.4 crash at OSHWDEM (issue 17).
 
 ## Open
 
