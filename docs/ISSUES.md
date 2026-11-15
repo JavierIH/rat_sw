@@ -15,6 +15,9 @@ commit when done. Details go in the docs it points to, not here.
   together (the user, 11-13): the OPTIM phase stays as it is, no
   setting (`docs/roadmap.md`, efficiency 1: 16 of 523 real mazes leave
   under 2 minutes for the races, 2 none).
+- The monitor's new look (24-bit colour, the maze as pixels, the run's
+  clock; no curses) is in the branch `monitor-tron`, not merged: checked
+  with replays and the pty tests only, not yet with the live robot.
 - Waiting on the user: review item 8 (recommended: keep the monitor's
   planner port, the transcript tests' cross-check of the firmware); the
   hardware of item 6; the race 2.4 crash at OSHWDEM (issue 17).

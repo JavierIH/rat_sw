@@ -199,11 +199,14 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
   against simulated motors (first order, friction, stiction, dead time),
   quantised encoders, delayed side IR and the chassis' stick-slip in yaw
   (speed-control tests).
-- `tools/robot_monitor.py`: live maze monitor + console (curses). Rebuilds
-  the map from the telemetry, recomputes the route with a Python port of the
-  planner (costs read from `robot_config.h`), renders each frame into an
-  off-screen `Canvas` then blits it (clipped, resize-safe; colours in
-  `THEME`, 256 or the nearest 8), records sessions
+- `tools/robot_monitor.py`: live maze monitor + console (no curses: escape
+  codes in 24-bit colour, raw keys). Rebuilds the map from the telemetry,
+  recomputes the route with a Python port of the planner (costs read from
+  `robot_config.h`), paints the maze as pixels (`MazePainter`, two to a
+  character) and the panels into an off-screen `Screen`, of which
+  `Terminal` sends only what changed (clipped, resize-safe). `Effects`
+  holds what the telemetry does not carry: the drawn robot's glide and
+  trail, the run's clock, the banners. Records sessions
   to `tools/logs/`, replays them (`--replay`), saves `@D` dumps as CSV in
   `tools/calib_data/` (`/note` appends measurements).
 - `tools/calib_analyze.py`: reports and suggested constants from those CSVs;
