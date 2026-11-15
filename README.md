@@ -50,19 +50,23 @@ python3 tools/robot_monitor.py                 # /dev/rfcomm0 at 9600 baud
 python3 tools/robot_monitor.py --replay tools/logs/<session>.log --speed 4
 ```
 
-Draws the maze while the robot explores it, as pixels (two to a
+Draws the maze while the robot explores it, as pixels (six to a
 character): the walls it confirmed in neon, dots where none was seen yet,
 the floor of the visited cells coloured by their distance to the goal, the
 robot gliding from cell to cell with this run's trail behind it, the
 **route it is about to take** (worked out with the firmware's own planner
-and costs) as light flowing along it, the candidate cells while it
-optimises and, stopped, the verified fast path; the goal glowing, hex
-coordinates on the axes. Banners mark the goal and the end of each run; a
+and costs), the candidate cells while it optimises and, stopped, the
+verified fast path; the goal lit, hex coordinates on the axes. During a
+run only the robot moves on the map; stopped, the goal pulses and light
+flows along the fast path. Banners mark the goal and the end of each run; a
 `!!` line turns the frames red. Next to it, the run panel (its phases, the
 clock in large digits, the speed runs' times), a status panel (pose,
 explored share, fast path, link, RX activity), the coloured log and the
 console; a splash screen until the first telemetry arrives. Needs a UTF-8
-terminal with 24-bit colour (256 colours work, coarser).
+terminal with 24-bit colour (256 colours work, coarser) that draws the
+sextant characters of Unicode 13 (VS Code, GNOME Terminal, kitty do);
+where they show as boxes, `--pixels half` (or `/pixels`) draws the maze
+with half blocks, two pixels to a character.
 
 - A speed run sends no pose until it ends: the robot is drawn along the
   route at an estimated pace, then where it reports. The run's time is the
@@ -70,7 +74,7 @@ terminal with 24-bit colour (256 colours work, coarser).
   between the lines as they arrive.
 - Keys: Enter sends, Up/Down history, PgUp/PgDn scroll the log, Tab shows
   the help, **Ctrl+X sends STOP**, Esc quits. Local commands: `/full` (always
-  16x16), `/clear`, `/note`.
+  16x16), `/pixels`, `/clear`, `/note`.
 - Every session is recorded in `tools/logs/` and can be replayed with
   `--replay`.
 - The robot sends its telemetry (`@...` lines of ~20 bytes) only between

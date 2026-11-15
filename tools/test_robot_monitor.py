@@ -238,16 +238,25 @@ class TestRender(unittest.TestCase):
         for model, planner in (practice_model(), self.competition_model()):
             ov = planner.overlay(model)
             for rows, cols in self.SIZES:
-                for show_help in (False, True):
-                    with self.subTest(rows=rows, cols=cols, help=show_help):
+                for pixels, show_help in (("sextant", False), ("sextant", True), ("half", False)):
+                    with self.subTest(rows=rows, cols=cols, pixels=pixels, help=show_help):
                         view = self.view_with_log()
-                        view.show_help = show_help
+                        view.pixels, view.show_help = pixels, show_help
                         scr, cursor = rm.render(rows, cols, model, ov, view, (0, 0), time.monotonic())
                         self.check_frame(scr, cursor, rows, cols)
-                        if rows >= rm.MIN_ROWS and cols >= rm.MIN_COLS:
+                        if rows >= rm.MIN_ROWS and cols >= rm.MIN_COLS and pixels == "half":
                             # The robot is always in view: its white pixel among the maze's half blocks.
                             self.assertTrue(any(scr.ch[y][x] == "\u2580" and rm.WHITE in (scr.fg[y][x], scr.bg[y][x])
                                                 for y in range(rows) for x in range(cols)))
+
+    def test_a_character_from_its_pixels(self):
+        painter, cyan, dark = rm.MazePainter(), rm.WALL_COLOUR, rm.BG
+        self.assertEqual(painter.glyph((dark,) * 6), (" ", dark, dark))
+        self.assertEqual(painter.glyph((cyan, dark) * 3), ("\u258c", cyan, dark))           # a wall on the left
+        self.assertEqual(painter.glyph((cyan, cyan, dark, dark, dark, dark)), ("\U0001fb02", cyan, dark))
+        self.assertEqual(painter.glyph((dark, dark, dark, dark, cyan, cyan)), ("\U0001fb2d", cyan, dark))
+        glow = rm.add(dark, rm.WALL_GLOW)       # a third colour joins the nearer of the two
+        self.assertEqual(painter.glyph((cyan, glow, cyan, dark, cyan, dark))[0], "\u258c")
 
     def test_splash_before_telemetry(self):
         for rows, cols in self.SIZES:
@@ -267,8 +276,8 @@ class TestRender(unittest.TestCase):
     def test_practice_maze_drawing(self):
         model, planner = practice_model()
         ov, painter, p = planner.overlay(model), rm.MazePainter(), 6
-        px = painter.pixels(model, ov, rm.Effects(), (0, 0), 4, 3, p, 0.0)
-        base = painter.static(model, 4, 3, p)
+        px = painter.pixels(model, ov, rm.Effects(), (0, 0), (4, 3), (p, p), (1, 2), 0.0)
+        base = painter.static(model, (4, 3), (p, p), (1, 2))
         self.assertEqual((len(px), len(px[0])), (20, 25))   # an even number of rows: two to a character
         # West and south sides are the real maze border: always solid.
         self.assertTrue(all(px[r][0] == rm.WALL_COLOUR for r in range(19)))
@@ -446,7 +455,7 @@ class TestTerminal(unittest.TestCase):
         self.assertIn("replaying", text)
 
     def test_small_terminal_keys_and_resize(self):
-        keys = b"STATUS\r\t\t/full\r/clear\r\x1b[A\x1b[5~"
+        keys = b"STATUS\r\t\t/full\r/pixels\r/pixels\r/clear\r\x1b[A\x1b[5~"
         self.run_monitor(self.args, 20, 60, keys=keys, resize=(12, 44))
 
     def test_too_small_terminal(self):

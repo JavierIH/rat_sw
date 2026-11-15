@@ -202,8 +202,8 @@ Strategy code is pure C with no HAL, so the same files run on the PC tests.
 - `tools/robot_monitor.py`: live maze monitor + console (no curses: escape
   codes in 24-bit colour, raw keys). Rebuilds the map from the telemetry,
   recomputes the route with a Python port of the planner (costs read from
-  `robot_config.h`), paints the maze as pixels (`MazePainter`, two to a
-  character) and the panels into an off-screen `Screen`, of which
+  `robot_config.h`), paints the maze as pixels (`MazePainter`: sextants,
+  2x3 to a character, or half blocks) and the panels into an off-screen `Screen`, of which
   `Terminal` sends only what changed (clipped, resize-safe). `Effects`
   holds what the telemetry does not carry: the drawn robot's glide and
   trail, the run's clock, the banners. Records sessions

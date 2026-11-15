@@ -18,7 +18,8 @@ on connect), so it does not slow the robot down.
 Keys: Enter send | Up/Down history | PgUp/PgDn/Home/End log | Tab help |
       Ctrl+X STOP the run | Ctrl+L repaint | Esc quit
 
-Needs a terminal with UTF-8 and 24-bit colour (256 colours work, coarser).
+Needs a terminal with UTF-8 and 24-bit colour (256 colours work, coarser). The maze
+is drawn with sextant characters (Unicode 13): where they show as boxes, --pixels half.
 """
 import argparse
 import collections
@@ -659,10 +660,7 @@ class Effects:
     def line(self, model, planner, text, stamp, wall):
         """Feeds a received line to the model. False if it is not telemetry."""
         self.stamp, self.wall = stamp, wall
-        was, fresh = model.activity, None
-        if text.startswith("@C") and len(text) > 3 and text[2] in HEX and text[3] in HEX:
-            fresh = (HEX.index(text[2]), HEX.index(text[3]))
-            fresh = None if model.visited[fresh[0]][fresh[1]] else fresh
+        was = model.activity
         if not model.apply(text, wall):
             self.words(model, text, stamp, wall)
             return False
@@ -670,8 +668,6 @@ class Effects:
             self.on_activity(model, planner, was, stamp)
         if model.pose and model.pose[:2] != self.cell:
             self.on_pose(model.pose[:2])
-        if fresh and model.visited[fresh[0]][fresh[1]]:
-            self.ripples.append((fresh[0], fresh[1], wall, CYAN, 0.5))
         return True
 
     def words(self, model, text, stamp, wall):
@@ -788,37 +784,48 @@ def flood(model):
     return dist
 
 
+# Pixels across and down in a character: sextants (2x3, two colours a character), or half
+# blocks (1x2, coarser) for the terminals that do not draw sextants.
+GRAINS = {"sextant": (2, 3), "half": (1, 2)}
+NEAR = ((-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1), (-1, -1, .5), (-1, 1, .5), (1, -1, .5), (1, 1, .5))
+
+
+def luma(c):
+    return c[0] * 3 + c[1] * 6 + c[2]
+
+
 class MazePainter:
-    """The maze as pixels, p to a cell, walls on the grid lines; two pixels make a character."""
+    """The maze as pixels, walls on the grid lines; a character holds a few of them (GRAINS)."""
 
     def __init__(self):
         self.key = self.base = None
-        self.walls, self.free_posts = [], []
         self.robot = None       # (column, row) of the robot's pixel in the last picture
+        self.glyphs, self.rows = {}, {}     # characters already worked out: by their pixels, by screen row
 
-    def static(self, model, nx, ny, p):
+    def static(self, model, size, pitch, grain):
         """Floor, walls and their glow: redrawn only when the map changes."""
-        key = (model.version, model.goal, nx, ny, p)
+        key = (model.version, model.goal, size, pitch, grain)
         if key == self.key:
             return self.base
-        w, h = nx * p + 1, ny * p + 1
-        px = [[BG] * w for _ in range(h + (h & 1))]
-        wall = [[False] * w for _ in range(len(px))]
+        (nx, ny), (pw, ph) = size, pitch
+        w, h = nx * pw + 1, ny * ph + 1
+        px = [[BG] * (-(-w // grain[0]) * grain[0]) for _ in range(-(-h // grain[1]) * grain[1])]   # whole characters
+        walls = []
         dist = flood(model)
         seen = [(x, y) for x in range(nx) for y in range(ny) if model.visited[x][y]]
         far = max([dist[x][y] for x, y in seen if dist[x][y] < INF] or [1]) or 1
         floor = {}
 
         def row(py):    # pixel row of the horizontal grid line py
-            return (ny - py) * p
+            return (ny - py) * ph
 
         def segment(state, cells, points):
             floors = [floor[c] for c in cells if c in floor]
             for k, (r, c) in enumerate(points, 1):
                 if state == WALL:
-                    wall[r][c] = True
+                    walls.append((r, c))
                 elif state == UNKNOWN:
-                    if k % (2 if p <= 6 else 3) == 0:
+                    if k % (2 if len(points) < 6 else 3) == 0:
                         px[r][c] = UNSEEN
                 elif floors:    # an opening: the floor goes through
                     px[r][c] = mix(floors[0], floors[-1], 0.5) if len(floors) == 2 else mix(BG, floors[0], 0.5)
@@ -826,44 +833,43 @@ class MazePainter:
         for x, y in seen:
             floor[(x, y)] = ramp(FLOOR, dist[x][y] / far)
             for r in range(row(y + 1) + 1, row(y)):
-                px[r][x * p + 1:x * p + p] = [floor[(x, y)]] * (p - 1)
+                px[r][x * pw + 1:x * pw + pw] = [floor[(x, y)]] * (pw - 1)
         states = {}
         for py in range(ny + 1):
             for x in range(nx):
                 states["h", x, py] = WALL if py == 0 else model.wall(x, py - 1, 0)
-                segment(states["h", x, py], ((x, py - 1), (x, py)), [(row(py), x * p + k) for k in range(1, p)])
+                segment(states["h", x, py], ((x, py - 1), (x, py)), [(row(py), x * pw + k) for k in range(1, pw)])
         for gx in range(nx + 1):
             for y in range(ny):
                 states["v", gx, y] = WALL if gx == 0 else model.wall(gx - 1, y, 1)
-                segment(states["v", gx, y], ((gx - 1, y), (gx, y)), [(row(y + 1) + k, gx * p) for k in range(1, p)])
-        self.free_posts = []
+                segment(states["v", gx, y], ((gx - 1, y), (gx, y)), [(row(y + 1) + k, gx * pw) for k in range(1, ph)])
         for gx in range(nx + 1):
             for py in range(ny + 1):
                 if any(states.get(s) == WALL for s in (("h", gx - 1, py), ("h", gx, py), ("v", gx, py - 1), ("v", gx, py))):
-                    wall[row(py)][gx * p] = True
+                    walls.append((row(py), gx * pw))
                 else:
-                    self.free_posts.append((row(py), gx * p, gx + py))
-        for r in range(h):
-            for c in range(w):
-                if wall[r][c]:
-                    px[r][c] = WALL_COLOUR
-                    continue
-                n = 0.0
-                for dr, dc, k in ((-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1), (-1, -1, .5), (-1, 1, .5), (1, -1, .5), (1, 1, .5)):
-                    if 0 <= r + dr < h and 0 <= c + dc < w and wall[r + dr][c + dc]:
-                        n += k
-                if n:
-                    px[r][c] = add(px[r][c], WALL_GLOW, min(1.0, n / 3))
-        self.key, self.base, self.walls = key, px, wall
+                    px[row(py)][gx * pw] = UNSEEN
+        glow = collections.defaultdict(float)
+        for r, c in walls:
+            px[r][c] = WALL_COLOUR
+            for dr, dc, k in NEAR:
+                glow[r + dr, c + dc] += k
+        for r, c in walls:
+            glow.pop((r, c), None)
+        for (r, c), n in glow.items():
+            if 0 <= r < h and 0 <= c < w:
+                px[r][c] = add(px[r][c], WALL_GLOW, min(1.0, n / 3))
+        self.key, self.base = key, px
         return px
 
-    def pixels(self, model, ov, fx, start, nx, ny, p, now):
-        """The whole picture: rows of colours, an even number of them."""
-        px = [r[:] for r in self.static(model, nx, ny, p)]
-        w, h = nx * p + 1, ny * p + 1
+    def pixels(self, model, ov, fx, start, size, pitch, grain, now):
+        """The whole picture: rows of colours, whole characters of them."""
+        px = [r[:] for r in self.static(model, size, pitch, grain)]
+        (nx, ny), (pw, ph) = size, pitch
+        w, h, fine = nx * pw + 1, ny * ph + 1, min(pw, ph) > 4
 
         def centre(x, y):   # (column, row) of a cell's centre, fractions of a cell allowed
-            return int(round(x * p)) + p // 2, int(round((ny - 1 - y) * p)) + p // 2
+            return int(round(x * pw)) + pw // 2, int(round((ny - 1 - y) * ph)) + ph // 2
 
         def light(c, r, colour, k=1.0):
             if 0 <= r < h and 0 <= c < w:
@@ -881,73 +887,69 @@ class MazePainter:
                 out += [(c0 + (c1 - c0) * i // n, r0 + (r1 - r0) * i // n) for i in range(1, n + 1)]
             return out
 
-        for r, c, phase in self.free_posts:     # a sweep over what is not seen yet
-            px[r][c] = mix(UNSEEN, (50, 110, 170), max(0.0, math.sin(phase * 0.55 - now * 2.5)) ** 6)
-
-        pulse = 0.5 + 0.5 * math.sin(now * 4)
+        # During a run nothing moves but the robot: the goal pulses and the path flows only at rest.
+        running = model.activity in RUNNING
+        pulse = 0.5 if running else 0.5 + 0.5 * math.sin(now * 4)
         for x, y in model.goal_cells():         # the goal glows
-            c0, r0 = x * p, (ny - 1 - y) * p
-            for r in range(r0 + 1, r0 + p):
-                for c in range(c0 + 1, c0 + p):
-                    edge = p > 4 and (r in (r0 + 1, r0 + p - 1) or c in (c0 + 1, c0 + p - 1))
+            c0, r0 = x * pw, (ny - 1 - y) * ph
+            for r in range(r0 + 1, r0 + ph):
+                for c in range(c0 + 1, c0 + pw):
+                    edge = fine and (r in (r0 + 1, r0 + ph - 1) or c in (c0 + 1, c0 + pw - 1))
                     paint(c, r, MAGENTA, 0.30 + 0.35 * pulse if edge else 0.22 + 0.10 * pulse)
 
-        running = model.activity in RUNNING
         line = []
         if running and ov.route and model.pose:     # where it goes now, else the verified fast path
             line, base, hot = polyline([model.pose[:2]] + list(ov.route)), (30, 120, 60), (190, 255, 190)
         elif not running and ov.fast_path:
             line, base, hot = polyline([start] + list(ov.fast_path)), (0, 110, 140), (210, 255, 255)
-        for i, (c, r) in enumerate(line):           # energy flowing along it
-            paint(c, r, mix(base, hot, max(0.0, 1 - ((now * 22 - i) % 26) / 7)), 0.9)
+        for i, (c, r) in enumerate(line):
+            flow = 0.0 if running else max(0.0, 1 - ((now * 22 - i * 6 / pw) % 26) / 7)
+            paint(c, r, mix(base, hot, flow), 0.9)
 
-        if int(now * 3) % 2:
-            for x, y in ov.candidates:
-                c, r = centre(x, y)
-                for dc, dr in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)) if p > 4 else ((0, 0),):
-                    paint(c + dc, r + dr, PINK, 0.9)
+        for x, y in ov.candidates:
+            c, r = centre(x, y)
+            for dc, dr in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)) if fine else ((0, 0),):
+                paint(c + dc, r + dr, PINK, 0.9)
 
         where = fx.pos() if fx.path else model.pose[:2] if model.pose else None
         self.robot = None
-        if where:
+        if where:       # distances in cells: the pixels need not be square
             tint = GOLD if model.activity == "F" else ORANGE
-            radius = p * 0.3 if p >= 4 else 0.0
-            reach = int(radius + 2.5)
+            radius = 0.3 if min(pw, ph) >= 4 else 0.0
+            halo = radius + 2.5 / max(pw, ph)
+            reach = [(dc, dr, math.hypot(dc / pw, dr / ph)) for dr in range(-int(halo * ph), int(halo * ph) + 1)
+                     for dc in range(-int(halo * pw), int(halo * pw) + 1)]
             glow = {}
             for x, y, born in fx.afterglow:         # phosphor behind the robot
                 k = math.exp(-(now - born) / 0.35)
                 c0, r0 = centre(x, y)
-                for dr in range(-reach, reach + 1):
-                    for dc in range(-reach, reach + 1):
-                        v = k * max(0.0, 1 - math.hypot(dc, dr) / (radius + 2.5))
-                        if v > glow.get((c0 + dc, r0 + dr), 0.02):
-                            glow[(c0 + dc, r0 + dr)] = v
+                for dc, dr, d in reach:
+                    v = k * (1 - d / halo)
+                    if v > glow.get((c0 + dc, r0 + dr), 0.02):
+                        glow[(c0 + dc, r0 + dr)] = v
             for (c, r), v in glow.items():
                 light(c, r, tint, v * 0.55)
             ribbon = polyline(fx.ribbon + [where]) if fx.ribbon else []    # the light wall it leaves
             for i, (c, r) in enumerate(ribbon):
-                age = len(ribbon) - 1 - i
-                paint(c, r, mix(tint, WHITE, 0.5 if age < 2 * p else 0.0), max(0.35, 1 - age / (14.0 * p)))
+                age = (len(ribbon) - 1 - i) / pw
+                paint(c, r, mix(tint, WHITE, 0.5 if age < 2 else 0.0), max(0.35, 1 - age / 14))
             c0, r0 = self.robot = centre(*where)
             hd = fx.heading(model)
-            hx, hy = DX[hd], -DY[hd]
-            for dr in range(-reach, reach + 1):     # a disc, white at the core and towards its nose
-                for dc in range(-reach, reach + 1):
-                    d = math.hypot(dc, dr)
-                    ahead = (dc * hx + dr * hy) / radius if radius else 0.0
-                    if d <= radius * 0.6 or (d <= radius + 0.01 and ahead > 0.5):
-                        paint(c0 + dc, r0 + dr, WHITE)
-                    elif d <= radius + 0.01:
-                        paint(c0 + dc, r0 + dr, mix(tint, BG, max(0.0, -ahead) * 0.5))
+            for dc, dr, d in reach:                 # a disc, white at the core and towards its nose
+                ahead = (dc / pw * DX[hd] - dr / ph * DY[hd]) / radius if radius else 0.0
+                if d <= radius * 0.6 or (d <= radius and ahead > 0.5):
+                    paint(c0 + dc, r0 + dr, WHITE)
+                elif d <= radius:
+                    paint(c0 + dc, r0 + dr, mix(tint, BG, max(0.0, -ahead) * 0.5))
 
         for x, y, born, colour, reach in fx.ripples:
             age = now - born
             c0, r0 = centre(x, y)
-            radius = 1 + age * 3.4 * p * reach
-            steps = int(6.3 * radius) + 8
+            cells = age * 3.4 * reach
+            steps = int(6.3 * (1 + cells * pw)) + 8
             for i in range(steps):
                 a = i * 6.2832 / steps
-                light(int(round(c0 + radius * math.cos(a))), int(round(r0 + radius * math.sin(a))),
+                light(int(round(c0 + (1 + cells * pw) * math.cos(a))), int(round(r0 + (1 + cells * ph) * math.sin(a))),
                       colour, max(0.0, 1 - age / 0.9) ** 2 * 0.9)
 
         if fx.banner and 0 <= now - fx.banner[2] < 1.8:
@@ -955,69 +957,113 @@ class MazePainter:
             age = now - born
             glyphs = [FONT.get(c, FONT[" "]) for c in text]
             cols = sum(len(g[0]) + 1 for g in glyphs) - 1
-            k = max(1, min(p // 2 + 1, (w - 4) // cols))
+            ky = max(1, min(ph // 2 + 1, (w - 4) * ph // (cols * pw)))      # a font pixel, square on screen
+            kx = max(1, min(round(ky * pw / ph), (w - 2) // cols))
             alpha = min(1.0, (1.8 - age) / 0.4)
-            c0, r0 = (w - cols * k) // 2, (h - 5 * k) // 2
-            for r in range(max(0, r0 - k - 1), min(h, r0 + 6 * k + 1)):
+            c0, r0 = (w - cols * kx) // 2, (h - 5 * ky) // 2
+            for r in range(max(0, r0 - ky - 1), min(h, r0 + 6 * ky + 1)):
                 px[r] = [mix(v, BLACK, 0.78 * alpha) for v in px[r]]
             for g in glyphs:
                 for gr, bits in enumerate(g):
                     ink = WHITE if age < 0.12 else mix(WHITE, colour, 0.25 + 0.75 * gr / 4)
                     for gc, bit in enumerate(bits):
                         if bit == "1":
-                            for r in range(r0 + gr * k, r0 + gr * k + k):
-                                for c in range(c0 + gc * k, c0 + gc * k + k):
+                            for r in range(r0 + gr * ky, r0 + gr * ky + ky):
+                                for c in range(c0 + gc * kx, c0 + gc * kx + kx):
                                     paint(c, r, ink, alpha)
-                c0 += (len(g[0]) + 1) * k
+                c0 += (len(g[0]) + 1) * kx
         return px
 
+    def glyph(self, colours):
+        """(char, foreground, background) for the pixels of a character, rows first: a
+        character has two colours, so its pixels go to the nearer of their two extremes."""
+        if colours in self.glyphs:
+            return self.glyphs[colours]
+        if len(self.glyphs) > 60000:
+            self.glyphs.clear()
+        lo, hi = min(colours, key=luma), max(colours, key=luma)
+        if lo == hi:
+            out = (" ", lo, lo)
+        else:
+            on = [sum((a - b) ** 2 for a, b in zip(c, hi)) < sum((a - b) ** 2 for a, b in zip(c, lo)) for c in colours]
+            lit, dark = [c for c, v in zip(colours, on) if v], [c for c, v in zip(colours, on) if not v]
+            fg = tuple(sum(c[i] for c in lit) // len(lit) for i in range(3))
+            bg = tuple(sum(c[i] for c in dark) // len(dark) for i in range(3))
+            v = sum(1 << i for i, lit in enumerate(on) if lit)     # a code each, but the two columns are older characters
+            out = ("▌" if v == 21 else "▐" if v == 42 else chr(0x1FB00 + v - 1 - (v > 21) - (v > 42)), fg, bg)
+        self.glyphs[colours] = out
+        return out
 
-PITCHES = (24, 20, 16, 14, 12, 10, 8, 6, 5, 4, 3, 2)    # pixels per cell: the largest that fits is drawn
+
+PITCHES = (24, 20, 16, 14, 12, 10, 8, 6, 5, 4, 3, 2)    # columns per cell: the largest that fits is drawn
 
 
-def maze_fit(nx, ny, width, height):
-    """(pixels per cell, axes): the largest cells that fit, with the hex axes and the legend if
+def maze_shape(nx, ny, k, grain):
+    """Characters across and down of the maze with cells k columns wide; None if its pixels
+    do not make whole cells."""
+    if k * grain[1] % 2:
+        return None
+    return nx * k + 1, (ny * k * grain[1] // 2 + grain[1]) // grain[1]
+
+
+def maze_fit(nx, ny, width, height, grain):
+    """(columns per cell, axes): the largest cells that fit, with the hex axes and the legend if
     they fit too; else small cells, the view following the robot."""
-    for p in PITCHES:
+    for k in PITCHES:
+        shape = maze_shape(nx, ny, k, grain)
         for axes in (1, 0):
-            if nx * p + 1 + 2 * axes <= width and (ny * p + 2) // 2 + 2 * axes <= height:
-                return p, axes
-    return 3, 0
+            if shape and shape[0] + 2 * axes <= width and shape[1] + 2 * axes <= height:
+                return k, axes
+    return 4, 0
 
 
-def maze_panel_width(nx, ny, width, height):
+def maze_panel_width(nx, ny, width, height, grain):
     """Width of the whole maze at the largest cells fitting (width, height), or None."""
-    p, axes = maze_fit(nx, ny, width, height)
-    need = nx * p + 1 + 2 * axes
-    return need if need <= width and (ny * p + 2) // 2 + 2 * axes <= height else None
+    k, axes = maze_fit(nx, ny, width, height, grain)
+    cols, rows = maze_shape(nx, ny, k, grain)
+    return cols + 2 * axes if cols + 2 * axes <= width and rows + 2 * axes <= height else None
 
 
 def draw_maze(scr, top, left, height, width, model, ov, view, start, now):
     """Draws the maze centred in the box (top, left, height, width)."""
     nx, ny = view_size(model, view.full)
-    p, axes = maze_fit(nx, ny, width, height)
-    px = view.painter.pixels(model, ov, view.fx, start, nx, ny, p, now)
-    w, h = nx * p + 1, len(px) // 2
+    grain = sx, sy = GRAINS[view.pixels]
+    k, axes = maze_fit(nx, ny, width, height, grain)
+    pw, ph = k * sx, k * sy // 2
+    px = view.painter.pixels(model, ov, view.fx, start, (nx, ny), (pw, ph), grain, now)
+    w, h = len(px[0]) // sx, len(px) // sy      # in characters
     vw, vh = min(w, width - 2 * axes), min(h, height - 2 * axes)
     if vw < 1 or vh < 1:
         return
     col, row = view.painter.robot or (0, len(px))       # the view follows the robot
-    c0 = min(max(0, col - vw // 2), w - vw)
-    r0 = min(max(0, row // 2 - vh // 2), h - vh)
+    c0 = min(max(0, col // sx - vw // 2), w - vw)
+    r0 = min(max(0, row // sy - vh // 2), h - vh)
     x0 = left + 2 * axes + (width - 2 * axes - vw) // 2
     y0 = top + (height - 2 * axes - vh) // 2
     for r in range(vh):
-        y = y0 + r
-        scr.ch[y][x0:x0 + vw] = "▀" * vw
-        scr.fg[y][x0:x0 + vw] = px[2 * (r0 + r)][c0:c0 + vw]
-        scr.bg[y][x0:x0 + vw] = px[2 * (r0 + r) + 1][c0:c0 + vw]
+        y, rows = y0 + r, px[(r0 + r) * sy:(r0 + r + 1) * sy]
+        if sx == 1:     # half blocks: a colour each, no choice to make
+            scr.ch[y][x0:x0 + vw] = "▀" * vw
+            scr.fg[y][x0:x0 + vw] = rows[0][c0:c0 + vw]
+            scr.bg[y][x0:x0 + vw] = rows[1][c0:c0 + vw]
+            continue
+        was = view.painter.rows.get(r)
+        if was and was[0] == (c0, vw, rows):     # most rows do not change from a frame to the next
+            scr.ch[y][x0:x0 + vw], scr.fg[y][x0:x0 + vw], scr.bg[y][x0:x0 + vw] = was[1:]
+            continue
+        for c in range(vw):
+            colours = []
+            for line in rows:
+                colours += line[(c0 + c) * sx:(c0 + c + 1) * sx]
+            scr.ch[y][x0 + c], scr.fg[y][x0 + c], scr.bg[y][x0 + c] = view.painter.glyph(tuple(colours))
+        view.painter.rows[r] = ((c0, vw, rows), scr.ch[y][x0:x0 + vw], scr.fg[y][x0:x0 + vw], scr.bg[y][x0:x0 + vw])
     if not axes:
         return
-    here = (col // p, ny - 1 - row // p) if view.painter.robot else (-1, -1)
+    here = (col // pw, ny - 1 - row // ph) if view.painter.robot else (-1, -1)
     for x in range(nx):     # hex coordinates, the robot's row and column lit
-        scr.put(y0 + vh, x0 + x * p + p // 2 - c0, HEX[x], GOLD if x == here[0] else FAINT)
+        scr.put(y0 + vh, x0 + (x * pw + pw // 2) // sx - c0, HEX[x], GOLD if x == here[0] else FAINT)
     for y in range(ny):
-        scr.put(y0 + ((ny - 1 - y) * p + p // 2) // 2 - r0, x0 - 2, HEX[y], GOLD if y == here[1] else FAINT)
+        scr.put(y0 + ((ny - 1 - y) * ph + ph // 2) // sy - r0, x0 - 2, HEX[y], GOLD if y == here[1] else FAINT)
     x, end = x0 - 2, left + width
     for glyph, colour, label in (("●", ORANGE, "robot"), ("━", ORANGE, "trail"), ("━", GREEN, "route"),
                                  ("━", CYAN, "fast"), ("◆", PINK, "candidate"), ("■", MAGENTA, "goal")):
@@ -1099,6 +1145,7 @@ HELP_LINES = [
     ("keyline", "  Ctrl+L       redraw the screen"),
     ("keyline", "  Esc          quit"),
     ("keyline", "  /full /clear  16x16 view, clear the log"),
+    ("keyline", "  /pixels      coarser maze, for terminals that do not draw sextants"),
     ("keyline", "  /note text   adds a measurement to the last calibration file"),
     ("", ""),
     ("head", "ROBOT (all in README.md, Bluetooth console)"),
@@ -1128,6 +1175,7 @@ class ViewState:
         self.scroll = 0
         self.show_help = False
         self.full = False
+        self.pixels = "sextant"     # the maze's grain: GRAINS
         self.input = ""
         self.connected = False
         self.link_text = ""
@@ -1160,7 +1208,8 @@ def render(rows, cols, model, ov, view, start, now):
     body_top, body_h = 1, rows - 3
     nx, ny = view_size(model, view.full)
     side_need = MIN_LOG_COLS + (4 if framed else 2)
-    inner_w = maze_panel_width(nx, ny, cols - side_need - fw, body_h - fh)
+    grain = GRAINS[view.pixels]
+    inner_w = maze_panel_width(nx, ny, cols - side_need - fw, body_h - fh, grain)
     if inner_w is not None:     # side by side
         if framed:
             maze_box, side_box = (body_top, 0, body_h, inner_w + fw), (body_top, inner_w + fw, body_h, cols - inner_w - fw)
@@ -1170,8 +1219,8 @@ def render(rows, cols, model, ov, view, start, now):
             for row in range(body_top, body_top + body_h):
                 scr.put(row, sep_x, "│", mix(CYAN, BG, 0.6))
     else:                       # stacked
-        widest = next((p for p in PITCHES if nx * p + 3 <= cols - fw), 3)
-        maze_h = min((ny * widest + 2) // 2 + 2 + fh, max(3 + fh, body_h * 2 // 3))
+        widest = next((k for k in PITCHES if maze_shape(nx, ny, k, grain) and nx * k + 3 <= cols - fw), 4)
+        maze_h = min(maze_shape(nx, ny, widest, grain)[1] + 2 + fh, max(3 + fh, body_h * 2 // 3))
         maze_box = (body_top, 0, maze_h, cols) if framed else (body_top, 1, maze_h, cols - 2)
         side_box = (body_top + maze_h, 0, body_h - maze_h, cols)
 
@@ -1532,7 +1581,7 @@ class Monitor:
         self.planner = Planner(config)
         self.start = (config["START_X"], config["START_Y"])
         self.view = ViewState()
-        self.view.full = args.full
+        self.view.full, self.view.pixels = args.full, args.pixels
         self.view.replay = bool(args.replay)
         self.view.fx.rate = args.speed if args.replay else 1.0
         self.view.source = os.path.basename(args.replay) if args.replay else args.port
@@ -1627,6 +1676,10 @@ class Monitor:
         with self.lock:
             if name == "/full":
                 self.view.full = not self.view.full
+            elif name == "/pixels":
+                names = list(GRAINS)
+                self.view.pixels = names[(names.index(self.view.pixels) + 1) % len(names)]
+                self.add_log("info", "maze drawn in %s pixels" % self.view.pixels)
             elif name == "/clear":
                 self.view.log.clear()
                 self.view.scroll = 0
@@ -1636,7 +1689,7 @@ class Monitor:
                 except OSError as exc:
                     self.add_log("bad", "could not write the note: %s" % exc)
             else:
-                self.add_log("warn", "local commands: /full /clear /note <text>")
+                self.add_log("warn", "local commands: /full /pixels /clear /note <text>")
             self.dirty = True
 
     def submit(self):
@@ -1846,6 +1899,8 @@ def parse_args(argv=None):
     parser.add_argument("--log-dir", default=LOG_DIR, help="folder of recorded sessions")
     parser.add_argument("--calib-dir", default=CALIB_DIR, help="folder of calibration data")
     parser.add_argument("--full", action="store_true", help="always draw the whole 16x16 maze")
+    parser.add_argument("--pixels", choices=list(GRAINS), default="sextant",
+                        help="the maze's grain: half where the terminal does not draw sextants (also /pixels)")
     return parser.parse_args(argv)
 
 
