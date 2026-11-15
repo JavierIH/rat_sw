@@ -218,9 +218,8 @@ def practice_model():
 class TestRender(unittest.TestCase):
     SIZES = [(24, 80), (30, 100), (40, 120), (50, 200), (60, 250), (12, 44), (20, 60), (16, 50), (14, 46), (11, 43), (5, 20)]
 
-    def view_with_log(self, ascii_only):
+    def view_with_log(self):
         view = rm.ViewState()
-        view.ascii = ascii_only
         view.source = "/dev/rfcomm0"
         view.connected = True
         for i in range(300):
@@ -228,42 +227,36 @@ class TestRender(unittest.TestCase):
         view.input = "SPD 150" + "9" * 70
         return view
 
-    def check_frame(self, cv, cursor, rows, cols, ascii_only):
-        self.assertEqual((cv.rows, cv.cols), (rows, cols))
+    def check_frame(self, scr, cursor, rows, cols):
+        self.assertEqual((scr.rows, scr.cols), (rows, cols))
         for y in range(rows):
-            self.assertEqual(len(cv.row_text(y)), cols)
+            self.assertEqual((len(scr.ch[y]), len(scr.fg[y]), len(scr.bg[y])), (cols, cols, cols))
+            self.assertTrue(all(len(c) == 1 and ord(c) >= 32 for c in scr.ch[y]))
         self.assertTrue(0 <= cursor[0] < rows and 0 <= cursor[1] < cols, cursor)
-        text = "".join(cv.row_text(y) for y in range(rows))
-        self.assertTrue(all(ord(c) >= 32 for c in text))
-        if ascii_only:
-            self.assertTrue(all(ord(c) < 127 for c in text))
 
-    def test_every_size_and_symbol_set(self):
+    def test_every_size(self):
         for model, planner in (practice_model(), self.competition_model()):
             ov = planner.overlay(model)
             for rows, cols in self.SIZES:
-                for ascii_only in (False, True):
-                    for show_help in (False, True):
-                        with self.subTest(rows=rows, cols=cols, ascii=ascii_only, help=show_help):
-                            view = self.view_with_log(ascii_only)
-                            view.show_help = show_help
-                            cv, cursor = rm.render(rows, cols, model, ov, view, (0, 0), time.monotonic())
-                            self.check_frame(cv, cursor, rows, cols, ascii_only)
-                            if rows >= rm.MIN_ROWS and cols >= rm.MIN_COLS and not ascii_only:
-                                # The robot is always in view, drawn once.
-                                robots = sum(cv.row_text(y).count(g) for y in range(1, rows - 2)
-                                             for g in rm.GLYPHS_UNICODE["robot"] if "robot" not in cv.row_text(y))
-                                self.assertEqual(robots, 1)
+                for show_help in (False, True):
+                    with self.subTest(rows=rows, cols=cols, help=show_help):
+                        view = self.view_with_log()
+                        view.show_help = show_help
+                        scr, cursor = rm.render(rows, cols, model, ov, view, (0, 0), time.monotonic())
+                        self.check_frame(scr, cursor, rows, cols)
+                        if rows >= rm.MIN_ROWS and cols >= rm.MIN_COLS:
+                            # The robot is always in view: its white pixel among the maze's half blocks.
+                            self.assertTrue(any(scr.ch[y][x] == "\u2580" and rm.WHITE in (scr.fg[y][x], scr.bg[y][x])
+                                                for y in range(rows) for x in range(cols)))
 
     def test_splash_before_telemetry(self):
         for rows, cols in self.SIZES:
-            for ascii_only in (False, True):
-                for now in (0.0, 0.55, 7.3):    # animation frames
-                    with self.subTest(rows=rows, cols=cols, ascii=ascii_only, now=now):
-                        view = self.view_with_log(ascii_only)
-                        view.started = 0.0
-                        cv, cursor = rm.render(rows, cols, rm.MazeModel(), rm.Overlay(), view, (0, 0), now)
-                        self.check_frame(cv, cursor, rows, cols, ascii_only)
+            for now in (0.0, 0.55, 7.3):    # animation frames
+                with self.subTest(rows=rows, cols=cols, now=now):
+                    view = self.view_with_log()
+                    view.started = 0.0
+                    scr, cursor = rm.render(rows, cols, rm.MazeModel(), rm.Overlay(), view, (0, 0), now)
+                    self.check_frame(scr, cursor, rows, cols)
 
     def competition_model(self):
         checker = TranscriptChecker(self)
@@ -273,26 +266,59 @@ class TestRender(unittest.TestCase):
 
     def test_practice_maze_drawing(self):
         model, planner = practice_model()
-        cv = rm.Canvas(8, 17)
-        rm.draw_maze(cv, 0, 0, 8, 17, model, planner.overlay(model), rm.GLYPHS_UNICODE, False, (0, 0))
-        drawing = "\n".join(cv.row_text(y) for y in range(7))
-        rows = [cv.row_text(y) for y in range(7)]
+        ov, painter, p = planner.overlay(model), rm.MazePainter(), 6
+        px = painter.pixels(model, ov, rm.Effects(), (0, 0), 4, 3, p, 0.0)
+        base = painter.static(model, 4, 3, p)
+        self.assertEqual((len(px), len(px[0])), (20, 25))   # an even number of rows: two to a character
         # West and south sides are the real maze border: always solid.
-        for y in (1, 3, 5):
-            self.assertEqual(rows[y][0], "│", drawing)
-        self.assertTrue(rows[6].startswith("└───"), drawing)
-        self.assertEqual(rows[5][2], "▲", drawing)       # back at the start (0,0), facing north
-        # Goal (3,2), top right: the speed-run path ends there, drawn in the goal colour.
-        self.assertEqual((rows[1][14], cv.styles[1][14]), ("•", "goal"), drawing)
-        # Every post of the grid is drawn (a junction, or a dot where no known wall meets).
-        for y in (0, 2, 4, 6):
-            for x in range(5):
-                self.assertNotEqual(rows[y][x * 4], " ", drawing)
-        self.assertEqual(drawing.count("•"), len(planner.overlay(model).fast_path), drawing)
+        self.assertTrue(all(px[r][0] == rm.WALL_COLOUR for r in range(19)))
+        self.assertTrue(all(c == rm.WALL_COLOUR for c in px[18]))
+        self.assertEqual(painter.robot, (3, 15))            # back at the start (0,0)
+        self.assertEqual(px[15][3], rm.WHITE)
+        self.assertGreater(px[1][21][0], base[1][21][0] + 30)    # the goal (3,2), top right, glows
+        # The verified fast path is drawn from the start to the goal, through every cell.
+        self.assertEqual(ov.fast_path[-1], (3, 2))
+        for x, y in ov.fast_path:
+            self.assertNotEqual(px[(2 - y) * p + 3][x * p + 3], base[(2 - y) * p + 3][x * p + 3], (x, y))
+        # Unvisited cells keep the background; visited ones get a floor.
+        self.assertEqual(base[15][21], rm.BG)
+        self.assertNotEqual(base[14][2], rm.BG)
+
+    def test_drawn_robot_glides_and_runs_are_timed(self):
+        model, planner = practice_model()
+        fx = rm.Effects()
+        route = planner.overlay(model).fast_path
+        for t, line in ((0.0, "@P00N"), (1.0, "@AC"), (6.0, "@AF")):
+            self.assertTrue(fx.line(model, planner, line, t, t))
+        self.assertEqual(fx.path, [(0, 0)] + list(route))   # no pose until the end: drawn along the route
+        fx.advance(6.0)
+        fx.advance(6.4)
+        self.assertNotEqual(fx.pos(), (0.0, 0.0))
+        self.assertFalse(fx.line(model, planner, "route 5 cells, 1 curves: end=IR t=1804ms err=1mm", 7.9, 7.9))
+        fx.line(model, planner, "@P32E", 7.9, 7.9)
+        self.assertEqual(fx.path[-1], (3, 2))
+        self.assertEqual(fx.timer(8.0)[1], "run")
+        fx.line(model, planner, "Goal reached in the speed run after 1 legs", 8.2, 8.2)
+        self.assertEqual(fx.timer(9.0), (1.804, "lap"))     # the robot's own time
+        self.assertEqual(fx.banner[0], "GOAL")
+        for wall in (8.3, 8.6, 9.0, 9.5):
+            fx.advance(wall)
+        self.assertEqual(fx.pos(), (3.0, 2.0))
+        self.assertEqual(fx.ribbon[-1], (3, 2))
+        fx.line(model, planner, "@P00N", 12.0, 12.0)         # carried back by hand: no glide through walls
+        self.assertEqual((fx.path, fx.ribbon), ([(0, 0)], []))
+        fx.line(model, planner, "@P02N", 13.0, 13.0)         # a straight leg of two cells
+        self.assertEqual(fx.path, [(0, 0), (0, 1), (0, 2)])
+
+    def test_keys_and_colours(self):
+        self.assertEqual(rm.parse_keys(b"ab\r\x1b[A\x1b[6~\x18\x7f\x1bOF\x1b[99;5u\x00\x1b"),
+                         ["a", "b", "enter", "up", "pgdn", "^X", "backspace", "end", "esc"])
+        self.assertEqual([rm.colour_256(c) for c in ((0, 0, 0), (255, 255, 255), (255, 0, 0), (128, 128, 128))],
+                         [16, 231, 196, 244])
 
     def test_log_scroll_and_help(self):
         model, planner = practice_model()
-        view = self.view_with_log(False)
+        view = self.view_with_log()
         view.scroll = 50
         cv, _ = rm.render(30, 120, model, planner.overlay(model), view, (0, 0), time.monotonic())
         screen = "\n".join(cv.row_text(y) for y in range(30))
@@ -355,7 +381,7 @@ class TestCalibrationCapture(unittest.TestCase):
 
 
 class TestTerminal(unittest.TestCase):
-    """Runs the real curses program in a pseudo-terminal."""
+    """Runs the real program in a pseudo-terminal."""
 
     def run_monitor(self, args, rows, cols, keys=b"", wait=2.0, resize=None):
         pid, fd = pty.fork()
@@ -399,7 +425,7 @@ class TestTerminal(unittest.TestCase):
             os.waitpid(pid, 0)
             self.fail("the monitor did not quit on Esc")
         os.close(fd)
-        text = output.decode("utf-8", "replace")
+        text = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output.decode("utf-8", "replace"))    # without the escape codes
         self.assertNotIn("Traceback", text)
         self.assertTrue(os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0, text[-2000:])
         return text
@@ -420,7 +446,7 @@ class TestTerminal(unittest.TestCase):
         self.assertIn("replaying", text)
 
     def test_small_terminal_keys_and_resize(self):
-        keys = b"STATUS\r\t\t/full\r/ascii\r"
+        keys = b"STATUS\r\t\t/full\r/clear\r\x1b[A\x1b[5~"
         self.run_monitor(self.args, 20, 60, keys=keys, resize=(12, 44))
 
     def test_too_small_terminal(self):
