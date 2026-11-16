@@ -181,7 +181,8 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
    after a race (issue 19).
 5. `CURVE_PRE`, `CURVE_POST` (0) and `CURVE_ANGLE` (90) still sit at their
    neutral values (kept 09-30 for `calib_analyze.py`'s suggestions): keep
-   them?
+   them? The user, 11-16: `CURVE_PRE`/`CURVE_POST` deleted (flash -0.3 KB
+   in `practice`); `CURVE_ANGLE` stays, the curve's angle.
 6. The flash stress tools of the virtual env (`TUNE STRESS`, `REVERSAL`,
    `HSI`): the wedge is fixed (10-05). Deleted 11-16 (the user will not
    change the hardware, so nothing left to measure; up to e6df08a).

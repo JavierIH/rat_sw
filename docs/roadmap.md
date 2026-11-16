@@ -96,11 +96,10 @@ remove, each with what decides it:
 2. **The race menu.** Race 2.6 (900/480) was not repeatable (issue 12).
    If it still is not after the wall-end fix, delete it: the menu and
    `app_mode_t` (which keeps old numbers for the telemetry) get shorter.
-3. **Knobs at their neutral value.** `TUNE` has 33 entries. To delete
+3. **Knobs at their neutral value.** `TUNE` has 31 entries. To delete
    once their test is done: `STEER_HOLD` 0 (the old centring) when the
-   wall ends pass on the robot; `CURVE_PRE`, `CURVE_POST`, `CURVE_ANGLE`
-   (0, 0, 90: kept on 09-30 for `calib_analyze.py`'s suggestions) unless
-   a `CAL CURVE` session moves them.
+   wall ends pass on the robot. `CURVE_PRE`, `CURVE_POST` deleted 11-16;
+   `CURVE_ANGLE` (90) stays: the curve's angle, its TUNE for `CAL CURVE`.
 4. **The flash stress tools** of the `virtual` build (`TUNE STRESS`,
    `REVERSAL`, `HSI`): deleted 11-16 (no hardware change coming; up to
    e6df08a, `docs/faults/oshwdem2026.md` 2.5).

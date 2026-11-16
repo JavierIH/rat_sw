@@ -45,8 +45,7 @@ static float curve_rate(const curve_t *c, float u){
     return curvature * (1.0f / HALF_PI);
 }
 
-uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre_adjust, float post_adjust,
-                    float cell_mm){
+uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float cell_mm){
     if(radius < 10.0f || ramp < 1.0f || ramp > radius * HALF_PI || angle < 45.0f || angle > 135.0f) return 0;
     c->radius = radius;
     c->ramp = ramp;
@@ -69,8 +68,8 @@ uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre
     along *= h / 3.0f;
     across *= h / 3.0f;
     c->footprint = 0.5f * (along + across);
-    c->pre = 0.5f * cell_mm - along + pre_adjust;
-    c->post = 0.5f * cell_mm - across + post_adjust;
+    c->pre = 0.5f * cell_mm - along;
+    c->post = 0.5f * cell_mm - across;
     // Curves in consecutive cells must not overlap, with room to settle on the centre line around one.
     return c->pre + c->post >= 0.0f && c->pre >= -0.25f * cell_mm && c->post >= -0.25f * cell_mm;
 }

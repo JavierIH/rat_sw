@@ -257,8 +257,7 @@ static void test_side_doubt(void){
 
 static curve_t default_curve(void){
     curve_t c;
-    CHECK(curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, CURVE_ANGLE_DEG, CURVE_PRE_ADJUST_MM,
-                      CURVE_POST_ADJUST_MM, CELL_MM));
+    CHECK(curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, CURVE_ANGLE_DEG, CELL_MM));
     return c;
 }
 
@@ -1616,18 +1615,13 @@ static void test_curve_shape(void){
     CHECK(curve_progress(&c, 0.0f) == 0.0f && curve_progress(&c, c.length) == 1.0f);
     CHECK(fabsf(curve_progress(&c, 0.5f * c.length) - 0.5f) < 1e-5f);
     // Nearly a pure arc: the ramps push it out by half their length; 89 with 1 mm ramps fills the cell.
-    CHECK(!curve_setup(&c, 90.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
-    CHECK(curve_setup(&c, 89.0f, 1.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(!curve_setup(&c, 90.0f, 1.0f, 90.0f, CELL_MM));
+    CHECK(curve_setup(&c, 89.0f, 1.0f, 90.0f, CELL_MM));
     CHECK(fabsf(c.footprint - 89.5f) < 0.05f);
-    // Adjustments move the start and the exit edge.
-    CHECK(curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, 90.0f, 3.0f, -2.0f, CELL_MM));
-    CHECK(fabsf(c.pre - (CELL_MM / 2.0f - 85.47f + 3.0f)) < 0.05f);
-    CHECK(fabsf(c.post - (CELL_MM / 2.0f - 85.47f - 2.0f)) < 0.05f);
     // Shapes that do not exist or do not fit: curves in consecutive cells would overlap.
-    CHECK(!curve_setup(&c, 70.0f, 120.0f, 90.0f, 0.0f, 0.0f, CELL_MM));     // ramps longer than the turn
-    CHECK(!curve_setup(&c, 80.0f, 60.0f, 90.0f, 0.0f, 0.0f, CELL_MM));      // footprint 111 mm
-    CHECK(!curve_setup(&c, CURVE_RADIUS_MM, CURVE_RAMP_MM, 90.0f, -5.0f, -5.0f, CELL_MM));
-    CHECK(!curve_setup(&c, CURVE_RADIUS_MM, 0.0f, 90.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(!curve_setup(&c, 70.0f, 120.0f, 90.0f, CELL_MM));     // ramps longer than the turn
+    CHECK(!curve_setup(&c, 80.0f, 60.0f, 90.0f, CELL_MM));      // footprint 111 mm
+    CHECK(!curve_setup(&c, CURVE_RADIUS_MM, 0.0f, 90.0f, CELL_MM));
 }
 
 static void test_path_reference(void){
@@ -1681,7 +1675,7 @@ static void test_path_reference(void){
     CHECK(!path_start(&r, &(run_path_t){corner, 0}, &c, CELL_MM, 700.0f, 400.0f, 3000.0f));
     // A calibrated angle: the encoders turn 88 per real 90, the shape stays.
     curve_t c88;
-    CHECK(curve_setup(&c88, CURVE_RADIUS_MM, CURVE_RAMP_MM, 88.0f, 0.0f, 0.0f, CELL_MM));
+    CHECK(curve_setup(&c88, CURVE_RADIUS_MM, CURVE_RAMP_MM, 88.0f, CELL_MM));
     CHECK(path_start(&r, &path, &c88, CELL_MM, 700.0f, 400.0f, 3000.0f));
     ref_walk_t w = walk_reference(&r, 20000);
     CHECK(fabs(w.x - 180.0) < 0.3 && fabs(w.y - 180.0) < 0.3);

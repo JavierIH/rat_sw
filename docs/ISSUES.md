@@ -27,7 +27,8 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
   two sections). The audit (A1-A6, the doubtful front) is validated on
-  the robot (11-13, `docs/testing.md`). Left: questions 3-5 of 10-22 and
+  the robot (11-13, `docs/testing.md`). Question 5 done 11-16
+  (`CURVE_PRE`/`CURVE_POST` deleted, next flash). Left: questions 3-4 of 10-22 and
   the untracked `docs/img/` (the user's calls); the plan is
   `docs/roadmap.md`.
 
@@ -35,7 +36,7 @@ commit when done. Details go in the docs it points to, not here.
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
   (LEDs); 5 (split `motion.c`) and 6 (hardware, 11-16) declined. Left: 1
   (large stretch), 4 (HC-05 at 115200: the module in AT mode, on the
-  robot), 8 (monitor draws the robot's route: the user's call). Ideas
+  robot; the user, 11-16: later, with the next flash), 8 (monitor draws the robot's route: the user's call). Ideas
   from issue 15: a SysTick stop if the following error runs away while the
   main loop blocks (no such failure seen: only with one). The SysTick
   load: 444 us worst after searches and races (11-13).

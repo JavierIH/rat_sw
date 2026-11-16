@@ -97,8 +97,6 @@
 #define CURVE_ANGLE_DEG         90.0f   // encoder degrees a slow curve asks for (TUNE CURVE_ANGLE)
 #define CURVE_SLIP_DEG          2.0f    // ...plus this times (v / VREF)^2: faster curves slip and turn less
 #define CURVE_SLIP_VREF_MM_S    480.0f
-#define CURVE_PRE_ADJUST_MM     0.0f    // TUNE CURVE_PRE: mm more straight before a curve (CAL CURVE)
-#define CURVE_POST_ADJUST_MM    0.0f    // TUNE CURVE_POST: mm more straight after it, to the exit edge
 #define CURVE_PRE_SLIP_MM       7.0f    // mm more `pre` at VREF, as v^2 - V0^2: the sideways slip (layout E)
 #define CURVE_PRE_V0_MM_S       300.0f  // ...from this speed up
 #define CURVE_PWM_SHARE         0.9f    // PWM share the outer wheel may ask in a curve: caps it at ~480 mm/s

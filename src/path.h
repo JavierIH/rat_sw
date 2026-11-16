@@ -20,16 +20,15 @@ typedef struct {
     float angle;        // deg the encoders must see for a real 90 (like TURNTICKS for in-place turns)
     float length;       // mm along the curve
     float footprint;    // mm the curve advances along each axis
-    float pre, post;    // mm straight inside the cell before and after the curve (geometry + tuning)
+    float pre, post;    // mm straight inside the cell before and after the curve (geometry)
     float k, k_ramp;    // 1/radius (per mm) and its rate along a ramp (per mm^2): no divisions in SysTick
     float slip_k;       // deg added to `angle` per (mm/s)^2 of the path's curve speed (0 after curve_setup)
     float pre_k;        // mm added to `pre` per (mm/s)^2 of the path's curve speed above...
     float pre_v0;       // ...this, mm/s (0 after curve_setup)
 } curve_t;
 
-// The curve from its shape and adjustments (later start, farther exit); 0 if impossible or it does not fit its cell.
-uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float pre_adjust, float post_adjust,
-                    float cell_mm);
+// The curve from its shape; 0 if impossible or it does not fit its cell.
+uint8_t curve_setup(curve_t *c, float radius, float ramp, float angle, float cell_mm);
 // Heading into the curve, 0..1 of its turn, `u` mm after its start.
 float curve_progress(const curve_t *c, float u);
 

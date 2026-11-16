@@ -126,7 +126,6 @@ static float late_margin = SEARCH_LATE_MARGIN_MM;   // mm
 static float settle_mm = SETTLE_MM, settle_deg = SETTLE_DEG;
 static float curve_radius = CURVE_RADIUS_MM, curve_ramp = CURVE_RAMP_MM, curve_angle = CURVE_ANGLE_DEG;
 static float curve_slip = CURVE_SLIP_DEG;   // deg more at CURVE_SLIP_VREF_MM_S
-static float curve_pre = CURVE_PRE_ADJUST_MM, curve_post = CURVE_POST_ADJUST_MM;
 static float curve_pre_slip = CURVE_PRE_SLIP_MM;    // mm more `pre` at CURVE_SLIP_VREF_MM_S...
 static float curve_pre_v0 = CURVE_PRE_V0_MM_S;      // ...and none up to this speed
 // Fault injection (TUNE MOTOR_SCALE): the motors get this share of the PWM asked, as with a low battery.
@@ -368,7 +367,7 @@ static move_result_t back_up(float traveled){
 }
 
 static uint8_t curve_from_tuning(curve_t *c){
-    if(!curve_setup(c, curve_radius, curve_ramp, curve_angle, curve_pre, curve_post, CELL_MM)) return 0;
+    if(!curve_setup(c, curve_radius, curve_ramp, curve_angle, CELL_MM)) return 0;
     c->slip_k = curve_slip / (CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S);
     c->pre_k = curve_pre_slip / (CURVE_SLIP_VREF_MM_S * CURVE_SLIP_VREF_MM_S - curve_pre_v0 * curve_pre_v0);
     c->pre_v0 = curve_pre_v0;
@@ -826,10 +825,8 @@ static const tunable_t TUNABLES[] = {
     {"CURVE_RAMP", &curve_ramp, 1.0f, 120.0f, 1},
     {"CURVE_ANGLE", &curve_angle, 80.0f, 100.0f, 2},
     {"CURVE_SLIP", &curve_slip, 0.0f, 8.0f, 2},
-    {"CURVE_PRE", &curve_pre, -40.0f, 40.0f, 1},
     {"CURVE_PRE_SLIP", &curve_pre_slip, -20.0f, 20.0f, 1},
     {"CURVE_PRE_V0", &curve_pre_v0, 0.0f, 400.0f, 0},
-    {"CURVE_POST", &curve_post, -40.0f, 40.0f, 1},
     {"MOTOR_SCALE", &motor_scale, 0.5f, 1.0f, 2},
 };
 
@@ -854,9 +851,8 @@ void motion_curve_info(uint8_t line){
     else{
         // WHEEL_DIFF in millionths: format_fixed() stops at 3 decimals.
         const float ppm = control_cfg.wheel_diff * 1e6f;
-        print("@D INFO curve_pre=%s curve_post=%s curve_pre_adj=%s curve_post_adj=%s wheel_diff_ppm=%d\n",
+        print("@D INFO curve_pre=%s curve_post=%s wheel_diff_ppm=%d\n",
               format_fixed(a, sizeof(a), c.pre, 1), format_fixed(b, sizeof(b), c.post, 1),
-              format_fixed(d, sizeof(d), curve_pre, 1), format_fixed(e, sizeof(e), curve_post, 1),
               (int)(ppm + (ppm < 0.0f ? -0.5f : 0.5f)));
     }
 }

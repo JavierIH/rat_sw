@@ -12,8 +12,8 @@ firmware constant and the samples. Physical measurements added with
     ir:        /note start 40 mm          front sensors to wall when the sweep starts
 
 CAL CURVE (a cell, a smooth curve, a cell) needs no notes: the side walls
-after the curve, the front wall at the end and FL-FR there suggest
-CURVE_PRE, CURVE_POST and CURVE_ANGLE.
+after the curve, the front wall at the end and FL-FR there measure where
+the curve put the robot and suggest CURVE_ANGLE.
 
 Straights, turns and curves carry the profile reference (ref_fwd, ref_rot)
 and report how closely the wheels followed it, the centring and the real
@@ -471,7 +471,6 @@ def analyze_curve_controlled(rec, out):
     first = b + int(math.ceil(IR_DELAY_MS / rec.period))
     before = [errors[i] for i in range(max(0, a - 10), a) if i in errors]
     after = [errors[i] for i in range(first, min(end, first + max(3, int(40 / rec.period)))) if i in errors]
-    pre_adj = rec.number("curve_pre_adj", 0.0)
     if before:
         out.append("  lateral on entry: %+.1f mm (> 0: left of the centre)" % mean(before))
     if after:
@@ -479,8 +478,6 @@ def analyze_curve_controlled(rec, out):
         outside = lateral * direction       # right curve: its outside is the left
         out.append("  lateral on exit: %+.1f mm, %.1f mm %s the curve"
                    % (lateral, abs(outside), "outside" if outside > 0 else "inside"))
-        # Out wide: the curve started late (or the robot turned late): start it earlier.
-        out.append("  -> TUNE CURVE_PRE %.1f (now %.1f)" % (pre_adj - outside, pre_adj))
     else:
         out.append("  (no side walls on exit: repeat it with walls on both sides of the last cell)")
 
@@ -495,9 +492,7 @@ def analyze_curve_controlled(rec, out):
     walled = fl is not None and fr is not None and fl < rec.number("wall_detect_mm", 140) \
         and fr < rec.number("wall_detect_mm", 140)
     if walled and "curve_len" in rec.meta:
-        post_adj = rec.number("curve_post_adj", 0.0)
         out.append("  wall at the end: stopped %+.1f mm from the plan (%.1f mm)" % (stop - planned, planned))
-        out.append("  -> TUNE CURVE_POST %.1f (now %.1f)" % (post_adj + stop - planned, post_adj))
         skew = fl - fr - rec.number("front_square_offset_mm", 0.0)
         yaw_right = -skew / SQUARE_MM_PER_DEG   # FL closer: turned right of square
         out.append("  real heading at the end (FL-FR): %.1f deg to the %s" % (abs(yaw_right),
@@ -512,7 +507,7 @@ def analyze_curve_controlled(rec, out):
             out.append("  -> TUNE CURVE_ANGLE %.2f (now %.2f; the exit heading and FL-FR are noisy:"
                        " average several)" % (90.0 / k, angle))
     else:
-        out.append("  (no wall ahead at the end: with one, CURVE_POST and CURVE_ANGLE get calibrated)")
+        out.append("  (no wall ahead at the end: with one, the stop and CURVE_ANGLE get measured)")
 
 
 def analyze_step(rec, out, motor_points=None):

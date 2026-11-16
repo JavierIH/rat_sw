@@ -223,7 +223,7 @@ class TestCalibAnalyze(unittest.TestCase):
             t += period
         rows += [rows[-1]] * 20
         info = ["@D INFO curve_r=70.0 curve_ramp=30.0 curve_angle=90.00 curve_len=%.1f curve_vmax=478" % length,
-                "@D INFO curve_pre=4.5 curve_post=4.5 curve_pre_adj=0.0 curve_post_adj=0.0"]
+                "@D INFO curve_pre=4.5 curve_post=4.5"]
         capture = rm.CalibrationCapture(self.tmp.name)
         lines = ["@D BEGIN curve 1 400", '@D INFO period_ms=2 samples=%d capacity=320 result=OK build="t"' % len(rows)]
         lines += NEW_INFO + info
@@ -247,8 +247,7 @@ class TestCalibAnalyze(unittest.TestCase):
         self.assertAlmostEqual(number(r"([-+\d.]+) over the whole move", text), 90.0, delta=0.1)
         self.assertAlmostEqual(number(r"lateral on exit: ([-+\d.]+) mm", text), 5.0, delta=0.6)
         self.assertIn("outside the curve", text)
-        self.assertAlmostEqual(number(r"TUNE CURVE_PRE ([-\d.]+)", text), -5.0, delta=0.6)
-        self.assertAlmostEqual(number(r"TUNE CURVE_POST ([-\d.]+)", text), -3.0, delta=0.2)
+        self.assertAlmostEqual(number(r"stopped ([-+\d.]+) mm from the plan", text), -3.0, delta=0.2)
         self.assertAlmostEqual(number(r"TUNE CURVE_ANGLE ([\d.]+)", text), 92.0, delta=0.4)
 
     def test_continuous_run(self):

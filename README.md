@@ -139,7 +139,7 @@ robot wait 2 s (START or STOP cancel).
 | `CAL NOISE [ms]` | robot still | sensor noise; square to a wall and centred in a cell: `FRONT_SQUARE_OFFSET_MM` |
 | `CAL STRAIGHT [cells] [mm/s]` | in a corridor; then `/note measured <mm> mm` | distance per cell, centring |
 | `CAL TURN [±quarters]` | in place; then `/note angle <deg>` | `TURNTICKS`, overshoot |
-| `CAL CURVE [±1] [mm/s]` | a cell, a smooth curve, a cell | `CURVE_PRE`, `CURVE_POST`, `CURVE_ANGLE` |
+| `CAL CURVE [±1] [mm/s]` | a cell, a smooth curve, a cell | exit lateral and stop, `CURVE_ANGLE` |
 | `CAL STEP [pwm] [ms]` | free space ahead | motor model, braking |
 | `CAL IR [mm]` | against a wall ahead; `/note start <mm> mm` | the front IR curve |
 | `CAL RUN` | before a run | records its next continuous move |

@@ -109,12 +109,14 @@ behind the constants: docs/measurements.md. AGENTS.md has the rules.
   readings taken on a straight.
 - Tuning the curves: `CAL CURVE [+-1] [mm/s]` from a cell centre (one cell, a
   curve, one cell; best with side walls and a front wall in the last cell),
-  then `calib_analyze.py` suggests `TUNE CURVE_PRE` (from where the side
-  walls put the robot after the curve: wide = start earlier), `CURVE_POST`
-  (from where the front wall moved the stop) and `CURVE_ANGLE` (FL - FR at
-  the end; noisy, average several). The side readings of this maze carry a
+  then `calib_analyze.py` reports where the side walls put the robot after
+  the curve (wide = it started late) and where the front wall moved the
+  stop, and suggests `CURVE_ANGLE` (FL - FR at the end; noisy, average
+  several). `CURVE_PRE`/`CURVE_POST` (mm more straight before and after a
+  curve) were deleted 11-16, never moved from 0 since 09-27: the sideways
+  slip goes in `CURVE_PRE_SLIP`. The side readings of this maze carry a
   per-cell bias of up to ~7 mm (a wall slightly off, SL/SR references), which
-  looks like a curve exiting wide or inside: judge `CURVE_PRE` from left and
+  looks like a curve exiting wide or inside: judge the exit from left and
   right curves between cells with walls on both sides (the bias flips sign
   between the two directions and cancels in the average), never from one
   run. `TUNE CURVE_R|CURVE_RAMP` change the

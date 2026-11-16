@@ -340,8 +340,8 @@ search leg; the dump comes when the run ends).
     `OPTIMIZE_MAX_STEPS` 800 (400 left 3 of 520 real mazes short) in the search's OPTIM phase.
 - Memory: the map and planner are sized for 16x16 in every build
   (`PRACTICE_MAZE` only changes the goal). With the tools (`practice`,
-  `dev`): RAM 84.4 % (~3.1 KB left for the stack), flash 91.0 % of 62 KB
-  (5.7 KB left); `competition`: RAM 52.7 %, flash 82.4 % (11.2 KB left).
+  `dev`): RAM 84.4 % (~3.1 KB left for the stack), flash 90.7 % of 62 KB
+  (5.7 KB left); `competition`: RAM 52.7 %, flash 82.3 % (11.0 KB left).
   Keep that headroom: report sizes after every change,
   reuse buffers (the search's legs borrow the speed run's route buffer).
 - Health checks and clock (details in `docs/design.md`): `STATUS` shows the
