@@ -22,7 +22,7 @@
   lines that matter, summarise recordings with `tools/calib_analyze.py`.
 
 ## Project objective
-"rat": micromouse firmware for an STM32F103 "Blue Pill" robot. It explores an
+"rat": micromouse firmware for an STM32F103 robot. It explores an
 unknown maze, maps it, finds the fastest route and runs it:
 
 1. **Search** (mode 1): explore to the goal and save the map there
@@ -55,6 +55,9 @@ Goal configuration:
   the build's default goal back.
 
 ## Hardware
+- Own board, not a Blue Pill: github.com/JavierIH/ratatron (KiCad). Its
+  8 MHz crystal circuit is wrong on the PCB, fixed by hand (cut tracks,
+  wires): the KiCad files do not show the robot's oscillator.
 - The robot is 72 mm wide. No IMU/gyro: the heading comes only from the
   encoders, corrected by the side walls (centring) and front walls (squaring).
 - MCU STM32F103C8T6 (Cortex-M3, no FPU, 20 KB RAM, 64 KB flash). Bare HAL via

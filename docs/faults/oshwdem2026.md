@@ -278,11 +278,15 @@ ground: the virtual firmware moves them blind.
 - Whether real runs wedge the HSI, and how often, stays unknown: with it
   stopped there is nothing left to wedge (STATUS "HSI n" counts only the
   slow halfwords a save still meets).
-- Hardware, the user's option: the HSI, the PLL and the reset block run on
-  VDDA, tied straight to the 3.3 V rail on the Blue Pill; a ferrite and 1 uF
-  + 100 nF at VDDA, bulk and ceramic capacitors at the H-bridge and across
-  the motors may remove the cause. `TUNE HSI 1` + `TUNE REVERSAL` measure
-  the wedge rate before and after.
+- Hardware: the HSI, the PLL and the reset block run on VDDA. On the
+  robot's own board (github.com/JavierIH/ratatron, KiCad; read 11-16)
+  VDDA (pin 9) is on the +3V3 plane with no ferrite or resistor, its
+  nearest capacitor 5.6 mm away and shared with pin 48; the 3V3 comes from
+  a switching module (TR05S3V3) that also feeds the IR and the encoders.
+  The motor supply has 10 uF + 100 nF at the TB6612's VM; nothing across
+  the motors. So a VDDA filter (ferrite or 10-47 ohm + 1 uF + 100 nF at
+  pin 9) and caps across the motors are what is missing. `TUNE HSI 1` +
+  `TUNE REVERSAL` measure the wedge rate before and after.
 - The slow buttons.
 
 ## 7. The race 2.4 crash and the races that would not start (closed 11-16)

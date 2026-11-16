@@ -93,7 +93,7 @@ means retuning a dozen constants (centre left 89 vs right 76, front offset
    with another floor, other tyres or a low battery.
 3. Software floating point in the 1 kHz interrupt; its load never measured
    (issue 15 c).
-4. The flash wedge's electrical cause (VDDA unfiltered on the Blue Pill) is
+4. The flash wedge's electrical cause (VDDA unfiltered on the board) is
    still there; the firmware now lives with it.
 5. Three fast blinks mean four different things: a failed run, START
    refused, a failed save, a full log.
