@@ -50,6 +50,8 @@ python3 tools/robot_monitor.py                 # /dev/rfcomm0 at 9600 baud
 python3 tools/robot_monitor.py --replay tools/logs/<session>.log --speed 4
 ```
 
+![The monitor: a search and a speed run](docs/img/robot_monitor.gif)
+
 Draws the maze while the robot explores it, as pixels (six to a
 character): the walls it confirmed in neon, dots where none was seen yet,
 the floor of the visited cells coloured by their distance to the goal, the
