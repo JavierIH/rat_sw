@@ -9,7 +9,8 @@ commit when done. Details go in the docs it points to, not here.
 - The robot runs what `develop` has since the flash of 11-13
   (`practice`), validated that day (`docs/testing.md`, session of 11-13):
   nothing waits for the robot. For a competition flash `competition`.
-- Next by `docs/roadmap.md`: the large maze (issue 11), then one way to
+- Next by `docs/roadmap.md`: the large maze (issue 11, deferred until a
+  long stretch is available), then one way to
   search and the legs at 600. Without the robot: nothing pending.
 - The competition gives 7 minutes for the search and the races
   together (the user, 11-13): the OPTIM phase stays as it is, no
@@ -41,7 +42,9 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item
-  1). The baseboard oscillation check is dropped (11-16: no means to do it).
+  1), deferred 11-16: no long stretch available, done when there is one
+  (the long-corridor centring check of OSHWDEM goes with it). The
+  baseboard oscillation check is dropped (11-16: no means to do it).
 
 ## Closed
 
