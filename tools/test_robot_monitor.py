@@ -319,6 +319,23 @@ class TestRender(unittest.TestCase):
         fx.line(model, planner, "@P02N", 13.0, 13.0)         # a straight leg of two cells
         self.assertEqual(fx.path, [(0, 0), (0, 1), (0, 2)])
 
+    def test_effects_during_a_run_are_optional(self):
+        calm, lively = rm.Effects(), rm.Effects()
+        lively.lively = True
+        pictures = []
+        for fx in (calm, lively):
+            model, planner = rm.MazeModel(), rm.Planner(rm.read_config())
+            for t, line in ((0.0, "@P00N"), (0.1, "@AG"), (0.2, "@C00N.###"), (0.6, "@C01N.#.#")):
+                fx.line(model, planner, line, t, t)
+            painter = rm.MazePainter()
+            ov = planner.overlay(model)
+            pictures.append([painter.pixels(model, ov, fx, (0, 0), (16, 16), (12, 9), (2, 3), t) for t in (2.0, 2.3)])
+        self.assertEqual((len(calm.ripples), len(lively.ripples)), (0, 2))
+        post, goal = (9 * 9, 12 * 5), (9 * 8 - 4, 12 * 7 + 6)      # (row, column): an unseen post, inside the goal
+        for (r, c), name in ((post, "sweep"), (goal, "goal")):
+            self.assertEqual(pictures[0][0][r][c], pictures[0][1][r][c], name)       # still during the run
+            self.assertNotEqual(pictures[1][0][r][c], pictures[1][1][r][c], name)
+
     def test_keys_and_colours(self):
         self.assertEqual(rm.parse_keys(b"ab\r\x1b[A\x1b[6~\x18\x7f\x1bOF\x1b[99;5u\x00\x1b"),
                          ["a", "b", "enter", "up", "pgdn", "^X", "backspace", "end", "esc"])
@@ -455,7 +472,7 @@ class TestTerminal(unittest.TestCase):
         self.assertIn("replaying", text)
 
     def test_small_terminal_keys_and_resize(self):
-        keys = b"STATUS\r\t\t/full\r/pixels\r/pixels\r/clear\r\x1b[A\x1b[5~"
+        keys = b"STATUS\r\t\t/full\r/pixels\r/effects\r/clear\r\x1b[A\x1b[5~"
         self.run_monitor(self.args, 20, 60, keys=keys, resize=(12, 44))
 
     def test_too_small_terminal(self):

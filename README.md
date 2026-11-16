@@ -58,7 +58,10 @@ robot gliding from cell to cell with this run's trail behind it, the
 and costs), the candidate cells while it optimises and, stopped, the
 verified fast path; the goal lit, hex coordinates on the axes. During a
 run only the robot moves on the map; stopped, the goal pulses and light
-flows along the fast path. Banners mark the goal and the end of each run; a
+flows along the fast path. `--effects` (or `/effects`) makes the map move
+during the runs too: a sweep over what is not seen yet, a ripple where a
+cell is discovered, the route flowing, the goal pulsing, the candidates
+blinking. Banners mark the goal and the end of each run; a
 `!!` line turns the frames red. Next to it, the run panel (its phases, the
 clock in large digits, the speed runs' times), a status panel (pose,
 explored share, fast path, link, RX activity), the coloured log and the
@@ -74,7 +77,7 @@ with half blocks, two pixels to a character.
   between the lines as they arrive.
 - Keys: Enter sends, Up/Down history, PgUp/PgDn scroll the log, Tab shows
   the help, **Ctrl+X sends STOP**, Esc quits. Local commands: `/full` (always
-  16x16), `/pixels`, `/clear`, `/note`.
+  16x16), `/pixels`, `/effects`, `/clear`, `/note`.
 - Every session is recorded in `tools/logs/` and can be replayed with
   `--replay`.
 - The robot sends its telemetry (`@...` lines of ~20 bytes) only between

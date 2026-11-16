@@ -645,6 +645,7 @@ class Effects:
 
     def __init__(self, rate=1.0):
         self.rate = rate                # session seconds per second: a replay's speed
+        self.lively = False             # --effects: the map moves during a run too
         self.stamp = self.wall = self.moved = 0.0
         self.path, self.s = [], 0.0     # cells the drawn robot still has to go through, and how far it is
         self.ghost = None               # cells/s of a run drawn from the route: its pose only comes at the end
@@ -660,7 +661,10 @@ class Effects:
     def line(self, model, planner, text, stamp, wall):
         """Feeds a received line to the model. False if it is not telemetry."""
         self.stamp, self.wall = stamp, wall
-        was = model.activity
+        was, fresh = model.activity, None
+        if self.lively and text.startswith("@C") and len(text) > 3 and text[2] in HEX and text[3] in HEX:
+            fresh = (HEX.index(text[2]), HEX.index(text[3]))
+            fresh = None if model.visited[fresh[0]][fresh[1]] else fresh
         if not model.apply(text, wall):
             self.words(model, text, stamp, wall)
             return False
@@ -668,6 +672,8 @@ class Effects:
             self.on_activity(model, planner, was, stamp)
         if model.pose and model.pose[:2] != self.cell:
             self.on_pose(model.pose[:2])
+        if fresh and model.visited[fresh[0]][fresh[1]]:     # a ripple where a cell is discovered
+            self.ripples.append((fresh[0], fresh[1], wall, CYAN, 0.5))
         return True
 
     def words(self, model, text, stamp, wall):
@@ -799,6 +805,7 @@ class MazePainter:
 
     def __init__(self):
         self.key = self.base = None
+        self.free_posts = []    # (row, column, phase) of the posts no wall touches
         self.robot = None       # (column, row) of the robot's pixel in the last picture
         self.glyphs, self.rows = {}, {}     # characters already worked out: by their pixels, by screen row
 
@@ -843,12 +850,14 @@ class MazePainter:
             for y in range(ny):
                 states["v", gx, y] = WALL if gx == 0 else model.wall(gx - 1, y, 1)
                 segment(states["v", gx, y], ((gx - 1, y), (gx, y)), [(row(y + 1) + k, gx * pw) for k in range(1, ph)])
+        self.free_posts = []
         for gx in range(nx + 1):
             for py in range(ny + 1):
                 if any(states.get(s) == WALL for s in (("h", gx - 1, py), ("h", gx, py), ("v", gx, py - 1), ("v", gx, py))):
                     walls.append((row(py), gx * pw))
                 else:
                     px[row(py)][gx * pw] = UNSEEN
+                    self.free_posts.append((row(py), gx * pw, gx + py))
         glow = collections.defaultdict(float)
         for r, c in walls:
             px[r][c] = WALL_COLOUR
@@ -887,9 +896,14 @@ class MazePainter:
                 out += [(c0 + (c1 - c0) * i // n, r0 + (r1 - r0) * i // n) for i in range(1, n + 1)]
             return out
 
-        # During a run nothing moves but the robot: the goal pulses and the path flows only at rest.
+        # During a run nothing moves but the robot: the goal pulses and the path flows only at
+        # rest. With --effects they always do, the candidates blink and a sweep crosses what is unseen.
         running = model.activity in RUNNING
-        pulse = 0.5 if running else 0.5 + 0.5 * math.sin(now * 4)
+        still = running and not fx.lively
+        if fx.lively:
+            for r, c, phase in self.free_posts:
+                px[r][c] = mix(UNSEEN, (50, 110, 170), max(0.0, math.sin(phase * 0.55 - now * 2.5)) ** 6)
+        pulse = 0.5 if still else 0.5 + 0.5 * math.sin(now * 4)
         for x, y in model.goal_cells():         # the goal glows
             c0, r0 = x * pw, (ny - 1 - y) * ph
             for r in range(r0 + 1, r0 + ph):
@@ -903,10 +917,10 @@ class MazePainter:
         elif not running and ov.fast_path:
             line, base, hot = polyline([start] + list(ov.fast_path)), (0, 110, 140), (210, 255, 255)
         for i, (c, r) in enumerate(line):
-            flow = 0.0 if running else max(0.0, 1 - ((now * 22 - i * 6 / pw) % 26) / 7)
+            flow = 0.0 if still else max(0.0, 1 - ((now * 22 - i * 6 / pw) % 26) / 7)
             paint(c, r, mix(base, hot, flow), 0.9)
 
-        for x, y in ov.candidates:
+        for x, y in ov.candidates if not fx.lively or int(now * 3) % 2 else ():
             c, r = centre(x, y)
             for dc, dr in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)) if fine else ((0, 0),):
                 paint(c + dc, r + dr, PINK, 0.9)
@@ -1146,6 +1160,7 @@ HELP_LINES = [
     ("keyline", "  Esc          quit"),
     ("keyline", "  /full /clear  16x16 view, clear the log"),
     ("keyline", "  /pixels      coarser maze, for terminals that do not draw sextants"),
+    ("keyline", "  /effects     the map moves during a run too: sweep, ripples, flowing route"),
     ("keyline", "  /note text   adds a measurement to the last calibration file"),
     ("", ""),
     ("head", "ROBOT (all in README.md, Bluetooth console)"),
@@ -1584,6 +1599,7 @@ class Monitor:
         self.view.full, self.view.pixels = args.full, args.pixels
         self.view.replay = bool(args.replay)
         self.view.fx.rate = args.speed if args.replay else 1.0
+        self.view.fx.lively = args.effects
         self.view.source = os.path.basename(args.replay) if args.replay else args.port
         self.capture = CalibrationCapture(args.calib_dir, save=not args.replay)
         self.history = []
@@ -1680,6 +1696,9 @@ class Monitor:
                 names = list(GRAINS)
                 self.view.pixels = names[(names.index(self.view.pixels) + 1) % len(names)]
                 self.add_log("info", "maze drawn in %s pixels" % self.view.pixels)
+            elif name == "/effects":
+                self.view.fx.lively = not self.view.fx.lively
+                self.add_log("info", "effects during the runs %s" % ("on" if self.view.fx.lively else "off"))
             elif name == "/clear":
                 self.view.log.clear()
                 self.view.scroll = 0
@@ -1689,7 +1708,7 @@ class Monitor:
                 except OSError as exc:
                     self.add_log("bad", "could not write the note: %s" % exc)
             else:
-                self.add_log("warn", "local commands: /full /pixels /clear /note <text>")
+                self.add_log("warn", "local commands: /full /pixels /effects /clear /note <text>")
             self.dirty = True
 
     def submit(self):
@@ -1901,6 +1920,9 @@ def parse_args(argv=None):
     parser.add_argument("--full", action="store_true", help="always draw the whole 16x16 maze")
     parser.add_argument("--pixels", choices=list(GRAINS), default="sextant",
                         help="the maze's grain: half where the terminal does not draw sextants (also /pixels)")
+    parser.add_argument("--effects", action="store_true",
+                        help="the map moves during a run too: a sweep over what is unseen, a ripple for every "
+                             "new cell, the route flowing, the goal pulsing (also /effects)")
     return parser.parse_args(argv)
 
 
