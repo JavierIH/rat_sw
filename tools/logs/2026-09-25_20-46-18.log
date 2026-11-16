@@ -1,0 +1,317 @@
+0.000	!	conectado
+1.285	<	@Y2
+1.285	<	@G3232
+1.285	<	@M1
+1.285	<	@AI
+1.285	<	@P00N
+1.285	<	@R0NVTN000000000004
+1.285	<	@R1NVNN000000000004
+1.285	<	@R2TLLL000000000004
+1.285	<	
+1.310	<	rat_sw Sep 25 2026 20:45:41 | modo 1 BUSQUEDA
+1.310	<	Flash: de otro firmware (ignorado)
+1.404	<	Meta (3,2)-(3,2). SELECT cambia de modo, START lo lanza, HELP lista comandos
+1.404	<	@Y2
+1.404	<	@G3232
+1.404	<	@M1
+1.404	<	@AI
+1.404	<	@P00N
+1.404	<	@R00000000000000004
+1.404	<	@R10000000000000004
+1.404	<	@R20000000000000004
+8.781	>	STATUS
+9.212	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+9.546	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+9.737	<	meta (3,2)-(3,2) | 0 celdas visitadas | sin camino rapido verificado
+19.558	>	START
+19.831	<	START modo 1: BUSQUEDA
+19.968	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+20.032	<	@Y2
+20.032	<	@G3232
+20.032	<	@M1
+20.059	<	@AC
+20.059	<	@P00N
+20.089	<	@R00000000000000004
+20.089	<	@R10000000000000004
+20.089	<	@R20000000000000004
+21.722	<	@AG
+21.772	<	== BUSQUEDA ==
+21.801	<	@C00N.###
+21.828	<	@R0M000000000000004
+21.938	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+23.003	<	avance 1: fin=ENC dist=179.23mm obj=180.00mm vmax=600mm/s IR(FL=192 FR=249 SL=89 SR=76) lados=11 t=699ms err=2.12mm/1.50deg
+23.088	<	@P01N
+23.088	<	@C01N.#o#
+23.113	<	@R1M000000000000004
+23.140	<	META (0,1)N F0 I1 D1 coste=9 -> AVANZA
+23.602	<	avance 1: fin=IR dist=180.61mm obj=181.03mm vmax=600mm/s IR(FL=87 FR=101 SL=89 SR=169) lados=10 t=549ms err=2.28mm/1.06deg
+23.636	<	@P02N
+23.706	<	@C02N#.o#
+23.752	<	@R2P000000000000004
+23.876	<	META (0,2)N F1 I1 D0 coste=7 -> DER
+24.011	<	giro der: 89.33deg de 90 fin=OK TURNTICKS=405 t=327ms err=0.28mm/1.00deg
+24.011	<	@P02E
+24.011	<	@C02E#oo#
+24.011	<	@R0N000000000000004
+24.036	<	META (0,2)E F0 I? D0 coste=6 -> AVANZA
+24.497	<	avance 1: fin=IR dist=174.81mm obj=175.29mm vmax=600mm/s IR(FL=88 FR=99 SL=84 SR=180) lados=10 t=574ms err=2.24mm/2.15deg
+24.530	<	@P12E
+24.850	<	escuadrado: sesgo=4mm giro=3.80deg -> 0mm t=59ms err=0.06mm/0.57deg
+24.951	<	@C12E##.o
+24.951	<	@R1N200000000000004
+25.129	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+25.206	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=353ms err=0.28mm/1.00deg
+25.206	<	@P12S
+25.206	<	@C12S##oo
+25.206	<	@R2TL00000000000004
+25.206	<	META (1,2)S F0 I? D0 coste=10 -> AVANZA
+25.489	<	avance 1: fin=ENC dist=179.50mm obj=180.00mm vmax=600mm/s IR(FL=204 FR=249 SL=225 SR=74) lados=01 t=594ms err=2.26mm/1.69deg
+25.489	<	@P11S
+25.549	<	@C11So..#
+25.549	<	@R0N200000000000004
+25.592	<	META (1,1)S F0 I0 D1 coste=8 -> IZQ
+25.882	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=309ms err=0.39mm/1.21deg
+25.882	<	@P11E
+25.884	<	@C11Eooo#
+25.884	<	@R1NV00000000000004
+25.884	<	META (1,1)E F0 I0 D0 coste=7 -> AVANZA
+26.541	<	avance 1: fin=IR dist=172.82mm obj=173.29mm vmax=600mm/s IR(FL=82 FR=106 SL=145 SR=65) lados=01 t=572ms err=2.21mm/3.44deg
+26.696	<	@P21E
+26.878	<	escuadrado: sesgo=-8mm giro=-7.37deg -> -1mm t=77ms err=0.33mm/0.62deg
+26.951	<	@C21E.##o
+27.060	<	@R2TL00000000000004
+27.060	<	META (2,1)E F1 I0 D1 coste=6 -> IZQ
+27.174	<	giro izq: -89.00deg de -90 fin=OK TURNTICKS=405 t=480ms err=0.33mm/1.00deg
+27.174	<	@P21N
+27.174	<	@C21No##o
+27.174	<	@R0N310000000000004
+27.201	<	META (2,1)N F0 I0 D? coste=5 -> AVANZA
+27.542	<	avance 1: fin=IR dist=172.54mm obj=172.86mm vmax=600mm/s IR(FL=83 FR=106 SL=89 SR=74) lados=11 t=525ms err=2.52mm/2.12deg
+27.586	<	@P22N
+27.801	<	escuadrado: sesgo=-7mm giro=-6.25deg -> -2mm t=73ms err=0.44mm/0.66deg
+27.894	<	@C22N##o#
+27.920	<	@R1NVN0000000000004
+27.920	<	META (2,2)N F1 I1 D1 coste=20 -> MEDIA VUELTA
+28.207	<	giro der: 179.33deg de 180 fin=OK TURNTICKS=405 t=508ms err=0.17mm/1.11deg
+28.207	<	@P22S
+28.297	<	@C22S##o#
+28.385	<	@R2TLL0000000000004
+28.455	<	META (2,2)S F0 I? D? coste=18 -> AVANZA
+28.849	<	avance 1: fin=IR dist=166.02mm obj=166.61mm vmax=600mm/s IR(FL=88 FR=101 SL=86 SR=181) lados=10 t=703ms err=2.20mm/2.65deg
+28.924	<	@P21S
+28.959	<	@C21So##o
+29.036	<	@R0N310000000000004
+29.089	<	META (2,1)S F1 I1 D0 coste=16 -> DER
+29.585	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=305ms err=0.28mm/0.96deg
+29.661	<	@P21W
+29.661	<	@C21Wo##o
+29.787	<	@R1NVN0000000000004
+29.787	<	META (2,1)W F0 I? D? coste=15 -> AVANZA
+30.036	<	avance 1: fin=IR dist=169.01mm obj=169.47mm vmax=600mm/s IR(FL=88 FR=99 SL=203 SR=176) lados=00 t=531ms err=2.24mm/1.85deg
+30.036	<	@P11W
+30.036	<	@C11Wooo#
+30.036	<	@R2TLL0000000000004
+30.062	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+30.306	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=337ms err=0.33mm/1.13deg
+30.306	<	@P11S
+30.334	<	@C11Sooo#
+30.416	<	@R0N310000000000004
+30.416	<	META (1,1)S F0 I0 D? coste=12 -> AVANZA
+30.737	<	avance 1: fin=IR dist=168.67mm obj=169.16mm vmax=600mm/s IR(FL=85 FR=103 SL=176 SR=76) lados=01 t=520ms err=2.12mm/1.60deg
+30.778	<	@P10S
+30.778	<	@C10So.##
+30.841	<	@R1NVN0000000000004
+30.945	<	META (1,0)S F1 I0 D1 coste=10 -> IZQ
+31.216	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=303ms err=0.39mm/1.00deg
+31.216	<	@P10E
+31.244	<	@C10Eoo##
+31.246	<	@R2TLL0000000000004
+31.419	<	META (1,0)E F0 I0 D? coste=9 -> AVANZA
+31.945	<	avance 1: fin=ENC dist=179.34mm obj=180.00mm vmax=600mm/s IR(FL=209 FR=250 SL=86 SR=78) lados=11 t=699ms err=2.23mm/1.60deg
+32.006	<	@P20E
+32.006	<	@C20E#.#o
+32.136	<	@R0NVP0000000000004
+32.297	<	META (2,0)E F0 I1 D1 coste=7 -> AVANZA
+32.799	<	avance 1: fin=IR dist=173.92mm obj=174.23mm vmax=600mm/s IR(FL=85 FR=104 SL=166 SR=74) lados=01 t=539ms err=2.23mm/1.39deg
+32.799	<	@P30E
+32.800	<	@C30E.##o
+32.800	<	@R1NVN0000000000004
+32.800	<	META (3,0)E F1 I0 D1 coste=5 -> IZQ
+32.879	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=297ms err=0.44mm/0.97deg
+32.879	<	@P30N
+32.879	<	@C30No##o
+33.037	<	@R2TLL0000000000004
+33.147	<	META (3,0)N F0 I0 D? coste=4 -> AVANZA
+33.585	<	avance 1: fin=ENC dist=179.45mm obj=180.00mm vmax=600mm/s IR(FL=209 FR=287 SL=94 SR=70) lados=11 t=699ms err=2.16mm/1.50deg
+33.610	<	@P31N
+33.610	<	@C31N.#o#
+33.743	<	@R0NVTN000000000004
+33.776	<	META (3,1)N F0 I1 D1 coste=2 -> AVANZA
+34.141	<	avance 1: fin=IR dist=170.94mm obj=171.37mm vmax=600mm/s IR(FL=88 FR=103 SL=89 SR=76) lados=11 t=545ms err=2.34mm/1.52deg
+34.167	<	@P32N
+34.169	<	@C32N##o#
+34.195	<	@R1NVNN000000000004
+34.409	<	Meta alcanzada en (3,2) tras 22 acciones
+34.543	<	Mapa guardado (12 celdas visitadas)
+34.543	<	@AO
+34.570	<	Camino rapido optimo verificado: vuelta a la salida
+34.570	<	@AH
+34.596	<	VUELTA (3,2)N F1 I1 D1 coste=24 -> MEDIA VUELTA
+34.821	<	giro der: 179.33deg de 180 fin=OK TURNTICKS=405 t=481ms err=0.28mm/1.07deg
+34.821	<	@P32S
+34.821	<	@C32S##o#
+34.930	<	@R2TLLL000000000004
+35.026	<	VUELTA (3,2)S F0 I? D? coste=22 -> AVANZA
+35.406	<	avance 1: fin=ENC dist=179.50mm obj=180.00mm vmax=600mm/s IR(FL=198 FR=234 SL=84 SR=78) lados=11 t=559ms err=2.28mm/1.36deg
+35.406	<	@P31S
+35.406	<	@C31So#o#
+35.538	<	@R0NVTN000000000004
+35.625	<	VUELTA (3,1)S F0 I1 D1 coste=20 -> AVANZA
+36.051	<	avance 1: fin=IR dist=164.97mm obj=165.38mm vmax=600mm/s IR(FL=86 FR=101 SL=92 SR=172) lados=10 t=527ms err=2.15mm/1.52deg
+36.080	<	@P30S
+36.132	<	@C30So##o
+36.200	<	@R1NVNN000000000004
+36.208	<	VUELTA (3,0)S F1 I1 D0 coste=18 -> DER
+36.211	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=322ms err=0.17mm/0.89deg
+36.211	<	@P30W
+36.214	<	@C30Wo##o
+36.350	<	@R2TLLL000000000004
+36.450	<	VUELTA (3,0)W F0 I? D0 coste=17 -> AVANZA
+37.366	<	avance 1: fin=ENC dist=179.28mm obj=180.00mm vmax=600mm/s IR(FL=215 FR=242 SL=91 SR=72) lados=11 t=699ms err=2.15mm/2.12deg
+37.420	<	@P20W
+37.420	<	@C20W#o#o
+37.541	<	@R0NVTN000000000004
+37.541	<	VUELTA (2,0)W F0 I1 D1 coste=15 -> AVANZA
+38.236	<	avance 1: fin=IR dist=176.74mm obj=177.19mm vmax=600mm/s IR(FL=88 FR=101 SL=84 SR=149) lados=10 t=540ms err=2.21mm/1.38deg
+38.236	<	@P10W
+38.303	<	@C10Woo##
+38.352	<	@R1NVNN000000000004
+38.352	<	VUELTA (1,0)W F1 I1 D0 coste=13 -> DER
+38.558	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=324ms err=0.17mm/1.00deg
+38.558	<	@P10N
+38.558	<	@C10Noo##
+38.558	<	@R2TLLL000000000004
+38.582	<	VUELTA (1,0)N F0 I? D? coste=12 -> AVANZA
+38.720	<	avance 1: fin=ENC dist=179.34mm obj=180.00mm vmax=600mm/s IR(FL=192 FR=249 SL=79 SR=181) lados=10 t=699ms err=2.20mm/2.03deg
+38.720	<	@P11N
+38.720	<	@C11Nooo#
+38.745	<	@R0NVTN000000000004
+39.214	<	VUELTA (1,1)N F0 I1 D0 coste=10 -> AVANZA
+39.645	<	avance 1: fin=IR dist=179.89mm obj=180.26mm vmax=600mm/s IR(FL=85 FR=106 SL=196 SR=76) lados=01 t=539ms err=2.34mm/2.23deg
+39.699	<	@P12N
+39.875	<	escuadrado: sesgo=-5mm giro=-4.96deg -> -2mm t=62ms err=0.28mm/0.62deg
+39.875	<	@C12N##oo
+39.875	<	@R1NVNN000000000004
+40.034	<	VUELTA (1,2)N F1 I0 D1 coste=8 -> IZQ
+40.154	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.50mm/0.94deg
+40.154	<	@P12W
+40.154	<	@C12W##oo
+40.154	<	@R2TLLL000000000004
+40.154	<	VUELTA (1,2)W F0 I0 D? coste=7 -> AVANZA
+40.570	<	avance 1: fin=IR dist=166.74mm obj=167.11mm vmax=600mm/s IR(FL=85 FR=101 SL=167 SR=78) lados=01 t=565ms err=2.20mm/1.70deg
+40.570	<	@P02W
+40.615	<	@C02W#oo#
+40.615	<	@R0NVTN000000000004
+40.615	<	VUELTA (0,2)W F1 I0 D1 coste=5 -> IZQ
+40.990	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=333ms err=0.39mm/1.06deg
+40.990	<	@P02S
+40.990	<	@C02S#oo#
+40.990	<	@R1NVNN000000000004
+41.040	<	VUELTA (0,2)S F0 I0 D? coste=4 -> AVANZA
+41.512	<	avance 1: fin=ENC dist=179.34mm obj=180.00mm vmax=600mm/s IR(FL=204 FR=226 SL=101 SR=65) lados=11 t=699ms err=2.15mm/1.61deg
+41.512	<	@P01S
+41.552	<	@C01So#o#
+41.653	<	@R2TLLL000000000004
+41.757	<	VUELTA (0,1)S F0 I1 D1 coste=2 -> AVANZA
+42.004	<	avance 1: fin=IR dist=171.22mm obj=171.53mm vmax=600mm/s IR(FL=87 FR=104 SL=97 SR=68) lados=11 t=504ms err=2.29mm/1.64deg
+42.004	<	@P00S
+42.004	<	@C00So###
+42.004	<	@R0NVTN000000000004
+42.700	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=506ms err=0.22mm/1.00deg
+42.700	<	@P00N
+42.832	<	En la salida tras 36 acciones
+42.910	<	Mapa guardado (12 celdas visitadas)
+43.085	<	Camino rapido verificado: coste 22
+43.228	<	Fin: OK | robot en la salida, listo
+43.252	<	@AI
+43.252	<	@P00N
+50.788	>	MODE 2
+51.074	<	@M2
+51.292	<	modo 2: CARRERA RAPIDA
+51.789	>	START
+52.033	<	START modo 2: CARRERA RAPIDA
+52.277	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+52.277	<	@Y2
+52.313	<	@G3232
+52.313	<	@M2
+52.315	<	@AC
+52.340	<	@P00N
+52.367	<	@R0NVTN000000000004
+52.420	<	@R1NVNN000000000004
+52.532	<	@R2TLLL000000000004
+53.887	<	@AF
+54.107	<	== CARRERA RAPIDA (coste 22) ==
+54.143	<	@C00No###
+54.220	<	@R1NVNN000000000004
+54.359	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+57.021	<	ruta 9 celdas, 4 curvas: fin=IR dist=1497.85/1498.34mm v=900/478 IR(FL=85 FR=100) lados=11 t=2757ms err=2.65mm/2.82deg
+57.102	<	@P32N
+57.155	<	Meta alcanzada en carrera rapida tras 1 tramos
+57.207	<	@AR
+57.312	<	@C32N##o#
+57.314	<	@R2TLLL000000000004
+57.314	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+57.705	<	giro der: 178.89deg de 180 fin=OK TURNTICKS=405 t=660ms err=0.22mm/1.33deg
+57.705	<	@P32S
+60.992	<	ruta 9 celdas, 4 curvas: fin=IR dist=1479.06/1479.49mm v=600/478 IR(FL=83 FR=101) lados=11 t=2962ms err=2.44mm/3.06deg
+60.992	<	@P00S
+61.567	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=660ms err=0.33mm/1.22deg
+61.567	<	@P00N
+61.652	<	En la salida tras 2 acciones
+61.802	<	Mapa guardado (12 celdas visitadas)
+61.908	<	Camino rapido verificado: coste 22
+62.272	<	Fin: OK | robot en la salida, listo
+62.272	<	@AI
+62.272	<	@P00N
+62.829	>	TUNE MOTOR_SCALE 0.8
+63.187	<	MOTOR_SCALE=0.80 (hasta reiniciar; en robot_config.h para siempre)
+63.530	>	MODE 2
+63.597	<	@M2
+63.623	<	modo 2: CARRERA RAPIDA
+64.532	>	START
+64.671	<	START modo 2: CARRERA RAPIDA
+65.223	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+65.223	<	@Y2
+65.225	<	@G3232
+65.225	<	@M2
+65.272	<	@AC
+65.272	<	@P00N
+65.341	<	@R0NVTN000000000004
+65.462	<	@R1NVNN000000000004
+65.526	<	@R2TLLL000000000004
+66.570	<	@AF
+66.705	<	== CARRERA RAPIDA (coste 22) ==
+66.775	<	@C00No###
+66.951	<	@R0NVTN000000000004
+67.062	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+69.831	<	ruta 9 celdas, 4 curvas: fin=IR dist=1494.14/1494.64mm v=900/478 IR(FL=88 FR=102) lados=11 ritmo=81% t=2837ms err=4.11mm/3.25deg
+69.831	<	@P32N
+69.960	<	Meta alcanzada en carrera rapida tras 1 tramos
+69.960	<	@AR
+69.960	<	@C32N##o#
+69.960	<	@R1NVNN000000000004
+70.116	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+70.455	<	giro der: 180.44deg de 180 fin=OK TURNTICKS=405 t=460ms err=0.11mm/1.17deg
+70.455	<	@P32S
+73.542	<	ruta 9 celdas, 4 curvas: fin=IR dist=1472.32/1472.77mm v=600/478 IR(FL=85 FR=103) lados=11 t=3047ms err=2.52mm/3.24deg
+73.542	<	@P00S
+74.018	<	giro der: 180.44deg de 180 fin=OK TURNTICKS=405 t=465ms err=0.22mm/1.22deg
+74.018	<	@P00N
+74.115	<	En la salida tras 2 acciones
+74.250	<	Mapa guardado (12 celdas visitadas)
+74.355	<	Camino rapido verificado: coste 22
+74.675	<	Fin: OK | robot en la salida, listo
+74.753	<	@AI
+74.753	<	@P00N
+89.280	>	TUNE MOTOR_SCALE 1
+89.711	<	MOTOR_SCALE=1.00 (hasta reiniciar; en robot_config.h para siempre)

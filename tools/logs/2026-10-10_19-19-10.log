@@ -1,0 +1,208 @@
+0.001	!	connected
+0.001	>	SYNC
+3.685	<	
+3.685	<	rat_sw Oct 10 2026 19:17:41 | mode 1 SEARCH
+3.685	<	Map in flash: 6 cells, fast path cost 11 (ERASE if it is another maze)
+3.711	<	Reset: RESET (software)
+3.711	<	Goal (3,2)-(3,2). SELECT changes mode, START launches it (on 2, opens the races)
+3.712	<	@Y2
+3.712	<	@G3232
+3.712	<	@M1
+3.712	<	@AI
+3.714	<	@P00N
+3.714	<	@R0N000000000000004
+3.714	<	@R1N113000000000004
+3.714	<	@R2TTTL000000000004
+3.718	<	@Y2
+3.718	<	@G3232
+3.718	<	@M1
+3.720	<	@AI
+3.721	<	@P00N
+3.760	<	@R0N000000000000004
+3.784	<	@R1N113000000000004
+3.791	<	@R2TTTL000000000004
+16.930	>	ERASE
+17.168	<	map erased (RAM and flash), default goal
+17.169	<	@Y2
+17.177	<	@G3232
+17.177	<	@M1
+17.184	<	@AI
+17.197	<	@P00N
+17.216	<	@R00000000000000004
+17.233	<	@R10000000000000004
+17.262	<	@R20000000000000004
+24.891	!	Bluetooth link down
+25.892	!	connected
+25.892	>	SYNC
+28.783	>	REMOTE
+31.016	!	Bluetooth link down
+32.017	!	connected
+32.017	>	SYNC
+37.143	!	Bluetooth link down
+38.144	!	connected
+38.144	>	SYNC
+43.270	!	Bluetooth link down
+44.270	!	connected
+44.270	>	SYNC
+46.252	<	@Y2
+46.262	<	@G3232
+46.262	<	@M1
+46.288	<	@AI
+46.288	<	@P00N
+46.313	<	@R00000000000000004
+46.327	<	@R10000000000000004
+46.337	<	@R20000000000000004
+81.034	>	REMOTE
+81.248	<	? REMOTE (commands: README.md)
+99.494	>	GO F
+99.606	<	? GO F (commands: README.md)
+169.410	!	Bluetooth link down
+170.411	!	connected
+170.411	>	SYNC
+175.536	!	Bluetooth link down
+176.536	!	connected
+176.536	>	SYNC
+181.662	!	Bluetooth link down
+182.662	!	connected
+182.663	>	SYNC
+187.789	!	Bluetooth link down
+188.790	!	connected
+188.790	>	SYNC
+193.916	!	Bluetooth link down
+194.917	!	connected
+194.917	>	SYNC
+200.043	!	Bluetooth link down
+201.043	!	connected
+201.043	>	SYNC
+206.169	!	Bluetooth link down
+207.170	!	connected
+207.170	>	SYNC
+212.296	!	Bluetooth link down
+213.297	!	connected
+213.297	>	SYNC
+218.423	!	Bluetooth link down
+219.423	!	connected
+219.424	>	SYNC
+224.549	!	Bluetooth link down
+225.550	!	connected
+225.550	>	SYNC
+230.677	!	Bluetooth link down
+231.677	!	connected
+231.677	>	SYNC
+236.804	!	Bluetooth link down
+237.804	!	connected
+237.804	>	SYNC
+242.929	!	Bluetooth link down
+243.929	!	connected
+243.929	>	SYNC
+249.054	!	Bluetooth link down
+250.054	!	connected
+250.054	>	SYNC
+255.180	!	Bluetooth link down
+256.181	!	connected
+256.181	>	SYNC
+261.306	!	Bluetooth link down
+262.306	!	connected
+262.306	>	SYNC
+267.433	!	Bluetooth link down
+268.433	!	connected
+268.433	>	SYNC
+273.560	!	Bluetooth link down
+274.560	!	connected
+274.560	>	SYNC
+279.686	!	Bluetooth link down
+280.686	!	connected
+280.686	>	SYNC
+285.813	!	Bluetooth link down
+286.813	!	connected
+286.814	>	SYNC
+291.940	!	Bluetooth link down
+292.941	!	connected
+292.941	>	SYNC
+298.066	!	Bluetooth link down
+299.067	!	connected
+299.067	>	SYNC
+304.192	!	Bluetooth link down
+305.193	!	connected
+305.193	>	SYNC
+310.319	!	Bluetooth link down
+311.320	!	connected
+311.320	>	SYNC
+316.447	!	Bluetooth link down
+317.447	!	connected
+317.448	>	SYNC
+322.573	!	Bluetooth link down
+323.573	!	connected
+323.573	>	SYNC
+328.700	!	Bluetooth link down
+329.700	!	connected
+329.701	>	SYNC
+334.827	!	Bluetooth link down
+335.827	!	connected
+335.827	>	SYNC
+340.953	!	Bluetooth link down
+341.953	!	connected
+341.953	>	SYNC
+347.080	!	Bluetooth link down
+348.081	!	connected
+348.081	>	SYNC
+353.207	!	Bluetooth link down
+354.208	!	connected
+354.208	>	SYNC
+359.334	!	Bluetooth link down
+360.334	!	connected
+360.334	>	SYNC
+365.461	!	Bluetooth link down
+366.462	!	connected
+366.462	>	SYNC
+371.588	!	Bluetooth link down
+372.589	!	connected
+372.589	>	SYNC
+377.714	!	Bluetooth link down
+378.715	!	connected
+378.715	>	SYNC
+383.841	!	Bluetooth link down
+384.841	!	connected
+384.841	>	SYNC
+389.967	!	Bluetooth link down
+390.968	!	connected
+390.968	>	SYNC
+396.093	!	Bluetooth link down
+397.094	!	connected
+397.094	>	SYNC
+402.221	!	Bluetooth link down
+403.222	!	connected
+403.222	>	SYNC
+408.349	!	Bluetooth link down
+409.349	!	connected
+409.349	>	SYNC
+414.476	!	Bluetooth link down
+415.476	!	connected
+415.476	>	SYNC
+420.602	!	Bluetooth link down
+421.602	!	connected
+421.602	>	SYNC
+426.728	!	Bluetooth link down
+427.728	!	connected
+427.728	>	SYNC
+432.855	!	Bluetooth link down
+433.855	!	connected
+433.855	>	SYNC
+438.982	!	Bluetooth link down
+439.982	!	connected
+439.982	>	SYNC
+445.108	!	Bluetooth link down
+446.109	!	connected
+446.109	>	SYNC
+451.234	!	Bluetooth link down
+452.234	!	connected
+452.235	>	SYNC
+457.361	!	Bluetooth link down
+458.362	!	connected
+458.362	>	SYNC
+463.488	!	Bluetooth link down
+464.489	!	connected
+464.489	>	SYNC
+469.614	!	Bluetooth link down
+470.615	!	connected
+470.615	>	SYNC

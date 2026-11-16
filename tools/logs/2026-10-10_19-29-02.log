@@ -1,0 +1,98 @@
+0.001	!	connected
+0.001	>	SYNC
+1.275	<	
+1.275	<	rat_sw Oct 10 2026 19:28:16 | mode 1 SEARCH
+1.275	<	Map in flash: 0 cells, no fast path (ERASE if it is another maze)
+1.279	<	Reset: RESET (software)
+1.279	<	Goal (3,2)-(3,2). SELECT changes mode, START launches it (on 2, opens the races)
+1.279	<	@Y2
+1.279	<	@G3232
+1.279	<	@M1
+1.279	<	@AI
+1.279	<	@P00N
+1.283	<	@R00000000000000004
+1.283	<	@R10000000000000004
+1.283	<	@R20000000000000004
+1.285	<	@Y2
+1.287	<	@G3232
+1.287	<	@M1
+1.289	<	@AI
+1.289	<	@P00N
+1.320	<	@R00000000000000004
+1.323	<	@R10000000000000004
+1.351	<	@R20000000000000004
+6.457	>	ERASE
+6.554	<	map erased (RAM and flash), default goal
+6.554	<	@Y2
+6.556	<	@G3232
+6.556	<	@M1
+6.556	<	@AI
+6.619	<	@P00N
+6.621	<	@R00000000000000004
+6.629	<	@R10000000000000004
+6.638	<	@R20000000000000004
+11.701	>	REMOTE
+11.832	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+11.832	<	@Y2
+11.836	<	@G3232
+11.836	<	@M1
+11.836	<	@AC
+11.851	<	@P00N
+11.878	<	@R00000000000000004
+11.880	<	@R10000000000000004
+11.916	<	@R20000000000000004
+16.786	<	@AW
+16.811	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+16.828	<	@C00N.###
+16.847	<	@R0M000000000000004
+16.913	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+16.941	<	remote ir FL=209 FR=306 SL=88 SR=74
+29.268	>	go f
+29.432	<	go F
+30.244	<	forward 1: end=ENC dist=179.28mm target=180.00mm vmax=600mm/s IR(FL=215 FR=273 SL=91 SR=74) sides=11 t=699ms err=1.38mm/0.90deg
+30.246	<	@P01N
+30.246	<	@C01N.#o#
+30.270	<	@R1M000000000000004
+30.347	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+30.376	<	remote ir FL=192 FR=273 SL=91 SR=74
+31.814	>	go f
+31.851	<	go F
+32.715	<	forward 1: end=IR dist=187.73mm target=188.41mm vmax=600mm/s IR(FL=83 FR=99 SL=91 SR=154) sides=10 t=702ms err=1.16mm/8.51deg
+32.727	<	@P02N
+32.732	<	@C02N#.o#
+32.745	<	@R2P000000000000004
+32.809	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+32.846	<	remote ir FL=83 FR=101 SL=91 SR=144
+35.295	>	go R
+35.352	<	go R
+35.699	<	turn right: 89.55deg of 90 end=OK TURNTICKS=403 t=280ms err=0.36mm/0.48deg
+35.699	<	@P02E
+36.360	<	forward 1: end=ENC dist=179.50mm target=180.00mm vmax=600mm/s IR(FL=209 FR=234 SL=84 SR=182) sides=10 t=605ms err=1.48mm/3.99deg
+36.360	<	@P12E
+36.369	<	@C12E#..o
+36.396	<	@R0N000000000000004
+36.450	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+36.494	<	remote ir FL=204 FR=250 SL=84 SR=182
+57.327	>	home
+57.465	<	HOME: only with the robot stopped
+70.743	>	erase
+70.940	<	ERASE: only with the robot stopped
+75.117	>	stop
+75.154	<	STOP
+75.188	<	Run stopped at (1,2)E
+75.223	<	End: ABORTED | place the robot at the start
+75.236	<	@AI
+75.238	<	@P12E
+78.353	>	erase
+78.430	<	map erased (RAM and flash), default goal
+78.430	<	@Y2
+78.444	<	@G3232
+78.444	<	@M1
+78.451	<	@AI
+78.459	<	@P12E
+78.481	<	@R00000000000000004
+78.521	<	@R10000000000000004
+78.530	<	@R20000000000000004
+79.983	>	home
+80.024	<	@P00N
+80.066	<	robot at the start facing north: ready

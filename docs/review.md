@@ -222,7 +222,7 @@ high; measured).**
   right: 0 in 1046 cycles on the real mazes (half of them with 3 %
   noise), 0 in the 900 random ones.
 - On the robot, 2026-09-26 19:31 (practice maze, a race's return;
-  `tools/logs/2026-09-26_11-22-09.log`, untracked, t=29370-29375):
+  `tools/logs/2026-09-26_11-22-09.log`, t=29370-29375):
   `ruta 9 celdas, 0 curvas: fin=OBSTACULO dist=168.78/1433.59mm ...
   IR(FL=57 FR=113)`, `obstaculo delante: marcha atras OK`, `!! destino
   inalcanzable segun el mapa: olvido 1 paredes dudosas (reparacion 1/3)`,

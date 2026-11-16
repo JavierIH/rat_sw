@@ -1,0 +1,6 @@
+0.000	!	conectado
+4.978	>	STATUS
+5.542	<	modo 2 CARRERA RAPIDA | parado | robot (0,0)N en la salida
+6.286	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+6.524	<	pila: 1396 bytes sin usar nunca | reinicio: RESET (software)
+6.524	<	meta (3,2)-(3,2) | 12 celdas visitadas | camino rapido coste 22

@@ -1,0 +1,268 @@
+0.000	!	conectado
+3.720	<	@Y2
+3.720	<	@G3232
+3.720	<	@M1
+3.720	<	@AI
+3.720	<	@P00N
+3.720	<	@R0NVTN000000000004
+3.720	<	@R1NVNN000000000004
+3.720	<	@R2TLLL000000000004
+3.720	<	
+3.722	<	rat_sw Sep 25 2026 18:21:12 | modo 1 BUSQUEDA
+3.722	<	Mapa en flash: 12 celdas, camino rapido coste 22 (ERASE si es otro laberinto)
+3.728	<	Meta (3,2)-(3,2). SELECT cambia de modo, START lo lanza, HELP lista comandos
+3.728	<	@Y2
+3.728	<	@G3232
+3.728	<	@M1
+3.728	<	@AI
+3.728	<	@P00N
+3.728	<	@R0NVTN000000000004
+3.728	<	@R1NVNN000000000004
+3.729	<	@R2TLLL000000000004
+9.747	>	STATUS
+9.844	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+9.946	<	SPD 600 FAST 700 CURVE 400 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+10.014	<	meta (3,2)-(3,2) | 12 celdas visitadas | camino rapido coste 22
+27.813	>	MODE 2
+27.932	<	@M2
+27.934	<	modo 2: CARRERA RAPIDA
+28.817	>	START
+28.878	<	START modo 2: CARRERA RAPIDA
+28.953	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+28.953	<	@Y2
+28.962	<	@G3232
+28.962	<	@M2
+28.976	<	@AC
+28.981	<	@P00N
+29.002	<	@R0NVTN000000000004
+29.024	<	@R1NVNN000000000004
+29.066	<	@R2TLLL000000000004
+30.859	<	@AF
+30.890	<	== CARRERA RAPIDA (coste 22) ==
+30.897	<	@C00No###
+30.924	<	@R0NVTN000000000004
+30.977	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+34.298	<	ruta 9 celdas, 4 curvas: fin=IR dist=1483.54/1484.12mm v=700/400 IR(FL=86 FR=103) lados=11 t=3282ms err=2.56mm/1.85deg
+34.300	<	@P32N
+34.351	<	Meta alcanzada en carrera rapida tras 1 tramos
+34.376	<	@AR
+34.409	<	@C32N##o#
+34.432	<	@R1NVNN000000000004
+34.487	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+35.055	<	giro der: 179.44deg de 180 fin=OK TURNTICKS=405 t=567ms err=0.22mm/1.24deg
+35.055	<	@P32S
+38.345	<	ruta 9 celdas, 4 curvas: fin=IR dist=1477.40/1477.85mm v=600/400 IR(FL=87 FR=101) lados=11 t=3247ms err=2.16mm/2.73deg
+38.354	<	@P00S
+38.770	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=470ms err=0.28mm/1.02deg
+38.770	<	@P00N
+38.825	<	En la salida tras 2 acciones
+38.855	<	Mapa guardado (12 celdas visitadas)
+38.879	<	Camino rapido verificado: coste 22
+39.670	<	Fin: OK | robot en la salida, listo
+39.685	<	@AI
+39.685	<	@P00N
+49.365	>	CURVE 450
+49.442	<	CURVE=450 mm/s
+50.067	>	MODE 2
+50.173	<	@M2
+50.178	<	modo 2: CARRERA RAPIDA
+51.069	>	START
+51.129	<	START modo 2: CARRERA RAPIDA
+51.205	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+51.205	<	@Y2
+51.215	<	@G3232
+51.215	<	@M2
+51.229	<	@AC
+51.232	<	@P00N
+51.249	<	@R0NVTN000000000004
+51.272	<	@R1NVNN000000000004
+51.303	<	@R2TLLL000000000004
+53.105	<	@AF
+53.141	<	== CARRERA RAPIDA (coste 22) ==
+53.146	<	@C00No###
+53.183	<	@R2TLLL000000000004
+53.265	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+56.246	<	ruta 9 celdas, 4 curvas: fin=IR dist=1494.25/1494.29mm v=700/450 IR(FL=85 FR=102) lados=11 t=2980ms err=2.44mm/2.71deg
+56.248	<	@P32N
+56.300	<	Meta alcanzada en carrera rapida tras 1 tramos
+56.324	<	@AR
+56.368	<	@C32N##o#
+56.384	<	@R0NVTN000000000004
+56.439	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+56.898	<	giro der: 179.56deg de 180 fin=OK TURNTICKS=405 t=460ms err=0.22mm/0.76deg
+56.898	<	@P32S
+60.006	<	ruta 9 celdas, 4 curvas: fin=IR dist=1473.76/1474.19mm v=600/450 IR(FL=85 FR=101) lados=11 t=3067ms err=2.08mm/2.77deg
+60.020	<	@P00S
+60.458	<	giro der: 179.33deg de 180 fin=OK TURNTICKS=405 t=492ms err=0.17mm/1.00deg
+60.458	<	@P00N
+60.495	<	En la salida tras 2 acciones
+60.563	<	Mapa guardado (12 celdas visitadas)
+60.568	<	Camino rapido verificado: coste 22
+61.359	<	Fin: OK | robot en la salida, listo
+61.368	<	@AI
+61.368	<	@P00N
+71.731	>	CURVE 480
+72.001	<	CURVE=480 mm/s
+72.432	>	MODE 2
+72.485	<	@M2
+72.490	<	modo 2: CARRERA RAPIDA
+73.434	>	START
+73.500	<	START modo 2: CARRERA RAPIDA
+73.578	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+73.578	<	@Y2
+73.580	<	@G3232
+73.580	<	@M2
+73.589	<	@AC
+73.596	<	@P00N
+73.631	<	@R0NVTN000000000004
+73.641	<	@R1NVNN000000000004
+73.663	<	@R2TLLL000000000004
+75.470	<	@AF
+75.515	<	== CARRERA RAPIDA (coste 22) ==
+75.515	<	@C00No###
+75.543	<	@R1NVNN000000000004
+75.591	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+78.423	<	ruta 9 celdas, 4 curvas: fin=IR dist=1476.35/1476.81mm v=700/478 IR(FL=88 FR=101) lados=11 t=2792ms err=2.47mm/3.12deg
+78.427	<	@P32N
+78.477	<	Meta alcanzada en carrera rapida tras 1 tramos
+78.503	<	@AR
+78.536	<	@C32N##o#
+78.555	<	@R2TLLL000000000004
+78.617	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+79.145	<	giro der: 179.44deg de 180 fin=OK TURNTICKS=405 t=529ms err=0.22mm/1.02deg
+79.145	<	@P32S
+82.153	<	ruta 9 celdas, 4 curvas: fin=IR dist=1481.66/1482.03mm v=600/478 IR(FL=86 FR=103) lados=11 t=2967ms err=2.15mm/2.45deg
+82.167	<	@P00S
+82.597	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=462ms err=0.33mm/0.92deg
+82.597	<	@P00N
+82.605	<	En la salida tras 2 acciones
+82.650	<	Mapa guardado (12 celdas visitadas)
+82.681	<	Camino rapido verificado: coste 22
+83.488	<	Fin: OK | robot en la salida, listo
+83.488	<	@AI
+83.490	<	@P00N
+119.997	>	FAST 900
+120.214	<	FAST=900 mm/s
+120.698	>	MODE 2
+120.749	<	@M2
+120.760	<	modo 2: CARRERA RAPIDA
+121.700	>	START
+121.760	<	START modo 2: CARRERA RAPIDA
+121.836	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+121.836	<	@Y2
+121.860	<	@G3232
+121.860	<	@M2
+121.860	<	@AC
+121.863	<	@P00N
+121.886	<	@R0NVTN000000000004
+121.911	<	@R1NVNN000000000004
+121.935	<	@R2TLLL000000000004
+123.737	<	@AF
+123.785	<	== CARRERA RAPIDA (coste 22) ==
+123.785	<	@C00No###
+123.806	<	@R0NVTN000000000004
+123.878	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+126.650	<	ruta 9 celdas, 4 curvas: fin=IR dist=1494.03/1494.52mm v=900/478 IR(FL=86 FR=103) lados=11 t=2759ms err=2.36mm/2.98deg
+126.656	<	@P32N
+126.708	<	Meta alcanzada en carrera rapida tras 1 tramos
+126.733	<	@AR
+126.776	<	@C32N##o#
+126.788	<	@R1NVNN000000000004
+126.846	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+127.331	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=474ms err=0.17mm/0.89deg
+127.331	<	@P32S
+130.342	<	ruta 9 celdas, 4 curvas: fin=IR dist=1486.46/1486.79mm v=600/478 IR(FL=87 FR=103) lados=11 t=2968ms err=2.04mm/2.79deg
+130.342	<	@P00S
+130.936	<	giro der: 179.11deg de 180 fin=OK TURNTICKS=405 t=660ms err=0.28mm/1.11deg
+130.972	<	@P00N
+130.982	<	En la salida tras 2 acciones
+131.050	<	Mapa guardado (12 celdas visitadas)
+131.055	<	Camino rapido verificado: coste 22
+131.850	<	Fin: OK | robot en la salida, listo
+131.865	<	@AI
+131.865	<	@P00N
+153.678	>	MODE 2
+153.793	<	@M2
+153.810	<	modo 2: CARRERA RAPIDA
+154.679	>	START
+154.745	<	START modo 2: CARRERA RAPIDA
+154.819	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+154.819	<	@Y2
+154.827	<	@G3232
+154.827	<	@M2
+154.840	<	@AC
+154.840	<	@P00N
+154.864	<	@R0NVTN000000000004
+154.881	<	@R1NVNN000000000004
+154.907	<	@R2TLLL000000000004
+156.715	<	@AF
+156.748	<	== CARRERA RAPIDA (coste 22) ==
+156.756	<	@C00No###
+156.785	<	@R2TLLL000000000004
+156.837	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+159.616	<	ruta 9 celdas, 4 curvas: fin=IR dist=1485.30/1485.70mm v=900/478 IR(FL=83 FR=106) lados=11 t=2739ms err=2.34mm/3.08deg
+159.616	<	@P32N
+159.694	<	escuadrado: sesgo=-7mm giro=-6.17deg -> -1mm t=78ms err=0.44mm/0.81deg
+159.749	<	Meta alcanzada en carrera rapida tras 1 tramos
+159.773	<	@AR
+159.818	<	@C32N##o#
+159.833	<	@R0NVTN000000000004
+159.882	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+160.368	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=485ms err=0.28mm/0.98deg
+160.368	<	@P32S
+163.362	<	ruta 9 celdas, 4 curvas: fin=IR dist=1476.69/1477.06mm v=600/478 IR(FL=86 FR=101) lados=11 t=2950ms err=2.01mm/3.35deg
+163.399	<	@P00S
+163.980	<	giro der: 179.11deg de 180 fin=OK TURNTICKS=405 t=660ms err=0.22mm/0.89deg
+163.980	<	@P00N
+164.012	<	En la salida tras 2 acciones
+164.063	<	Mapa guardado (12 celdas visitadas)
+164.086	<	Camino rapido verificado: coste 22
+164.882	<	Fin: OK | robot en la salida, listo
+164.891	<	@AI
+164.891	<	@P00N
+165.722	>	MODE 2
+165.772	<	@M2
+165.781	<	modo 2: CARRERA RAPIDA
+166.723	>	START
+166.781	<	START modo 2: CARRERA RAPIDA
+166.858	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+166.858	<	@Y2
+166.871	<	@G3232
+166.871	<	@M2
+166.880	<	@AC
+166.880	<	@P00N
+166.909	<	@R0NVTN000000000004
+166.940	<	@R1NVNN000000000004
+166.947	<	@R2TLLL000000000004
+168.762	<	@AF
+168.792	<	== CARRERA RAPIDA (coste 22) ==
+168.806	<	@C00No###
+168.829	<	@R1NVNN000000000004
+168.883	<	RAPIDA (0,0)N giro 0 + ruta 2D1D2I2I2 (9 celdas)
+171.846	<	ruta 9 celdas, 4 curvas: fin=IR dist=1492.49/1493.16mm v=900/478 IR(FL=88 FR=101) lados=11 t=2919ms err=2.32mm/2.75deg
+171.846	<	@P32N
+171.891	<	Meta alcanzada en carrera rapida tras 1 tramos
+171.915	<	@AR
+171.959	<	@C32N##o#
+171.970	<	@R2TLLL000000000004
+172.030	<	VUELTA (3,2)N giro 2 + ruta 2D2D2I1I2 (9 celdas)
+172.522	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=502ms err=0.22mm/1.00deg
+172.530	<	@P32S
+175.573	<	ruta 9 celdas, 4 curvas: fin=IR dist=1478.45/1478.91mm v=600/478 IR(FL=86 FR=103) lados=11 t=2973ms err=2.11mm/2.93deg
+175.575	<	@P00S
+176.032	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=528ms err=0.17mm/1.05deg
+176.032	<	@P00N
+176.062	<	En la salida tras 2 acciones
+176.114	<	Mapa guardado (12 celdas visitadas)
+176.140	<	Camino rapido verificado: coste 22
+176.936	<	Fin: OK | robot en la salida, listo
+176.946	<	@AI
+176.946	<	@P00N
+424.306	>	FAST 700
+424.435	<	FAST=700 mm/s
+425.308	>	SAVE
+425.417	<	guardado: mapa, meta y parametros
+427.309	>	STATUS
+427.440	<	modo 2 CARRERA RAPIDA | parado | robot (0,0)N en la salida
+427.506	<	SPD 600 FAST 700 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+427.570	<	meta (3,2)-(3,2) | 12 celdas visitadas | camino rapido coste 22

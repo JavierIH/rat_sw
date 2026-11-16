@@ -1,0 +1,938 @@
+0.000	!	connected
+3.008	>	STATUS
+3.104	<	mode 1 SEARCH | stopped | robot (0,0)N at the start
+3.197	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 403 KP 8.00 KD 0.60 LOG 2
+3.354	<	stack: 2024 bytes never used | SysTick worst 262 us | reset: RESET (software)
+3.382	<	RCC_CR=030b4d80 CFGR=001d840a | FLASH_SR=00 CR=0080 ACR=32 OBR=03fffffc WRPR=ffffffff
+3.416	<	chip CPUID=411fc231 IDCODE=00000307 64 KB
+3.513	<	flash: 5 slots | write 1st 0 us, worst 0 us, 0 ms | erase 0 ms | HSI 0
+3.558	<	goal (3,2)-(3,2) | 0 cells visited | no verified fast path
+12.568	>	ERASE
+12.739	<	map erased (RAM and flash), default goal
+12.763	<	@Y2
+12.763	<	@G3232
+12.763	<	@M1
+12.767	<	@AI
+12.777	<	@P00N
+12.799	<	@R00000000000000004
+12.830	<	@R10000000000000004
+12.842	<	@R20000000000000004
+17.790	>	IR
+17.894	<	IR mm FL=222 FR=306 SL=91 SR=74 | raw 59 29 882 723 | enc L=5370 R=4522
+28.062	>	REMOTE
+28.275	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+28.275	<	@Y2
+28.290	<	@G3232
+28.290	<	@M1
+28.295	<	@AC
+28.317	<	@P00N
+28.328	<	@R00000000000000004
+28.342	<	@R10000000000000004
+28.366	<	@R20000000000000004
+33.222	<	@AW
+33.278	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+33.287	<	@C00N.###
+33.311	<	@R10000000000000004
+33.357	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+33.396	<	remote ir FL=228 FR=288 SL=91 SR=74
+33.735	>	GO F
+33.785	<	go F
+34.508	<	forward 1: end=ENC dist=179.50mm target=180.00mm vmax=600mm/s IR(FL=198 FR=265 SL=88 SR=76) sides=11 t=606ms err=1.23mm/1.07deg
+34.515	<	@P01N
+34.528	<	@C01N.#o#
+34.549	<	@R20000000000000004
+34.603	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+34.648	<	remote ir FL=187 FR=265 SL=88 SR=76
+34.919	>	GO F
+34.969	<	go F
+35.752	<	forward 1: end=IR dist=185.86mm target=186.31mm vmax=600mm/s IR(FL=82 FR=98 SL=96 SR=149) sides=10 t=664ms err=1.05mm/5.11deg
+35.758	<	@P02N
+35.813	<	front aligned: err=-3.53mm t=68ms err=0.44mm/0.22deg
+35.824	<	@C02N#.o#
+35.854	<	@R0N000000000000004
+35.908	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+65.922	>	STOP
+66.256	<	STOP
+66.264	<	Run stopped at (0,2)N
+66.315	<	End: ABORTED | place the robot at the start
+66.333	<	@AI
+66.336	<	@P02N
+206.817	<	
+206.855	<	rat_sw Oct 10 2026 19:38:17 | mode 1 SEARCH
+206.917	<	Map in flash: 0 cells, no fast path (ERASE if it is another maze)
+206.947	<	Reset: RESET (software)
+207.027	<	Goal (3,2)-(3,2). SELECT changes mode, START launches it (on 2, opens the races)
+207.040	<	@Y2
+207.046	<	@G3232
+207.046	<	@M1
+207.058	<	@AI
+207.058	<	@P00N
+207.087	<	@R00000000000000004
+207.106	<	@R10000000000000004
+207.128	<	@R20000000000000004
+229.059	>	STATUS
+229.284	<	mode 1 SEARCH | stopped | robot (0,0)N at the start
+229.375	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 403 KP 8.00 KD 0.60 LOG 2
+229.475	<	stack: 2172 bytes never used | SysTick worst 5 us | reset: RESET (software)
+229.555	<	RCC_CR=030b4d80 CFGR=001d840a | FLASH_SR=00 CR=0080 ACR=32 OBR=03fffffc WRPR=ffffffff
+229.620	<	chip CPUID=411fc231 IDCODE=00000307 64 KB
+229.689	<	flash: 5 slots | write 1st 0 us, worst 0 us, 0 ms | erase 0 ms | HSI 0
+229.760	<	goal (3,2)-(3,2) | 0 cells visited | no verified fast path
+234.282	>	ERASE
+234.361	<	map erased (RAM and flash), default goal
+234.361	<	@Y2
+234.370	<	@G3232
+234.370	<	@M1
+234.379	<	@AI
+234.388	<	@P00N
+234.431	<	@R00000000000000004
+234.442	<	@R10000000000000004
+234.469	<	@R20000000000000004
+238.505	>	IR
+238.609	<	IR mm FL=230 FR=306 SL=92 SR=74 | raw 27 29 879 724 | enc L=0 R=0
+245.563	>	REMOTE
+245.794	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+245.794	<	@Y2
+245.794	<	@G3232
+245.794	<	@M1
+245.800	<	@AC
+245.825	<	@P00N
+245.832	<	@R00000000000000004
+245.849	<	@R10000000000000004
+245.872	<	@R20000000000000004
+250.750	<	@AW
+250.779	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+250.795	<	@C00N.###
+250.844	<	@R0M000000000000004
+250.875	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+250.909	<	remote ir FL=219 FR=307 SL=91 SR=74
+251.186	>	GO F
+251.236	<	go F
+251.963	<	forward 1: end=ENC dist=179.51mm target=180.00mm vmax=600mm/s IR(FL=192 FR=288 SL=89 SR=76) sides=11 t=602ms err=1.18mm/1.19deg
+251.965	<	@P01N
+251.979	<	@C01N.#o#
+252.003	<	@R1M000000000000004
+252.052	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+252.098	<	remote ir FL=192 FR=273 SL=89 SR=76
+252.464	>	GO F
+252.515	<	go F
+253.347	<	forward 1: end=IR dist=188.78mm target=189.76mm vmax=600mm/s IR(FL=85 FR=99 SL=89 SR=144) sides=10 t=702ms err=1.35mm/1.83deg
+253.347	<	@P02N
+253.350	<	@C02N#.o#
+253.373	<	@R2P000000000000004
+253.430	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+253.469	<	remote ir FL=85 FR=101 SL=91 SR=153
+253.806	>	GO R
+253.859	<	go R
+254.222	<	turn right: 89.22deg of 90 end=OK TURNTICKS=403 t=300ms err=0.35mm/0.99deg
+254.222	<	@P02E
+254.982	<	forward 1: end=ENC dist=179.22mm target=180.00mm vmax=600mm/s IR(FL=219 FR=280 SL=84 SR=182) sides=10 t=699ms err=1.30mm/3.65deg
+254.982	<	@P12E
+254.990	<	@C12E#..o
+255.009	<	@R0N000000000000004
+255.070	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+255.118	<	remote ir FL=204 FR=257 SL=86 SR=182
+255.438	>	GO F
+255.489	<	go F
+256.316	<	forward 1: end=IR dist=182.93mm target=183.54mm vmax=600mm/s IR(FL=85 FR=101 SL=89 SR=78) sides=11 t=689ms err=1.26mm/4.85deg
+256.320	<	@P22E
+256.325	<	@C22E###o
+256.388	<	@R1N210000000000004
+256.407	<	remote (2,2)E walls front=1 left=1 right=1 back=0
+256.448	<	remote ir FL=85 FR=101 SL=89 SR=78
+256.765	>	GO B
+256.815	<	go B
+257.353	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=461ms err=0.28mm/0.93deg
+257.353	<	@P22W
+260.638	<	forward 1: end=ENC dist=179.12mm target=180.00mm vmax=600mm/s IR(FL=192 FR=257 SL=156 SR=78) sides=01 t=699ms err=1.34mm/3.96deg
+260.638	<	@P12W
+261.149	<	@C12W#ooo
+262.053	<	@R2TTL0000000000004
+263.570	<	remote (1,2)W walls front=0 left=0 right=1 back=0
+263.570	<	remote ir FL=198 FR=265 SL=156 SR=78
+264.041	>	GO L
+264.097	<	go L
+264.442	<	turn left: -89.22deg of -90 end=OK TURNTICKS=403 t=286ms err=0.59mm/0.81deg
+264.442	<	@P12S
+265.094	<	forward 1: end=ENC dist=179.51mm target=180.00mm vmax=600mm/s IR(FL=204 FR=250 SL=211 SR=74) sides=01 t=592ms err=0.97mm/5.74deg
+265.094	<	@P11S
+265.103	<	@C11So..#
+265.160	<	@R0N200000000000004
+265.181	<	remote (1,1)S walls front=0 left=0 right=1 back=0
+265.222	<	remote ir FL=204 FR=234 SL=211 SR=72
+265.472	>	GO F
+265.522	<	go F
+266.324	<	forward 1: end=IR dist=183.20mm target=183.80mm vmax=600mm/s IR(FL=83 FR=98 SL=86 SR=78) sides=11 t=689ms err=1.29mm/1.34deg
+266.339	<	@P10S
+266.339	<	@C10So###
+266.364	<	@R1NR10000000000004
+266.424	<	remote (1,0)S walls front=1 left=1 right=1 back=0
+266.455	<	remote ir FL=83 FR=98 SL=86 SR=78
+266.787	>	GO B
+266.837	<	go B
+267.365	<	turn right: 179.33deg of 180 end=OK TURNTICKS=403 t=460ms err=0.41mm/0.67deg
+267.369	<	@P10N
+268.129	<	forward 1: end=ENC dist=179.29mm target=180.00mm vmax=600mm/s IR(FL=204 FR=265 SL=91 SR=116) sides=10 pace=96% t=699ms err=3.27mm/11.70deg
+268.129	<	@P11N
+268.143	<	@C11Nooo#
+268.171	<	@R2TTL0000000000004
+268.218	<	remote (1,1)N walls front=0 left=1 right=0 back=0
+268.265	<	remote ir FL=198 FR=257 SL=91 SR=116
+268.530	>	GO R
+268.581	<	go R
+268.932	<	turn right: 89.44deg of 90 end=OK TURNTICKS=403 t=283ms err=0.31mm/0.79deg
+268.932	<	@P11E
+269.559	<	forward 1: end=IR dist=175.80mm target=176.28mm vmax=600mm/s IR(FL=83 FR=93 SL=94 SR=176) sides=10 pace=85% t=569ms err=3.87mm/12.10deg
+269.568	<	@P21E
+269.638	<	squared: skew=5mm turn=4.52deg -> 2mm t=76ms err=0.33mm/1.16deg
+269.843	<	front aligned: err=-5.57mm t=285ms err=0.80mm/0.56deg
+269.852	<	@C21E##.o
+269.879	<	@R0NN20000000000004
+269.919	<	remote (2,1)E walls front=1 left=1 right=0 back=0
+269.964	<	remote ir FL=85 FR=99 SL=97 SR=182
+270.289	>	GO R
+270.340	<	go R
+270.687	<	turn right: 89.44deg of 90 end=OK TURNTICKS=403 t=285ms err=0.29mm/0.80deg
+270.687	<	@P21S
+271.366	<	forward 1: end=IR dist=180.16mm target=180.52mm vmax=600mm/s IR(FL=80 FR=101 SL=156 SR=82) sides=01 t=630ms err=1.08mm/5.09deg
+271.380	<	@P20S
+271.446	<	squared: skew=-5mm turn=-4.89deg -> -1mm t=62ms err=0.11mm/0.65deg
+271.517	<	front aligned: err=-4.50mm t=100ms err=0.53mm/0.21deg
+271.517	<	@C20So.##
+271.565	<	@R1NVL0000000000004
+271.593	<	remote (2,0)S walls front=1 left=0 right=1 back=0
+271.633	<	remote ir FL=83 FR=99 SL=218 SR=87
+271.974	>	GO L
+272.024	<	go L
+272.369	<	turn left: -89.78deg of -90 end=OK TURNTICKS=403 t=280ms err=0.57mm/0.83deg
+272.369	<	@P20E
+273.084	<	forward 1: end=IR dist=169.50mm target=170.15mm vmax=600mm/s IR(FL=80 FR=93 SL=183 SR=74) sides=01 t=653ms err=1.31mm/3.61deg
+273.087	<	@P30E
+273.298	<	front aligned: err=-7.14mm t=297ms err=0.84mm/0.22deg
+273.312	<	@C30E.##o
+273.335	<	@R2TTL0000000000004
+273.380	<	remote (3,0)E walls front=1 left=0 right=1 back=0
+273.423	<	remote ir FL=85 FR=97 SL=184 SR=74
+273.664	>	GO L
+273.714	<	go L
+274.065	<	turn left: -89.44deg of -90 end=OK TURNTICKS=403 t=281ms err=0.38mm/0.78deg
+274.065	<	@P30N
+274.808	<	forward 1: end=ENC dist=179.23mm target=180.00mm vmax=600mm/s IR(FL=198 FR=265 SL=91 SR=72) sides=11 t=699ms err=0.82mm/7.40deg
+274.822	<	@P31N
+274.831	<	@C31N.#o#
+274.853	<	@R0NNVN000000000004
+274.906	<	remote (3,1)N walls front=0 left=1 right=1 back=0
+274.965	<	remote ir FL=209 FR=292 SL=91 SR=72
+275.303	>	GO F
+275.353	<	go F
+276.087	<	forward 1: end=IR dist=194.14mm target=194.60mm vmax=600mm/s IR(FL=80 FR=97 SL=89 SR=76) sides=11 t=608ms err=1.33mm/1.72deg
+276.087	<	@P32N
+276.289	<	front aligned: err=-4.98mm t=280ms err=0.78mm/0.22deg
+276.335	<	Goal reached (remote) at (3,2) after 13 moves
+276.464	<	End: OK | place the robot at the start
+276.488	<	@AI
+276.488	<	@P32N
+367.598	>	ERASE
+367.765	<	map erased (RAM and flash), default goal
+367.765	<	@Y2
+367.768	<	@G3232
+367.768	<	@M1
+367.771	<	@AI
+367.805	<	@P32N
+367.816	<	@R00000000000000004
+367.819	<	@R10000000000000004
+367.857	<	@R20000000000000004
+371.820	>	IR
+371.975	<	IR mm FL=223 FR=306 SL=89 SR=74 | raw 58 29 904 728 | enc L=22587 R=19600
+376.071	>	REMOTE
+376.165	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+376.165	<	@Y2
+376.178	<	@G3232
+376.178	<	@M1
+376.192	<	@AC
+376.200	<	@P32N
+376.228	<	@R00000000000000004
+376.250	<	@R10000000000000004
+376.262	<	@R20000000000000004
+381.110	<	@AW
+381.165	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+381.177	<	@C00N.###
+381.200	<	@R10000000000000004
+381.263	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+381.286	<	remote ir FL=230 FR=281 SL=88 SR=74
+381.569	>	GO F
+381.619	<	go F
+382.467	<	forward 1: end=ENC dist=179.44mm target=180.00mm vmax=600mm/s IR(FL=192 FR=282 SL=89 SR=76) sides=11 t=699ms err=0.79mm/1.27deg
+382.470	<	@P01N
+382.470	<	@C01N.#o#
+382.472	<	@R20000000000000004
+382.532	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+382.595	<	remote ir FL=198 FR=280 SL=89 SR=74
+382.945	>	GO F
+382.995	<	go F
+383.835	<	forward 1: end=IR dist=199.67mm target=200.20mm vmax=600mm/s IR(FL=82 FR=95 SL=87 SR=144) sides=10 t=718ms err=1.35mm/1.96deg
+383.837	<	@P02N
+384.041	<	front aligned: err=-5.45mm t=284ms err=0.70mm/0.12deg
+384.072	<	@C02N#.o#
+384.075	<	@R0N000000000000004
+384.123	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+384.165	<	remote ir FL=83 FR=99 SL=89 SR=149
+384.544	>	GO R
+384.597	<	go R
+384.937	<	turn right: 89.67deg of 90 end=OK TURNTICKS=403 t=280ms err=0.25mm/0.81deg
+384.937	<	@P02E
+385.591	<	forward 1: end=ENC dist=179.55mm target=180.00mm vmax=600mm/s IR(FL=204 FR=272 SL=82 SR=181) sides=10 t=589ms err=1.01mm/3.02deg
+385.591	<	@P12E
+385.602	<	@C12E#..o
+385.618	<	@R1N200000000000004
+385.678	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+385.723	<	remote ir FL=215 FR=288 SL=82 SR=182
+386.016	>	GO F
+386.066	<	go F
+386.876	<	forward 1: end=IR dist=189.50mm target=190.27mm vmax=600mm/s IR(FL=83 FR=97 SL=89 SR=78) sides=11 t=695ms err=1.27mm/1.82deg
+386.886	<	@P22E
+386.950	<	front aligned: err=-3.72mm t=69ms err=0.46mm/0.23deg
+386.952	<	@C22E###o
+386.975	<	@R2TTL0000000000004
+387.031	<	remote (2,2)E walls front=1 left=1 right=1 back=0
+387.065	<	remote ir FL=87 FR=101 SL=89 SR=78
+387.427	>	GO B
+387.477	<	go B
+388.001	<	turn right: 179.55deg of 180 end=OK TURNTICKS=403 t=460ms err=0.30mm/0.72deg
+388.001	<	@P22W
+388.764	<	forward 1: end=ENC dist=179.16mm target=180.00mm vmax=600mm/s IR(FL=199 FR=257 SL=156 SR=76) sides=01 t=699ms err=0.99mm/1.93deg
+388.764	<	@P12W
+388.778	<	@C12W#ooo
+388.797	<	@R0N000000000000004
+388.879	<	remote (1,2)W walls front=0 left=0 right=1 back=0
+388.896	<	remote ir FL=198 FR=265 SL=156 SR=76
+389.134	>	GO L
+389.188	<	go L
+389.531	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=282ms err=0.47mm/0.74deg
+389.531	<	@P12S
+390.293	<	forward 1: end=ENC dist=179.17mm target=180.00mm vmax=600mm/s IR(FL=198 FR=257 SL=259 SR=76) sides=01 t=699ms err=1.18mm/7.35deg
+390.293	<	@P11S
+390.299	<	@C11So..#
+390.318	<	@R1NR10000000000004
+390.381	<	remote (1,1)S walls front=0 left=0 right=1 back=0
+390.425	<	remote ir FL=192 FR=293 SL=285 SR=76
+390.688	>	GO F
+390.738	<	go F
+391.548	<	forward 1: end=IR dist=190.11mm target=190.75mm vmax=600mm/s IR(FL=80 FR=99 SL=91 SR=74) sides=11 t=696ms err=1.31mm/1.77deg
+391.563	<	@P10S
+391.615	<	front aligned: err=-4.02mm t=91ms err=0.54mm/0.23deg
+391.631	<	@C10So###
+391.660	<	@R2TTL0000000000004
+391.702	<	remote (1,0)S walls front=1 left=1 right=1 back=0
+391.733	<	remote ir FL=83 FR=101 SL=91 SR=74
+392.137	>	GO B
+392.187	<	go B
+392.727	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=475ms err=0.19mm/0.98deg
+392.740	<	@P10N
+393.495	<	forward 1: end=ENC dist=179.39mm target=180.00mm vmax=600mm/s IR(FL=204 FR=265 SL=86 SR=176) sides=10 t=699ms err=0.89mm/1.13deg
+393.495	<	@P11N
+393.497	<	@C11Nooo#
+393.533	<	@R0NN00000000000004
+393.576	<	remote (1,1)N walls front=0 left=1 right=0 back=0
+393.622	<	remote ir FL=192 FR=265 SL=86 SR=178
+393.878	>	GO R
+393.929	<	go R
+394.286	<	turn right: 89.44deg of 90 end=OK TURNTICKS=403 t=280ms err=0.18mm/0.61deg
+394.288	<	@P11E
+394.955	<	forward 1: end=IR dist=184.31mm target=184.81mm vmax=600mm/s IR(FL=83 FR=95 SL=89 SR=182) sides=10 t=637ms err=1.16mm/4.15deg
+394.970	<	@P21E
+395.025	<	front aligned: err=-4.51mm t=90ms err=0.54mm/0.23deg
+395.040	<	@C21E##.o
+395.070	<	@R1NVL0000000000004
+395.113	<	remote (2,1)E walls front=1 left=1 right=0 back=0
+395.149	<	remote ir FL=87 FR=98 SL=89 SR=181
+395.413	>	GO R
+395.463	<	go R
+395.873	<	turn right: 89.33deg of 90 end=OK TURNTICKS=403 t=343ms err=0.30mm/0.92deg
+395.873	<	@P21S
+396.611	<	forward 1: end=IR dist=181.49mm target=182.33mm vmax=600mm/s IR(FL=81 FR=96 SL=196 SR=78) sides=01 t=677ms err=1.28mm/3.09deg
+396.611	<	@P20S
+396.831	<	front aligned: err=-5.14mm t=282ms err=0.67mm/0.46deg
+396.833	<	@C20So.##
+396.920	<	@R2TTL0000000000004
+396.941	<	remote (2,0)S walls front=1 left=0 right=1 back=0
+396.953	<	remote ir FL=83 FR=99 SL=204 SR=76
+397.280	>	GO L
+397.339	<	go L
+397.690	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=282ms err=0.49mm/0.77deg
+397.690	<	@P20E
+398.400	<	forward 1: end=IR dist=183.33mm target=183.96mm vmax=600mm/s IR(FL=81 FR=95 SL=190 SR=72) sides=01 t=678ms err=1.40mm/2.77deg
+398.415	<	@P30E
+398.470	<	front aligned: err=-6.17mm t=126ms err=0.64mm/0.21deg
+398.484	<	@C30E.##o
+398.503	<	@R0NNVM000000000004
+398.560	<	remote (3,0)E walls front=1 left=0 right=1 back=0
+398.625	<	remote ir FL=85 FR=96 SL=196 SR=72
+398.946	>	GO L
+398.996	<	go L
+399.339	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=280ms err=0.33mm/0.77deg
+399.339	<	@P30N
+400.144	<	forward 1: end=ENC dist=179.11mm target=180.00mm vmax=600mm/s IR(FL=204 FR=297 SL=89 SR=76) sides=11 t=699ms err=1.03mm/1.54deg
+400.155	<	@P31N
+400.155	<	@C31N.#o#
+400.180	<	@R1NVLM000000000004
+400.206	<	remote (3,1)N walls front=0 left=1 right=1 back=0
+400.231	<	remote ir FL=192 FR=288 SL=89 SR=76
+400.534	>	GO F
+400.584	<	go F
+401.400	<	forward 1: end=IR dist=193.04mm target=193.74mm vmax=600mm/s IR(FL=78 FR=97 SL=91 SR=74) sides=11 t=701ms err=1.53mm/1.19deg
+401.413	<	@P32N
+401.487	<	squared: skew=-4mm turn=-3.40deg -> 0mm t=55ms err=0.11mm/0.72deg
+401.643	<	front aligned: err=-6.70mm t=256ms err=0.68mm/0.24deg
+401.690	<	Goal reached (remote) at (3,2) after 13 moves
+401.831	<	End: OK | place the robot at the start
+401.831	<	@AI
+401.841	<	@P32N
+435.180	>	ERASE
+435.377	<	map erased (RAM and flash), default goal
+435.377	<	@Y2
+435.390	<	@G3232
+435.390	<	@M1
+435.390	<	@AI
+435.475	<	@P32N
+435.477	<	@R00000000000000004
+435.479	<	@R10000000000000004
+435.486	<	@R20000000000000004
+439.404	>	IR
+439.511	<	IR mm FL=219 FR=305 SL=94 SR=72 | raw 72 33 857 748 | enc L=45659 R=39340
+443.654	>	REMOTE
+443.744	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+443.749	<	@Y2
+443.782	<	@G3232
+443.782	<	@M1
+443.784	<	@AC
+443.784	<	@P32N
+443.805	<	@R00000000000000004
+443.819	<	@R10000000000000004
+443.841	<	@R20000000000000004
+448.723	<	@AW
+448.750	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+448.765	<	@C00N.###
+448.785	<	@R20000000000000004
+448.829	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+448.872	<	remote ir FL=222 FR=297 SL=94 SR=70
+449.174	>	GO F
+449.225	<	go F
+450.036	<	forward 1: end=ENC dist=179.06mm target=180.00mm vmax=600mm/s IR(FL=198 FR=273 SL=86 SR=78) sides=11 t=699ms err=0.94mm/1.64deg
+450.050	<	@P01N
+450.056	<	@C01N.#o#
+450.080	<	@R0N000000000000004
+450.139	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+450.179	<	remote ir FL=209 FR=273 SL=86 SR=78
+450.505	>	GO F
+450.556	<	go F
+451.432	<	forward 1: end=IR dist=208.34mm target=208.92mm vmax=600mm/s IR(FL=82 FR=98 SL=88 SR=158) sides=10 t=755ms err=1.23mm/1.51deg
+451.438	<	@P02N
+451.501	<	front aligned: err=-3.43mm t=67ms err=0.39mm/0.34deg
+451.504	<	@C02N#.o#
+451.522	<	@R1N000000000000004
+451.578	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+451.622	<	remote ir FL=85 FR=101 SL=89 SR=153
+451.939	>	GO R
+451.990	<	go R
+452.334	<	turn right: 89.67deg of 90 end=OK TURNTICKS=403 t=280ms err=0.30mm/0.84deg
+452.334	<	@P02E
+453.095	<	forward 1: end=ENC dist=179.11mm target=180.00mm vmax=600mm/s IR(FL=204 FR=265 SL=82 SR=182) sides=10 t=699ms err=0.89mm/6.61deg
+453.095	<	@P12E
+453.103	<	@C12E#..o
+453.126	<	@R2TP00000000000004
+453.188	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+453.237	<	remote ir FL=204 FR=257 SL=80 SR=182
+453.577	>	GO F
+453.628	<	go F
+454.443	<	forward 1: end=IR dist=194.92mm target=195.79mm vmax=600mm/s IR(FL=82 FR=95 SL=89 SR=76) sides=11 t=700ms err=1.53mm/5.15deg
+454.452	<	@P22E
+454.560	<	front aligned: err=-5.33mm t=161ms err=0.64mm/0.12deg
+454.560	<	@C22E###o
+454.564	<	@R0N000000000000004
+454.611	<	remote (2,2)E walls front=1 left=1 right=1 back=0
+454.652	<	remote ir FL=87 FR=99 SL=91 SR=76
+455.011	>	GO B
+455.074	<	go B
+455.607	<	turn right: 179.55deg of 180 end=OK TURNTICKS=403 t=467ms err=0.22mm/0.78deg
+455.607	<	@P22W
+456.507	<	forward 1: end=ENC dist=179.33mm target=180.00mm vmax=600mm/s IR(FL=209 FR=265 SL=161 SR=78) sides=01 t=699ms err=0.90mm/1.98deg
+456.507	<	@P12W
+456.538	<	@C12W#ooo
+456.596	<	@R1N310000000000004
+456.766	<	remote (1,2)W walls front=0 left=0 right=1 back=0
+457.018	<	remote ir FL=192 FR=257 SL=161 SR=78
+457.281	>	GO L
+457.338	<	go L
+457.693	<	turn left: -89.55deg of -90 end=OK TURNTICKS=403 t=283ms err=0.41mm/0.66deg
+457.693	<	@P12S
+458.449	<	forward 1: end=ENC dist=179.29mm target=180.00mm vmax=600mm/s IR(FL=204 FR=250 SL=211 SR=76) sides=01 t=699ms err=0.85mm/4.56deg
+458.449	<	@P11S
+458.449	<	@C11So..#
+458.481	<	@R2TTL0000000000004
+458.528	<	remote (1,1)S walls front=0 left=0 right=1 back=0
+458.573	<	remote ir FL=192 FR=257 SL=225 SR=76
+458.812	>	GO F
+458.862	<	go F
+459.683	<	forward 1: end=IR dist=188.67mm target=189.63mm vmax=600mm/s IR(FL=80 FR=96 SL=88 SR=76) sides=11 t=696ms err=1.34mm/1.55deg
+459.690	<	@P10S
+459.765	<	front aligned: err=-4.98mm t=165ms err=0.67mm/0.23deg
+459.779	<	@C10So###
+459.798	<	@R0NN00000000000004
+459.883	<	remote (1,0)S walls front=1 left=1 right=1 back=0
+459.903	<	remote ir FL=83 FR=101 SL=89 SR=76
+460.336	>	GO B
+460.392	<	go B
+460.911	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=460ms err=0.24mm/0.84deg
+460.924	<	@P10N
+461.673	<	forward 1: end=ENC dist=179.39mm target=180.00mm vmax=600mm/s IR(FL=191 FR=273 SL=89 SR=159) sides=10 t=699ms err=1.76mm/10.12deg
+461.673	<	@P11N
+461.703	<	@C11Nooo#
+461.710	<	@R1NV10000000000004
+461.758	<	remote (1,1)N walls front=0 left=1 right=0 back=0
+461.816	<	remote ir FL=198 FR=257 SL=88 SR=173
+462.189	>	GO R
+462.240	<	go R
+462.584	<	turn right: 89.55deg of 90 end=OK TURNTICKS=403 t=280ms err=0.24mm/0.73deg
+462.584	<	@P11E
+463.311	<	forward 1: end=IR dist=182.54mm target=183.52mm vmax=600mm/s IR(FL=85 FR=93 SL=84 SR=176) sides=10 t=675ms err=1.36mm/7.89deg
+463.325	<	@P21E
+463.524	<	squared: skew=7mm turn=6.04deg -> 0mm t=82ms err=0.17mm/0.74deg
+463.610	<	front aligned: err=-6.12mm t=289ms err=0.76mm/0.46deg
+463.630	<	@C21E##.o
+463.646	<	@R2TTL0000000000004
+463.700	<	remote (2,1)E walls front=1 left=1 right=0 back=0
+463.733	<	remote ir FL=86 FR=98 SL=89 SR=181
+464.035	>	GO R
+464.085	<	go R
+464.439	<	turn right: 89.22deg of 90 end=OK TURNTICKS=403 t=287ms err=0.30mm/0.91deg
+464.439	<	@P21S
+465.174	<	forward 1: end=IR dist=184.57mm target=185.17mm vmax=600mm/s IR(FL=76 FR=99 SL=137 SR=78) sides=01 t=686ms err=1.31mm/3.50deg
+465.188	<	@P20S
+465.255	<	squared: skew=-7mm turn=-5.87deg -> 0mm t=84ms err=0.22mm/0.96deg
+465.476	<	front aligned: err=-6.14mm t=289ms err=0.84mm/0.33deg
+465.491	<	@C20So.##
+465.514	<	@R0NNR0000000000004
+465.559	<	remote (2,0)S walls front=1 left=0 right=1 back=0
+465.599	<	remote ir FL=83 FR=101 SL=196 SR=85
+465.868	>	GO L
+465.923	<	go L
+466.265	<	turn left: -89.22deg of -90 end=OK TURNTICKS=403 t=280ms err=0.38mm/0.86deg
+466.265	<	@P20E
+466.973	<	forward 1: end=IR dist=177.08mm target=177.81mm vmax=600mm/s IR(FL=76 FR=91 SL=171 SR=74) sides=01 t=664ms err=1.50mm/3.21deg
+466.986	<	@P30E
+467.221	<	front aligned: err=-9.87mm t=315ms err=0.98mm/0.21deg
+467.235	<	@C30E.##o
+467.270	<	@R1NVL0000000000004
+467.300	<	remote (3,0)E walls front=1 left=0 right=1 back=0
+467.343	<	remote ir FL=85 FR=98 SL=196 SR=74
+467.617	>	GO L
+467.667	<	go L
+468.011	<	turn left: -89.55deg of -90 end=OK TURNTICKS=403 t=282ms err=0.41mm/0.72deg
+468.011	<	@P30N
+468.696	<	forward 1: end=ENC dist=179.51mm target=180.00mm vmax=600mm/s IR(FL=192 FR=264 SL=90 SR=72) sides=11 t=632ms err=0.88mm/1.94deg
+468.730	<	@P31N
+468.730	<	@C31N.#o#
+468.746	<	@R2TTL0000000000004
+468.795	<	remote (3,1)N walls front=0 left=1 right=1 back=0
+468.833	<	remote ir FL=192 FR=297 SL=92 SR=74
+469.142	>	GO F
+469.192	<	go F
+470.084	<	forward 1: end=IR dist=196.23mm target=196.79mm vmax=600mm/s IR(FL=79 FR=96 SL=89 SR=78) sides=11 t=712ms err=1.27mm/1.80deg
+470.089	<	@P32N
+470.219	<	front aligned: err=-5.79mm t=154ms err=0.60mm/0.22deg
+470.325	<	Goal reached (remote) at (3,2) after 13 moves
+470.460	<	End: OK | place the robot at the start
+470.468	<	@AI
+470.468	<	@P32N
+504.063	>	ERASE
+504.257	<	map erased (RAM and flash), default goal
+504.257	<	@Y2
+504.270	<	@G3232
+504.270	<	@M1
+504.272	<	@AI
+504.285	<	@P32N
+504.306	<	@R00000000000000004
+504.335	<	@R10000000000000004
+504.352	<	@R20000000000000004
+508.286	>	IR
+508.399	<	IR mm FL=222 FR=306 SL=94 SR=72 | raw 58 28 858 750 | enc L=71648 R=60162
+512.537	>	REMOTE
+512.630	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+512.635	<	@Y2
+512.649	<	@G3232
+512.649	<	@M1
+512.673	<	@AC
+512.682	<	@P32N
+512.695	<	@R00000000000000004
+512.707	<	@R10000000000000004
+512.722	<	@R20000000000000004
+517.578	<	@AW
+517.633	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+517.647	<	@C00N.###
+517.670	<	@R0M000000000000004
+517.739	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+517.757	<	remote ir FL=219 FR=306 SL=91 SR=70
+518.000	>	GO F
+518.050	<	go F
+518.775	<	forward 1: end=ENC dist=179.50mm target=180.00mm vmax=600mm/s IR(FL=192 FR=265 SL=86 SR=76) sides=11 t=609ms err=1.35mm/1.51deg
+518.784	<	@P01N
+518.798	<	@C01N.#o#
+518.818	<	@R1M000000000000004
+518.874	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+518.918	<	remote ir FL=198 FR=288 SL=89 SR=76
+519.216	>	GO F
+519.266	<	go F
+520.098	<	forward 1: end=IR dist=178.89mm target=179.46mm vmax=600mm/s IR(FL=85 FR=101 SL=91 SR=163) sides=10 t=685ms err=1.41mm/1.61deg
+520.100	<	@P02N
+520.108	<	@C02N#.o#
+520.115	<	@R2P000000000000004
+520.178	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+520.224	<	remote ir FL=85 FR=101 SL=88 SR=154
+520.505	>	GO R
+520.562	<	go R
+520.902	<	turn right: 89.44deg of 90 end=OK TURNTICKS=403 t=282ms err=0.24mm/0.72deg
+520.902	<	@P02E
+521.665	<	forward 1: end=ENC dist=179.28mm target=180.00mm vmax=600mm/s IR(FL=198 FR=251 SL=84 SR=181) sides=10 t=699ms err=1.10mm/8.40deg
+521.665	<	@P12E
+521.667	<	@C12E#..o
+521.702	<	@R0N000000000000004
+521.747	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+521.807	<	remote ir FL=204 FR=257 SL=84 SR=182
+522.046	>	GO F
+522.096	<	go F
+522.930	<	forward 1: end=IR dist=178.62mm target=179.23mm vmax=600mm/s IR(FL=83 FR=98 SL=89 SR=76) sides=11 t=689ms err=1.36mm/1.90deg
+522.935	<	@P22E
+522.943	<	@C22E###o
+522.951	<	@R1N210000000000004
+523.004	<	remote (2,2)E walls front=1 left=1 right=1 back=0
+523.053	<	remote ir FL=83 FR=101 SL=94 SR=76
+523.312	>	GO B
+523.367	<	go B
+523.900	<	turn right: 179.44deg of 180 end=OK TURNTICKS=403 t=461ms err=0.16mm/0.61deg
+523.948	<	@P22W
+524.655	<	forward 1: end=ENC dist=179.50mm target=180.00mm vmax=600mm/s IR(FL=202 FR=257 SL=156 SR=76) sides=01 t=671ms err=1.35mm/1.27deg
+524.655	<	@P12W
+524.658	<	@C12W#ooo
+524.724	<	@R2TTL0000000000004
+524.744	<	remote (1,2)W walls front=0 left=0 right=1 back=0
+524.882	<	remote ir FL=204 FR=273 SL=150 SR=76
+525.147	>	GO L
+525.198	<	go L
+525.558	<	turn left: -89.22deg of -90 end=OK TURNTICKS=403 t=291ms err=0.43mm/0.98deg
+525.558	<	@P12S
+526.315	<	forward 1: end=ENC dist=179.39mm target=180.00mm vmax=600mm/s IR(FL=204 FR=257 SL=218 SR=76) sides=01 t=699ms err=1.35mm/4.03deg
+526.315	<	@P11S
+526.324	<	@C11So..#
+526.366	<	@R0N200000000000004
+526.399	<	remote (1,1)S walls front=0 left=0 right=1 back=0
+526.447	<	remote ir FL=198 FR=242 SL=234 SR=76
+526.705	>	GO F
+526.767	<	go F
+527.607	<	forward 1: end=IR dist=171.27mm target=171.97mm vmax=600mm/s IR(FL=83 FR=101 SL=89 SR=76) sides=11 t=675ms err=1.44mm/1.26deg
+527.607	<	@P10S
+527.609	<	@C10So###
+527.611	<	@R1NR10000000000004
+527.648	<	remote (1,0)S walls front=1 left=1 right=1 back=0
+527.675	<	remote ir FL=83 FR=101 SL=89 SR=76
+527.921	>	GO B
+527.972	<	go B
+528.528	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=462ms err=0.22mm/0.91deg
+528.528	<	@P10N
+529.271	<	forward 1: end=ENC dist=179.17mm target=180.00mm vmax=600mm/s IR(FL=192 FR=257 SL=89 SR=135) sides=10 t=699ms err=1.38mm/1.86deg
+529.271	<	@P11N
+529.271	<	@C11Nooo#
+529.286	<	@R2TTL0000000000004
+529.347	<	remote (1,1)N walls front=0 left=1 right=0 back=0
+529.389	<	remote ir FL=192 FR=288 SL=89 SR=140
+529.662	>	GO R
+529.712	<	go R
+530.063	<	turn right: 89.33deg of 90 end=OK TURNTICKS=403 t=282ms err=0.22mm/0.87deg
+530.063	<	@P11E
+530.700	<	forward 1: end=IR dist=173.09mm target=173.58mm vmax=600mm/s IR(FL=83 FR=98 SL=94 SR=179) sides=10 t=584ms err=2.84mm/9.76deg
+530.705	<	@P21E
+530.714	<	@C21E##.o
+530.809	<	@R0NN20000000000004
+530.825	<	remote (2,1)E walls front=1 left=1 right=0 back=0
+530.835	<	remote ir FL=83 FR=98 SL=94 SR=180
+531.197	>	GO R
+531.260	<	go R
+531.607	<	turn right: 89.33deg of 90 end=OK TURNTICKS=403 t=292ms err=0.19mm/0.89deg
+531.607	<	@P21S
+532.318	<	forward 1: end=IR dist=167.95mm target=168.64mm vmax=600mm/s IR(FL=85 FR=99 SL=218 SR=78) sides=01 t=665ms err=1.35mm/2.79deg
+532.331	<	@P20S
+532.338	<	@C20So.##
+532.359	<	@R1NVL0000000000004
+532.414	<	remote (2,0)S walls front=1 left=0 right=1 back=0
+532.450	<	remote ir FL=85 FR=99 SL=226 SR=78
+532.733	>	GO L
+532.783	<	go L
+533.127	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=282ms err=0.48mm/0.87deg
+533.127	<	@P20E
+533.859	<	forward 1: end=IR dist=173.53mm target=174.18mm vmax=600mm/s IR(FL=85 FR=104 SL=190 SR=72) sides=01 t=675ms err=1.13mm/5.89deg
+533.859	<	@P30E
+533.874	<	@C30E.##o
+533.896	<	@R2TTL0000000000004
+533.959	<	remote (3,0)E walls front=1 left=0 right=1 back=0
+533.994	<	remote ir FL=85 FR=101 SL=190 SR=72
+534.268	>	GO L
+534.318	<	go L
+534.665	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=280ms err=0.38mm/0.85deg
+534.665	<	@P30N
+535.415	<	forward 1: end=ENC dist=179.23mm target=180.00mm vmax=600mm/s IR(FL=192 FR=281 SL=91 SR=74) sides=11 t=699ms err=1.38mm/1.10deg
+535.447	<	@P31N
+535.447	<	@C31N.#o#
+535.454	<	@R0NNVN000000000004
+535.511	<	remote (3,1)N walls front=0 left=1 right=1 back=0
+535.554	<	remote ir FL=192 FR=297 SL=91 SR=74
+535.808	>	GO F
+535.858	<	go F
+536.834	<	forward 1: end=IR dist=178.23mm target=179.05mm vmax=600mm/s IR(FL=83 FR=101 SL=89 SR=76) sides=11 t=687ms err=1.29mm/1.75deg
+536.858	<	@P32N
+536.883	<	Goal reached (remote) at (3,2) after 13 moves
+536.914	<	End: OK | place the robot at the start
+536.918	<	@AI
+536.931	<	@P32N
+562.053	>	ERASE
+562.257	<	map erased (RAM and flash), default goal
+562.257	<	@Y2
+562.263	<	@G3232
+562.263	<	@M1
+562.269	<	@AI
+562.279	<	@P32N
+562.299	<	@R00000000000000004
+562.322	<	@R10000000000000004
+562.345	<	@R20000000000000004
+566.276	>	IR
+566.388	<	IR mm FL=219 FR=307 SL=91 SR=72 | raw 72 28 880 749 | enc L=94071 R=79324
+570.527	>	REMOTE
+570.623	<	Mode REMOTE: starts in 5000 ms (START or STOP cancels)
+570.623	<	@Y2
+570.637	<	@G3232
+570.637	<	@M1
+570.642	<	@AC
+570.655	<	@P32N
+570.678	<	@R00000000000000004
+570.690	<	@R10000000000000004
+570.713	<	@R20000000000000004
+575.571	<	@AW
+575.624	<	== REMOTE: GO F|L|R|B in every cell, STOP ends ==
+575.640	<	@C00N.###
+575.661	<	@R10000000000000004
+575.717	<	remote (0,0)N walls front=0 left=1 right=1 back=1
+575.757	<	remote ir FL=230 FR=306 SL=91 SR=72
+576.038	>	GO F
+576.090	<	go F
+576.903	<	forward 1: end=ENC dist=179.17mm target=180.00mm vmax=600mm/s IR(FL=192 FR=257 SL=89 SR=74) sides=11 t=699ms err=1.28mm/1.17deg
+576.918	<	@P01N
+576.924	<	@C01N.#o#
+576.950	<	@R20000000000000004
+577.006	<	remote (0,1)N walls front=0 left=1 right=1 back=0
+577.045	<	remote ir FL=192 FR=265 SL=88 SR=74
+577.379	>	GO F
+577.429	<	go F
+578.256	<	forward 1: end=IR dist=184.37mm target=184.99mm vmax=600mm/s IR(FL=83 FR=101 SL=89 SR=158) sides=10 t=708ms err=1.22mm/1.27deg
+578.266	<	@P02N
+578.271	<	@C02N#.o#
+578.294	<	@R0N000000000000004
+578.349	<	remote (0,2)N walls front=1 left=1 right=0 back=0
+578.392	<	remote ir FL=83 FR=101 SL=89 SR=164
+578.712	>	GO R
+578.762	<	go R
+579.174	<	turn right: 89.33deg of 90 end=OK TURNTICKS=403 t=345ms err=0.23mm/1.04deg
+579.174	<	@P02E
+579.935	<	forward 1: end=ENC dist=179.28mm target=180.00mm vmax=600mm/s IR(FL=204 FR=258 SL=84 SR=181) sides=10 t=699ms err=1.24mm/5.30deg
+579.935	<	@P12E
+579.940	<	@C12E#..o
+579.966	<	@R1N200000000000004
+580.022	<	remote (1,2)E walls front=0 left=1 right=0 back=0
+580.066	<	remote ir FL=215 FR=281 SL=84 SR=182
+580.349	>	GO F
+580.399	<	go F
+581.130	<	forward 1: end=IR dist=177.02mm target=177.47mm vmax=600mm/s IR(FL=83 FR=99 SL=89 SR=76) sides=11 t=596ms err=1.33mm/2.12deg
+581.132	<	@P22E
+581.137	<	@C22E###o
+581.150	<	@R2TTL0000000000004
+581.217	<	remote (2,2)E walls front=1 left=1 right=1 back=0
+581.237	<	remote ir FL=83 FR=98 SL=89 SR=76
+581.578	>	GO B
+581.632	<	go B
+582.156	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=460ms err=0.22mm/0.84deg
+582.156	<	@P22W
+582.916	<	forward 1: end=ENC dist=179.34mm target=180.00mm vmax=600mm/s IR(FL=192 FR=258 SL=156 SR=76) sides=01 t=699ms err=1.35mm/1.36deg
+582.916	<	@P12W
+582.922	<	@C12W#ooo
+582.955	<	@R0N000000000000004
+583.000	<	remote (1,2)W walls front=0 left=0 right=1 back=0
+583.077	<	remote ir FL=198 FR=273 SL=156 SR=76
+583.421	>	GO L
+583.471	<	go L
+583.822	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=282ms err=0.43mm/0.76deg
+583.822	<	@P12S
+584.586	<	forward 1: end=ENC dist=179.17mm target=180.00mm vmax=600mm/s IR(FL=203 FR=234 SL=234 SR=78) sides=01 t=699ms err=0.92mm/6.45deg
+584.586	<	@P11S
+584.588	<	@C11So..#
+584.605	<	@R1NR10000000000004
+584.678	<	remote (1,1)S walls front=0 left=0 right=1 back=0
+584.717	<	remote ir FL=198 FR=234 SL=226 SR=78
+584.992	>	GO F
+585.042	<	go F
+585.837	<	forward 1: end=IR dist=175.64mm target=176.34mm vmax=600mm/s IR(FL=83 FR=101 SL=91 SR=74) sides=11 t=683ms err=1.34mm/1.73deg
+585.852	<	@P10S
+585.863	<	@C10So###
+585.880	<	@R2TTL0000000000004
+585.937	<	remote (1,0)S walls front=1 left=1 right=1 back=0
+585.965	<	remote ir FL=85 FR=99 SL=88 SR=76
+586.289	>	GO B
+586.340	<	go B
+586.862	<	turn right: 179.22deg of 180 end=OK TURNTICKS=403 t=460ms err=0.22mm/0.92deg
+586.871	<	@P10N
+587.566	<	forward 1: end=ENC dist=179.50mm target=180.00mm vmax=600mm/s IR(FL=187 FR=258 SL=89 SR=135) sides=10 t=627ms err=1.46mm/1.60deg
+587.566	<	@P11N
+587.573	<	@C11Nooo#
+587.590	<	@R0NN00000000000004
+587.642	<	remote (1,1)N walls front=0 left=1 right=0 back=0
+587.686	<	remote ir FL=187 FR=258 SL=88 SR=149
+588.029	>	GO R
+588.079	<	go R
+588.512	<	turn right: 89.33deg of 90 end=OK TURNTICKS=403 t=285ms err=0.19mm/0.75deg
+588.512	<	@P11E
+589.171	<	forward 1: end=IR dist=174.75mm target=175.38mm vmax=600mm/s IR(FL=85 FR=96 SL=94 SR=180) sides=10 t=687ms err=1.20mm/8.17deg
+589.173	<	@P21E
+589.187	<	@C21E##.o
+589.211	<	@R1NVL0000000000004
+589.263	<	remote (2,1)E walls front=1 left=1 right=0 back=0
+589.297	<	remote ir FL=85 FR=96 SL=94 SR=180
+589.565	>	GO R
+589.615	<	go R
+589.962	<	turn right: 89.22deg of 90 end=OK TURNTICKS=403 t=286ms err=0.15mm/1.00deg
+589.962	<	@P21S
+590.846	<	forward 1: end=IR dist=170.16mm target=170.93mm vmax=600mm/s IR(FL=83 FR=102 SL=197 SR=78) sides=01 t=689ms err=1.30mm/4.63deg
+590.851	<	@P20S
+590.860	<	@C20So.##
+590.868	<	@R2TTL0000000000004
+590.875	<	remote (2,0)S walls front=1 left=0 right=1 back=0
+590.887	<	remote ir FL=83 FR=101 SL=210 SR=78
+591.137	>	GO L
+591.201	<	go L
+591.533	<	turn left: -89.33deg of -90 end=OK TURNTICKS=403 t=282ms err=0.48mm/0.77deg
+591.533	<	@P20E
+592.321	<	forward 1: end=IR dist=169.39mm target=169.93mm vmax=600mm/s IR(FL=85 FR=101 SL=189 SR=72) sides=01 t=671ms err=1.11mm/4.97deg
+592.326	<	@P30E
+592.336	<	@C30E.##o
+592.353	<	@R0NNVM000000000004
+592.380	<	remote (3,0)E walls front=1 left=0 right=1 back=0
+592.400	<	remote ir FL=85 FR=101 SL=196 SR=72
+592.741	>	GO L
+592.796	<	go L
+593.137	<	turn left: -89.22deg of -90 end=OK TURNTICKS=403 t=280ms err=0.40mm/0.78deg
+593.137	<	@P30N
+593.818	<	forward 1: end=ENC dist=179.56mm target=180.00mm vmax=600mm/s IR(FL=187 FR=280 SL=91 SR=72) sides=11 t=618ms err=1.15mm/5.59deg
+593.820	<	@P31N
+593.838	<	@C31N.#o#
+593.850	<	@R1NVLM000000000004
+593.911	<	remote (3,1)N walls front=0 left=1 right=1 back=0
+593.965	<	remote ir FL=187 FR=297 SL=91 SR=72
+594.224	>	GO F
+594.286	<	go F
+595.077	<	forward 1: end=IR dist=176.96mm target=177.88mm vmax=600mm/s IR(FL=85 FR=101 SL=89 SR=78) sides=11 t=681ms err=1.35mm/2.07deg
+595.077	<	@P32N
+595.136	<	Goal reached (remote) at (3,2) after 13 moves
+595.232	<	End: OK | place the robot at the start
+595.237	<	@AI
+595.237	<	@P32N
+624.919	!	disconnected
+625.921	!	connected
+631.048	!	disconnected
+632.049	!	connected
+637.174	!	disconnected
+638.176	!	connected
+643.301	!	disconnected
+644.303	!	connected
+649.429	!	disconnected
+650.430	!	connected
+655.556	!	disconnected
+656.557	!	connected
+661.683	!	disconnected
+662.684	!	connected
+667.810	!	disconnected
+668.811	!	connected
+673.936	!	disconnected
+674.938	!	connected
+680.064	!	disconnected
+681.066	!	connected
+686.191	!	disconnected
+687.192	!	connected
+692.319	!	disconnected
+693.320	!	connected
+698.446	!	disconnected
+699.448	!	connected
+704.574	!	disconnected
+705.576	!	connected
+710.701	!	disconnected
+711.703	!	connected
+716.830	!	disconnected
+717.831	!	connected
+722.956	!	disconnected
+723.958	!	connected
+729.083	!	disconnected
+730.085	!	connected
+735.211	!	disconnected
+736.213	!	connected
+741.339	!	disconnected
+742.340	!	connected
+747.466	!	disconnected
+748.467	!	connected
+753.592	!	disconnected
+754.594	!	connected
+759.719	!	disconnected
+760.720	!	connected
+765.847	!	disconnected
+766.848	!	connected
+771.974	!	disconnected
+772.974	!	connected
+778.100	!	disconnected
+779.100	!	connected
+784.227	!	disconnected
+785.228	!	connected
+790.354	!	disconnected
+791.355	!	connected
+796.482	!	disconnected
+797.483	!	connected
+802.610	!	disconnected
+803.611	!	connected
+808.738	!	disconnected
+809.740	!	connected
+814.865	!	disconnected
+815.866	!	connected
+820.993	!	disconnected
+821.994	!	connected
+827.120	!	disconnected
+828.121	!	connected
+833.248	!	disconnected
+834.250	!	connected
+839.376	!	disconnected
+840.377	!	connected
+845.504	!	disconnected
+846.506	!	connected
+851.631	!	disconnected
+852.632	!	connected
+857.759	!	disconnected
+858.760	!	connected
+863.886	!	disconnected
+864.888	!	connected
+870.014	!	disconnected
+871.015	!	connected
+876.142	!	disconnected
+877.144	!	connected
+882.271	!	disconnected
+883.272	!	connected
+888.397	!	disconnected
+889.399	!	connected
+894.525	!	disconnected
+895.526	!	connected
+900.652	!	disconnected
+901.654	!	connected
+906.778	!	disconnected
+907.779	!	connected
+908.818	!	disconnected

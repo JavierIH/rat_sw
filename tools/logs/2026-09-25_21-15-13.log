@@ -1,0 +1,923 @@
+0.000	!	conectado
+4.415	<	@Y2
+4.415	<	@G3232
+4.415	<	@M1
+4.415	<	@AI
+4.415	<	@P00N
+4.415	<	@R0NVTN000000000004
+4.415	<	@R1NVNN000000000004
+4.415	<	@R2TLLL000000000004
+4.415	<	
+4.443	<	rat_sw Sep 25 2026 21:14:27 | modo 1 BUSQUEDA
+4.443	<	Mapa en flash: 12 celdas, camino rapido coste 22 (ERASE si es otro laberinto)
+4.699	<	Meta (3,2)-(3,2). SELECT cambia de modo, START lo lanza, HELP lista comandos
+4.699	<	@Y2
+4.699	<	@G3232
+4.699	<	@M1
+4.699	<	@AI
+4.699	<	@P00N
+4.699	<	@R0NVTN000000000004
+4.699	<	@R1NVNN000000000004
+4.725	<	@R2TLLL000000000004
+11.648	>	STATUS
+11.973	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+12.223	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+12.456	<	meta (3,2)-(3,2) | 12 celdas visitadas | camino rapido coste 22
+14.650	>	ERASE
+14.888	<	mapa borrado (RAM y flash)
+14.917	<	@Y2
+14.917	<	@G3232
+14.917	<	@M1
+14.961	<	@AI
+14.961	<	@P00N
+15.154	<	@R00000000000000004
+15.230	<	@R10000000000000004
+15.238	<	@R20000000000000004
+17.651	>	CONT
+17.909	<	CONT ON|OFF (ahora ON)
+19.653	>	STATUS
+19.790	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+20.100	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+20.304	<	meta (3,2)-(3,2) | 0 celdas visitadas | sin camino rapido verificado
+30.087	>	START
+30.325	<	START modo 1: BUSQUEDA
+30.449	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+30.476	<	@Y2
+30.478	<	@G3232
+30.478	<	@M1
+30.515	<	@AC
+30.515	<	@P00N
+30.573	<	@R00000000000000004
+30.599	<	@R10000000000000004
+30.726	<	@R20000000000000004
+32.273	<	@AG
+32.325	<	== BUSQUEDA ==
+32.377	<	@C00N.###
+32.468	<	@R0M000000000000004
+32.678	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+32.703	<	@C01N?#o#
+32.738	<	@P01N
+32.799	<	@R1K000000000000004
+32.919	<	META (0,1)N F? I1 D1 coste=9 -> AVANZA
+33.020	<	@C02N?.o#
+33.020	<	@P02N
+33.047	<	@R2O000000000000004
+33.309	<	META (0,2)N F? I1 D0 coste=7 -> DER
+33.339	<	@C02E#.o#
+33.429	<	@C12E##.o
+33.429	<	@P12E
+33.504	<	@R0N000000000000004
+33.805	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+34.399	<	exploracion 3 celdas, 1 curvas: fin=IR dist=509.06/509.52mm v=480/478 IR(FL=85 FR=101) lados=10 t=1332ms err=1.75mm/2.61deg
+34.399	<	@P12E
+34.399	<	@C12E##.o
+34.399	<	@R1N200000000000004
+34.399	<	META (1,2)E F1 I? D0 coste=11 -> DER
+34.579	<	giro der: 89.33deg de 90 fin=OK TURNTICKS=405 t=287ms err=0.33mm/0.96deg
+34.579	<	@P12S
+34.609	<	@C12S##oo
+34.686	<	@R2TL00000000000004
+34.790	<	META (1,2)S F0 I? D0 coste=10 -> AVANZA
+34.899	<	@C11So??#
+34.899	<	@P11S
+34.946	<	@R0N000000000000004
+34.971	<	META (1,1)S F? I? D1 coste=8 -> IZQ
+35.461	<	exploracion 1 celdas, 0 curvas: fin=ENC dist=179.23/180.00mm v=480/478 IR(FL=203 FR=242) lados=-- t=734ms err=1.70mm/1.85deg
+35.461	<	@P11S
+35.461	<	@C11So?.#
+35.461	<	@R1NJ00000000000004
+35.470	<	META (1,1)S F0 I0 D? coste=8 -> IZQ
+36.113	<	giro izq: -88.89deg de -90 fin=OK TURNTICKS=405 t=480ms err=0.39mm/1.11deg
+36.113	<	@P11E
+36.113	<	@C11Eo.o#
+36.113	<	@R2TL00000000000004
+36.164	<	META (1,1)E F0 I0 D0 coste=7 -> AVANZA
+36.194	<	@C21E??#o
+36.314	<	@P21E
+36.314	<	@R0N310000000000004
+36.314	<	META (2,1)E F? I? D1 coste=5 -> AVANZA
+36.823	<	exploracion 2 celdas, 0 curvas: fin=PARED dist=175.08/175.46mm v=480/478 IR(FL=83 FR=101) lados=-- t=612ms err=1.67mm/2.69deg
+36.823	<	@P21E
+36.823	<	@C21E?##o
+36.823	<	@C21E?##o
+36.823	<	@R1NVK0000000000004
+36.846	<	META (2,1)E F1 I0 D? coste=6 -> IZQ
+37.028	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.44mm/0.83deg
+37.028	<	@P21N
+37.028	<	@C21N.##o
+37.028	<	@R2TL00000000000004
+37.028	<	META (2,1)N F0 I0 D? coste=5 -> AVANZA
+37.159	<	@C22N?#o#
+37.159	<	@P22N
+37.159	<	@R0N310000000000004
+37.159	<	META (2,2)N F? I1 D1 coste=8 -> AVANZA
+37.647	<	exploracion 2 celdas, 0 curvas: fin=PARED dist=168.01/168.39mm v=480/478 IR(FL=85 FR=103) lados=11 t=565ms err=1.88mm/1.48deg
+37.647	<	@P22N
+37.647	<	@C22N##o#
+37.647	<	@C22N##o#
+37.647	<	@R1NVN0000000000004
+37.692	<	META (2,2)N F1 I? D? coste=20 -> MEDIA VUELTA
+38.009	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=480ms err=0.22mm/0.97deg
+38.009	<	@P22S
+38.014	<	@C22S##o#
+38.323	<	@R2TLL0000000000004
+38.323	<	META (2,2)S F0 I? D? coste=18 -> AVANZA
+38.399	<	@C21So##o
+38.399	<	@P21S
+38.611	<	@R0N310000000000004
+38.611	<	META (2,1)S F? I1 D0 coste=16 -> DER
+38.690	<	@C21Wo##o
+38.792	<	@C11Wooo#
+38.792	<	@P11W
+38.931	<	@R1NVN0000000000004
+39.113	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+39.113	<	exploracion 2 celdas, 1 curvas: fin=IR dist=323.70/324.20mm v=480/478 IR(FL=83 FR=103) lados=00 t=987ms err=1.67mm/2.52deg
+39.140	<	@P11W
+39.140	<	escuadrado: sesgo=-4mm giro=-4.02deg -> 3mm t=60ms err=0.11mm/0.78deg
+39.140	<	@C11Wooo#
+39.140	<	@R2TLL0000000000004
+39.189	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+39.189	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=296ms err=0.44mm/0.96deg
+39.189	<	@P11S
+39.189	<	@C11Sooo#
+39.214	<	@R0N310000000000004
+39.318	<	META (1,1)S F0 I0 D? coste=12 -> AVANZA
+39.418	<	@C10So.##
+39.418	<	@P10S
+39.524	<	@R1NVN0000000000004
+39.601	<	META (1,0)S F? I0 D1 coste=10 -> IZQ
+39.635	<	@C10Eo.##
+39.711	<	@C20E#.#o
+39.711	<	@P20E
+39.787	<	@R2TLL0000000000004
+40.073	<	META (2,0)E F0 I1 D1 coste=7 -> AVANZA
+40.149	<	@C30E??#o
+40.174	<	@P30E
+40.203	<	@R0NVTG000000000004
+40.203	<	META (3,0)E F? I? D1 coste=5 -> IZQ
+40.385	<	exploracion 3 celdas, 1 curvas: fin=IR dist=509.67/509.92mm v=480/478 IR(FL=88 FR=101) lados=-- t=1265ms err=1.76mm/2.10deg
+40.385	<	@P30E
+40.385	<	@C30E?##o
+40.385	<	@R1NVN0000000000004
+40.468	<	META (3,0)E F1 I0 D? coste=5 -> IZQ
+40.782	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=280ms err=0.39mm/0.81deg
+40.782	<	@P30N
+40.782	<	@C30N.##o
+40.926	<	@R2TLL0000000000004
+40.926	<	META (3,0)N F0 I0 D? coste=4 -> AVANZA
+41.094	<	@C31N?#o#
+41.094	<	@P31N
+41.181	<	@R0NVTN000000000004
+41.320	<	META (3,1)N F? I1 D1 coste=2 -> AVANZA
+41.396	<	@C32N?#o#
+41.398	<	@P32N
+41.483	<	@R1NVNN000000000004
+41.970	<	exploracion 2 celdas, 0 curvas: fin=IR dist=352.49/352.53mm v=480/478 IR(FL=85 FR=104) lados=11 t=946ms err=1.80mm/1.56deg
+41.970	<	@P32N
+41.970	<	@C32N##o#
+41.970	<	@R2TLLL000000000004
+41.970	<	Meta alcanzada en (3,2) tras 25 acciones
+125.651	>	STATUS
+246.210	<	!! no se pudo guardar el mapa en flash
+246.210	<	@AO
+246.365	<	Camino rapido optimo verificado: vuelta a la salida
+246.365	<	@AH
+246.513	<	VUELTA (3,2)N F1 I? D? coste=24 -> MEDIA VUELTA
+246.814	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=511ms err=0.17mm/0.90deg
+246.814	<	@P32S
+246.842	<	@C32S##o#
+246.919	<	@R0NVTN000000000004
+246.980	<	VUELTA (3,2)S F0 I? D? coste=22 -> AVANZA
+247.089	<	@C31So#o#
+247.090	<	@P31S
+247.160	<	@R1NVNN000000000004
+247.361	<	VUELTA (3,1)S F? I1 D1 coste=20 -> AVANZA
+247.445	<	@C30So##o
+247.497	<	@P30S
+247.562	<	@R2TLLL000000000004
+247.788	<	VUELTA (3,0)S F? I1 D0 coste=18 -> DER
+247.898	<	@C30Wo##o
+247.980	<	@C20W#o#o
+247.980	<	@P20W
+248.035	<	@R0NVTN000000000004
+248.305	<	VUELTA (2,0)W F0 I1 D1 coste=15 -> AVANZA
+248.425	<	@C10Woo##
+248.427	<	@P10W
+248.522	<	@R1NVNN000000000004
+248.617	<	VUELTA (1,0)W F? I1 D? coste=13 -> DER
+249.175	<	exploracion 4 celdas, 1 curvas: fin=IR dist=691.55/691.96mm v=480/478 IR(FL=85 FR=103) lados=-- t=1673ms err=1.69mm/2.20deg
+249.175	<	@P10W
+249.177	<	@C10Woo##
+249.177	<	@R2TLLL000000000004
+249.258	<	VUELTA (1,0)W F1 I? D0 coste=13 -> DER
+249.325	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=285ms err=0.22mm/0.78deg
+249.325	<	@P10N
+249.325	<	@C10Noo##
+249.325	<	@R0NVTN000000000004
+249.400	<	VUELTA (1,0)N F0 I? D0 coste=12 -> AVANZA
+249.696	<	@C11Nooo#
+249.900	<	@P11N
+249.977	<	@R1NVNN000000000004
+250.162	<	VUELTA (1,1)N F? I1 D? coste=10 -> AVANZA
+250.215	<	@C12N##oo
+250.290	<	@P12N
+250.389	<	@R2TLLL000000000004
+250.739	<	VUELTA (1,2)N F? I? D1 coste=8 -> IZQ
+250.868	<	exploracion 2 celdas, 0 curvas: fin=IR dist=356.08/356.56mm v=480/478 IR(FL=88 FR=103) lados=-- t=925ms err=1.71mm/2.24deg
+250.868	<	@P12N
+250.868	<	@C12N##oo
+250.893	<	@R0NVTN000000000004
+250.893	<	VUELTA (1,2)N F1 I0 D? coste=8 -> IZQ
+250.918	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=280ms err=0.44mm/0.78deg
+250.918	<	@P12W
+250.918	<	@C12W##oo
+250.918	<	@R1NVNN000000000004
+250.950	<	VUELTA (1,2)W F0 I0 D? coste=7 -> AVANZA
+250.950	<	@C02W#oo#
+250.950	<	@P02W
+250.950	<	@R2TLLL000000000004
+250.991	<	VUELTA (0,2)W F? I? D1 coste=5 -> IZQ
+251.058	<	exploracion 1 celdas, 0 curvas: fin=IR dist=172.93/173.40mm v=480/478 IR(FL=88 FR=103) lados=-- t=593ms err=1.70mm/1.55deg
+251.058	<	@P02W
+251.058	<	@C02W#oo#
+251.163	<	@R0NVTN000000000004
+251.163	<	VUELTA (0,2)W F1 I0 D? coste=5 -> IZQ
+251.187	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=295ms err=0.39mm/0.89deg
+251.187	<	@P02S
+251.267	<	@C02S#oo#
+251.300	<	@R1NVNN000000000004
+251.376	<	VUELTA (0,2)S F0 I0 D? coste=4 -> AVANZA
+251.482	<	@C01So#o#
+251.482	<	@P01S
+251.563	<	@R2TLLL000000000004
+251.615	<	VUELTA (0,1)S F? I1 D1 coste=2 -> AVANZA
+251.675	<	@C00So###
+251.675	<	@P00S
+251.801	<	@R0NVTN000000000004
+252.346	<	exploracion 2 celdas, 0 curvas: fin=IR dist=338.07/338.49mm v=480/478 IR(FL=87 FR=103) lados=11 t=912ms err=1.69mm/1.73deg
+252.348	<	@P00S
+252.382	<	@C00So###
+252.459	<	@R1NVNN000000000004
+457.751	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=472ms err=0.22mm/1.07deg
+457.997	<	@P00N
+458.237	<	En la salida tras 41 acciones
+472.638	<	!! no se pudo guardar el mapa en flash
+472.927	<	Camino rapido verificado: coste 22
+473.435	<	Fin: OK | robot en la salida, listo
+473.511	<	@AI
+473.511	<	@P00N
+617.256	>	STATUS
+617.786	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+618.139	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+618.139	<	meta (3,2)-(3,2) | 12 celdas visitadas | camino rapido coste 22
+620.258	>	SAVE
+819.288	<	!! error escribiendo la flash
+937.490	>	RESET
+937.802	<	reiniciando...
+943.491	>	SAVE
+1128.516	!	desconectado
+1129.518	!	conectado
+1132.320	<	@Y2
+1132.320	<	@G3232
+1132.320	<	@M1
+1132.320	<	@AI
+1132.320	<	@P00N
+1132.320	<	@R00000000000000004
+1132.320	<	@R10000000000000004
+1132.320	<	@R20000000000000004
+1169.401	>	STATUS
+1169.765	<	modo 1 BUSQUEDA | parado | robot (0,0)N en la salida
+1170.548	<	SPD 600 FAST 900 CURVE 480 ACCEL 3000 TURN 500 TACCEL 5000 TURNTICKS 405 KP 0.70 KI 8.00 LOG 2
+1170.824	<	meta (3,2)-(3,2) | 0 celdas visitadas | sin camino rapido verificado
+1172.402	>	SAVE
+1172.665	<	guardado: mapa, meta y parametros
+1203.969	>	CONT OFF
+1205.056	<	busqueda parando en cada celda (CONT OFF)
+1205.470	>	MODE 1
+1205.653	<	@M1
+1205.747	<	modo 1: BUSQUEDA
+1206.672	>	START
+1206.807	<	START modo 1: BUSQUEDA
+1207.044	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+1207.139	<	@Y2
+1207.175	<	@G3232
+1207.175	<	@M1
+1207.203	<	@AC
+1207.203	<	@P00N
+1207.405	<	@R00000000000000004
+1207.587	<	@R10000000000000004
+1207.827	<	@R20000000000000004
+1208.812	<	@AG
+1208.917	<	== BUSQUEDA ==
+1208.959	<	@C00N.###
+1209.079	<	@R0M000000000000004
+1209.140	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+1209.942	<	avance 1: fin=ENC dist=179.17mm obj=180.00mm vmax=600mm/s IR(FL=186 FR=257 SL=86 SR=76) lados=11 t=699ms err=1.59mm/1.60deg
+1209.987	<	@P01N
+1209.987	<	@C01N.#o#
+1210.038	<	@R1M000000000000004
+1210.148	<	META (0,1)N F0 I1 D1 coste=9 -> AVANZA
+1210.582	<	avance 1: fin=IR dist=171.82mm obj=172.47mm vmax=600mm/s IR(FL=85 FR=101 SL=84 SR=158) lados=10 t=738ms err=1.77mm/1.90deg
+1210.650	<	@P02N
+1210.650	<	@C02N#.o#
+1210.678	<	@R2P000000000000004
+1210.777	<	META (0,2)N F1 I1 D0 coste=7 -> DER
+1211.038	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=287ms err=0.22mm/0.78deg
+1211.038	<	@P02E
+1211.038	<	@C02E#oo#
+1211.187	<	@R0N000000000000004
+1211.220	<	META (0,2)E F0 I? D0 coste=6 -> AVANZA
+1211.702	<	avance 1: fin=IR dist=176.35mm obj=176.71mm vmax=600mm/s IR(FL=86 FR=101 SL=94 SR=178) lados=10 t=559ms err=1.70mm/2.32deg
+1211.762	<	@P12E
+1211.937	<	@C12E##.o
+1211.964	<	@R1N200000000000004
+1212.042	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+1212.137	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=280ms err=0.22mm/0.80deg
+1212.137	<	@P12S
+1212.137	<	@C12S##oo
+1212.137	<	@R2TL00000000000004
+1212.163	<	META (1,2)S F0 I? D0 coste=10 -> AVANZA
+1212.680	<	avance 1: fin=ENC dist=179.50mm obj=180.00mm vmax=600mm/s IR(FL=203 FR=249 SL=228 SR=76) lados=01 t=595ms err=1.55mm/1.64deg
+1212.682	<	@P11S
+1212.769	<	@C11So..#
+1212.822	<	@R0N200000000000004
+1212.853	<	META (1,1)S F0 I0 D1 coste=8 -> IZQ
+1213.032	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=289ms err=0.44mm/0.80deg
+1213.032	<	@P11E
+1213.032	<	@C11Eooo#
+1213.064	<	@R1NV00000000000004
+1213.147	<	META (1,1)E F0 I0 D0 coste=7 -> AVANZA
+1213.538	<	avance 1: fin=IR dist=174.64mm obj=175.20mm vmax=600mm/s IR(FL=80 FR=104 SL=136 SR=63) lados=01 t=731ms err=1.60mm/3.34deg
+1213.608	<	@P21E
+1213.982	<	escuadrado: sesgo=-10mm giro=-8.54deg -> 0mm t=82ms err=0.22mm/0.76deg
+1213.982	<	@C21E.##o
+1214.012	<	@R2TL00000000000004
+1214.052	<	META (2,1)E F1 I0 D1 coste=6 -> IZQ
+1214.252	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.39mm/0.75deg
+1214.252	<	@P21N
+1214.252	<	@C21No##o
+1214.252	<	@R0N310000000000004
+1214.252	<	META (2,1)N F0 I0 D? coste=5 -> AVANZA
+1214.795	<	avance 1: fin=IR dist=166.85mm obj=167.33mm vmax=600mm/s IR(FL=86 FR=106 SL=87 SR=78) lados=11 t=498ms err=1.84mm/1.21deg
+1214.872	<	@P22N
+1214.977	<	escuadrado: sesgo=-4mm giro=-3.54deg -> -3mm t=53ms err=0.17mm/0.76deg
+1214.977	<	@C22N##o#
+1214.977	<	@R1NVN0000000000004
+1215.012	<	META (2,2)N F1 I1 D1 coste=20 -> MEDIA VUELTA
+1215.401	<	giro der: 179.56deg de 180 fin=OK TURNTICKS=405 t=462ms err=0.17mm/0.67deg
+1215.401	<	@P22S
+1215.401	<	@C22S##o#
+1215.401	<	@R2TLL0000000000004
+1215.401	<	META (2,2)S F0 I? D? coste=18 -> AVANZA
+1215.810	<	avance 1: fin=IR dist=164.75mm obj=165.10mm vmax=600mm/s IR(FL=85 FR=101 SL=94 SR=180) lados=10 t=558ms err=1.32mm/1.41deg
+1215.925	<	@P21S
+1215.927	<	@C21So##o
+1215.959	<	@R0N310000000000004
+1216.099	<	META (2,1)S F1 I1 D0 coste=16 -> DER
+1216.275	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=280ms err=0.28mm/0.91deg
+1216.275	<	@P21W
+1216.275	<	@C21Wo##o
+1216.301	<	@R1NVN0000000000004
+1216.455	<	META (2,1)W F0 I? D? coste=15 -> AVANZA
+1216.899	<	avance 1: fin=IR dist=165.91mm obj=166.36mm vmax=600mm/s IR(FL=88 FR=98 SL=213 SR=175) lados=00 t=549ms err=1.62mm/2.17deg
+1216.978	<	@P11W
+1216.980	<	@C11Wooo#
+1216.980	<	@R2TLL0000000000004
+1217.008	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+1217.248	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=285ms err=0.44mm/0.89deg
+1217.248	<	@P11S
+1217.248	<	@C11Sooo#
+1217.248	<	@R0N310000000000004
+1217.273	<	META (1,1)S F0 I0 D? coste=12 -> AVANZA
+1217.554	<	avance 1: fin=IR dist=168.23mm obj=168.61mm vmax=600mm/s IR(FL=85 FR=103 SL=171 SR=82) lados=01 t=529ms err=1.72mm/2.24deg
+1217.580	<	@P10S
+1217.580	<	@C10So.##
+1217.739	<	@R1NVN0000000000004
+1217.923	<	META (1,0)S F1 I0 D1 coste=10 -> IZQ
+1218.179	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=296ms err=0.39mm/0.89deg
+1218.179	<	@P10E
+1218.179	<	@C10Eoo##
+1218.179	<	@R2TLL0000000000004
+1218.277	<	META (1,0)E F0 I0 D? coste=9 -> AVANZA
+1218.595	<	avance 1: fin=ENC dist=179.56mm obj=180.00mm vmax=600mm/s IR(FL=209 FR=242 SL=94 SR=70) lados=11 t=692ms err=1.48mm/1.45deg
+1218.595	<	@P20E
+1218.622	<	@C20E#.#o
+1218.698	<	@R0NVP0000000000004
+1218.778	<	META (2,0)E F0 I1 D1 coste=7 -> AVANZA
+1219.268	<	avance 1: fin=IR dist=168.18mm obj=168.59mm vmax=600mm/s IR(FL=89 FR=103 SL=191 SR=74) lados=01 t=503ms err=1.41mm/1.31deg
+1219.268	<	@P30E
+1219.268	<	@C30E.##o
+1219.293	<	@R1NVN0000000000004
+1219.369	<	META (3,0)E F1 I0 D1 coste=5 -> IZQ
+1219.714	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=280ms err=0.28mm/0.77deg
+1219.714	<	@P30N
+1219.792	<	@C30No##o
+1219.792	<	@R2TLL0000000000004
+1219.792	<	META (3,0)N F0 I0 D? coste=4 -> AVANZA
+1220.005	<	avance 1: fin=ENC dist=179.23mm obj=180.00mm vmax=600mm/s IR(FL=197 FR=263 SL=84 SR=80) lados=11 t=699ms err=1.63mm/1.64deg
+1220.005	<	@P31N
+1220.005	<	@C31N.#o#
+1220.005	<	@R0NVTN000000000004
+1220.032	<	META (3,1)N F0 I1 D1 coste=2 -> AVANZA
+1221.068	<	avance 1: fin=IR dist=180.61mm obj=180.84mm vmax=600mm/s IR(FL=82 FR=103 SL=91 SR=72) lados=11 t=583ms err=1.79mm/1.60deg
+1221.097	<	@P32N
+1221.391	<	escuadrado: sesgo=-6mm giro=-5.42deg -> 0mm t=68ms err=0.22mm/0.61deg
+1221.393	<	@C32N##o#
+1221.393	<	@R1NVNN000000000004
+1221.393	<	Meta alcanzada en (3,2) tras 22 acciones
+1221.393	<	Mapa guardado (12 celdas visitadas)
+1221.418	<	@AO
+1221.418	<	Camino rapido optimo verificado: vuelta a la salida
+1221.418	<	@AH
+1221.500	<	VUELTA (3,2)N F1 I1 D1 coste=24 -> MEDIA VUELTA
+1221.687	<	giro der: 179.44deg de 180 fin=OK TURNTICKS=405 t=507ms err=0.22mm/0.97deg
+1221.687	<	@P32S
+1221.735	<	@C32S##o#
+1221.737	<	@R2TLLL000000000004
+1221.763	<	VUELTA (3,2)S F0 I? D? coste=22 -> AVANZA
+1222.339	<	avance 1: fin=ENC dist=179.45mm obj=180.00mm vmax=600mm/s IR(FL=214 FR=256 SL=84 SR=78) lados=11 t=699ms err=1.46mm/1.40deg
+1222.382	<	@P31S
+1222.423	<	@C31So#o#
+1222.423	<	@R0NVTN000000000004
+1222.423	<	VUELTA (3,1)S F0 I1 D1 coste=20 -> AVANZA
+1223.115	<	avance 1: fin=IR dist=172.49mm obj=172.90mm vmax=600mm/s IR(FL=85 FR=101 SL=87 SR=168) lados=10 t=562ms err=1.67mm/1.24deg
+1223.199	<	@P30S
+1223.199	<	@C30So##o
+1223.257	<	@R1NVNN000000000004
+1223.364	<	VUELTA (3,0)S F1 I1 D0 coste=18 -> DER
+1223.561	<	giro der: 89.33deg de 90 fin=OK TURNTICKS=405 t=282ms err=0.22mm/0.83deg
+1223.561	<	@P30W
+1223.561	<	@C30Wo##o
+1223.561	<	@R2TLLL000000000004
+1223.561	<	VUELTA (3,0)W F0 I? D0 coste=17 -> AVANZA
+1224.118	<	avance 1: fin=ENC dist=179.17mm obj=180.00mm vmax=600mm/s IR(FL=214 FR=241 SL=84 SR=80) lados=11 t=699ms err=1.65mm/1.82deg
+1224.118	<	@P20W
+1224.153	<	@C20W#o#o
+1224.229	<	@R0NVTN000000000004
+1224.339	<	VUELTA (2,0)W F0 I1 D1 coste=15 -> AVANZA
+1224.659	<	avance 1: fin=IR dist=181.60mm obj=181.67mm vmax=600mm/s IR(FL=85 FR=101 SL=87 SR=153) lados=10 t=595ms err=1.57mm/1.60deg
+1224.659	<	@P10W
+1224.709	<	@C10Woo##
+1224.878	<	@R1NVNN000000000004
+1224.989	<	VUELTA (1,0)W F1 I1 D0 coste=13 -> DER
+1225.498	<	giro der: 89.33deg de 90 fin=OK TURNTICKS=405 t=284ms err=0.22mm/0.67deg
+1225.531	<	@P10N
+1225.593	<	@C10Noo##
+1225.593	<	@R2TLLL000000000004
+1225.643	<	VUELTA (1,0)N F0 I? D0 coste=12 -> AVANZA
+1225.953	<	avance 1: fin=ENC dist=179.45mm obj=180.00mm vmax=600mm/s IR(FL=191 FR=255 SL=92 SR=180) lados=10 t=699ms err=1.52mm/3.19deg
+1225.953	<	@P11N
+1225.953	<	@C11Nooo#
+1225.953	<	@R0NVTN000000000004
+1226.065	<	VUELTA (1,1)N F0 I1 D0 coste=10 -> AVANZA
+1226.555	<	avance 1: fin=IR dist=181.71mm obj=182.15mm vmax=600mm/s IR(FL=86 FR=103 SL=235 SR=80) lados=01 t=540ms err=1.75mm/1.57deg
+1226.631	<	@P12N
+1226.633	<	@C12N##oo
+1226.633	<	@R1NVNN000000000004
+1226.703	<	VUELTA (1,2)N F1 I0 D1 coste=8 -> IZQ
+1226.952	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.50mm/0.83deg
+1226.952	<	@P12W
+1226.952	<	@C12W##oo
+1226.978	<	@R2TLLL000000000004
+1226.982	<	VUELTA (1,2)W F0 I0 D? coste=7 -> AVANZA
+1227.392	<	avance 1: fin=IR dist=163.31mm obj=163.61mm vmax=600mm/s IR(FL=88 FR=103 SL=178 SR=85) lados=01 t=481ms err=1.75mm/1.78deg
+1227.392	<	@P02W
+1227.392	<	@C02W#oo#
+1227.392	<	@R0NVTN000000000004
+1227.418	<	VUELTA (0,2)W F1 I0 D1 coste=5 -> IZQ
+1227.644	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=282ms err=0.39mm/0.78deg
+1227.644	<	@P02S
+1227.644	<	@C02S#oo#
+1227.644	<	@R1NVNN000000000004
+1227.697	<	VUELTA (0,2)S F0 I0 D? coste=4 -> AVANZA
+1228.127	<	avance 1: fin=ENC dist=179.50mm obj=180.00mm vmax=600mm/s IR(FL=209 FR=241 SL=94 SR=68) lados=11 t=527ms err=1.58mm/1.56deg
+1228.198	<	@P01S
+1228.198	<	@C01So#o#
+1228.225	<	@R2TLLL000000000004
+1228.302	<	VUELTA (0,1)S F0 I1 D1 coste=2 -> AVANZA
+1228.940	<	avance 1: fin=IR dist=163.98mm obj=164.35mm vmax=600mm/s IR(FL=86 FR=101 SL=92 SR=74) lados=11 t=547ms err=1.51mm/1.41deg
+1229.001	<	@P00S
+1229.003	<	@C00So###
+1229.089	<	@R0NVTN000000000004
+1229.518	<	giro der: 179.22deg de 180 fin=OK TURNTICKS=405 t=462ms err=0.22mm/0.91deg
+1229.518	<	@P00N
+1229.643	<	En la salida tras 36 acciones
+1229.670	<	Mapa guardado (12 celdas visitadas)
+1229.670	<	Camino rapido verificado: coste 22
+1230.073	<	Fin: OK | robot en la salida, listo
+1230.073	<	@AI
+1230.073	<	@P00N
+1273.849	>	ERASE
+1274.114	<	mapa borrado (RAM y flash)
+1274.160	<	@Y2
+1274.160	<	@G3232
+1274.160	<	@M1
+1274.320	<	@AI
+1274.320	<	@P00N
+1274.461	<	@R00000000000000004
+1274.646	<	@R10000000000000004
+1274.728	<	@R20000000000000004
+1275.850	>	CONT ON
+1276.025	<	busqueda sin paradas (CONT ON)
+1277.352	>	START
+1277.572	<	START modo 1: BUSQUEDA
+1278.140	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+1278.191	<	@Y2
+1278.217	<	@G3232
+1278.217	<	@M1
+1278.244	<	@AC
+1278.244	<	@P00N
+1278.423	<	@R00000000000000004
+1278.556	<	@R10000000000000004
+1278.796	<	@R20000000000000004
+1279.604	<	@AG
+1279.629	<	== BUSQUEDA ==
+1279.665	<	@C00N.###
+1279.689	<	@R10000000000000004
+1279.874	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+1279.989	<	@C01N?#o#
+1279.989	<	@P01N
+1280.021	<	@R20000000000000004
+1280.186	<	META (0,1)N F? I1 D1 coste=9 -> AVANZA
+1280.265	<	@C02N?.o#
+1280.265	<	@P02N
+1280.319	<	@R0N000000000000004
+1280.389	<	META (0,2)N F? I1 D0 coste=7 -> DER
+1280.624	<	@C02E#.o#
+1280.701	<	@C12E##.o
+1280.701	<	@P12E
+1280.729	<	@R1N200000000000004
+1280.832	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+1281.455	<	exploracion 3 celdas, 1 curvas: fin=IR dist=509.28/509.75mm v=480/478 IR(FL=85 FR=103) lados=10 t=1276ms err=1.60mm/2.03deg
+1281.531	<	@P12E
+1281.531	<	@C12E##.o
+1281.581	<	@R2TL00000000000004
+1281.613	<	META (1,2)E F1 I? D0 coste=11 -> DER
+1281.684	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=283ms err=0.22mm/0.87deg
+1281.684	<	@P12S
+1281.684	<	@C12S##oo
+1281.684	<	@R0N000000000000004
+1281.759	<	META (1,2)S F0 I? D0 coste=10 -> AVANZA
+1281.759	<	@C11So??#
+1281.759	<	@P11S
+1281.819	<	@R1NJ00000000000004
+1281.974	<	META (1,1)S F? I? D1 coste=8 -> IZQ
+1282.436	<	exploracion 1 celdas, 0 curvas: fin=ENC dist=179.50/180.00mm v=480/478 IR(FL=203 FR=249) lados=-- t=613ms err=1.43mm/2.69deg
+1282.436	<	@P11S
+1282.436	<	@C11So?.#
+1282.438	<	@R2TL00000000000004
+1282.438	<	META (1,1)S F0 I0 D? coste=8 -> IZQ
+1282.771	<	giro izq: -89.44deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.44mm/0.66deg
+1282.771	<	@P11E
+1282.774	<	@C11Eo.o#
+1282.814	<	@R0N300000000000004
+1282.814	<	META (1,1)E F0 I0 D0 coste=7 -> AVANZA
+1282.814	<	@C21E??#o
+1282.814	<	@P21E
+1282.814	<	@R1NVG0000000000004
+1282.814	<	META (2,1)E F? I? D1 coste=5 -> AVANZA
+1283.357	<	exploracion 2 celdas, 0 curvas: fin=PARED dist=183.15/183.50mm v=480/478 IR(FL=83 FR=103) lados=-- t=627ms err=1.49mm/2.65deg
+1283.359	<	@P21E
+1283.387	<	@C21E?##o
+1283.413	<	@C21E?##o
+1283.413	<	@R2TL00000000000004
+1283.437	<	META (2,1)E F1 I0 D? coste=6 -> IZQ
+1283.567	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=281ms err=0.33mm/0.83deg
+1283.567	<	@P21N
+1283.567	<	@C21N.##o
+1283.567	<	@R0N310000000000004
+1283.593	<	META (2,1)N F0 I0 D? coste=5 -> AVANZA
+1283.659	<	@C22N?#o#
+1283.822	<	@P22N
+1283.877	<	@R1NVN0000000000004
+1283.901	<	META (2,2)N F? I1 D1 coste=8 -> AVANZA
+1284.263	<	exploracion 2 celdas, 0 curvas: fin=PARED dist=166.30/166.76mm v=480/478 IR(FL=83 FR=103) lados=11 t=567ms err=1.65mm/1.23deg
+1284.263	<	@P22N
+1284.382	<	@C22N##o#
+1284.382	<	@C22N##o#
+1284.382	<	@R2TLL0000000000004
+1284.406	<	META (2,2)N F1 I? D? coste=20 -> MEDIA VUELTA
+1284.499	<	giro der: 179.56deg de 180 fin=OK TURNTICKS=405 t=464ms err=0.17mm/0.67deg
+1284.499	<	@P22S
+1284.585	<	@C22S##o#
+1284.683	<	@R0N310000000000004
+1284.683	<	META (2,2)S F0 I? D? coste=18 -> AVANZA
+1284.683	<	@C21So##o
+1284.683	<	@P21S
+1284.683	<	@R1NVN0000000000004
+1284.683	<	META (2,1)S F? I1 D0 coste=16 -> DER
+1284.900	<	@C21Wo##o
+1284.993	<	@C11Wooo#
+1284.993	<	@P11W
+1285.121	<	@R2TLL0000000000004
+1285.398	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+1285.763	<	exploracion 2 celdas, 1 curvas: fin=IR dist=316.08/316.54mm v=480/478 IR(FL=82 FR=103) lados=00 t=938ms err=1.49mm/1.74deg
+1285.763	<	@P11W
+1285.830	<	escuadrado: sesgo=-6mm giro=-5.52deg -> -1mm t=123ms err=0.22mm/0.85deg
+1285.830	<	@C11Wooo#
+1285.832	<	@R0N310000000000004
+1285.832	<	META (1,1)W F1 I0 D0 coste=13 -> IZQ
+1285.938	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=280ms err=0.44mm/0.81deg
+1285.938	<	@P11S
+1285.938	<	@C11Sooo#
+1285.938	<	@R1NVN0000000000004
+1285.963	<	META (1,1)S F0 I0 D? coste=12 -> AVANZA
+1285.993	<	@C10So?##
+1286.049	<	@P10S
+1286.204	<	@R2TLL0000000000004
+1286.373	<	META (1,0)S F? I? D1 coste=10 -> IZQ
+1286.677	<	exploracion 1 celdas, 0 curvas: fin=IR dist=180.77/180.92mm v=480/478 IR(FL=85 FR=101) lados=-- t=605ms err=1.51mm/2.33deg
+1286.704	<	@P10S
+1286.704	<	@C10So?##
+1286.704	<	@R0NJ10000000000004
+1286.704	<	META (1,0)S F1 I0 D? coste=10 -> IZQ
+1286.943	<	giro izq: -89.33deg de -90 fin=OK TURNTICKS=405 t=280ms err=0.39mm/0.80deg
+1286.943	<	@P10E
+1286.943	<	@C10Eo.##
+1286.943	<	@R1NVN0000000000004
+1287.063	<	META (1,0)E F0 I0 D? coste=9 -> AVANZA
+1287.089	<	@C20E#?#o
+1287.089	<	@P20E
+1287.143	<	@R2TLL0000000000004
+1287.295	<	META (2,0)E F? I1 D1 coste=7 -> AVANZA
+1287.327	<	@C30E.?#o
+1287.404	<	@P30E
+1287.429	<	@R0NVTI000000000004
+1287.536	<	META (3,0)E F? I0 D1 coste=5 -> IZQ
+1287.645	<	@C30N.##o
+1287.751	<	@C31N.#o#
+1287.751	<	@P31N
+1287.780	<	@R1NVNM000000000004
+1287.944	<	META (3,1)N F0 I1 D1 coste=2 -> AVANZA
+1288.023	<	@C32N?#o#
+1288.023	<	@P32N
+1288.063	<	@R2TLLK000000000004
+1288.524	<	exploracion 4 celdas, 1 curvas: fin=IR dist=689.34/689.79mm v=480/478 IR(FL=88 FR=104) lados=11 t=1626ms err=1.59mm/2.44deg
+1288.524	<	@P32N
+1288.583	<	@C32N##o#
+1288.660	<	@R0NVTN000000000004
+1288.895	<	Meta alcanzada en (3,2) tras 25 acciones
+1288.897	<	Mapa guardado (12 celdas visitadas)
+1288.897	<	@AO
+1288.897	<	Camino rapido optimo verificado: vuelta a la salida
+1288.897	<	@AH
+1289.028	<	VUELTA (3,2)N F1 I? D? coste=24 -> MEDIA VUELTA
+1289.455	<	giro der: 179.56deg de 180 fin=OK TURNTICKS=405 t=460ms err=0.17mm/0.67deg
+1289.455	<	@P32S
+1289.504	<	@C32S##o#
+1289.594	<	@R1NVNN000000000004
+1289.729	<	VUELTA (3,2)S F0 I? D? coste=22 -> AVANZA
+1289.826	<	@C31So#o#
+1289.826	<	@P31S
+1289.826	<	@R2TLLL000000000004
+1289.850	<	VUELTA (3,1)S F? I1 D1 coste=20 -> AVANZA
+1289.880	<	@C30So##o
+1289.954	<	@P30S
+1289.954	<	@R0NVTN000000000004
+1289.979	<	VUELTA (3,0)S F? I1 D0 coste=18 -> DER
+1290.029	<	@C30Wo##o
+1290.055	<	@C20W#o#o
+1290.055	<	@P20W
+1290.131	<	@R1NVNN000000000004
+1290.475	<	VUELTA (2,0)W F0 I1 D1 coste=15 -> AVANZA
+1290.571	<	@C10Woo##
+1290.573	<	@P10W
+1290.672	<	@R2TLLL000000000004
+1290.946	<	VUELTA (1,0)W F? I1 D? coste=13 -> DER
+1291.182	<	exploracion 4 celdas, 1 curvas: fin=IR dist=688.62/689.11mm v=480/478 IR(FL=87 FR=102) lados=-- t=1651ms err=1.57mm/2.68deg
+1291.182	<	@P10W
+1291.182	<	@C10Woo##
+1291.182	<	@R0NVTN000000000004
+1291.206	<	VUELTA (1,0)W F1 I? D0 coste=13 -> DER
+1291.403	<	giro der: 89.22deg de 90 fin=OK TURNTICKS=405 t=296ms err=0.17mm/0.89deg
+1291.438	<	@P10N
+1291.438	<	@C10Noo##
+1291.514	<	@R1NVNN000000000004
+1291.739	<	VUELTA (1,0)N F0 I? D0 coste=12 -> AVANZA
+1291.952	<	@C11Nooo#
+1291.952	<	@P11N
+1292.126	<	@R2TLLL000000000004
+1292.126	<	VUELTA (1,1)N F? I1 D? coste=10 -> AVANZA
+1292.335	<	@C12N##oo
+1292.335	<	@P12N
+1292.379	<	@R0NVTN000000000004
+1292.573	<	VUELTA (1,2)N F? I0 D1 coste=8 -> IZQ
+1292.573	<	@C12W##oo
+1292.573	<	@C02W#oo#
+1292.573	<	@P02W
+1292.694	<	@R1NVNN000000000004
+1292.784	<	VUELTA (0,2)W F1 I0 D1 coste=5 -> IZQ
+1292.993	<	exploracion 3 celdas, 1 curvas: fin=IR dist=500.83/501.22mm v=480/478 IR(FL=88 FR=103) lados=01 t=1250ms err=1.62mm/1.94deg
+1292.993	<	@P02W
+1292.993	<	@C02W#oo#
+1293.018	<	@R2TLLL000000000004
+1293.018	<	VUELTA (0,2)W F1 I0 D? coste=5 -> IZQ
+1293.255	<	giro izq: -89.22deg de -90 fin=OK TURNTICKS=405 t=292ms err=0.39mm/0.95deg
+1293.255	<	@P02S
+1293.255	<	@C02S#oo#
+1293.281	<	@R0NVTN000000000004
+1293.281	<	VUELTA (0,2)S F0 I0 D? coste=4 -> AVANZA
+1293.356	<	@C01So#o#
+1293.398	<	@P01S
+1293.474	<	@R1NVNN000000000004
+1293.504	<	VUELTA (0,1)S F? I1 D1 coste=2 -> AVANZA
+1293.580	<	@C00So###
+1293.580	<	@P00S
+1293.612	<	@R2TLLL000000000004
+1294.120	<	exploracion 2 celdas, 0 curvas: fin=IR dist=351.55/351.88mm v=480/478 IR(FL=85 FR=99) lados=11 t=963ms err=1.49mm/1.44deg
+1294.226	<	@P00S
+1294.279	<	@C00So###
+1294.449	<	@R0NVTN000000000004
+1294.745	<	giro der: 179.33deg de 180 fin=OK TURNTICKS=405 t=466ms err=0.22mm/0.67deg
+1294.745	<	@P00N
+1294.822	<	En la salida tras 39 acciones
+1294.822	<	Mapa guardado (12 celdas visitadas)
+1294.822	<	Camino rapido verificado: coste 22
+1295.289	<	Fin: OK | robot en la salida, listo
+1295.473	<	@AI
+1295.474	<	@P00N
+2105.030	!	desconectado
+2106.032	!	conectado
+2111.158	!	desconectado
+2112.160	!	conectado
+2117.285	!	desconectado
+2118.286	!	conectado
+2123.462	!	desconectado
+2124.464	!	conectado
+2129.591	!	desconectado
+2130.593	!	conectado
+2135.718	!	desconectado
+2136.720	!	conectado
+2141.847	!	desconectado
+2142.848	!	conectado
+2147.976	!	desconectado
+2148.978	!	conectado
+2154.104	!	desconectado
+2155.105	!	conectado
+2160.248	!	desconectado
+2161.249	!	conectado
+2166.400	!	desconectado
+2167.401	!	conectado
+2172.543	!	desconectado
+2173.544	!	conectado
+2178.671	!	desconectado
+2179.672	!	conectado
+2184.801	!	desconectado
+2185.802	!	conectado
+2190.929	!	desconectado
+2191.931	!	conectado
+2197.058	!	desconectado
+2198.059	!	conectado
+2203.266	!	desconectado
+2204.267	!	conectado
+2209.393	!	desconectado
+2210.395	!	conectado
+2215.524	!	desconectado
+2216.526	!	conectado
+2221.662	!	desconectado
+2222.664	!	conectado
+2227.795	!	desconectado
+2228.796	!	conectado
+2233.922	!	desconectado
+2234.923	!	conectado
+2240.115	!	desconectado
+2241.116	!	conectado
+2246.308	!	desconectado
+2247.309	!	conectado
+2252.447	!	desconectado
+2253.448	!	conectado
+2258.575	!	desconectado
+2259.576	!	conectado
+2264.702	!	desconectado
+2265.703	!	conectado
+2270.906	!	desconectado
+2271.907	!	conectado
+2277.062	!	desconectado
+2278.063	!	conectado
+2283.238	!	desconectado
+2284.239	!	conectado
+2289.406	!	desconectado
+2290.407	!	conectado
+2295.582	!	desconectado
+2296.583	!	conectado
+2301.717	!	desconectado
+2302.718	!	conectado
+2307.855	!	desconectado
+2308.856	!	conectado
+2314.012	!	desconectado
+2315.013	!	conectado
+2320.194	!	desconectado
+2321.195	!	conectado
+2326.324	!	desconectado
+2327.325	!	conectado
+2332.503	!	desconectado
+2333.504	!	conectado
+2338.714	!	desconectado
+2339.715	!	conectado
+2344.869	!	desconectado
+2345.870	!	conectado
+2351.043	!	desconectado
+2352.044	!	conectado
+2357.171	!	desconectado
+2358.172	!	conectado
+2363.299	!	desconectado
+2364.300	!	conectado
+2369.434	!	desconectado
+2370.435	!	conectado
+2375.561	!	desconectado
+2376.562	!	conectado
+2381.687	!	desconectado
+2382.689	!	conectado
+2387.888	!	desconectado
+2388.890	!	conectado
+2394.035	!	desconectado
+2395.036	!	conectado
+2400.191	!	desconectado
+2401.193	!	conectado
+2406.355	!	desconectado
+2407.357	!	conectado
+2412.486	!	desconectado
+2413.487	!	conectado
+2418.647	!	desconectado
+2419.648	!	conectado
+2424.785	!	desconectado
+2425.786	!	conectado
+2430.913	!	desconectado
+2431.914	!	conectado
+2437.041	!	desconectado
+2438.042	!	conectado
+2443.169	!	desconectado
+2444.170	!	conectado
+2449.298	!	desconectado
+2450.299	!	conectado
+2455.424	!	desconectado
+2456.425	!	conectado
+2461.553	!	desconectado
+2462.555	!	conectado
+2467.693	!	desconectado
+2468.694	!	conectado
+2473.858	!	desconectado
+2474.860	!	conectado
+2480.069	!	desconectado
+2481.070	!	conectado
+2486.196	!	desconectado
+2487.197	!	conectado
+2492.324	!	desconectado
+2493.325	!	conectado
+2498.484	!	desconectado
+2499.486	!	conectado
+2504.613	!	desconectado
+2505.615	!	conectado
+2510.740	!	desconectado
+2511.743	!	conectado
+2516.883	!	desconectado
+2517.884	!	conectado
+2523.015	!	desconectado
+2524.015	!	conectado
+2529.143	!	desconectado
+2530.144	!	conectado
+2535.271	!	desconectado
+2536.273	!	conectado
+2541.400	!	desconectado
+2542.400	!	conectado
+2547.526	!	desconectado
+2548.527	!	conectado
+2553.700	!	desconectado
+2554.701	!	conectado
+2559.857	!	desconectado
+2560.859	!	conectado
+2566.020	!	desconectado
+2567.022	!	conectado
+2572.187	!	desconectado
+2573.189	!	conectado
+2578.349	!	desconectado
+2579.351	!	conectado
+2584.506	!	desconectado
+2585.508	!	conectado
+2590.643	!	desconectado
+2591.644	!	conectado
+2596.769	!	desconectado
+2597.771	!	conectado
+2602.897	!	desconectado
+2603.899	!	conectado
+2605.591	<	@Y2
+2605.591	<	@G3232
+2605.591	<	@M1
+2605.591	<	@AI
+2605.591	<	@P00N
+2605.591	<	@R0NVTN000000000004
+2605.591	<	@R1NVNN000000000004
+2605.591	<	@R2TLLL000000000004
+2670.646	<	
+2670.718	<	rat_sw Sep 25 2026 21:59:39 | modo 1 BUSQUEDA
+2671.037	<	Mapa en flash: 12 celdas, camino rapido coste 22 (ERASE si es otro laberinto)
+2671.122	<	Reinicio: RESET (software)
+2671.356	<	Meta (3,2)-(3,2). SELECT cambia de modo, START lo lanza, HELP lista comandos
+2671.767	<	@Y2
+2671.801	<	@G3232
+2671.801	<	@M1
+2671.801	<	@AI
+2671.801	<	@P00N
+2671.986	<	@R0NVTN000000000004
+2672.032	<	@R1NVNN000000000004
+2672.058	<	@R2TLLL000000000004

@@ -1,0 +1,1502 @@
+0.001	!	conectado
+0.002	>	SYNC
+0.531	<	@Y2
+0.531	<	@G3232
+0.531	<	@M1
+0.533	<	@AI
+0.533	<	@P00N
+0.569	<	@R00000000000000004
+0.569	<	@R10000000000000004
+0.598	<	@R20000000000000004
+7.909	>	SPD 200
+8.036	<	SPD=200
+14.667	>	start
+14.808	<	START modo 1: BUSQUEDA
+14.866	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+14.871	<	@Y2
+14.884	<	@G3232
+14.884	<	@M1
+14.893	<	@AC
+14.893	<	@P00N
+14.922	<	@R00000000000000004
+14.936	<	@R10000000000000004
+14.959	<	@R20000000000000004
+16.792	<	@AG
+16.807	<	== BUSQUEDA ==
+16.862	<	@C00N.###
+16.877	<	@R0M000000000000004
+16.915	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+18.186	<	avance 1: L=1760 R=1760 obj=1760 fin=ENC IR(FL=187 FR=251 SL=89 SR=76) trim=-4
+18.189	<	@P01N
+18.191	<	@C01N.#o#
+18.193	<	@R1M000000000000004
+18.286	<	META (0,1)N F0 I1 D1 coste=9 -> AVANZA
+19.404	<	avance 1: L=1423 R=1459 obj=1760 fin=IR IR(FL=88 FR=101 SL=73 SR=140) trim=-2
+19.423	<	@P02N
+19.428	<	@C02N##o#
+19.431	<	@R2L000000000000004
+19.441	<	!! destino inalcanzable segun el mapa: olvido 4 paredes dudosas (reparacion 1/3)
+19.461	<	@R0J000000000000004
+19.471	<	@R1J000000000000004
+19.481	<	@R2G000000000000004
+19.496	<	META (0,2)N F1 I1 D1 coste=7 -> DER
+19.864	<	giro der: L=381 R=-425 obj=390 fin=ENC
+19.871	<	@P02E
+19.899	<	@C02E#.o#
+19.922	<	@R0J000000000000004
+19.962	<	META (0,2)E F0 I1 D0 coste=6 -> AVANZA
+21.178	<	avance 1: L=1696 R=1740 obj=1760 fin=IR IR(FL=88 FR=101 SL=69 SR=182) trim=-1
+21.187	<	@P12E
+21.262	<	escuadrado: sesgo=6mm L=101 R=-12 -> 0mm
+21.484	<	alineado frontal: err=-12mm L=-73 R=-108
+21.503	<	@C12E##.o
+21.546	<	@R1J200000000000004
+21.572	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+22.173	<	giro der: L=380 R=-432 obj=390 fin=ENC
+22.173	<	@P12S
+22.177	<	@C12S##oo
+22.181	<	@R2TL00000000000004
+22.221	<	META (1,2)S F0 I1 D0 coste=10 -> AVANZA
+23.479	<	avance 1: L=1683 R=1838 obj=1760 fin=ENC IR(FL=159 FR=249 SL=197 SR=108) trim=-1
+23.488	<	@P11S
+23.502	<	@C11So..#
+23.522	<	@R0J200000000000004
+23.579	<	META (1,1)S F0 I0 D1 coste=8 -> IZQ
+24.218	<	giro izq: L=-381 R=434 obj=390 fin=ENC
+24.218	<	@P11E
+24.228	<	@C11Eooo#
+24.259	<	@R1NV00000000000004
+24.281	<	META (1,1)E F0 I0 D0 coste=7 -> AVANZA
+25.197	<	avance 1: L=1401 R=1401 obj=1760 fin=IR IR(FL=95 FR=94 SL=197 SR=98) trim=-1
+25.207	<	@P21E
+25.334	<	escuadrado: sesgo=14mm L=130 R=-48 -> -1mm
+25.543	<	alineado frontal: err=-13mm L=-66 R=-117
+25.592	<	@C21E##.o
+25.596	<	@R2TL00000000000004
+25.627	<	META (2,1)E F1 I1 D0 coste=11 -> DER
+26.131	<	giro der: L=361 R=-420 obj=390 fin=ENC
+26.144	<	@P21S
+26.164	<	@C21S##oo
+26.193	<	@R0J330000000000004
+26.232	<	META (2,1)S F0 I1 D0 coste=10 -> AVANZA
+27.474	<	avance 1: L=1681 R=1840 obj=1760 fin=ENC IR(FL=122 FR=137 SL=198 SR=98) trim=0
+27.483	<	@P20S
+27.920	<	alineado frontal: err=27mm L=243 R=242
+27.967	<	@C20So.##
+27.982	<	@R1NVL0000000000004
+28.022	<	META (2,0)S F1 I0 D1 coste=8 -> IZQ
+28.534	<	giro izq: L=-364 R=419 obj=390 fin=ENC
+28.543	<	@P20E
+28.618	<	@C20Eoo##
+28.623	<	@R2TL00000000000004
+28.632	<	META (2,0)E F0 I0 D1 coste=7 -> AVANZA
+29.646	<	avance 1: L=1401 R=1388 obj=1760 fin=IR IR(FL=88 FR=96 SL=278 SR=101) trim=1
+29.679	<	@P30E
+29.837	<	escuadrado: sesgo=7mm L=74 R=-40 -> -7mm
+30.051	<	alineado frontal: err=-9mm L=-71 R=-81
+30.070	<	@C30E.##o
+30.089	<	@R0J7VM000000000004
+30.133	<	META (3,0)E F1 I0 D1 coste=5 -> IZQ
+30.718	<	giro izq: L=-368 R=449 obj=390 fin=ENC
+30.732	<	@P30N
+30.757	<	@C30No##o
+30.779	<	@R1NVL0000000000004
+30.822	<	META (3,0)N F0 I1 D1 coste=4 -> AVANZA
+32.054	<	avance 1: L=1760 R=1762 obj=1760 fin=ENC IR(FL=177 FR=234 SL=84 SR=76) trim=-2
+32.063	<	@P31N
+32.077	<	@C31N.#o#
+32.096	<	@R2TL00000000000004
+32.129	<	META (3,1)N F0 I1 D1 coste=2 -> AVANZA
+32.952	<	avance 1: L=1150 R=1187 obj=1760 fin=IR IR(FL=88 FR=100 SL=76 SR=90) trim=-2
+32.969	<	@P32N
+32.971	<	@C32N##o#
+33.018	<	@R0J7VN000000000004
+33.032	<	Meta alcanzada en (3,2) tras 15 acciones
+33.212	<	Mapa guardado (10 celdas visitadas)
+33.223	<	@AO
+33.269	<	OPTIM (3,2)N F1 I1 D1 coste=18 -> MEDIA VUELTA
+33.762	<	giro der: L=375 R=-407 obj=390 fin=ENC
+34.327	<	giro der: L=386 R=-433 obj=390 fin=ENC
+34.336	<	@P32S
+34.358	<	@C32S##o#
+34.383	<	@R1NVLN000000000004
+34.424	<	OPTIM (3,2)S F0 I1 D1 coste=16 -> AVANZA
+35.678	<	avance 1: L=1753 R=1768 obj=1760 fin=ENC IR(FL=198 FR=226 SL=65 SR=98) trim=-1
+35.690	<	@P31S
+35.704	<	@C31So#o#
+35.743	<	@R2TL4L000000000004
+35.773	<	OPTIM (3,1)S F0 I1 D1 coste=14 -> AVANZA
+36.768	<	avance 1: L=1435 R=1435 obj=1760 fin=IR IR(FL=86 FR=101 SL=59 SR=153) trim=-1
+36.782	<	@P30S
+36.900	<	escuadrado: sesgo=5mm L=113 R=-20 -> -9mm
+37.115	<	alineado frontal: err=-10mm L=-87 R=-90
+37.163	<	@C30So##o
+37.178	<	@R0J7VN000000000004
+37.218	<	OPTIM (3,0)S F1 I1 D0 coste=12 -> DER
+37.755	<	giro der: L=385 R=-419 obj=390 fin=ENC
+37.764	<	@P30W
+37.784	<	@C30Wo##o
+37.817	<	@R1NVLN000000000004
+37.857	<	OPTIM (3,0)W F0 I1 D0 coste=11 -> AVANZA
+39.117	<	avance 1: L=1710 R=1812 obj=1760 fin=ENC IR(FL=105 FR=117 SL=67 SR=182) trim=0
+39.117	<	@P20W
+39.237	<	alineado frontal: err=17mm L=153 R=150
+39.309	<	@C20Woo##
+39.312	<	@R2TL4L000000000004
+39.340	<	OPTIM (2,0)W F1 I1 D0 coste=9 -> DER
+39.853	<	giro der: L=390 R=-418 obj=390 fin=ENC
+39.869	<	@P20N
+39.917	<	@C20Noo##
+39.922	<	@R0J7VN000000000004
+39.960	<	OPTIM (2,0)N F0 I1 D0 coste=8 -> AVANZA
+41.200	<	avance 1: L=1763 R=1759 obj=1760 fin=ENC IR(FL=198 FR=267 SL=204 SR=80) trim=-3
+41.202	<	@P21N
+41.215	<	@C21N?#oo
+41.239	<	@R1NVKN000000000004
+41.269	<	OPTIM (2,1)N F0 I0 D1 coste=6 -> IZQ
+41.751	<	giro izq: L=-353 R=430 obj=390 fin=ENC
+41.759	<	@P21W
+41.782	<	@C21W##oo
+41.799	<	@R2TL4L000000000004
+41.850	<	OPTIM (2,1)W F0 I0 D1 coste=5 -> AVANZA
+43.025	<	avance 1: L=1478 R=1482 obj=1760 fin=IR IR(FL=88 FR=101 SL=212 SR=173) trim=-4
+43.027	<	@P11W
+43.032	<	@C11Wooo#
+43.040	<	@R0J7VN000000000004
+43.049	<	OPTIM (1,1)W F1 I0 D0 coste=3 -> IZQ
+43.531	<	giro izq: L=-370 R=444 obj=390 fin=ENC
+43.542	<	@P11S
+43.564	<	@C11Sooo#
+43.597	<	@R1NVLN000000000004
+43.635	<	OPTIM (1,1)S F0 I0 D1 coste=2 -> AVANZA
+44.715	<	avance 1: L=1512 R=1512 obj=1760 fin=IR IR(FL=92 FR=98 SL=63 SR=105) trim=-3
+44.715	<	@P10S
+44.809	<	escuadrado: sesgo=8mm L=106 R=-13 -> -1mm
+45.016	<	alineado frontal: err=-9mm L=-53 R=-81
+45.018	<	@C10So###
+45.036	<	@R2TL4L000000000004
+45.087	<	Camino rapido optimo verificado: vuelta a la salida
+45.102	<	@AH
+45.167	<	VUELTA (1,0)S F1 I1 D1 coste=14 -> MEDIA VUELTA
+45.584	<	giro der: L=385 R=-412 obj=390 fin=ENC
+46.072	<	giro der: L=386 R=-405 obj=390 fin=ENC
+46.080	<	@P10N
+46.103	<	@C10No###
+46.129	<	@R0NNVN000000000004
+46.172	<	VUELTA (1,0)N F0 I1 D1 coste=12 -> AVANZA
+47.407	<	avance 1: L=1712 R=1810 obj=1760 fin=ENC IR(FL=192 FR=233 SL=64 SR=115) trim=-3
+47.424	<	@P11N
+47.429	<	@C11Nooo#
+47.454	<	@R1NVLN000000000004
+47.507	<	VUELTA (1,1)N F0 I1 D1 coste=10 -> AVANZA
+48.450	<	avance 1: L=1389 R=1389 obj=1760 fin=IR IR(FL=88 FR=101 SL=221 SR=101) trim=-2
+48.465	<	@P12N
+48.632	<	alineado frontal: err=-6mm L=-54 R=-53
+48.656	<	@C12N##oo
+48.827	<	@R2TL4L000000000004
+48.844	<	VUELTA (1,2)N F1 I0 D1 coste=8 -> IZQ
+49.265	<	giro izq: L=-347 R=462 obj=390 fin=ENC
+49.280	<	@P12W
+49.305	<	@C12W##oo
+49.331	<	@R0NNVN000000000004
+49.376	<	VUELTA (1,2)W F0 I1 D1 coste=7 -> AVANZA
+50.320	<	avance 1: L=1325 R=1317 obj=1760 fin=IR IR(FL=90 FR=98 SL=278 SR=101) trim=0
+50.320	<	@P02W
+50.403	<	escuadrado: sesgo=6mm L=79 R=-14 -> 0mm
+50.574	<	alineado frontal: err=-9mm L=-46 R=-81
+50.618	<	@C02W#oo#
+50.634	<	@R1NVLN000000000004
+50.674	<	VUELTA (0,2)W F1 I0 D1 coste=5 -> IZQ
+51.174	<	giro izq: L=-354 R=428 obj=390 fin=ENC
+51.181	<	@P02S
+51.205	<	@C02S#oo#
+51.234	<	@R2TL4L000000000004
+51.270	<	VUELTA (0,2)S F0 I1 D1 coste=4 -> AVANZA
+52.523	<	avance 1: L=1726 R=1794 obj=1760 fin=ENC IR(FL=187 FR=214 SL=76 SR=85) trim=-1
+52.523	<	@P01S
+52.538	<	@C01So#o#
+52.558	<	@R0NNVN000000000004
+52.607	<	VUELTA (0,1)S F0 I1 D1 coste=2 -> AVANZA
+53.435	<	avance 1: L=1185 R=1185 obj=1760 fin=IR IR(FL=88 FR=101 SL=73 SR=95) trim=0
+53.435	<	@P00S
+53.723	<	alineado frontal: err=-10mm L=-89 R=-90
+53.767	<	@C00So###
+53.769	<	@R1NVLN000000000004
+54.298	<	giro der: L=380 R=-403 obj=390 fin=ENC
+54.782	<	giro der: L=384 R=-406 obj=390 fin=ENC
+54.796	<	@P00N
+54.848	<	En la salida tras 34 acciones
+54.860	<	Mapa guardado (11 celdas visitadas)
+54.928	<	Camino rapido verificado: coste 42
+55.728	<	Fin: OK | robot en la salida, listo
+55.742	<	@AI
+55.742	<	@P00N
+105.268	>	MODE 2
+105.440	<	@M2
+105.447	<	modo 2: CARRERA RAPIDA
+111.008	>	start
+111.071	<	START modo 2: CARRERA RAPIDA
+111.163	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+111.163	<	@Y2
+111.163	<	@G3232
+111.163	<	@M2
+111.170	<	@AC
+111.177	<	@P00N
+111.238	<	@R0NNVN000000000004
+111.240	<	@R1NVLN000000000004
+111.245	<	@R2TL4L000000000004
+113.120	<	@AF
+113.126	<	== CARRERA RAPIDA (coste 42) ==
+113.128	<	@C00No###
+113.145	<	@R2TL4L000000000004
+113.167	<	RAPIDA (0,0)N giro 0 + 2 celdas
+115.326	<	avance 2: L=3173 R=3099 obj=3380 fin=IR IR(FL=85 FR=106 SL=76 SR=181) trim=3
+115.326	<	@P02N
+115.329	<	@C02N#oo#
+115.331	<	@R0NNVN000000000004
+115.340	<	RAPIDA (0,2)N giro 1 + 1 celdas
+115.767	<	giro der: L=368 R=-414 obj=390 fin=ENC
+115.781	<	@P02E
+116.990	<	avance 1: L=1723 R=1709 obj=1760 fin=IR IR(FL=86 FR=101 SL=84 SR=182) trim=0
+117.001	<	@P12E
+117.279	<	alineado frontal: err=-9mm L=-81 R=-80
+117.333	<	@C12E##oo
+117.335	<	@R1NVLN000000000004
+117.351	<	RAPIDA (1,2)E giro 1 + 1 celdas
+117.871	<	giro der: L=371 R=-420 obj=390 fin=ENC
+117.873	<	@P12S
+119.153	<	avance 1: L=1726 R=1795 obj=1760 fin=ENC IR(FL=192 FR=234 SL=198 SR=98) trim=1
+119.156	<	@P11S
+119.164	<	@C11Sooo#
+119.183	<	@R2TL4L000000000004
+119.227	<	RAPIDA (1,1)S giro -1 + 1 celdas
+119.699	<	giro izq: L=-354 R=429 obj=390 fin=ENC
+119.712	<	@P11E
+120.767	<	avance 1: L=1416 R=1501 obj=1760 fin=IR IR(FL=94 FR=92 SL=197 SR=98) trim=1
+120.767	<	@P21E
+120.897	<	escuadrado: sesgo=16mm L=139 R=-43 -> 2mm
+121.134	<	alineado frontal: err=-14mm L=-76 R=-126
+121.171	<	@C21E?#oo
+121.181	<	@R0NNVN000000000004
+121.224	<	RAPIDA (2,1)E giro 1 + 1 celdas
+121.721	<	giro der: L=367 R=-414 obj=390 fin=ENC
+121.726	<	@P21S
+122.975	<	avance 1: L=1655 R=1866 obj=1760 fin=ENC IR(FL=116 FR=122 SL=205 SR=108) trim=1
+122.984	<	@P20S
+123.124	<	escuadrado: sesgo=9mm L=50 R=-48 -> -3mm
+123.378	<	alineado frontal: err=14mm L=126 R=120
+123.414	<	@C20Soo##
+123.426	<	@R1NVKN000000000004
+123.462	<	RAPIDA (2,0)S giro -1 + 1 celdas
+124.016	<	giro izq: L=-364 R=449 obj=390 fin=ENC
+124.040	<	@P20E
+125.024	<	avance 1: L=1358 R=1389 obj=1760 fin=IR IR(FL=88 FR=101 SL=235 SR=90) trim=1
+125.024	<	@P30E
+125.044	<	@C30Eo##o
+125.069	<	@R2TL4L000000000004
+125.108	<	RAPIDA (3,0)E giro -1 + 2 celdas
+125.601	<	giro izq: L=-362 R=420 obj=390 fin=ENC
+125.614	<	@P30N
+127.618	<	avance 2: L=3112 R=3069 obj=3380 fin=IR IR(FL=85 FR=106 SL=76 SR=87) trim=5
+127.618	<	@P32N
+127.677	<	Meta alcanzada en carrera rapida tras 7 tramos
+127.777	<	@AR
+127.843	<	@C32N##o#
+127.866	<	@R0NNVN000000000004
+127.888	<	VUELTA (3,2)N giro 2 + 2 celdas
+128.559	<	giro der: L=385 R=-415 obj=390 fin=ENC
+128.938	<	giro der: L=377 R=-433 obj=390 fin=ENC
+128.952	<	@P32S
+131.211	<	avance 2: L=3226 R=3262 obj=3380 fin=IR IR(FL=85 FR=101 SL=66 SR=179) trim=5
+131.211	<	@P30S
+131.248	<	@C30So##o
+131.254	<	@R1NVKN000000000004
+131.301	<	VUELTA (3,0)S giro 1 + 1 celdas
+131.771	<	giro der: L=377 R=-404 obj=390 fin=ENC
+131.771	<	@P30W
+133.058	<	avance 1: L=1779 R=1741 obj=1760 fin=ENC IR(FL=86 FR=106 SL=91 SR=182) trim=1
+133.058	<	@P20W
+133.075	<	@C20Woo##
+133.089	<	@R2TL4L000000000004
+133.107	<	VUELTA (2,0)W giro 1 + 1 celdas
+133.598	<	giro der: L=375 R=-408 obj=390 fin=ENC
+133.603	<	@P20N
+134.862	<	avance 1: L=1723 R=1798 obj=1760 fin=ENC IR(FL=181 FR=233 SL=204 SR=93) trim=2
+134.881	<	@P21N
+134.881	<	@C21N.#oo
+134.903	<	@R0NNVN000000000004
+134.938	<	VUELTA (2,1)N giro -1 + 1 celdas
+135.426	<	giro izq: L=-341 R=442 obj=390 fin=ENC
+135.431	<	@P21W
+136.532	<	avance 1: L=1474 R=1574 obj=1760 fin=IR IR(FL=96 FR=91 SL=184 SR=85) trim=2
+136.532	<	@P11W
+136.683	<	escuadrado: sesgo=20mm L=116 R=-66 -> 5mm
+136.941	<	alineado frontal: err=-14mm L=-83 R=-126
+136.966	<	@C11Wooo#
+136.993	<	@R1NVMN000000000004
+137.023	<	VUELTA (1,1)W giro 1 + 1 celdas
+137.557	<	giro der: L=391 R=-410 obj=390 fin=ENC
+137.566	<	@P11N
+138.829	<	avance 1: L=1683 R=1838 obj=1760 fin=ENC IR(FL=108 FR=119 SL=204 SR=101) trim=2
+138.879	<	@P12N
+139.117	<	alineado frontal: err=17mm L=152 R=153
+139.147	<	@C12N##oo
+139.170	<	@R2TL4L000000000004
+139.187	<	VUELTA (1,2)N giro -1 + 1 celdas
+139.679	<	giro izq: L=-349 R=445 obj=390 fin=ENC
+139.687	<	@P12W
+140.692	<	avance 1: L=1434 R=1356 obj=1760 fin=IR IR(FL=86 FR=103 SL=178 SR=92) trim=4
+140.712	<	@P02W
+140.712	<	@C02W#oo#
+140.733	<	@R0NNVN000000000004
+140.773	<	VUELTA (0,2)W giro -1 + 2 celdas
+141.267	<	giro izq: L=-372 R=431 obj=390 fin=ENC
+141.276	<	@P02S
+143.344	<	avance 2: L=2965 R=3010 obj=3380 fin=IR IR(FL=86 FR=104 SL=76 SR=90) trim=2
+143.344	<	@P00S
+143.823	<	giro der: L=440 R=-343 obj=390 fin=ENC
+144.302	<	giro der: L=377 R=-405 obj=390 fin=ENC
+144.315	<	@P00N
+144.348	<	En la salida tras 14 acciones
+144.384	<	Mapa guardado (11 celdas visitadas)
+144.424	<	Camino rapido verificado: coste 42
+145.258	<	Fin: OK | robot en la salida, listo
+145.258	<	@AI
+145.258	<	@P00N
+166.487	>	TURNTICKS
+166.725	<	TURNTICKS 300-600 (ticks de un giro de 90; ahora 390)
+176.441	>	SPD 300
+176.539	<	SPD=300
+178.648	>	start
+178.712	<	START modo 2: CARRERA RAPIDA
+178.794	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+178.794	<	@Y2
+178.796	<	@G3232
+178.796	<	@M2
+178.809	<	@AC
+178.811	<	@P00N
+178.832	<	@R0NNVN000000000004
+178.851	<	@R1NVMN000000000004
+178.873	<	@R2TL4L000000000004
+180.686	<	@AF
+180.720	<	== CARRERA RAPIDA (coste 42) ==
+180.744	<	@C00No###
+180.776	<	@R1NVMN000000000004
+180.804	<	RAPIDA (0,0)N giro 0 + 2 celdas
+182.343	<	avance 2: L=3346 R=3266 obj=3380 fin=IR IR(FL=82 FR=101 SL=73 SR=179) trim=3
+182.343	<	@P02N
+182.351	<	@C02N#oo#
+182.361	<	@R2TL4L000000000004
+182.367	<	RAPIDA (0,2)N giro 1 + 1 celdas
+182.813	<	giro der: L=384 R=-398 obj=390 fin=ENC
+182.824	<	@P02E
+183.687	<	avance 1: L=1779 R=1741 obj=1760 fin=ENC IR(FL=86 FR=103 SL=80 SR=182) trim=5
+183.689	<	@P12E
+183.692	<	@C12E##oo
+183.708	<	@R0NNVN000000000004
+183.752	<	RAPIDA (1,2)E giro 1 + 1 celdas
+184.234	<	giro der: L=382 R=-415 obj=390 fin=ENC
+184.253	<	@P12S
+185.094	<	avance 1: L=1769 R=1755 obj=1760 fin=ENC IR(FL=204 FR=242 SL=269 SR=68) trim=3
+185.108	<	@P11S
+185.108	<	@C11Sooo#
+185.138	<	@R1NVMN000000000004
+185.173	<	RAPIDA (1,1)S giro -1 + 1 celdas
+185.653	<	giro izq: L=-350 R=441 obj=390 fin=ENC
+185.653	<	@P11E
+186.446	<	avance 1: L=1569 R=1671 obj=1760 fin=IR IR(FL=91 FR=97 SL=227 SR=178) trim=3
+186.446	<	@P21E
+186.584	<	escuadrado: sesgo=12mm L=145 R=-28 -> 0mm
+186.908	<	alineado frontal: err=-20mm L=-129 R=-180
+186.928	<	@C21E?#oo
+186.966	<	@R2TL4L000000000004
+186.992	<	RAPIDA (2,1)E giro 1 + 1 celdas
+187.512	<	giro der: L=370 R=-412 obj=390 fin=ENC
+187.526	<	@P21S
+188.377	<	avance 1: L=1650 R=1870 obj=1760 fin=ENC IR(FL=95 FR=98 SL=206 SR=90) trim=2
+188.379	<	@P20S
+188.604	<	escuadrado: sesgo=14mm L=183 R=-23 -> -3mm
+189.016	<	alineado frontal: err=-20mm L=-180 R=-178
+189.049	<	@C20Soo##
+189.063	<	@R0NNVN000000000004
+189.104	<	RAPIDA (2,0)S giro -1 + 1 celdas
+189.616	<	giro izq: L=-354 R=428 obj=390 fin=ENC
+189.616	<	@P20E
+190.378	<	avance 1: L=1480 R=1594 obj=1760 fin=IR IR(FL=90 FR=99 SL=226 SR=92) trim=2
+190.378	<	@P30E
+190.503	<	escuadrado: sesgo=6mm L=163 R=13 -> 0mm
+190.856	<	alineado frontal: err=-20mm L=-149 R=-180
+190.880	<	@C30Eo##o
+190.901	<	@R1NVKN000000000004
+190.936	<	RAPIDA (3,0)E giro -1 + 2 celdas
+191.449	<	giro izq: L=-367 R=430 obj=390 fin=ENC
+191.463	<	@P30N
+192.819	<	avance 2: L=2967 R=3119 obj=3380 fin=IR IR(FL=86 FR=98 SL=66 SR=98) trim=4
+192.831	<	@P32N
+192.882	<	Meta alcanzada en carrera rapida tras 7 tramos
+192.963	<	@AR
+193.027	<	@C32N##o#
+193.056	<	@R2TL4L000000000004
+193.083	<	VUELTA (3,2)N giro 2 + 2 celdas
+193.693	<	giro der: L=390 R=-422 obj=390 fin=ENC
+194.262	<	giro der: L=382 R=-434 obj=390 fin=ENC
+194.277	<	@P32S
+195.794	<	avance 2: L=3397 R=3342 obj=3380 fin=IR IR(FL=85 FR=103 SL=82 SR=178) trim=5
+195.794	<	@P30S
+195.817	<	@C30So##o
+195.834	<	@R0NNVN000000000004
+195.874	<	VUELTA (3,0)S giro 1 + 1 celdas
+196.438	<	giro der: L=397 R=-414 obj=390 fin=ENC
+196.472	<	@P30W
+197.320	<	avance 1: L=1700 R=1701 obj=1760 fin=IR IR(FL=85 FR=101 SL=89 SR=179) trim=4
+197.320	<	@P20W
+197.343	<	@C20Woo##
+197.357	<	@R1NVKN000000000004
+197.368	<	VUELTA (2,0)W giro 1 + 1 celdas
+197.851	<	giro der: L=390 R=-392 obj=390 fin=ENC
+197.854	<	@P20N
+198.700	<	avance 1: L=1727 R=1794 obj=1760 fin=ENC IR(FL=187 FR=241 SL=212 SR=80) trim=2
+198.702	<	@P21N
+198.708	<	@C21N.#oo
+198.731	<	@R2TL4L000000000004
+198.787	<	VUELTA (2,1)N giro -1 + 1 celdas
+199.229	<	giro izq: L=-331 R=450 obj=390 fin=ENC
+199.229	<	@P21W
+200.034	<	avance 1: L=1553 R=1700 obj=1760 fin=IR IR(FL=94 FR=93 SL=190 SR=87) trim=2
+200.034	<	@P11W
+200.275	<	escuadrado: sesgo=15mm L=167 R=-49 -> 0mm
+200.712	<	alineado frontal: err=-24mm L=-211 R=-216
+200.761	<	@C11Wooo#
+200.763	<	@R0NNVN000000000004
+200.876	<	VUELTA (1,1)W giro 1 + 1 celdas
+201.312	<	giro der: L=384 R=-400 obj=390 fin=ENC
+201.325	<	@P11N
+202.323	<	avance 1: L=1709 R=1815 obj=1760 fin=ENC IR(FL=108 FR=119 SL=212 SR=98) trim=3
+202.329	<	@P12N
+202.432	<	alineado frontal: err=20mm L=180 R=180
+202.440	<	@C12N##oo
+202.450	<	@R1NVMN000000000004
+202.463	<	VUELTA (1,2)N giro -1 + 1 celdas
+203.020	<	giro izq: L=-360 R=451 obj=390 fin=ENC
+203.023	<	@P12W
+203.740	<	avance 1: L=1460 R=1463 obj=1760 fin=IR IR(FL=94 FR=93 SL=235 SR=108) trim=3
+203.764	<	@P02W
+203.903	<	escuadrado: sesgo=13mm L=148 R=-34 -> 2mm
+204.248	<	alineado frontal: err=-21mm L=-144 R=-189
+204.287	<	@C02W#oo#
+204.307	<	@R2TL4L000000000004
+204.337	<	VUELTA (0,2)W giro -1 + 2 celdas
+204.842	<	giro izq: L=-359 R=424 obj=390 fin=ENC
+204.851	<	@P02S
+206.158	<	avance 2: L=2851 R=2992 obj=3380 fin=IR IR(FL=86 FR=96 SL=74 SR=92) trim=0
+206.158	<	@P00S
+206.665	<	giro der: L=494 R=-314 obj=390 fin=ENC
+207.179	<	giro der: L=382 R=-401 obj=390 fin=ENC
+207.187	<	@P00N
+207.223	<	En la salida tras 14 acciones
+207.253	<	Mapa guardado (11 celdas visitadas)
+207.300	<	Camino rapido verificado: coste 42
+208.125	<	Fin: OK | robot en la salida, listo
+208.131	<	@AI
+208.131	<	@P00N
+213.665	>	SPD 400
+213.725	<	SPD=400
+215.685	>	start
+215.746	<	START modo 2: CARRERA RAPIDA
+215.813	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+215.827	<	@Y2
+215.827	<	@G3232
+215.827	<	@M2
+215.865	<	@AC
+215.865	<	@P00N
+215.867	<	@R0NNVN000000000004
+215.891	<	@R1NVMN000000000004
+215.913	<	@R2TL4L000000000004
+217.745	<	@AF
+217.763	<	== CARRERA RAPIDA (coste 42) ==
+217.796	<	@C00No###
+217.815	<	@R0NNVN000000000004
+217.842	<	RAPIDA (0,0)N giro 0 + 2 celdas
+218.980	<	avance 2: L=3381 R=3380 obj=3380 fin=ENC IR(FL=96 FR=101 SL=45 SR=127) trim=0
+218.985	<	@P02N
+218.996	<	@C02N#oo#
+219.018	<	@R1NVMN000000000004
+219.053	<	RAPIDA (0,2)N giro 1 + 1 celdas
+219.733	<	giro der: L=436 R=-361 obj=390 fin=ENC
+219.744	<	@P02E
+220.403	<	avance 1: L=1878 R=1645 obj=1760 fin=ENC IR(FL=114 FR=140 SL=55 SR=182) trim=0
+220.417	<	@P12E
+220.426	<	@C12E##oo
+220.445	<	@R2TL4L000000000004
+220.483	<	RAPIDA (1,2)E giro 1 + 1 celdas
+221.010	<	giro der: L=434 R=-361 obj=390 fin=ENC
+221.010	<	@P12S
+221.663	<	avance 1: L=1712 R=1809 obj=1760 fin=ENC IR(FL=214 FR=272 SL=198 SR=95) trim=1
+221.675	<	@P11S
+221.688	<	@C11Sooo#
+221.717	<	@R0NNVN000000000004
+221.743	<	RAPIDA (1,1)S giro -1 + 1 celdas
+222.201	<	giro izq: L=-340 R=442 obj=390 fin=ENC
+222.238	<	@P11E
+222.816	<	avance 1: L=1507 R=1609 obj=1760 fin=IR IR(FL=98 FR=91 SL=191 SR=87) trim=1
+222.816	<	@P21E
+222.930	<	escuadrado: sesgo=22mm L=222 R=40 -> 11mm
+223.408	<	alineado frontal: err=-29mm L=-224 R=-261
+223.431	<	@C21Eo#oo
+223.452	<	@R1NVNN000000000004
+223.503	<	RAPIDA (2,1)E giro 1 + 1 celdas
+224.012	<	giro der: L=371 R=-429 obj=390 fin=ENC
+224.026	<	@P21S
+224.700	<	avance 1: L=1769 R=1752 obj=1760 fin=ENC IR(FL=132 FR=151 SL=198 SR=95) trim=1
+224.700	<	@P20S
+224.710	<	@C20Soo##
+224.737	<	@R2TL4L000000000004
+224.777	<	RAPIDA (2,0)S giro -1 + 1 celdas
+225.390	<	giro izq: L=-341 R=480 obj=390 fin=ENC
+225.390	<	@P20E
+225.937	<	avance 1: L=1572 R=1374 obj=1760 fin=IR IR(FL=79 FR=103 SL=132 SR=101) trim=1
+225.951	<	@P30E
+226.055	<	escuadrado: sesgo=-9mm L=56 R=182 -> 2mm
+226.611	<	alineado frontal: err=-29mm L=-261 R=-256
+226.619	<	@C30Eo##o
+226.632	<	@R0NNVN000000000004
+226.655	<	RAPIDA (3,0)E giro -1 + 2 celdas
+227.155	<	giro izq: L=-359 R=423 obj=390 fin=ENC
+227.183	<	@P30N
+228.175	<	avance 2: L=2912 R=2979 obj=3380 fin=IR IR(FL=83 FR=103 SL=37 SR=123) trim=1
+228.203	<	@P32N
+228.221	<	Meta alcanzada en carrera rapida tras 7 tramos
+228.297	<	@AR
+228.363	<	@C32N##o#
+228.393	<	@R1NVNN000000000004
+228.417	<	VUELTA (3,2)N giro 2 + 2 celdas
+229.183	<	giro der: L=416 R=-365 obj=390 fin=ENC
+229.751	<	giro der: L=394 R=-389 obj=390 fin=ENC
+229.760	<	@P32S
+230.915	<	avance 2: L=3508 R=3259 obj=3380 fin=ENC IR(FL=100 FR=129 SL=80 SR=181) trim=2
+230.919	<	@P30S
+231.032	<	escuadrado: sesgo=-9mm L=3 R=151 -> 4mm
+231.372	<	alineado frontal: err=-15mm L=-135 R=-131
+231.393	<	@C30So##o
+231.419	<	@R2TL4L000000000004
+231.462	<	VUELTA (3,0)S giro 1 + 1 celdas
+231.952	<	giro der: L=387 R=-404 obj=390 fin=ENC
+231.967	<	@P30W
+232.637	<	avance 1: L=1714 R=1769 obj=1760 fin=IR IR(FL=90 FR=98 SL=64 SR=111) trim=2
+232.637	<	@P20W
+232.759	<	escuadrado: sesgo=14mm L=212 R=19 -> 7mm
+233.280	<	alineado frontal: err=-29mm L=-238 R=-261
+233.286	<	@C20Woo##
+233.322	<	@R0NNVN000000000004
+233.337	<	VUELTA (2,0)W giro 1 + 1 celdas
+233.877	<	giro der: L=395 R=-417 obj=390 fin=ENC
+233.886	<	@P20N
+234.567	<	avance 1: L=1709 R=1814 obj=1760 fin=ENC IR(FL=192 FR=264 SL=205 SR=95) trim=2
+234.567	<	@P21N
+234.572	<	@C21No#oo
+234.619	<	@R1NVNN000000000004
+234.628	<	VUELTA (2,1)N giro -1 + 1 celdas
+235.091	<	giro izq: L=-317 R=465 obj=390 fin=ENC
+235.093	<	@P21W
+235.687	<	avance 1: L=1459 R=1536 obj=1760 fin=IR IR(FL=90 FR=98 SL=199 SR=105) trim=2
+235.689	<	@P11W
+235.814	<	escuadrado: sesgo=12mm L=215 R=32 -> 8mm
+236.306	<	alineado frontal: err=-29mm L=-234 R=-261
+236.331	<	@C11Wooo#
+236.363	<	@R2TL4L000000000004
+236.388	<	VUELTA (1,1)W giro 1 + 1 celdas
+236.906	<	giro der: L=392 R=-403 obj=390 fin=ENC
+236.915	<	@P11N
+237.576	<	avance 1: L=1726 R=1797 obj=1760 fin=ENC IR(FL=106 FR=122 SL=220 SR=92) trim=2
+237.586	<	@P12N
+237.621	<	escuadrado: sesgo=6mm L=33 R=34 -> 0mm
+237.661	<	alineado frontal: err=12mm L=108 R=107
+237.694	<	@C12N##oo
+237.706	<	@R0NNVN000000000004
+237.742	<	VUELTA (1,2)N giro -1 + 1 celdas
+238.228	<	giro izq: L=-350 R=452 obj=390 fin=ENC
+238.242	<	@P12W
+238.824	<	avance 1: L=1480 R=1497 obj=1760 fin=IR IR(FL=92 FR=96 SL=227 SR=101) trim=2
+238.824	<	@P02W
+239.002	<	escuadrado: sesgo=10mm L=197 R=-10 -> 2mm
+239.501	<	alineado frontal: err=-28mm L=-245 R=-252
+239.519	<	@C02W#oo#
+239.538	<	@R1NVNN000000000004
+239.581	<	VUELTA (0,2)W giro -1 + 2 celdas
+240.479	<	giro izq: L=0 R=788 obj=390 fin=ENC
+240.487	<	@P02S
+241.503	<	avance 2: L=2886 R=2941 obj=3380 fin=IR IR(FL=85 FR=106 SL=70 SR=95) trim=2
+241.503	<	@P00S
+241.978	<	giro der: L=525 R=-271 obj=390 fin=ENC
+242.469	<	giro der: L=379 R=-404 obj=390 fin=ENC
+242.483	<	@P00N
+242.518	<	En la salida tras 14 acciones
+242.559	<	Mapa guardado (11 celdas visitadas)
+242.599	<	Camino rapido verificado: coste 42
+243.427	<	Fin: OK | robot en la salida, listo
+243.433	<	@AI
+243.433	<	@P00N
+261.168	>	SPD 500
+261.286	<	SPD=500
+270.374	>	start
+270.543	<	START modo 2: CARRERA RAPIDA
+270.620	<	Modo 2 CARRERA RAPIDA: arranca en 2000 ms (START o STOP cancela)
+270.620	<	@Y2
+270.635	<	@G3232
+270.635	<	@M2
+270.638	<	@AC
+270.645	<	@P00N
+270.668	<	@R0NNVN000000000004
+270.690	<	@R1NVNN000000000004
+270.713	<	@R2TL4L000000000004
+272.531	<	@AF
+272.552	<	== CARRERA RAPIDA (coste 42) ==
+272.587	<	@C00No###
+272.612	<	@R2TL4L000000000004
+272.648	<	RAPIDA (0,0)N giro 0 + 2 celdas
+273.583	<	avance 2: L=3451 R=3311 obj=3380 fin=ENC IR(FL=103 FR=129 SL=59 SR=181) trim=2
+273.607	<	@P02N
+274.170	<	escuadrado: sesgo=-11mm L=37 R=242 -> 4mm
+274.238	<	alineado frontal: err=-25mm L=-225 R=-224
+274.405	<	@C02N#oo#
+274.413	<	@R0NNVN000000000004
+274.421	<	RAPIDA (0,2)N giro 1 + 1 celdas
+274.808	<	giro der: L=376 R=-406 obj=390 fin=ENC
+274.817	<	@P02E
+275.395	<	avance 1: L=1705 R=1815 obj=1760 fin=ENC IR(FL=116 FR=126 SL=62 SR=182) trim=2
+275.400	<	@P12E
+275.580	<	escuadrado: sesgo=5mm L=287 R=86 -> 6mm
+276.011	<	alineado frontal: err=-24mm L=-209 R=-216
+276.043	<	@C12E##oo
+276.069	<	@R1NVNN000000000004
+276.095	<	RAPIDA (1,2)E giro 1 + 1 celdas
+276.603	<	giro der: L=375 R=-424 obj=390 fin=ENC
+276.617	<	@P12S
+277.181	<	avance 1: L=1773 R=1752 obj=1760 fin=ENC IR(FL=209 FR=242 SL=219 SR=78) trim=1
+277.198	<	@P11S
+277.203	<	@C11Sooo#
+277.235	<	@R2TL4L000000000004
+277.275	<	RAPIDA (1,1)S giro -1 + 1 celdas
+277.727	<	giro izq: L=-311 R=472 obj=390 fin=ENC
+277.742	<	@P11E
+278.306	<	avance 1: L=1593 R=1785 obj=1760 fin=IR IR(FL=94 FR=94 SL=204 SR=87) trim=1
+278.306	<	@P21E
+278.495	<	escuadrado: sesgo=23mm L=253 R=55 -> 14mm
+278.517	<	@C21Eo#oo
+278.543	<	@R0NNVN000000000004
+278.577	<	RAPIDA (2,1)E giro 1 + 1 celdas
+279.086	<	giro der: L=376 R=-420 obj=390 fin=ENC
+279.092	<	@P21S
+279.671	<	avance 1: L=1776 R=1747 obj=1760 fin=ENC IR(FL=110 FR=123 SL=190 SR=119) trim=1
+279.671	<	@P20S
+279.759	<	alineado frontal: err=19mm L=171 R=170
+279.851	<	@C20Soo##
+279.856	<	@R1NVNN000000000004
+279.875	<	RAPIDA (2,0)S giro -1 + 1 celdas
+280.371	<	giro izq: L=-348 R=434 obj=390 fin=ENC
+280.376	<	@P20E
+280.842	<	avance 1: L=1229 R=1304 obj=1760 fin=IR IR(FL=90 FR=95 SL=278 SR=101) trim=1
+280.842	<	@P30E
+281.028	<	escuadrado: sesgo=10mm L=223 R=17 -> 5mm
+281.051	<	@C30Eo##o
+281.075	<	@R2TL4L000000000004
+281.117	<	RAPIDA (3,0)E giro -1 + 2 celdas
+281.648	<	giro izq: L=-374 R=429 obj=390 fin=ENC
+281.657	<	@P30N
+282.551	<	avance 2: L=3171 R=3172 obj=3380 fin=IR IR(FL=84 FR=103 SL=53 SR=112) trim=1
+282.559	<	@P32N
+283.213	<	alineado frontal: err=-28mm L=-251 R=-252
+283.218	<	  arranque dificil: hizo falta +1 PWM
+283.247	<	Meta alcanzada en carrera rapida tras 7 tramos
+283.322	<	@AR
+283.376	<	@C32N##o#
+283.411	<	@R0NNVN000000000004
+283.435	<	VUELTA (3,2)N giro 2 + 2 celdas
+284.189	<	giro der: L=443 R=-348 obj=390 fin=ENC
+284.768	<	giro der: L=385 R=-424 obj=390 fin=ENC
+284.775	<	@P32S
+285.738	<	avance 2: L=3357 R=3408 obj=3380 fin=ENC IR(FL=103 FR=123 SL=40 SR=182) trim=1
+285.752	<	@P30S
+285.783	<	alineado frontal: err=9mm L=82 R=72
+285.795	<	@C30So##o
+285.813	<	@R1NVNN000000000004
+285.849	<	VUELTA (3,0)S giro 1 + 1 celdas
+286.828	<	giro der: L=384 R=-401 obj=390 fin=ENC
+286.843	<	@P30W
+287.400	<	avance 1: L=1688 R=1659 obj=1760 fin=IR IR(FL=54 FR=133 SL=4 SR=135) trim=1
+287.400	<	@P20W
+287.413	<	@C20Woo##
+287.445	<	@R2TL4L000000000004
+287.503	<	VUELTA (2,0)W giro 1 + 1 celdas
+287.976	<	giro der: L=374 R=-408 obj=390 fin=ENC
+287.976	<	@P20N
+288.567	<	avance 1: L=1828 R=1692 obj=1760 fin=ENC IR(FL=44 FR=214 SL=24 SR=179) trim=1
+288.569	<	@P21N
+288.590	<	@C21No#oo
+288.599	<	@R0NNVN000000000004
+288.632	<	VUELTA (2,1)N giro -1 + 1 celdas
+289.109	<	giro izq: L=-380 R=402 obj=390 fin=ENC
+289.142	<	@P21W
+289.498	<	avance 1: L=768 R=1014 obj=1760 fin=IR IR(FL=85 FR=84 SL=219 SR=52) trim=1
+289.498	<	@P11W
+289.642	<	escuadrado: sesgo=18mm L=182 R=16 -> -2mm
+290.077	<	alineado frontal: err=-28mm L=-218 R=-252
+290.097	<	@C11Wooo#
+290.127	>	STOP
+290.135	<	@R1NVNN000000000004
+290.163	<	VUELTA (1,1)W giro 1 + 1 celdas
+290.179	<	STOP
+290.208	<	giro der: L=16 R=-13 obj=390 fin=ABORTADO
+290.243	<	Run detenido en (1,1)W
+290.307	<	Fin: ABORTADO | coloca el robot en la salida
+290.307	<	@AI
+290.309	<	@P11W
+353.981	!	enlace Bluetooth caido
+354.982	!	conectado
+354.982	>	SYNC
+360.109	!	enlace Bluetooth caido
+361.109	!	conectado
+361.109	>	SYNC
+366.235	!	enlace Bluetooth caido
+367.235	!	conectado
+367.235	>	SYNC
+372.361	!	enlace Bluetooth caido
+373.361	!	conectado
+373.361	>	SYNC
+378.488	!	enlace Bluetooth caido
+379.488	!	conectado
+379.488	>	SYNC
+384.615	!	enlace Bluetooth caido
+385.616	!	conectado
+385.616	>	SYNC
+390.741	!	enlace Bluetooth caido
+391.741	!	conectado
+391.741	>	SYNC
+396.867	!	enlace Bluetooth caido
+397.867	!	conectado
+397.867	>	SYNC
+402.994	!	enlace Bluetooth caido
+403.994	!	conectado
+403.994	>	SYNC
+409.121	!	enlace Bluetooth caido
+410.122	!	conectado
+410.122	>	SYNC
+415.248	!	enlace Bluetooth caido
+416.248	!	conectado
+416.249	>	SYNC
+421.375	!	enlace Bluetooth caido
+422.375	!	conectado
+422.375	>	SYNC
+427.502	!	enlace Bluetooth caido
+428.502	!	conectado
+428.502	>	SYNC
+433.629	!	enlace Bluetooth caido
+434.630	!	conectado
+434.630	>	SYNC
+439.756	!	enlace Bluetooth caido
+440.757	!	conectado
+440.757	>	SYNC
+445.883	!	enlace Bluetooth caido
+446.884	!	conectado
+446.884	>	SYNC
+452.009	!	enlace Bluetooth caido
+453.010	!	conectado
+453.010	>	SYNC
+458.136	!	enlace Bluetooth caido
+459.137	!	conectado
+459.137	>	SYNC
+464.264	!	enlace Bluetooth caido
+465.265	!	conectado
+465.265	>	SYNC
+470.391	!	enlace Bluetooth caido
+471.392	!	conectado
+471.392	>	SYNC
+476.519	!	enlace Bluetooth caido
+477.519	!	conectado
+477.519	>	SYNC
+482.645	!	enlace Bluetooth caido
+483.645	!	conectado
+483.645	>	SYNC
+488.771	!	enlace Bluetooth caido
+489.771	!	conectado
+489.771	>	SYNC
+494.898	!	enlace Bluetooth caido
+495.899	!	conectado
+495.899	>	SYNC
+501.025	!	enlace Bluetooth caido
+502.025	!	conectado
+502.025	>	SYNC
+507.151	!	enlace Bluetooth caido
+508.151	!	conectado
+508.151	>	SYNC
+513.277	!	enlace Bluetooth caido
+514.278	!	conectado
+514.278	>	SYNC
+519.404	!	enlace Bluetooth caido
+520.404	!	conectado
+520.404	>	SYNC
+525.531	!	enlace Bluetooth caido
+526.532	!	conectado
+526.532	>	SYNC
+531.658	!	enlace Bluetooth caido
+532.658	!	conectado
+532.658	>	SYNC
+537.785	!	enlace Bluetooth caido
+538.786	!	conectado
+538.786	>	SYNC
+543.913	!	enlace Bluetooth caido
+544.913	!	conectado
+544.913	>	SYNC
+550.040	!	enlace Bluetooth caido
+551.041	!	conectado
+551.041	>	SYNC
+556.167	!	enlace Bluetooth caido
+557.168	!	conectado
+557.168	>	SYNC
+562.293	!	enlace Bluetooth caido
+563.294	!	conectado
+563.294	>	SYNC
+568.419	!	enlace Bluetooth caido
+569.420	!	conectado
+569.420	>	SYNC
+574.546	!	enlace Bluetooth caido
+575.547	!	conectado
+575.547	>	SYNC
+580.673	!	enlace Bluetooth caido
+581.674	!	conectado
+581.674	>	SYNC
+586.800	!	enlace Bluetooth caido
+587.800	!	conectado
+587.800	>	SYNC
+592.927	!	enlace Bluetooth caido
+593.927	!	conectado
+593.927	>	SYNC
+599.054	!	enlace Bluetooth caido
+600.054	!	conectado
+600.054	>	SYNC
+605.180	!	enlace Bluetooth caido
+606.180	!	conectado
+606.180	>	SYNC
+611.306	!	enlace Bluetooth caido
+612.306	!	conectado
+612.306	>	SYNC
+617.433	!	enlace Bluetooth caido
+618.433	!	conectado
+618.433	>	SYNC
+623.560	!	enlace Bluetooth caido
+624.561	!	conectado
+624.561	>	SYNC
+629.686	!	enlace Bluetooth caido
+630.686	!	conectado
+630.686	>	SYNC
+635.812	!	enlace Bluetooth caido
+636.812	!	conectado
+636.812	>	SYNC
+641.939	!	enlace Bluetooth caido
+642.939	!	conectado
+642.940	>	SYNC
+648.066	!	enlace Bluetooth caido
+649.067	!	conectado
+649.067	>	SYNC
+654.192	!	enlace Bluetooth caido
+655.193	!	conectado
+655.193	>	SYNC
+660.319	!	enlace Bluetooth caido
+661.320	!	conectado
+661.320	>	SYNC
+666.447	!	enlace Bluetooth caido
+667.447	!	conectado
+667.447	>	SYNC
+672.572	!	enlace Bluetooth caido
+673.573	!	conectado
+673.573	>	SYNC
+678.699	!	enlace Bluetooth caido
+679.700	!	conectado
+679.700	>	SYNC
+684.825	!	enlace Bluetooth caido
+685.826	!	conectado
+685.826	>	SYNC
+690.953	!	enlace Bluetooth caido
+691.954	!	conectado
+691.954	>	SYNC
+697.079	!	enlace Bluetooth caido
+698.080	!	conectado
+698.080	>	SYNC
+703.207	!	enlace Bluetooth caido
+704.207	!	conectado
+704.208	>	SYNC
+709.334	!	enlace Bluetooth caido
+710.335	!	conectado
+710.335	>	SYNC
+715.462	!	enlace Bluetooth caido
+716.463	!	conectado
+716.463	>	SYNC
+721.589	!	enlace Bluetooth caido
+722.590	!	conectado
+722.590	>	SYNC
+727.715	!	enlace Bluetooth caido
+728.716	!	conectado
+728.716	>	SYNC
+733.841	!	enlace Bluetooth caido
+734.842	!	conectado
+734.842	>	SYNC
+739.968	!	enlace Bluetooth caido
+740.969	!	conectado
+740.969	>	SYNC
+746.095	!	enlace Bluetooth caido
+747.096	!	conectado
+747.096	>	SYNC
+752.221	!	enlace Bluetooth caido
+753.222	!	conectado
+753.222	>	SYNC
+758.347	!	enlace Bluetooth caido
+759.348	!	conectado
+759.348	>	SYNC
+764.474	!	enlace Bluetooth caido
+765.475	!	conectado
+765.475	>	SYNC
+770.601	!	enlace Bluetooth caido
+771.602	!	conectado
+771.602	>	SYNC
+776.728	!	enlace Bluetooth caido
+777.728	!	conectado
+777.728	>	SYNC
+782.854	!	enlace Bluetooth caido
+783.855	!	conectado
+783.855	>	SYNC
+788.982	!	enlace Bluetooth caido
+789.982	!	conectado
+789.983	>	SYNC
+795.108	!	enlace Bluetooth caido
+796.108	!	conectado
+796.108	>	SYNC
+801.234	!	enlace Bluetooth caido
+802.234	!	conectado
+802.234	>	SYNC
+807.361	!	enlace Bluetooth caido
+808.361	!	conectado
+808.361	>	SYNC
+813.488	!	enlace Bluetooth caido
+814.489	!	conectado
+814.489	>	SYNC
+819.614	!	enlace Bluetooth caido
+820.615	!	conectado
+820.615	>	SYNC
+825.740	!	enlace Bluetooth caido
+826.741	!	conectado
+826.741	>	SYNC
+831.867	!	enlace Bluetooth caido
+832.868	!	conectado
+832.868	>	SYNC
+837.994	!	enlace Bluetooth caido
+838.995	!	conectado
+838.995	>	SYNC
+844.120	!	enlace Bluetooth caido
+845.121	!	conectado
+845.121	>	SYNC
+850.248	!	enlace Bluetooth caido
+851.248	!	conectado
+851.248	>	SYNC
+856.375	!	enlace Bluetooth caido
+857.376	!	conectado
+857.376	>	SYNC
+862.501	!	enlace Bluetooth caido
+863.502	!	conectado
+863.502	>	SYNC
+868.628	!	enlace Bluetooth caido
+869.629	!	conectado
+869.629	>	SYNC
+874.755	!	enlace Bluetooth caido
+875.756	!	conectado
+875.756	>	SYNC
+880.881	!	enlace Bluetooth caido
+881.881	!	conectado
+881.882	>	SYNC
+887.007	!	enlace Bluetooth caido
+888.008	!	conectado
+888.008	>	SYNC
+893.134	!	enlace Bluetooth caido
+894.135	!	conectado
+894.135	>	SYNC
+899.262	!	enlace Bluetooth caido
+900.262	!	conectado
+900.263	>	SYNC
+905.390	!	enlace Bluetooth caido
+906.390	!	conectado
+906.390	>	SYNC
+911.517	!	enlace Bluetooth caido
+912.518	!	conectado
+912.518	>	SYNC
+917.643	!	enlace Bluetooth caido
+918.644	!	conectado
+918.644	>	SYNC
+923.771	!	enlace Bluetooth caido
+924.771	!	conectado
+924.771	>	SYNC
+929.897	!	enlace Bluetooth caido
+930.898	!	conectado
+930.898	>	SYNC
+936.024	!	enlace Bluetooth caido
+937.024	!	conectado
+937.024	>	SYNC
+942.150	!	enlace Bluetooth caido
+943.151	!	conectado
+943.151	>	SYNC
+948.277	!	enlace Bluetooth caido
+949.277	!	conectado
+949.278	>	SYNC
+954.404	!	enlace Bluetooth caido
+955.405	!	conectado
+955.405	>	SYNC
+960.530	!	enlace Bluetooth caido
+961.531	!	conectado
+961.531	>	SYNC
+966.657	!	enlace Bluetooth caido
+967.658	!	conectado
+967.658	>	SYNC
+972.784	!	enlace Bluetooth caido
+973.785	!	conectado
+973.785	>	SYNC
+978.910	!	enlace Bluetooth caido
+979.911	!	conectado
+979.911	>	SYNC
+985.036	!	enlace Bluetooth caido
+986.037	!	conectado
+986.037	>	SYNC
+991.164	!	enlace Bluetooth caido
+992.165	!	conectado
+992.165	>	SYNC
+997.290	!	enlace Bluetooth caido
+998.291	!	conectado
+998.291	>	SYNC
+1003.416	!	enlace Bluetooth caido
+1004.416	!	conectado
+1004.416	>	SYNC
+1009.543	!	enlace Bluetooth caido
+1010.543	!	conectado
+1010.543	>	SYNC
+1015.669	!	enlace Bluetooth caido
+1016.670	!	conectado
+1016.670	>	SYNC
+1021.797	!	enlace Bluetooth caido
+1022.797	!	conectado
+1022.798	>	SYNC
+1027.923	!	enlace Bluetooth caido
+1028.923	!	conectado
+1028.923	>	SYNC
+1034.050	!	enlace Bluetooth caido
+1035.050	!	conectado
+1035.051	>	SYNC
+1040.177	!	enlace Bluetooth caido
+1041.178	!	conectado
+1041.178	>	SYNC
+1046.303	!	enlace Bluetooth caido
+1047.303	!	conectado
+1047.303	>	SYNC
+1052.429	!	enlace Bluetooth caido
+1053.430	!	conectado
+1053.430	>	SYNC
+1058.556	!	enlace Bluetooth caido
+1059.557	!	conectado
+1059.557	>	SYNC
+1064.683	!	enlace Bluetooth caido
+1065.684	!	conectado
+1065.684	>	SYNC
+1070.809	!	enlace Bluetooth caido
+1071.810	!	conectado
+1071.810	>	SYNC
+1076.935	!	enlace Bluetooth caido
+1077.936	!	conectado
+1077.936	>	SYNC
+1083.063	!	enlace Bluetooth caido
+1084.064	!	conectado
+1084.064	>	SYNC
+1089.189	!	enlace Bluetooth caido
+1090.190	!	conectado
+1090.190	>	SYNC
+1095.315	!	enlace Bluetooth caido
+1096.316	!	conectado
+1096.316	>	SYNC
+1101.441	!	enlace Bluetooth caido
+1102.442	!	conectado
+1102.442	>	SYNC
+1107.568	!	enlace Bluetooth caido
+1108.569	!	conectado
+1108.569	>	SYNC
+1113.695	!	enlace Bluetooth caido
+1114.696	!	conectado
+1114.696	>	SYNC
+1119.821	!	enlace Bluetooth caido
+1120.822	!	conectado
+1120.822	>	SYNC
+1125.949	!	enlace Bluetooth caido
+1126.950	!	conectado
+1126.950	>	SYNC
+1132.076	!	enlace Bluetooth caido
+1133.077	!	conectado
+1133.077	>	SYNC
+1138.203	!	enlace Bluetooth caido
+1139.203	!	conectado
+1139.203	>	SYNC
+1144.329	!	enlace Bluetooth caido
+1145.330	!	conectado
+1145.330	>	SYNC
+1150.456	!	enlace Bluetooth caido
+1151.457	!	conectado
+1151.457	>	SYNC
+1156.582	!	enlace Bluetooth caido
+1157.583	!	conectado
+1157.583	>	SYNC
+1162.708	!	enlace Bluetooth caido
+1163.709	!	conectado
+1163.709	>	SYNC
+1168.836	!	enlace Bluetooth caido
+1169.836	!	conectado
+1169.836	>	SYNC
+1174.963	!	enlace Bluetooth caido
+1175.963	!	conectado
+1175.964	>	SYNC
+1181.089	!	enlace Bluetooth caido
+1182.090	!	conectado
+1182.090	>	SYNC
+1187.216	!	enlace Bluetooth caido
+1188.217	!	conectado
+1188.217	>	SYNC
+1193.344	!	enlace Bluetooth caido
+1194.344	!	conectado
+1194.344	>	SYNC
+1199.470	!	enlace Bluetooth caido
+1200.471	!	conectado
+1200.471	>	SYNC
+1205.597	!	enlace Bluetooth caido
+1206.598	!	conectado
+1206.598	>	SYNC
+1211.724	!	enlace Bluetooth caido
+1212.724	!	conectado
+1212.724	>	SYNC
+1217.850	!	enlace Bluetooth caido
+1218.850	!	conectado
+1218.851	>	SYNC
+1223.976	!	enlace Bluetooth caido
+1224.977	!	conectado
+1224.977	>	SYNC
+1230.103	!	enlace Bluetooth caido
+1231.104	!	conectado
+1231.104	>	SYNC
+1236.230	!	enlace Bluetooth caido
+1237.231	!	conectado
+1237.231	>	SYNC
+1242.356	!	enlace Bluetooth caido
+1243.357	!	conectado
+1243.357	>	SYNC
+1248.483	!	enlace Bluetooth caido
+1249.483	!	conectado
+1249.483	>	SYNC
+1254.610	!	enlace Bluetooth caido
+1255.610	!	conectado
+1255.611	>	SYNC
+1260.737	!	enlace Bluetooth caido
+1261.737	!	conectado
+1261.737	>	SYNC
+1266.863	!	enlace Bluetooth caido
+1267.863	!	conectado
+1267.863	>	SYNC
+1272.990	!	enlace Bluetooth caido
+1273.990	!	conectado
+1273.990	>	SYNC
+1279.117	!	enlace Bluetooth caido
+1280.118	!	conectado
+1280.118	>	SYNC
+1285.243	!	enlace Bluetooth caido
+1286.244	!	conectado
+1286.244	>	SYNC
+1291.371	!	enlace Bluetooth caido
+1292.371	!	conectado
+1292.371	>	SYNC
+1297.498	!	enlace Bluetooth caido
+1298.499	!	conectado
+1298.499	>	SYNC
+1303.626	!	enlace Bluetooth caido
+1304.627	!	conectado
+1304.627	>	SYNC
+1309.753	!	enlace Bluetooth caido
+1310.754	!	conectado
+1310.754	>	SYNC
+1315.879	!	enlace Bluetooth caido
+1316.880	!	conectado
+1316.880	>	SYNC
+1322.005	!	enlace Bluetooth caido
+1323.006	!	conectado
+1323.006	>	SYNC
+1328.133	!	enlace Bluetooth caido
+1329.134	!	conectado
+1329.134	>	SYNC
+1334.259	!	enlace Bluetooth caido
+1335.260	!	conectado
+1335.260	>	SYNC
+1340.385	!	enlace Bluetooth caido
+1341.386	!	conectado
+1341.386	>	SYNC
+1346.511	!	enlace Bluetooth caido
+1347.512	!	conectado
+1347.512	>	SYNC
+1352.639	!	enlace Bluetooth caido
+1353.639	!	conectado
+1353.640	>	SYNC
+1358.765	!	enlace Bluetooth caido
+1359.766	!	conectado
+1359.766	>	SYNC
+1364.892	!	enlace Bluetooth caido
+1365.892	!	conectado
+1365.893	>	SYNC
+1371.019	!	enlace Bluetooth caido
+1372.019	!	conectado
+1372.019	>	SYNC
+1377.146	!	enlace Bluetooth caido
+1378.147	!	conectado
+1378.147	>	SYNC
+1383.272	!	enlace Bluetooth caido
+1384.273	!	conectado
+1384.273	>	SYNC
+1389.400	!	enlace Bluetooth caido
+1390.400	!	conectado
+1390.400	>	SYNC
+1395.527	!	enlace Bluetooth caido
+1396.528	!	conectado
+1396.528	>	SYNC
+1401.653	!	enlace Bluetooth caido
+1402.654	!	conectado
+1402.654	>	SYNC
+1407.779	!	enlace Bluetooth caido
+1408.780	!	conectado
+1408.780	>	SYNC
+1413.906	!	enlace Bluetooth caido
+1414.906	!	conectado
+1414.906	>	SYNC
+1420.033	!	enlace Bluetooth caido
+1421.034	!	conectado
+1421.034	>	SYNC
+1426.159	!	enlace Bluetooth caido
+1427.160	!	conectado
+1427.160	>	SYNC
+1432.286	!	enlace Bluetooth caido
+1433.287	!	conectado
+1433.287	>	SYNC
+1438.413	!	enlace Bluetooth caido
+1439.414	!	conectado
+1439.414	>	SYNC
+1444.539	!	enlace Bluetooth caido
+1445.540	!	conectado
+1445.540	>	SYNC
+1450.665	!	enlace Bluetooth caido
+1451.666	!	conectado
+1451.666	>	SYNC
+1456.792	!	enlace Bluetooth caido
+1457.793	!	conectado
+1457.793	>	SYNC
+1462.920	!	enlace Bluetooth caido
+1463.920	!	conectado
+1463.921	>	SYNC
+1469.046	!	enlace Bluetooth caido
+1470.046	!	conectado
+1470.046	>	SYNC
+1475.172	!	enlace Bluetooth caido
+1476.172	!	conectado
+1476.172	>	SYNC
+1481.299	!	enlace Bluetooth caido
+1482.299	!	conectado
+1482.299	>	SYNC
+1487.426	!	enlace Bluetooth caido
+1488.426	!	conectado
+1488.426	>	SYNC
+1493.552	!	enlace Bluetooth caido
+1494.553	!	conectado
+1494.553	>	SYNC
+1499.678	!	enlace Bluetooth caido
+1500.678	!	conectado
+1500.678	>	SYNC
+1505.805	!	enlace Bluetooth caido
+1506.806	!	conectado
+1506.806	>	SYNC
+1511.932	!	enlace Bluetooth caido
+1512.933	!	conectado
+1512.933	>	SYNC
+1518.060	!	enlace Bluetooth caido
+1519.061	!	conectado
+1519.061	>	SYNC
+1524.187	!	enlace Bluetooth caido
+1525.188	!	conectado
+1525.188	>	SYNC
+1530.314	!	enlace Bluetooth caido
+1531.315	!	conectado
+1531.315	>	SYNC
+1536.441	!	enlace Bluetooth caido
+1537.442	!	conectado
+1537.442	>	SYNC
+1542.568	!	enlace Bluetooth caido
+1543.569	!	conectado
+1543.569	>	SYNC
+1548.694	!	enlace Bluetooth caido
+1549.695	!	conectado
+1549.695	>	SYNC
+1554.822	!	enlace Bluetooth caido
+1555.823	!	conectado
+1555.823	>	SYNC
+1560.949	!	enlace Bluetooth caido
+1561.950	!	conectado
+1561.950	>	SYNC
+1567.076	!	enlace Bluetooth caido
+1568.076	!	conectado
+1568.076	>	SYNC
+1573.203	!	enlace Bluetooth caido
+1574.203	!	conectado
+1574.204	>	SYNC
+1579.329	!	enlace Bluetooth caido
+1580.330	!	conectado
+1580.330	>	SYNC
+1585.456	!	enlace Bluetooth caido
+1586.457	!	conectado
+1586.457	>	SYNC
+1591.582	!	enlace Bluetooth caido
+1592.583	!	conectado
+1592.583	>	SYNC
+1597.709	!	enlace Bluetooth caido
+1598.710	!	conectado
+1598.710	>	SYNC
+1603.836	!	enlace Bluetooth caido
+1604.836	!	conectado
+1604.836	>	SYNC
+1609.962	!	enlace Bluetooth caido
+1610.962	!	conectado
+1610.962	>	SYNC
+1616.088	!	enlace Bluetooth caido
+1617.089	!	conectado
+1617.089	>	SYNC
+1622.215	!	enlace Bluetooth caido
+1623.215	!	conectado
+1623.215	>	SYNC
+1628.342	!	enlace Bluetooth caido
+1629.343	!	conectado
+1629.343	>	SYNC
+1634.468	!	enlace Bluetooth caido
+1635.469	!	conectado
+1635.469	>	SYNC
+1640.595	!	enlace Bluetooth caido
+1641.596	!	conectado
+1641.596	>	SYNC
+1646.722	!	enlace Bluetooth caido
+1647.723	!	conectado
+1647.723	>	SYNC
+1652.848	!	enlace Bluetooth caido
+1653.849	!	conectado
+1653.849	>	SYNC
+1658.975	!	enlace Bluetooth caido
+1659.976	!	conectado
+1659.976	>	SYNC
+1665.103	!	enlace Bluetooth caido
+1666.103	!	conectado
+1666.103	>	SYNC
+1671.228	!	enlace Bluetooth caido
+1672.229	!	conectado
+1672.229	>	SYNC
+1677.355	!	enlace Bluetooth caido
+1678.355	!	conectado
+1678.355	>	SYNC
+1683.481	!	enlace Bluetooth caido
+1684.481	!	conectado
+1684.482	>	SYNC
+1689.608	!	enlace Bluetooth caido
+1690.609	!	conectado
+1690.609	>	SYNC
+1695.736	!	enlace Bluetooth caido
+1696.737	!	conectado
+1696.737	>	SYNC
+1701.863	!	enlace Bluetooth caido
+1702.864	!	conectado
+1702.864	>	SYNC
+1707.990	!	enlace Bluetooth caido
+1708.991	!	conectado
+1708.991	>	SYNC
+1714.117	!	enlace Bluetooth caido
+1715.118	!	conectado
+1715.118	>	SYNC
+1720.244	!	enlace Bluetooth caido
+1721.244	!	conectado
+1721.244	>	SYNC
+1726.371	!	enlace Bluetooth caido
+1727.372	!	conectado
+1727.372	>	SYNC
+1732.497	!	enlace Bluetooth caido
+1733.498	!	conectado
+1733.498	>	SYNC
+1738.624	!	enlace Bluetooth caido
+1739.625	!	conectado
+1739.625	>	SYNC
+1744.751	!	enlace Bluetooth caido
+1745.751	!	conectado
+1745.751	>	SYNC
+1750.877	!	enlace Bluetooth caido
+1751.878	!	conectado
+1751.878	>	SYNC
+1757.003	!	enlace Bluetooth caido
+1758.004	!	conectado
+1758.004	>	SYNC
+1763.130	!	enlace Bluetooth caido
+1764.131	!	conectado
+1764.131	>	SYNC
+1769.257	!	enlace Bluetooth caido
+1770.258	!	conectado
+1770.258	>	SYNC
+1775.384	!	enlace Bluetooth caido
+1776.384	!	conectado
+1776.384	>	SYNC
+1781.509	!	enlace Bluetooth caido
+1782.510	!	conectado
+1782.510	>	SYNC
+1787.636	!	enlace Bluetooth caido
+1788.637	!	conectado
+1788.637	>	SYNC
+1793.763	!	enlace Bluetooth caido
+1794.764	!	conectado
+1794.764	>	SYNC
+1799.890	!	enlace Bluetooth caido
+1800.890	!	conectado
+1800.890	>	SYNC
+1806.016	!	enlace Bluetooth caido
+1807.017	!	conectado
+1807.017	>	SYNC
+1812.143	!	enlace Bluetooth caido
+1813.143	!	conectado
+1813.143	>	SYNC
+1818.270	!	enlace Bluetooth caido
+1819.270	!	conectado
+1819.270	>	SYNC
+1824.396	!	enlace Bluetooth caido
+1825.397	!	conectado
+1825.397	>	SYNC
+1830.523	!	enlace Bluetooth caido
+1831.523	!	conectado
+1831.523	>	SYNC
+1836.650	!	enlace Bluetooth caido
+1837.650	!	conectado
+1837.650	>	SYNC
+1838.590	<	@Y2
+1838.592	<	@G3232
+1838.592	<	@M1
+1838.606	<	@AI
+1838.606	<	@P00N
+1838.631	<	@R0NNVN000000000004
+1838.645	<	@R1NVNN000000000004
+1838.664	<	@R2TL4L000000000004
+1851.983	<	
+1852.016	<	rat_sw Sep 23 2026 22:39:45 | modo 1 BUSQUEDA
+1852.099	<	Mapa en flash: 11 celdas, camino rapido coste 42 (ERASE si es otro laberinto)
+1852.186	<	Meta (3,2)-(3,2). SELECT cambia de modo, START lo lanza, HELP lista comandos
+1852.186	<	@Y2
+1852.193	<	@G3232
+1852.206	<	@M1
+1852.206	<	@AI
+1852.225	<	@P00N
+1852.228	<	@R0NNVN000000000004
+1852.264	<	@R1NVNN000000000004
+1852.281	<	@R2TL4L000000000004

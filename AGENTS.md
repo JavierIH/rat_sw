@@ -20,6 +20,9 @@
   `tools/robot.sh [-w regex] [-t s] "CMD" ...`. Only one program may hold
   the port (close `robot_monitor.py` first). Keep outputs short: grep the
   lines that matter, summarise recordings with `tools/calib_analyze.py`.
+- The session logs (`tools/logs/`) are the only record of the robot's
+  runs: commit them after every robot session (the repo is public: check
+  them for personal data first, e.g. home paths).
 
 ## Project objective
 "rat": micromouse firmware for an STM32F103 robot. It explores an

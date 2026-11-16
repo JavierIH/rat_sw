@@ -1,0 +1,4158 @@
+0.001	!	conectado
+0.001	>	SYNC
+8.912	!	enlace Bluetooth caido
+9.913	!	conectado
+9.913	>	SYNC
+10.940	<	@Y2
+10.966	<	@G3232
+10.966	<	@M1
+10.966	<	@AI
+10.966	<	@P00N
+11.007	<	@R00000000000000004
+11.007	<	@R10000000000000004
+11.030	<	@R20000000000000004
+13.381	>	start
+13.442	<	START modo 1: BUSQUEDA
+13.495	<	Modo 1 BUSQUEDA: arranca en 2000 ms (START o STOP cancela)
+13.508	<	@Y2
+13.522	<	@G3232
+13.522	<	@M1
+13.522	<	@AC
+13.522	<	@P00N
+13.552	<	@R00000000000000004
+13.575	<	@R10000000000000004
+13.592	<	@R20000000000000004
+15.425	<	@AG
+15.442	<	== BUSQUEDA ==
+15.485	<	@C00N.###
+15.523	<	@R0M000000000000004
+15.549	<	META (0,0)N F0 I1 D1 coste=11 -> AVANZA
+17.240	<	avance 1: L=1712 R=1809 obj=1760 fin=ENC IR(FL=191 FR=249 SL=71 SR=92) trim=-12
+17.253	<	@P01N
+17.297	<	@C01N.#o#
+17.303	<	@R1M000000000000004
+17.322	<	META (0,1)N F0 I1 D1 coste=9 -> AVANZA
+18.815	<	avance 1: L=1570 R=1460 obj=1760 fin=IR IR(FL=85 FR=103 SL=77 SR=178) trim=17
+18.815	<	@P02N
+18.827	<	@C02N#.o#
+18.834	<	@R2P000000000000004
+18.863	<	META (0,2)N F1 I1 D0 coste=7 -> DER
+19.601	<	giro der: L=400 R=-452 obj=422 fin=ENC
+19.614	<	@P02E
+19.637	<	@C02E#oo#
+19.657	<	@R0N000000000000004
+19.702	<	META (0,2)E F0 I1 D0 coste=6 -> AVANZA
+21.395	<	avance 1: L=1671 R=1804 obj=1760 fin=IR IR(FL=92 FR=98 SL=74 SR=182) trim=15
+21.409	<	@P12E
+21.414	<	@C12E##.o
+21.437	<	@R1N200000000000004
+21.471	<	META (1,2)E F1 I1 D0 coste=11 -> DER
+22.377	<	giro der: L=382 R=-467 obj=422 fin=ENC
+22.415	<	  arranque dificil: hizo falta +33 PWM
+22.526	<	@P12S
+22.526	<	@C12S##oo
+22.532	<	@R2TL00000000000004
+22.548	<	META (1,2)S F0 I1 D0 coste=10 -> AVANZA
+24.179	<	avance 1: L=1736 R=1784 obj=1760 fin=ENC IR(FL=203 FR=227 SL=203 SR=83) trim=-8
+24.181	<	@P11S
+24.195	<	@C11So..#
+24.224	<	@R0N200000000000004
+24.250	<	META (1,1)S F0 I0 D1 coste=8 -> IZQ
+25.025	<	giro izq: L=-384 R=466 obj=422 fin=ENC
+25.039	<	@P11E
+25.059	<	@C11Eoo?#
+25.092	<	@R1NV00000000000004
+25.125	<	META (1,1)E F0 I0 D1 coste=7 -> AVANZA
+26.652	<	avance 1: L=1612 R=1490 obj=1760 fin=IR IR(FL=86 FR=101 SL=210 SR=181) trim=-5
+26.656	<	@P21E
+26.671	<	@C21E.#.o
+26.693	<	@R2TL00000000000004
+26.725	<	META (2,1)E F1 I0 D0 coste=6 -> IZQ
+27.522	<	giro izq: L=-379 R=484 obj=422 fin=ENC
+27.537	<	@P21N
+27.550	<	@C21No#.o
+27.582	<	@R0N020000000000004
+27.621	<	META (2,1)N F0 I1 D1 coste=5 -> AVANZA
+28.767	<	avance 1: L=1221 R=1111 obj=1760 fin=IR IR(FL=85 FR=103 SL=68 SR=95) trim=15
+28.781	<	@P22N
+28.790	<	@C22N##o#
+28.832	<	@R1NVN0000000000004
+28.859	<	META (2,2)N F1 I1 D1 coste=14 -> MEDIA VUELTA
+29.795	<	giro der: L=418 R=-438 obj=422 fin=ENC
+29.883	<	  arranque dificil: hizo falta +41 PWM
+30.671	<	giro der: L=389 R=-472 obj=422 fin=ENC
+30.674	<	@P22S
+30.681	<	@C22S#?o#
+30.689	<	@R2TLH0000000000004
+30.741	<	META (2,2)S F0 I0 D? coste=3 -> IZQ
+31.568	<	giro izq: L=-401 R=462 obj=422 fin=ENC
+31.581	<	@P22E
+31.604	<	@C22E##o#
+31.626	<	@R0N020000000000004
+31.674	<	META (2,2)E F1 I? D0 coste=13 -> DER
+32.446	<	giro der: L=391 R=-464 obj=422 fin=ENC
+32.460	<	@P22S
+32.483	<	@C22S#?o#
+32.557	<	@R1NVN0000000000004
+32.568	<	META (2,2)S F0 I0 D? coste=3 -> IZQ
+33.479	<	giro izq: L=-407 R=447 obj=422 fin=ENC
+33.544	<	  arranque dificil: hizo falta +36 PWM
+33.544	<	@P22E
+33.551	<	@C22E##o#
+33.575	<	@R2TLL0000000000004
+33.606	<	META (2,2)E F1 I? D0 coste=13 -> DER
+34.363	<	giro der: L=381 R=-468 obj=422 fin=ENC
+34.396	<	@P22S
+34.396	<	@C22S##o#
+34.414	<	@R0N020000000000004
+34.461	<	META (2,2)S F0 I1 D? coste=12 -> AVANZA
+36.193	<	avance 1: L=1678 R=1843 obj=1760 fin=ENC IR(FL=209 FR=233 SL=72 SR=176) trim=14
+36.205	<	@P21S
+36.219	<	@C21So#oo
+36.234	<	@R1NVN0000000000004
+36.285	<	META (2,1)S F0 I1 D0 coste=10 -> AVANZA
+37.697	<	avance 1: L=1472 R=1474 obj=1760 fin=IR IR(FL=86 FR=103 SL=196 SR=82) trim=15
+37.700	<	@P20S
+37.715	<	@C20So.##
+37.740	<	@R2TLL0000000000004
+37.772	<	META (2,0)S F1 I0 D1 coste=8 -> IZQ
+38.522	<	giro izq: L=-380 R=477 obj=422 fin=ENC
+38.544	<	@P20E
+38.552	<	@C20Eoo##
+38.581	<	@R0N4V0000000000004
+38.648	<	META (2,0)E F0 I0 D1 coste=7 -> AVANZA
+40.052	<	avance 1: L=1485 R=1396 obj=1760 fin=IR IR(FL=85 FR=106 SL=166 SR=84) trim=23
+40.068	<	@P30E
+40.072	<	@C30E.##o
+40.096	<	@R1NVN0000000000004
+40.136	<	META (3,0)E F1 I0 D1 coste=5 -> IZQ
+40.929	<	giro izq: L=-385 R=476 obj=422 fin=ENC
+40.929	<	@P30N
+40.981	<	@C30No##o
+40.998	<	@R2TLL0000000000004
+41.022	<	META (3,0)N F0 I0 D1 coste=4 -> AVANZA
+42.745	<	avance 1: L=1768 R=1752 obj=1760 fin=ENC IR(FL=177 FR=233 SL=75 SR=84) trim=20
+42.748	<	@P31N
+42.764	<	@C31N.#o#
+42.787	<	@R0N4VN000000000004
+42.817	<	META (3,1)N F0 I1 D1 coste=2 -> AVANZA
+44.010	<	avance 1: L=1245 R=1237 obj=1760 fin=IR IR(FL=85 FR=103 SL=76 SR=87) trim=25
+44.010	<	@P32N
+44.025	<	@C32N##o#
+44.048	<	@R1NVNN000000000004
+44.100	<	Meta alcanzada en (3,2) tras 22 acciones
+44.259	<	Mapa guardado (11 celdas visitadas)
+44.277	<	@AO
+44.313	<	Camino rapido optimo verificado: vuelta a la salida
+44.322	<	@AH
+44.387	<	VUELTA (3,2)N F1 I1 D1 coste=26 -> MEDIA VUELTA
+45.393	<	giro der: L=407 R=-452 obj=422 fin=ENC
+45.448	<	  arranque dificil: hizo falta +33 PWM
+46.104	<	giro der: L=387 R=-470 obj=422 fin=ENC
+46.104	<	@P32S
+46.138	<	@C32S##o#
+46.159	<	@R2TLLL000000000004
+46.200	<	VUELTA (3,2)S F0 I1 D1 coste=24 -> AVANZA
+47.935	<	avance 1: L=1670 R=1850 obj=1760 fin=ENC IR(FL=198 FR=221 SL=86 SR=76) trim=-4
+47.935	<	@P31S
+47.937	<	@C31So#o#
+47.940	<	@R0N4VN000000000004
+47.977	<	VUELTA (3,1)S F0 I1 D1 coste=22 -> AVANZA
+49.287	<	avance 1: L=1377 R=1376 obj=1760 fin=IR IR(FL=90 FR=101 SL=69 SR=139) trim=6
+49.287	<	@P30S
+49.306	<	@C30So##o
+49.328	<	@R1NVNN000000000004
+49.363	<	VUELTA (3,0)S F1 I1 D1 coste=20 -> DER
+50.101	<	giro der: L=411 R=-443 obj=422 fin=ENC
+50.109	<	@P30W
+50.128	<	@C30Wo##o
+50.158	<	@R2TLLL000000000004
+50.197	<	VUELTA (3,0)W F0 I1 D0 coste=19 -> AVANZA
+51.848	<	avance 1: L=1666 R=1747 obj=1760 fin=IR IR(FL=92 FR=98 SL=72 SR=180) trim=7
+51.848	<	@P20W
+51.850	<	@C20Woo##
+51.875	<	@R0N4VN000000000004
+51.918	<	VUELTA (2,0)W F1 I1 D0 coste=17 -> DER
+52.666	<	giro der: L=402 R=-455 obj=422 fin=ENC
+52.668	<	@P20N
+52.678	<	@C20Noo##
+52.701	<	@R1NVNN000000000004
+52.742	<	VUELTA (2,0)N F0 I1 D0 coste=16 -> AVANZA
+54.505	<	avance 1: L=1735 R=1785 obj=1760 fin=ENC IR(FL=186 FR=249 SL=201 SR=92) trim=1
+54.505	<	@P21N
+54.511	<	@C21No#oo
+54.517	<	@R2TLLL000000000004
+54.530	<	VUELTA (2,1)N F0 I0 D1 coste=14 -> IZQ
+55.261	<	giro izq: L=-377 R=480 obj=422 fin=ENC
+55.270	<	@P21W
+55.291	<	@C21Wo#oo
+55.317	<	@R0N4VN000000000004
+55.361	<	VUELTA (2,1)W F0 I0 D0 coste=13 -> AVANZA
+56.778	<	avance 1: L=1531 R=1403 obj=1760 fin=IR IR(FL=88 FR=101 SL=190 SR=144) trim=3
+56.794	<	@P11W
+56.802	<	@C11Woo.#
+56.825	<	@R1NVNN000000000004
+56.860	<	VUELTA (1,1)W F1 I0 D0 coste=11 -> DER
+57.715	<	giro der: L=411 R=-436 obj=422 fin=ENC
+57.766	<	  arranque dificil: hizo falta +20 PWM
+57.778	<	@P11N
+57.802	<	@C11Noo.#
+57.827	<	@R2TLLL000000000004
+57.853	<	VUELTA (1,1)N F0 I1 D0 coste=10 -> AVANZA
+59.501	<	avance 1: L=1700 R=1821 obj=1760 fin=ENC IR(FL=108 FR=122 SL=217 SR=87) trim=-7
+59.523	<	@P12N
+59.947	<	alineado frontal: err=21mm L=189 R=187
+59.951	<	@C12N##oo
+60.014	<	@R0N6VN000000000004
+60.040	<	VUELTA (1,2)N F1 I0 D1 coste=8 -> IZQ
+60.745	<	giro izq: L=-366 R=498 obj=422 fin=ENC
+60.750	<	@P12W
+60.767	<	@C12W##oo
+60.779	<	@R1NVNN000000000004
+60.825	<	VUELTA (1,2)W F0 I0 D1 coste=7 -> AVANZA
+62.151	<	avance 1: L=1516 R=1351 obj=1760 fin=IR IR(FL=85 FR=105 SL=155 SR=87) trim=15
+62.154	<	@P02W
+62.164	<	@C02W#oo#
+62.191	<	@R2TLLL000000000004
+62.218	<	VUELTA (0,2)W F1 I0 D1 coste=5 -> IZQ
+62.970	<	giro izq: L=-376 R=472 obj=422 fin=ENC
+62.975	<	@P02S
+62.998	<	@C02S#oo#
+63.026	<	@R0N6VN000000000004
+63.080	<	VUELTA (0,2)S F0 I0 D1 coste=4 -> AVANZA
+64.829	<	avance 1: L=1758 R=1762 obj=1760 fin=ENC IR(FL=181 FR=213 SL=73 SR=87) trim=11
+64.841	<	@P01S
+64.878	<	@C01So#o#
+64.919	<	@R1NVNN000000000004
+64.948	<	VUELTA (0,1)S F0 I1 D1 coste=2 -> AVANZA
+66.049	<	avance 1: L=1265 R=1178 obj=1760 fin=IR IR(FL=82 FR=106 SL=84 SR=80) trim=20
+66.049	<	@P00S
+66.054	<	@C00So###
+66.084	<	@R2TLLL000000000004
+67.059	<	giro der: L=419 R=-445 obj=422 fin=ENC
+67.102	<	  arranque dificil: hizo falta +19 PWM
+67.926	<	giro der: L=405 R=-458 obj=422 fin=ENC
+67.940	<	@P00N
+67.971	<	En la salida tras 38 acciones
+68.003	<	Mapa guardado (11 celdas visitadas)
+68.049	<	Camino rapido verificado: coste 42
+68.868	<	Fin: OK | robot en la salida, listo
+68.883	<	@AI
+68.883	<	@P00N
+122.837	!	enlace Bluetooth caido
+123.838	!	conectado
+123.838	>	SYNC
+128.964	!	enlace Bluetooth caido
+129.965	!	conectado
+129.965	>	SYNC
+135.090	!	enlace Bluetooth caido
+136.091	!	conectado
+136.091	>	SYNC
+141.216	!	enlace Bluetooth caido
+142.217	!	conectado
+142.217	>	SYNC
+147.344	!	enlace Bluetooth caido
+148.344	!	conectado
+148.344	>	SYNC
+153.471	!	enlace Bluetooth caido
+154.471	!	conectado
+154.471	>	SYNC
+159.597	!	enlace Bluetooth caido
+160.597	!	conectado
+160.597	>	SYNC
+165.724	!	enlace Bluetooth caido
+166.724	!	conectado
+166.724	>	SYNC
+171.851	!	enlace Bluetooth caido
+172.851	!	conectado
+172.851	>	SYNC
+177.977	!	enlace Bluetooth caido
+178.977	!	conectado
+178.977	>	SYNC
+184.103	!	enlace Bluetooth caido
+185.104	!	conectado
+185.104	>	SYNC
+190.230	!	enlace Bluetooth caido
+191.231	!	conectado
+191.231	>	SYNC
+196.357	!	enlace Bluetooth caido
+197.358	!	conectado
+197.358	>	SYNC
+202.483	!	enlace Bluetooth caido
+203.484	!	conectado
+203.484	>	SYNC
+208.609	!	enlace Bluetooth caido
+209.610	!	conectado
+209.610	>	SYNC
+214.736	!	enlace Bluetooth caido
+215.737	!	conectado
+215.737	>	SYNC
+220.864	!	enlace Bluetooth caido
+221.865	!	conectado
+221.865	>	SYNC
+226.989	!	enlace Bluetooth caido
+227.990	!	conectado
+227.990	>	SYNC
+233.116	!	enlace Bluetooth caido
+234.116	!	conectado
+234.116	>	SYNC
+239.243	!	enlace Bluetooth caido
+240.243	!	conectado
+240.243	>	SYNC
+245.370	!	enlace Bluetooth caido
+246.370	!	conectado
+246.371	>	SYNC
+251.496	!	enlace Bluetooth caido
+252.496	!	conectado
+252.496	>	SYNC
+257.623	!	enlace Bluetooth caido
+258.624	!	conectado
+258.624	>	SYNC
+263.750	!	enlace Bluetooth caido
+264.750	!	conectado
+264.750	>	SYNC
+269.876	!	enlace Bluetooth caido
+270.877	!	conectado
+270.877	>	SYNC
+276.004	!	enlace Bluetooth caido
+277.005	!	conectado
+277.005	>	SYNC
+282.130	!	enlace Bluetooth caido
+283.131	!	conectado
+283.131	>	SYNC
+288.256	!	enlace Bluetooth caido
+289.256	!	conectado
+289.257	>	SYNC
+294.382	!	enlace Bluetooth caido
+295.383	!	conectado
+295.383	>	SYNC
+300.510	!	enlace Bluetooth caido
+301.511	!	conectado
+301.511	>	SYNC
+306.637	!	enlace Bluetooth caido
+307.638	!	conectado
+307.638	>	SYNC
+312.763	!	enlace Bluetooth caido
+313.764	!	conectado
+313.764	>	SYNC
+318.890	!	enlace Bluetooth caido
+319.891	!	conectado
+319.891	>	SYNC
+325.017	!	enlace Bluetooth caido
+326.018	!	conectado
+326.018	>	SYNC
+331.143	!	enlace Bluetooth caido
+332.144	!	conectado
+332.144	>	SYNC
+337.270	!	enlace Bluetooth caido
+338.270	!	conectado
+338.270	>	SYNC
+343.396	!	enlace Bluetooth caido
+344.397	!	conectado
+344.397	>	SYNC
+349.523	!	enlace Bluetooth caido
+350.524	!	conectado
+350.524	>	SYNC
+355.649	!	enlace Bluetooth caido
+356.650	!	conectado
+356.650	>	SYNC
+361.775	!	enlace Bluetooth caido
+362.776	!	conectado
+362.776	>	SYNC
+367.903	!	enlace Bluetooth caido
+368.903	!	conectado
+368.903	>	SYNC
+374.030	!	enlace Bluetooth caido
+375.030	!	conectado
+375.030	>	SYNC
+380.156	!	enlace Bluetooth caido
+381.156	!	conectado
+381.156	>	SYNC
+386.282	!	enlace Bluetooth caido
+387.282	!	conectado
+387.282	>	SYNC
+392.408	!	enlace Bluetooth caido
+393.409	!	conectado
+393.409	>	SYNC
+398.536	!	enlace Bluetooth caido
+399.536	!	conectado
+399.536	>	SYNC
+404.662	!	enlace Bluetooth caido
+405.662	!	conectado
+405.662	>	SYNC
+410.789	!	enlace Bluetooth caido
+411.789	!	conectado
+411.790	>	SYNC
+416.916	!	enlace Bluetooth caido
+417.917	!	conectado
+417.917	>	SYNC
+423.043	!	enlace Bluetooth caido
+424.043	!	conectado
+424.044	>	SYNC
+429.170	!	enlace Bluetooth caido
+430.171	!	conectado
+430.171	>	SYNC
+435.297	!	enlace Bluetooth caido
+436.298	!	conectado
+436.298	>	SYNC
+441.424	!	enlace Bluetooth caido
+442.425	!	conectado
+442.425	>	SYNC
+447.551	!	enlace Bluetooth caido
+448.551	!	conectado
+448.552	>	SYNC
+453.678	!	enlace Bluetooth caido
+454.679	!	conectado
+454.679	>	SYNC
+459.805	!	enlace Bluetooth caido
+460.806	!	conectado
+460.806	>	SYNC
+465.932	!	enlace Bluetooth caido
+466.932	!	conectado
+466.932	>	SYNC
+472.058	!	enlace Bluetooth caido
+473.058	!	conectado
+473.059	>	SYNC
+478.184	!	enlace Bluetooth caido
+479.185	!	conectado
+479.185	>	SYNC
+484.312	!	enlace Bluetooth caido
+485.312	!	conectado
+485.312	>	SYNC
+490.438	!	enlace Bluetooth caido
+491.438	!	conectado
+491.438	>	SYNC
+496.564	!	enlace Bluetooth caido
+497.565	!	conectado
+497.565	>	SYNC
+502.691	!	enlace Bluetooth caido
+503.692	!	conectado
+503.692	>	SYNC
+508.819	!	enlace Bluetooth caido
+509.819	!	conectado
+509.819	>	SYNC
+514.946	!	enlace Bluetooth caido
+515.947	!	conectado
+515.947	>	SYNC
+521.072	!	enlace Bluetooth caido
+522.072	!	conectado
+522.072	>	SYNC
+527.198	!	enlace Bluetooth caido
+528.199	!	conectado
+528.199	>	SYNC
+533.326	!	enlace Bluetooth caido
+534.327	!	conectado
+534.327	>	SYNC
+539.452	!	enlace Bluetooth caido
+540.453	!	conectado
+540.453	>	SYNC
+545.578	!	enlace Bluetooth caido
+546.578	!	conectado
+546.578	>	SYNC
+551.705	!	enlace Bluetooth caido
+552.706	!	conectado
+552.706	>	SYNC
+557.832	!	enlace Bluetooth caido
+558.833	!	conectado
+558.833	>	SYNC
+563.958	!	enlace Bluetooth caido
+564.958	!	conectado
+564.958	>	SYNC
+570.085	!	enlace Bluetooth caido
+571.086	!	conectado
+571.086	>	SYNC
+576.212	!	enlace Bluetooth caido
+577.213	!	conectado
+577.213	>	SYNC
+582.338	!	enlace Bluetooth caido
+583.338	!	conectado
+583.338	>	SYNC
+588.464	!	enlace Bluetooth caido
+589.465	!	conectado
+589.465	>	SYNC
+594.591	!	enlace Bluetooth caido
+595.592	!	conectado
+595.592	>	SYNC
+600.718	!	enlace Bluetooth caido
+601.719	!	conectado
+601.719	>	SYNC
+606.845	!	enlace Bluetooth caido
+607.846	!	conectado
+607.846	>	SYNC
+612.972	!	enlace Bluetooth caido
+613.973	!	conectado
+613.973	>	SYNC
+619.099	!	enlace Bluetooth caido
+620.100	!	conectado
+620.100	>	SYNC
+625.225	!	enlace Bluetooth caido
+626.226	!	conectado
+626.226	>	SYNC
+631.354	!	enlace Bluetooth caido
+632.354	!	conectado
+632.355	>	SYNC
+637.481	!	enlace Bluetooth caido
+638.481	!	conectado
+638.482	>	SYNC
+643.607	!	enlace Bluetooth caido
+644.607	!	conectado
+644.608	>	SYNC
+649.734	!	enlace Bluetooth caido
+650.734	!	conectado
+650.735	>	SYNC
+655.861	!	enlace Bluetooth caido
+656.861	!	conectado
+656.861	>	SYNC
+661.987	!	enlace Bluetooth caido
+662.988	!	conectado
+662.988	>	SYNC
+668.112	!	enlace Bluetooth caido
+669.113	!	conectado
+669.113	>	SYNC
+674.240	!	enlace Bluetooth caido
+675.240	!	conectado
+675.240	>	SYNC
+680.367	!	enlace Bluetooth caido
+681.370	!	conectado
+681.370	>	SYNC
+686.496	!	enlace Bluetooth caido
+687.496	!	conectado
+687.496	>	SYNC
+692.622	!	enlace Bluetooth caido
+693.623	!	conectado
+693.623	>	SYNC
+698.748	!	enlace Bluetooth caido
+699.748	!	conectado
+699.748	>	SYNC
+704.874	!	enlace Bluetooth caido
+705.875	!	conectado
+705.875	>	SYNC
+711.001	!	enlace Bluetooth caido
+712.002	!	conectado
+712.002	>	SYNC
+717.128	!	enlace Bluetooth caido
+718.129	!	conectado
+718.129	>	SYNC
+723.254	!	enlace Bluetooth caido
+724.255	!	conectado
+724.255	>	SYNC
+729.380	!	enlace Bluetooth caido
+730.381	!	conectado
+730.381	>	SYNC
+735.508	!	enlace Bluetooth caido
+736.509	!	conectado
+736.509	>	SYNC
+741.635	!	enlace Bluetooth caido
+742.636	!	conectado
+742.636	>	SYNC
+747.763	!	enlace Bluetooth caido
+748.763	!	conectado
+748.763	>	SYNC
+753.890	!	enlace Bluetooth caido
+754.890	!	conectado
+754.890	>	SYNC
+760.016	!	enlace Bluetooth caido
+761.016	!	conectado
+761.016	>	SYNC
+766.142	!	enlace Bluetooth caido
+767.143	!	conectado
+767.143	>	SYNC
+772.270	!	enlace Bluetooth caido
+773.271	!	conectado
+773.271	>	SYNC
+778.396	!	enlace Bluetooth caido
+779.396	!	conectado
+779.396	>	SYNC
+784.522	!	enlace Bluetooth caido
+785.523	!	conectado
+785.523	>	SYNC
+790.650	!	enlace Bluetooth caido
+791.650	!	conectado
+791.650	>	SYNC
+796.777	!	enlace Bluetooth caido
+797.777	!	conectado
+797.777	>	SYNC
+802.903	!	enlace Bluetooth caido
+803.904	!	conectado
+803.904	>	SYNC
+809.030	!	enlace Bluetooth caido
+810.030	!	conectado
+810.030	>	SYNC
+815.157	!	enlace Bluetooth caido
+816.158	!	conectado
+816.158	>	SYNC
+821.283	!	enlace Bluetooth caido
+822.284	!	conectado
+822.284	>	SYNC
+827.410	!	enlace Bluetooth caido
+828.411	!	conectado
+828.411	>	SYNC
+833.537	!	enlace Bluetooth caido
+834.538	!	conectado
+834.538	>	SYNC
+839.663	!	enlace Bluetooth caido
+840.663	!	conectado
+840.663	>	SYNC
+845.790	!	enlace Bluetooth caido
+846.791	!	conectado
+846.791	>	SYNC
+851.930	!	enlace Bluetooth caido
+852.931	!	conectado
+852.931	>	SYNC
+858.059	!	enlace Bluetooth caido
+859.059	!	conectado
+859.059	>	SYNC
+864.186	!	enlace Bluetooth caido
+865.186	!	conectado
+865.187	>	SYNC
+870.314	!	enlace Bluetooth caido
+871.314	!	conectado
+871.314	>	SYNC
+876.439	!	enlace Bluetooth caido
+877.440	!	conectado
+877.440	>	SYNC
+882.566	!	enlace Bluetooth caido
+883.567	!	conectado
+883.567	>	SYNC
+888.694	!	enlace Bluetooth caido
+889.695	!	conectado
+889.695	>	SYNC
+894.821	!	enlace Bluetooth caido
+895.821	!	conectado
+895.821	>	SYNC
+900.947	!	enlace Bluetooth caido
+901.948	!	conectado
+901.948	>	SYNC
+907.075	!	enlace Bluetooth caido
+908.076	!	conectado
+908.076	>	SYNC
+913.202	!	enlace Bluetooth caido
+914.202	!	conectado
+914.202	>	SYNC
+919.328	!	enlace Bluetooth caido
+920.329	!	conectado
+920.329	>	SYNC
+925.455	!	enlace Bluetooth caido
+926.456	!	conectado
+926.456	>	SYNC
+931.582	!	enlace Bluetooth caido
+932.582	!	conectado
+932.583	>	SYNC
+937.708	!	enlace Bluetooth caido
+938.709	!	conectado
+938.709	>	SYNC
+943.834	!	enlace Bluetooth caido
+944.835	!	conectado
+944.835	>	SYNC
+949.961	!	enlace Bluetooth caido
+950.962	!	conectado
+950.962	>	SYNC
+956.088	!	enlace Bluetooth caido
+957.089	!	conectado
+957.089	>	SYNC
+962.215	!	enlace Bluetooth caido
+963.215	!	conectado
+963.215	>	SYNC
+968.341	!	enlace Bluetooth caido
+969.342	!	conectado
+969.342	>	SYNC
+974.469	!	enlace Bluetooth caido
+975.470	!	conectado
+975.470	>	SYNC
+980.596	!	enlace Bluetooth caido
+981.597	!	conectado
+981.597	>	SYNC
+986.724	!	enlace Bluetooth caido
+987.725	!	conectado
+987.725	>	SYNC
+992.851	!	enlace Bluetooth caido
+993.851	!	conectado
+993.852	>	SYNC
+998.978	!	enlace Bluetooth caido
+999.979	!	conectado
+999.979	>	SYNC
+1005.106	!	enlace Bluetooth caido
+1006.107	!	conectado
+1006.107	>	SYNC
+1011.232	!	enlace Bluetooth caido
+1012.233	!	conectado
+1012.233	>	SYNC
+1017.360	!	enlace Bluetooth caido
+1018.361	!	conectado
+1018.361	>	SYNC
+1023.486	!	enlace Bluetooth caido
+1024.487	!	conectado
+1024.487	>	SYNC
+1029.613	!	enlace Bluetooth caido
+1030.614	!	conectado
+1030.614	>	SYNC
+1035.740	!	enlace Bluetooth caido
+1036.741	!	conectado
+1036.741	>	SYNC
+1041.867	!	enlace Bluetooth caido
+1042.868	!	conectado
+1042.868	>	SYNC
+1047.993	!	enlace Bluetooth caido
+1048.994	!	conectado
+1048.994	>	SYNC
+1054.120	!	enlace Bluetooth caido
+1055.121	!	conectado
+1055.121	>	SYNC
+1060.247	!	enlace Bluetooth caido
+1061.248	!	conectado
+1061.248	>	SYNC
+1066.373	!	enlace Bluetooth caido
+1067.374	!	conectado
+1067.374	>	SYNC
+1072.500	!	enlace Bluetooth caido
+1073.500	!	conectado
+1073.501	>	SYNC
+1078.627	!	enlace Bluetooth caido
+1079.627	!	conectado
+1079.627	>	SYNC
+1084.754	!	enlace Bluetooth caido
+1085.755	!	conectado
+1085.755	>	SYNC
+1090.880	!	enlace Bluetooth caido
+1091.881	!	conectado
+1091.881	>	SYNC
+1097.006	!	enlace Bluetooth caido
+1098.007	!	conectado
+1098.007	>	SYNC
+1103.133	!	enlace Bluetooth caido
+1104.134	!	conectado
+1104.134	>	SYNC
+1109.260	!	enlace Bluetooth caido
+1110.261	!	conectado
+1110.261	>	SYNC
+1115.386	!	enlace Bluetooth caido
+1116.387	!	conectado
+1116.387	>	SYNC
+1121.513	!	enlace Bluetooth caido
+1122.514	!	conectado
+1122.514	>	SYNC
+1127.641	!	enlace Bluetooth caido
+1128.642	!	conectado
+1128.642	>	SYNC
+1133.767	!	enlace Bluetooth caido
+1134.768	!	conectado
+1134.768	>	SYNC
+1139.894	!	enlace Bluetooth caido
+1140.895	!	conectado
+1140.895	>	SYNC
+1146.021	!	enlace Bluetooth caido
+1147.022	!	conectado
+1147.022	>	SYNC
+1152.147	!	enlace Bluetooth caido
+1153.148	!	conectado
+1153.148	>	SYNC
+1158.273	!	enlace Bluetooth caido
+1159.274	!	conectado
+1159.274	>	SYNC
+1164.401	!	enlace Bluetooth caido
+1165.401	!	conectado
+1165.402	>	SYNC
+1170.528	!	enlace Bluetooth caido
+1171.529	!	conectado
+1171.529	>	SYNC
+1176.656	!	enlace Bluetooth caido
+1177.656	!	conectado
+1177.657	>	SYNC
+1182.783	!	enlace Bluetooth caido
+1183.784	!	conectado
+1183.784	>	SYNC
+1188.909	!	enlace Bluetooth caido
+1189.909	!	conectado
+1189.910	>	SYNC
+1195.035	!	enlace Bluetooth caido
+1196.036	!	conectado
+1196.036	>	SYNC
+1201.162	!	enlace Bluetooth caido
+1202.162	!	conectado
+1202.162	>	SYNC
+1207.289	!	enlace Bluetooth caido
+1208.290	!	conectado
+1208.290	>	SYNC
+1213.415	!	enlace Bluetooth caido
+1214.416	!	conectado
+1214.416	>	SYNC
+1219.541	!	enlace Bluetooth caido
+1220.542	!	conectado
+1220.542	>	SYNC
+1225.668	!	enlace Bluetooth caido
+1226.669	!	conectado
+1226.669	>	SYNC
+1231.795	!	enlace Bluetooth caido
+1232.796	!	conectado
+1232.796	>	SYNC
+1237.923	!	enlace Bluetooth caido
+1238.924	!	conectado
+1238.924	>	SYNC
+1244.050	!	enlace Bluetooth caido
+1245.051	!	conectado
+1245.051	>	SYNC
+1250.177	!	enlace Bluetooth caido
+1251.177	!	conectado
+1251.178	>	SYNC
+1256.305	!	enlace Bluetooth caido
+1257.305	!	conectado
+1257.305	>	SYNC
+1262.432	!	enlace Bluetooth caido
+1263.433	!	conectado
+1263.433	>	SYNC
+1268.560	!	enlace Bluetooth caido
+1269.560	!	conectado
+1269.561	>	SYNC
+1274.687	!	enlace Bluetooth caido
+1275.688	!	conectado
+1275.688	>	SYNC
+1280.813	!	enlace Bluetooth caido
+1281.814	!	conectado
+1281.814	>	SYNC
+1286.938	!	enlace Bluetooth caido
+1287.939	!	conectado
+1287.939	>	SYNC
+1293.066	!	enlace Bluetooth caido
+1294.067	!	conectado
+1294.067	>	SYNC
+1299.193	!	enlace Bluetooth caido
+1300.194	!	conectado
+1300.194	>	SYNC
+1305.321	!	enlace Bluetooth caido
+1306.322	!	conectado
+1306.322	>	SYNC
+1311.448	!	enlace Bluetooth caido
+1312.449	!	conectado
+1312.449	>	SYNC
+1317.574	!	enlace Bluetooth caido
+1318.575	!	conectado
+1318.575	>	SYNC
+1323.700	!	enlace Bluetooth caido
+1324.701	!	conectado
+1324.701	>	SYNC
+1329.827	!	enlace Bluetooth caido
+1330.828	!	conectado
+1330.828	>	SYNC
+1335.954	!	enlace Bluetooth caido
+1336.955	!	conectado
+1336.955	>	SYNC
+1342.081	!	enlace Bluetooth caido
+1343.081	!	conectado
+1343.082	>	SYNC
+1348.209	!	enlace Bluetooth caido
+1349.209	!	conectado
+1349.210	>	SYNC
+1354.335	!	enlace Bluetooth caido
+1355.336	!	conectado
+1355.336	>	SYNC
+1360.462	!	enlace Bluetooth caido
+1361.463	!	conectado
+1361.463	>	SYNC
+1366.590	!	enlace Bluetooth caido
+1367.591	!	conectado
+1367.591	>	SYNC
+1372.716	!	enlace Bluetooth caido
+1373.717	!	conectado
+1373.717	>	SYNC
+1378.843	!	enlace Bluetooth caido
+1379.843	!	conectado
+1379.843	>	SYNC
+1384.970	!	enlace Bluetooth caido
+1385.971	!	conectado
+1385.971	>	SYNC
+1391.097	!	enlace Bluetooth caido
+1392.098	!	conectado
+1392.098	>	SYNC
+1397.223	!	enlace Bluetooth caido
+1398.224	!	conectado
+1398.224	>	SYNC
+1403.351	!	enlace Bluetooth caido
+1404.351	!	conectado
+1404.351	>	SYNC
+1409.478	!	enlace Bluetooth caido
+1410.478	!	conectado
+1410.479	>	SYNC
+1415.604	!	enlace Bluetooth caido
+1416.605	!	conectado
+1416.605	>	SYNC
+1421.731	!	enlace Bluetooth caido
+1422.732	!	conectado
+1422.732	>	SYNC
+1427.858	!	enlace Bluetooth caido
+1428.859	!	conectado
+1428.859	>	SYNC
+1433.985	!	enlace Bluetooth caido
+1434.985	!	conectado
+1434.985	>	SYNC
+1440.110	!	enlace Bluetooth caido
+1441.111	!	conectado
+1441.111	>	SYNC
+1446.238	!	enlace Bluetooth caido
+1447.238	!	conectado
+1447.238	>	SYNC
+1452.365	!	enlace Bluetooth caido
+1453.366	!	conectado
+1453.366	>	SYNC
+1458.491	!	enlace Bluetooth caido
+1459.492	!	conectado
+1459.492	>	SYNC
+1464.617	!	enlace Bluetooth caido
+1465.618	!	conectado
+1465.618	>	SYNC
+1470.744	!	enlace Bluetooth caido
+1471.745	!	conectado
+1471.745	>	SYNC
+1476.871	!	enlace Bluetooth caido
+1477.872	!	conectado
+1477.872	>	SYNC
+1482.997	!	enlace Bluetooth caido
+1483.998	!	conectado
+1483.998	>	SYNC
+1489.124	!	enlace Bluetooth caido
+1490.125	!	conectado
+1490.125	>	SYNC
+1495.251	!	enlace Bluetooth caido
+1496.252	!	conectado
+1496.252	>	SYNC
+1501.377	!	enlace Bluetooth caido
+1502.378	!	conectado
+1502.378	>	SYNC
+1507.503	!	enlace Bluetooth caido
+1508.504	!	conectado
+1508.504	>	SYNC
+1513.630	!	enlace Bluetooth caido
+1514.631	!	conectado
+1514.631	>	SYNC
+1519.758	!	enlace Bluetooth caido
+1520.758	!	conectado
+1520.759	>	SYNC
+1525.883	!	enlace Bluetooth caido
+1526.884	!	conectado
+1526.884	>	SYNC
+1532.009	!	enlace Bluetooth caido
+1533.010	!	conectado
+1533.010	>	SYNC
+1538.137	!	enlace Bluetooth caido
+1539.138	!	conectado
+1539.138	>	SYNC
+1544.264	!	enlace Bluetooth caido
+1545.264	!	conectado
+1545.264	>	SYNC
+1550.390	!	enlace Bluetooth caido
+1551.391	!	conectado
+1551.391	>	SYNC
+1556.516	!	enlace Bluetooth caido
+1557.517	!	conectado
+1557.517	>	SYNC
+1562.643	!	enlace Bluetooth caido
+1563.644	!	conectado
+1563.644	>	SYNC
+1568.770	!	enlace Bluetooth caido
+1569.771	!	conectado
+1569.771	>	SYNC
+1574.897	!	enlace Bluetooth caido
+1575.898	!	conectado
+1575.898	>	SYNC
+1581.024	!	enlace Bluetooth caido
+1582.025	!	conectado
+1582.025	>	SYNC
+1587.151	!	enlace Bluetooth caido
+1588.152	!	conectado
+1588.152	>	SYNC
+1593.277	!	enlace Bluetooth caido
+1594.278	!	conectado
+1594.278	>	SYNC
+1599.415	!	enlace Bluetooth caido
+1600.416	!	conectado
+1600.416	>	SYNC
+1605.542	!	enlace Bluetooth caido
+1606.542	!	conectado
+1606.543	>	SYNC
+1611.670	!	enlace Bluetooth caido
+1612.670	!	conectado
+1612.670	>	SYNC
+1617.797	!	enlace Bluetooth caido
+1618.798	!	conectado
+1618.798	>	SYNC
+1623.923	!	enlace Bluetooth caido
+1624.924	!	conectado
+1624.924	>	SYNC
+1630.050	!	enlace Bluetooth caido
+1631.050	!	conectado
+1631.050	>	SYNC
+1636.177	!	enlace Bluetooth caido
+1637.178	!	conectado
+1637.178	>	SYNC
+1642.303	!	enlace Bluetooth caido
+1643.304	!	conectado
+1643.304	>	SYNC
+1648.429	!	enlace Bluetooth caido
+1649.429	!	conectado
+1649.429	>	SYNC
+1654.555	!	enlace Bluetooth caido
+1655.556	!	conectado
+1655.556	>	SYNC
+1660.682	!	enlace Bluetooth caido
+1661.683	!	conectado
+1661.683	>	SYNC
+1666.809	!	enlace Bluetooth caido
+1667.810	!	conectado
+1667.810	>	SYNC
+1672.935	!	enlace Bluetooth caido
+1673.936	!	conectado
+1673.936	>	SYNC
+1679.061	!	enlace Bluetooth caido
+1680.062	!	conectado
+1680.062	>	SYNC
+1685.189	!	enlace Bluetooth caido
+1686.189	!	conectado
+1686.190	>	SYNC
+1691.315	!	enlace Bluetooth caido
+1692.316	!	conectado
+1692.316	>	SYNC
+1697.441	!	enlace Bluetooth caido
+1698.442	!	conectado
+1698.442	>	SYNC
+1703.568	!	enlace Bluetooth caido
+1704.569	!	conectado
+1704.569	>	SYNC
+1709.696	!	enlace Bluetooth caido
+1710.697	!	conectado
+1710.697	>	SYNC
+1715.822	!	enlace Bluetooth caido
+1716.823	!	conectado
+1716.823	>	SYNC
+1721.948	!	enlace Bluetooth caido
+1722.948	!	conectado
+1722.948	>	SYNC
+1728.075	!	enlace Bluetooth caido
+1729.076	!	conectado
+1729.076	>	SYNC
+1734.202	!	enlace Bluetooth caido
+1735.202	!	conectado
+1735.202	>	SYNC
+1740.328	!	enlace Bluetooth caido
+1741.328	!	conectado
+1741.328	>	SYNC
+1746.454	!	enlace Bluetooth caido
+1747.455	!	conectado
+1747.455	>	SYNC
+1752.581	!	enlace Bluetooth caido
+1753.582	!	conectado
+1753.582	>	SYNC
+1758.708	!	enlace Bluetooth caido
+1759.708	!	conectado
+1759.709	>	SYNC
+1764.834	!	enlace Bluetooth caido
+1765.835	!	conectado
+1765.835	>	SYNC
+1770.961	!	enlace Bluetooth caido
+1771.961	!	conectado
+1771.962	>	SYNC
+1777.088	!	enlace Bluetooth caido
+1778.089	!	conectado
+1778.089	>	SYNC
+1783.214	!	enlace Bluetooth caido
+1784.215	!	conectado
+1784.215	>	SYNC
+1789.341	!	enlace Bluetooth caido
+1790.341	!	conectado
+1790.342	>	SYNC
+1795.467	!	enlace Bluetooth caido
+1796.468	!	conectado
+1796.468	>	SYNC
+1801.595	!	enlace Bluetooth caido
+1802.596	!	conectado
+1802.596	>	SYNC
+1807.721	!	enlace Bluetooth caido
+1808.722	!	conectado
+1808.722	>	SYNC
+1813.847	!	enlace Bluetooth caido
+1814.848	!	conectado
+1814.848	>	SYNC
+1819.974	!	enlace Bluetooth caido
+1820.975	!	conectado
+1820.975	>	SYNC
+1826.101	!	enlace Bluetooth caido
+1827.102	!	conectado
+1827.102	>	SYNC
+1832.227	!	enlace Bluetooth caido
+1833.227	!	conectado
+1833.227	>	SYNC
+1838.353	!	enlace Bluetooth caido
+1839.354	!	conectado
+1839.354	>	SYNC
+1844.480	!	enlace Bluetooth caido
+1845.481	!	conectado
+1845.481	>	SYNC
+1850.607	!	enlace Bluetooth caido
+1851.608	!	conectado
+1851.608	>	SYNC
+1856.733	!	enlace Bluetooth caido
+1857.734	!	conectado
+1857.734	>	SYNC
+1862.860	!	enlace Bluetooth caido
+1863.860	!	conectado
+1863.861	>	SYNC
+1868.987	!	enlace Bluetooth caido
+1869.988	!	conectado
+1869.988	>	SYNC
+1875.113	!	enlace Bluetooth caido
+1876.114	!	conectado
+1876.114	>	SYNC
+1881.240	!	enlace Bluetooth caido
+1882.240	!	conectado
+1882.241	>	SYNC
+1887.367	!	enlace Bluetooth caido
+1888.368	!	conectado
+1888.368	>	SYNC
+1893.494	!	enlace Bluetooth caido
+1894.494	!	conectado
+1894.494	>	SYNC
+1899.620	!	enlace Bluetooth caido
+1900.620	!	conectado
+1900.620	>	SYNC
+1905.746	!	enlace Bluetooth caido
+1906.747	!	conectado
+1906.747	>	SYNC
+1911.873	!	enlace Bluetooth caido
+1912.874	!	conectado
+1912.874	>	SYNC
+1918.000	!	enlace Bluetooth caido
+1919.001	!	conectado
+1919.001	>	SYNC
+1924.126	!	enlace Bluetooth caido
+1925.127	!	conectado
+1925.127	>	SYNC
+1930.252	!	enlace Bluetooth caido
+1931.253	!	conectado
+1931.253	>	SYNC
+1936.379	!	enlace Bluetooth caido
+1937.380	!	conectado
+1937.380	>	SYNC
+1942.507	!	enlace Bluetooth caido
+1943.507	!	conectado
+1943.507	>	SYNC
+1948.633	!	enlace Bluetooth caido
+1949.633	!	conectado
+1949.633	>	SYNC
+1954.759	!	enlace Bluetooth caido
+1955.759	!	conectado
+1955.760	>	SYNC
+1960.886	!	enlace Bluetooth caido
+1961.887	!	conectado
+1961.887	>	SYNC
+1967.013	!	enlace Bluetooth caido
+1968.014	!	conectado
+1968.014	>	SYNC
+1973.139	!	enlace Bluetooth caido
+1974.140	!	conectado
+1974.140	>	SYNC
+1979.265	!	enlace Bluetooth caido
+1980.265	!	conectado
+1980.265	>	SYNC
+1985.392	!	enlace Bluetooth caido
+1986.393	!	conectado
+1986.393	>	SYNC
+1991.519	!	enlace Bluetooth caido
+1992.520	!	conectado
+1992.520	>	SYNC
+1997.646	!	enlace Bluetooth caido
+1998.647	!	conectado
+1998.647	>	SYNC
+2003.773	!	enlace Bluetooth caido
+2004.774	!	conectado
+2004.774	>	SYNC
+2009.900	!	enlace Bluetooth caido
+2010.901	!	conectado
+2010.901	>	SYNC
+2016.027	!	enlace Bluetooth caido
+2017.027	!	conectado
+2017.028	>	SYNC
+2022.154	!	enlace Bluetooth caido
+2023.155	!	conectado
+2023.155	>	SYNC
+2028.280	!	enlace Bluetooth caido
+2029.281	!	conectado
+2029.281	>	SYNC
+2034.406	!	enlace Bluetooth caido
+2035.407	!	conectado
+2035.407	>	SYNC
+2040.533	!	enlace Bluetooth caido
+2041.534	!	conectado
+2041.534	>	SYNC
+2046.660	!	enlace Bluetooth caido
+2047.661	!	conectado
+2047.661	>	SYNC
+2052.787	!	enlace Bluetooth caido
+2053.787	!	conectado
+2053.787	>	SYNC
+2058.913	!	enlace Bluetooth caido
+2059.914	!	conectado
+2059.914	>	SYNC
+2065.041	!	enlace Bluetooth caido
+2066.042	!	conectado
+2066.042	>	SYNC
+2071.167	!	enlace Bluetooth caido
+2072.168	!	conectado
+2072.168	>	SYNC
+2077.294	!	enlace Bluetooth caido
+2078.295	!	conectado
+2078.295	>	SYNC
+2083.422	!	enlace Bluetooth caido
+2084.423	!	conectado
+2084.423	>	SYNC
+2089.549	!	enlace Bluetooth caido
+2090.550	!	conectado
+2090.550	>	SYNC
+2095.676	!	enlace Bluetooth caido
+2096.677	!	conectado
+2096.677	>	SYNC
+2101.803	!	enlace Bluetooth caido
+2102.804	!	conectado
+2102.804	>	SYNC
+2107.929	!	enlace Bluetooth caido
+2108.930	!	conectado
+2108.930	>	SYNC
+2114.056	!	enlace Bluetooth caido
+2115.056	!	conectado
+2115.056	>	SYNC
+2120.183	!	enlace Bluetooth caido
+2121.183	!	conectado
+2121.184	>	SYNC
+2126.310	!	enlace Bluetooth caido
+2127.310	!	conectado
+2127.311	>	SYNC
+2132.436	!	enlace Bluetooth caido
+2133.437	!	conectado
+2133.437	>	SYNC
+2138.562	!	enlace Bluetooth caido
+2139.562	!	conectado
+2139.562	>	SYNC
+2144.689	!	enlace Bluetooth caido
+2145.690	!	conectado
+2145.690	>	SYNC
+2150.816	!	enlace Bluetooth caido
+2151.817	!	conectado
+2151.817	>	SYNC
+2156.941	!	enlace Bluetooth caido
+2157.941	!	conectado
+2157.941	>	SYNC
+2163.067	!	enlace Bluetooth caido
+2164.068	!	conectado
+2164.068	>	SYNC
+2169.195	!	enlace Bluetooth caido
+2170.195	!	conectado
+2170.195	>	SYNC
+2175.322	!	enlace Bluetooth caido
+2176.323	!	conectado
+2176.323	>	SYNC
+2181.448	!	enlace Bluetooth caido
+2182.449	!	conectado
+2182.449	>	SYNC
+2187.576	!	enlace Bluetooth caido
+2188.577	!	conectado
+2188.577	>	SYNC
+2193.702	!	enlace Bluetooth caido
+2194.703	!	conectado
+2194.703	>	SYNC
+2199.828	!	enlace Bluetooth caido
+2200.829	!	conectado
+2200.829	>	SYNC
+2205.954	!	enlace Bluetooth caido
+2206.955	!	conectado
+2206.955	>	SYNC
+2212.082	!	enlace Bluetooth caido
+2213.082	!	conectado
+2213.082	>	SYNC
+2218.208	!	enlace Bluetooth caido
+2219.209	!	conectado
+2219.209	>	SYNC
+2224.335	!	enlace Bluetooth caido
+2225.335	!	conectado
+2225.335	>	SYNC
+2230.461	!	enlace Bluetooth caido
+2231.462	!	conectado
+2231.462	>	SYNC
+2236.588	!	enlace Bluetooth caido
+2237.589	!	conectado
+2237.589	>	SYNC
+2242.715	!	enlace Bluetooth caido
+2243.716	!	conectado
+2243.716	>	SYNC
+2248.842	!	enlace Bluetooth caido
+2249.842	!	conectado
+2249.842	>	SYNC
+2254.969	!	enlace Bluetooth caido
+2255.969	!	conectado
+2255.969	>	SYNC
+2261.096	!	enlace Bluetooth caido
+2262.097	!	conectado
+2262.097	>	SYNC
+2267.222	!	enlace Bluetooth caido
+2268.223	!	conectado
+2268.223	>	SYNC
+2273.349	!	enlace Bluetooth caido
+2274.350	!	conectado
+2274.350	>	SYNC
+2279.477	!	enlace Bluetooth caido
+2280.477	!	conectado
+2280.478	>	SYNC
+2285.603	!	enlace Bluetooth caido
+2286.604	!	conectado
+2286.604	>	SYNC
+2291.731	!	enlace Bluetooth caido
+2292.731	!	conectado
+2292.731	>	SYNC
+2297.857	!	enlace Bluetooth caido
+2298.858	!	conectado
+2298.858	>	SYNC
+2303.984	!	enlace Bluetooth caido
+2304.985	!	conectado
+2304.985	>	SYNC
+2310.111	!	enlace Bluetooth caido
+2311.111	!	conectado
+2311.111	>	SYNC
+2316.238	!	enlace Bluetooth caido
+2317.239	!	conectado
+2317.239	>	SYNC
+2322.364	!	enlace Bluetooth caido
+2323.365	!	conectado
+2323.365	>	SYNC
+2328.490	!	enlace Bluetooth caido
+2329.491	!	conectado
+2329.491	>	SYNC
+2334.617	!	enlace Bluetooth caido
+2335.618	!	conectado
+2335.618	>	SYNC
+2340.744	!	enlace Bluetooth caido
+2341.744	!	conectado
+2341.744	>	SYNC
+2346.870	!	enlace Bluetooth caido
+2347.871	!	conectado
+2347.871	>	SYNC
+2352.996	!	enlace Bluetooth caido
+2353.996	!	conectado
+2353.997	>	SYNC
+2359.123	!	enlace Bluetooth caido
+2360.124	!	conectado
+2360.124	>	SYNC
+2365.250	!	enlace Bluetooth caido
+2366.251	!	conectado
+2366.251	>	SYNC
+2371.376	!	enlace Bluetooth caido
+2372.377	!	conectado
+2372.377	>	SYNC
+2377.502	!	enlace Bluetooth caido
+2378.502	!	conectado
+2378.502	>	SYNC
+2383.629	!	enlace Bluetooth caido
+2384.629	!	conectado
+2384.629	>	SYNC
+2389.756	!	enlace Bluetooth caido
+2390.756	!	conectado
+2390.756	>	SYNC
+2395.882	!	enlace Bluetooth caido
+2396.883	!	conectado
+2396.883	>	SYNC
+2402.009	!	enlace Bluetooth caido
+2403.009	!	conectado
+2403.009	>	SYNC
+2408.136	!	enlace Bluetooth caido
+2409.136	!	conectado
+2409.136	>	SYNC
+2414.262	!	enlace Bluetooth caido
+2415.262	!	conectado
+2415.263	>	SYNC
+2420.388	!	enlace Bluetooth caido
+2421.389	!	conectado
+2421.389	>	SYNC
+2426.515	!	enlace Bluetooth caido
+2427.516	!	conectado
+2427.516	>	SYNC
+2432.642	!	enlace Bluetooth caido
+2433.643	!	conectado
+2433.643	>	SYNC
+2438.769	!	enlace Bluetooth caido
+2439.770	!	conectado
+2439.770	>	SYNC
+2444.897	!	enlace Bluetooth caido
+2445.898	!	conectado
+2445.898	>	SYNC
+2451.024	!	enlace Bluetooth caido
+2452.024	!	conectado
+2452.025	>	SYNC
+2457.151	!	enlace Bluetooth caido
+2458.151	!	conectado
+2458.151	>	SYNC
+2463.277	!	enlace Bluetooth caido
+2464.278	!	conectado
+2464.278	>	SYNC
+2469.404	!	enlace Bluetooth caido
+2470.405	!	conectado
+2470.405	>	SYNC
+2475.532	!	enlace Bluetooth caido
+2476.533	!	conectado
+2476.533	>	SYNC
+2481.658	!	enlace Bluetooth caido
+2482.659	!	conectado
+2482.659	>	SYNC
+2487.784	!	enlace Bluetooth caido
+2488.785	!	conectado
+2488.785	>	SYNC
+2493.911	!	enlace Bluetooth caido
+2494.912	!	conectado
+2494.912	>	SYNC
+2500.038	!	enlace Bluetooth caido
+2501.039	!	conectado
+2501.039	>	SYNC
+2506.165	!	enlace Bluetooth caido
+2507.165	!	conectado
+2507.166	>	SYNC
+2512.291	!	enlace Bluetooth caido
+2513.292	!	conectado
+2513.292	>	SYNC
+2518.418	!	enlace Bluetooth caido
+2519.419	!	conectado
+2519.419	>	SYNC
+2524.545	!	enlace Bluetooth caido
+2525.546	!	conectado
+2525.546	>	SYNC
+2530.671	!	enlace Bluetooth caido
+2531.672	!	conectado
+2531.672	>	SYNC
+2536.797	!	enlace Bluetooth caido
+2537.798	!	conectado
+2537.798	>	SYNC
+2542.925	!	enlace Bluetooth caido
+2543.925	!	conectado
+2543.925	>	SYNC
+2549.051	!	enlace Bluetooth caido
+2550.052	!	conectado
+2550.052	>	SYNC
+2555.177	!	enlace Bluetooth caido
+2556.177	!	conectado
+2556.178	>	SYNC
+2561.303	!	enlace Bluetooth caido
+2562.304	!	conectado
+2562.304	>	SYNC
+2567.430	!	enlace Bluetooth caido
+2568.430	!	conectado
+2568.430	>	SYNC
+2573.557	!	enlace Bluetooth caido
+2574.557	!	conectado
+2574.557	>	SYNC
+2579.682	!	enlace Bluetooth caido
+2580.683	!	conectado
+2580.683	>	SYNC
+2585.810	!	enlace Bluetooth caido
+2586.811	!	conectado
+2586.811	>	SYNC
+2591.937	!	enlace Bluetooth caido
+2592.938	!	conectado
+2592.938	>	SYNC
+2598.064	!	enlace Bluetooth caido
+2599.065	!	conectado
+2599.065	>	SYNC
+2604.191	!	enlace Bluetooth caido
+2605.191	!	conectado
+2605.192	>	SYNC
+2610.318	!	enlace Bluetooth caido
+2611.319	!	conectado
+2611.319	>	SYNC
+2616.445	!	enlace Bluetooth caido
+2617.446	!	conectado
+2617.446	>	SYNC
+2622.572	!	enlace Bluetooth caido
+2623.572	!	conectado
+2623.572	>	SYNC
+2628.699	!	enlace Bluetooth caido
+2629.699	!	conectado
+2629.699	>	SYNC
+2634.826	!	enlace Bluetooth caido
+2635.826	!	conectado
+2635.826	>	SYNC
+2640.953	!	enlace Bluetooth caido
+2641.953	!	conectado
+2641.953	>	SYNC
+2647.079	!	enlace Bluetooth caido
+2648.079	!	conectado
+2648.079	>	SYNC
+2653.205	!	enlace Bluetooth caido
+2654.206	!	conectado
+2654.206	>	SYNC
+2659.331	!	enlace Bluetooth caido
+2660.331	!	conectado
+2660.331	>	SYNC
+2665.458	!	enlace Bluetooth caido
+2666.459	!	conectado
+2666.459	>	SYNC
+2671.585	!	enlace Bluetooth caido
+2672.586	!	conectado
+2672.586	>	SYNC
+2677.711	!	enlace Bluetooth caido
+2678.712	!	conectado
+2678.712	>	SYNC
+2683.839	!	enlace Bluetooth caido
+2684.840	!	conectado
+2684.840	>	SYNC
+2689.966	!	enlace Bluetooth caido
+2690.966	!	conectado
+2690.966	>	SYNC
+2696.092	!	enlace Bluetooth caido
+2697.093	!	conectado
+2697.093	>	SYNC
+2702.219	!	enlace Bluetooth caido
+2703.220	!	conectado
+2703.220	>	SYNC
+2708.346	!	enlace Bluetooth caido
+2709.347	!	conectado
+2709.347	>	SYNC
+2714.472	!	enlace Bluetooth caido
+2715.473	!	conectado
+2715.473	>	SYNC
+2720.598	!	enlace Bluetooth caido
+2721.599	!	conectado
+2721.599	>	SYNC
+2726.726	!	enlace Bluetooth caido
+2727.727	!	conectado
+2727.727	>	SYNC
+2732.852	!	enlace Bluetooth caido
+2733.853	!	conectado
+2733.853	>	SYNC
+2738.978	!	enlace Bluetooth caido
+2739.979	!	conectado
+2739.979	>	SYNC
+2745.104	!	enlace Bluetooth caido
+2746.105	!	conectado
+2746.105	>	SYNC
+2751.232	!	enlace Bluetooth caido
+2752.233	!	conectado
+2752.233	>	SYNC
+2757.359	!	enlace Bluetooth caido
+2758.360	!	conectado
+2758.360	>	SYNC
+2763.486	!	enlace Bluetooth caido
+2764.487	!	conectado
+2764.487	>	SYNC
+2769.613	!	enlace Bluetooth caido
+2770.614	!	conectado
+2770.614	>	SYNC
+2775.739	!	enlace Bluetooth caido
+2776.740	!	conectado
+2776.740	>	SYNC
+2781.865	!	enlace Bluetooth caido
+2782.866	!	conectado
+2782.866	>	SYNC
+2787.992	!	enlace Bluetooth caido
+2788.993	!	conectado
+2788.993	>	SYNC
+2794.119	!	enlace Bluetooth caido
+2795.120	!	conectado
+2795.120	>	SYNC
+2800.246	!	enlace Bluetooth caido
+2801.246	!	conectado
+2801.246	>	SYNC
+2806.373	!	enlace Bluetooth caido
+2807.373	!	conectado
+2807.373	>	SYNC
+2812.500	!	enlace Bluetooth caido
+2813.500	!	conectado
+2813.501	>	SYNC
+2818.625	!	enlace Bluetooth caido
+2819.626	!	conectado
+2819.626	>	SYNC
+2824.752	!	enlace Bluetooth caido
+2825.752	!	conectado
+2825.753	>	SYNC
+2830.879	!	enlace Bluetooth caido
+2831.879	!	conectado
+2831.879	>	SYNC
+2837.006	!	enlace Bluetooth caido
+2838.006	!	conectado
+2838.007	>	SYNC
+2843.131	!	enlace Bluetooth caido
+2844.132	!	conectado
+2844.132	>	SYNC
+2849.258	!	enlace Bluetooth caido
+2850.259	!	conectado
+2850.259	>	SYNC
+2855.385	!	enlace Bluetooth caido
+2856.386	!	conectado
+2856.386	>	SYNC
+2861.512	!	enlace Bluetooth caido
+2862.512	!	conectado
+2862.512	>	SYNC
+2867.638	!	enlace Bluetooth caido
+2868.639	!	conectado
+2868.639	>	SYNC
+2873.764	!	enlace Bluetooth caido
+2874.764	!	conectado
+2874.764	>	SYNC
+2879.891	!	enlace Bluetooth caido
+2880.892	!	conectado
+2880.892	>	SYNC
+2886.018	!	enlace Bluetooth caido
+2887.019	!	conectado
+2887.019	>	SYNC
+2892.146	!	enlace Bluetooth caido
+2893.147	!	conectado
+2893.147	>	SYNC
+2898.273	!	enlace Bluetooth caido
+2899.274	!	conectado
+2899.274	>	SYNC
+2904.399	!	enlace Bluetooth caido
+2905.400	!	conectado
+2905.400	>	SYNC
+2910.527	!	enlace Bluetooth caido
+2911.527	!	conectado
+2911.527	>	SYNC
+2916.654	!	enlace Bluetooth caido
+2917.655	!	conectado
+2917.655	>	SYNC
+2922.780	!	enlace Bluetooth caido
+2923.781	!	conectado
+2923.781	>	SYNC
+2928.906	!	enlace Bluetooth caido
+2929.906	!	conectado
+2929.906	>	SYNC
+2935.033	!	enlace Bluetooth caido
+2936.033	!	conectado
+2936.033	>	SYNC
+2941.161	!	enlace Bluetooth caido
+2942.162	!	conectado
+2942.162	>	SYNC
+2947.288	!	enlace Bluetooth caido
+2948.289	!	conectado
+2948.289	>	SYNC
+2953.415	!	enlace Bluetooth caido
+2954.416	!	conectado
+2954.416	>	SYNC
+2959.542	!	enlace Bluetooth caido
+2960.543	!	conectado
+2960.543	>	SYNC
+2965.669	!	enlace Bluetooth caido
+2966.670	!	conectado
+2966.670	>	SYNC
+2971.796	!	enlace Bluetooth caido
+2972.797	!	conectado
+2972.797	>	SYNC
+2977.922	!	enlace Bluetooth caido
+2978.923	!	conectado
+2978.923	>	SYNC
+2984.049	!	enlace Bluetooth caido
+2985.050	!	conectado
+2985.050	>	SYNC
+2990.177	!	enlace Bluetooth caido
+2991.177	!	conectado
+2991.177	>	SYNC
+2996.303	!	enlace Bluetooth caido
+2997.303	!	conectado
+2997.304	>	SYNC
+3002.428	!	enlace Bluetooth caido
+3003.429	!	conectado
+3003.429	>	SYNC
+3008.556	!	enlace Bluetooth caido
+3009.556	!	conectado
+3009.557	>	SYNC
+3014.682	!	enlace Bluetooth caido
+3015.683	!	conectado
+3015.683	>	SYNC
+3020.808	!	enlace Bluetooth caido
+3021.809	!	conectado
+3021.809	>	SYNC
+3026.934	!	enlace Bluetooth caido
+3027.935	!	conectado
+3027.935	>	SYNC
+3033.062	!	enlace Bluetooth caido
+3034.063	!	conectado
+3034.063	>	SYNC
+3039.189	!	enlace Bluetooth caido
+3040.190	!	conectado
+3040.190	>	SYNC
+3045.315	!	enlace Bluetooth caido
+3046.315	!	conectado
+3046.315	>	SYNC
+3051.441	!	enlace Bluetooth caido
+3052.441	!	conectado
+3052.442	>	SYNC
+3057.568	!	enlace Bluetooth caido
+3058.569	!	conectado
+3058.569	>	SYNC
+3063.695	!	enlace Bluetooth caido
+3064.696	!	conectado
+3064.696	>	SYNC
+3069.821	!	enlace Bluetooth caido
+3070.822	!	conectado
+3070.822	>	SYNC
+3075.948	!	enlace Bluetooth caido
+3076.949	!	conectado
+3076.949	>	SYNC
+3082.075	!	enlace Bluetooth caido
+3083.076	!	conectado
+3083.076	>	SYNC
+3088.201	!	enlace Bluetooth caido
+3089.201	!	conectado
+3089.202	>	SYNC
+3094.327	!	enlace Bluetooth caido
+3095.327	!	conectado
+3095.328	>	SYNC
+3100.454	!	enlace Bluetooth caido
+3101.454	!	conectado
+3101.454	>	SYNC
+3106.581	!	enlace Bluetooth caido
+3107.582	!	conectado
+3107.582	>	SYNC
+3112.707	!	enlace Bluetooth caido
+3113.708	!	conectado
+3113.708	>	SYNC
+3118.833	!	enlace Bluetooth caido
+3119.834	!	conectado
+3119.834	>	SYNC
+3124.960	!	enlace Bluetooth caido
+3125.961	!	conectado
+3125.961	>	SYNC
+3131.088	!	enlace Bluetooth caido
+3132.088	!	conectado
+3132.088	>	SYNC
+3137.214	!	enlace Bluetooth caido
+3138.214	!	conectado
+3138.214	>	SYNC
+3143.340	!	enlace Bluetooth caido
+3144.340	!	conectado
+3144.340	>	SYNC
+3149.467	!	enlace Bluetooth caido
+3150.467	!	conectado
+3150.468	>	SYNC
+3155.594	!	enlace Bluetooth caido
+3156.594	!	conectado
+3156.595	>	SYNC
+3161.720	!	enlace Bluetooth caido
+3162.720	!	conectado
+3162.721	>	SYNC
+3167.847	!	enlace Bluetooth caido
+3168.848	!	conectado
+3168.848	>	SYNC
+3173.974	!	enlace Bluetooth caido
+3174.975	!	conectado
+3174.975	>	SYNC
+3180.100	!	enlace Bluetooth caido
+3181.101	!	conectado
+3181.101	>	SYNC
+3186.227	!	enlace Bluetooth caido
+3187.227	!	conectado
+3187.227	>	SYNC
+3192.354	!	enlace Bluetooth caido
+3193.354	!	conectado
+3193.355	>	SYNC
+3198.480	!	enlace Bluetooth caido
+3199.480	!	conectado
+3199.480	>	SYNC
+3204.606	!	enlace Bluetooth caido
+3205.606	!	conectado
+3205.606	>	SYNC
+3210.732	!	enlace Bluetooth caido
+3211.732	!	conectado
+3211.733	>	SYNC
+3216.859	!	enlace Bluetooth caido
+3217.860	!	conectado
+3217.860	>	SYNC
+3222.986	!	enlace Bluetooth caido
+3223.986	!	conectado
+3223.986	>	SYNC
+3229.112	!	enlace Bluetooth caido
+3230.113	!	conectado
+3230.113	>	SYNC
+3235.238	!	enlace Bluetooth caido
+3236.239	!	conectado
+3236.239	>	SYNC
+3241.365	!	enlace Bluetooth caido
+3242.366	!	conectado
+3242.366	>	SYNC
+3247.492	!	enlace Bluetooth caido
+3248.493	!	conectado
+3248.493	>	SYNC
+3253.618	!	enlace Bluetooth caido
+3254.619	!	conectado
+3254.619	>	SYNC
+3259.746	!	enlace Bluetooth caido
+3260.746	!	conectado
+3260.746	>	SYNC
+3265.873	!	enlace Bluetooth caido
+3266.873	!	conectado
+3266.873	>	SYNC
+3271.999	!	enlace Bluetooth caido
+3272.999	!	conectado
+3272.999	>	SYNC
+3278.125	!	enlace Bluetooth caido
+3279.125	!	conectado
+3279.126	>	SYNC
+3284.251	!	enlace Bluetooth caido
+3285.252	!	conectado
+3285.252	>	SYNC
+3290.379	!	enlace Bluetooth caido
+3291.379	!	conectado
+3291.380	>	SYNC
+3296.505	!	enlace Bluetooth caido
+3297.506	!	conectado
+3297.506	>	SYNC
+3302.631	!	enlace Bluetooth caido
+3303.631	!	conectado
+3303.631	>	SYNC
+3308.758	!	enlace Bluetooth caido
+3309.759	!	conectado
+3309.759	>	SYNC
+3314.885	!	enlace Bluetooth caido
+3315.886	!	conectado
+3315.886	>	SYNC
+3321.011	!	enlace Bluetooth caido
+3322.012	!	conectado
+3322.012	>	SYNC
+3327.137	!	enlace Bluetooth caido
+3328.138	!	conectado
+3328.138	>	SYNC
+3333.265	!	enlace Bluetooth caido
+3334.266	!	conectado
+3334.266	>	SYNC
+3339.391	!	enlace Bluetooth caido
+3340.391	!	conectado
+3340.391	>	SYNC
+3345.517	!	enlace Bluetooth caido
+3346.518	!	conectado
+3346.518	>	SYNC
+3351.643	!	enlace Bluetooth caido
+3352.644	!	conectado
+3352.644	>	SYNC
+3357.770	!	enlace Bluetooth caido
+3358.771	!	conectado
+3358.771	>	SYNC
+3363.898	!	enlace Bluetooth caido
+3364.899	!	conectado
+3364.899	>	SYNC
+3370.025	!	enlace Bluetooth caido
+3371.026	!	conectado
+3371.026	>	SYNC
+3376.152	!	enlace Bluetooth caido
+3377.153	!	conectado
+3377.153	>	SYNC
+3382.278	!	enlace Bluetooth caido
+3383.279	!	conectado
+3383.279	>	SYNC
+3388.404	!	enlace Bluetooth caido
+3389.405	!	conectado
+3389.405	>	SYNC
+3394.531	!	enlace Bluetooth caido
+3395.532	!	conectado
+3395.532	>	SYNC
+3400.659	!	enlace Bluetooth caido
+3401.660	!	conectado
+3401.660	>	SYNC
+3406.786	!	enlace Bluetooth caido
+3407.787	!	conectado
+3407.787	>	SYNC
+3412.913	!	enlace Bluetooth caido
+3413.913	!	conectado
+3413.913	>	SYNC
+3419.040	!	enlace Bluetooth caido
+3420.041	!	conectado
+3420.041	>	SYNC
+3425.166	!	enlace Bluetooth caido
+3426.167	!	conectado
+3426.167	>	SYNC
+3431.293	!	enlace Bluetooth caido
+3432.294	!	conectado
+3432.294	>	SYNC
+3437.420	!	enlace Bluetooth caido
+3438.421	!	conectado
+3438.421	>	SYNC
+3443.546	!	enlace Bluetooth caido
+3444.547	!	conectado
+3444.547	>	SYNC
+3449.671	!	enlace Bluetooth caido
+3450.672	!	conectado
+3450.672	>	SYNC
+3455.797	!	enlace Bluetooth caido
+3456.798	!	conectado
+3456.798	>	SYNC
+3461.924	!	enlace Bluetooth caido
+3462.925	!	conectado
+3462.925	>	SYNC
+3468.051	!	enlace Bluetooth caido
+3469.052	!	conectado
+3469.052	>	SYNC
+3474.177	!	enlace Bluetooth caido
+3475.178	!	conectado
+3475.178	>	SYNC
+3480.303	!	enlace Bluetooth caido
+3481.304	!	conectado
+3481.304	>	SYNC
+3486.430	!	enlace Bluetooth caido
+3487.431	!	conectado
+3487.431	>	SYNC
+3492.557	!	enlace Bluetooth caido
+3493.558	!	conectado
+3493.558	>	SYNC
+3498.686	!	enlace Bluetooth caido
+3499.686	!	conectado
+3499.686	>	SYNC
+3504.813	!	enlace Bluetooth caido
+3505.813	!	conectado
+3505.814	>	SYNC
+3510.939	!	enlace Bluetooth caido
+3511.939	!	conectado
+3511.939	>	SYNC
+3517.065	!	enlace Bluetooth caido
+3518.066	!	conectado
+3518.066	>	SYNC
+3523.192	!	enlace Bluetooth caido
+3524.193	!	conectado
+3524.193	>	SYNC
+3529.319	!	enlace Bluetooth caido
+3530.319	!	conectado
+3530.319	>	SYNC
+3535.445	!	enlace Bluetooth caido
+3536.446	!	conectado
+3536.446	>	SYNC
+3541.571	!	enlace Bluetooth caido
+3542.572	!	conectado
+3542.572	>	SYNC
+3547.698	!	enlace Bluetooth caido
+3548.699	!	conectado
+3548.699	>	SYNC
+3553.825	!	enlace Bluetooth caido
+3554.826	!	conectado
+3554.826	>	SYNC
+3559.953	!	enlace Bluetooth caido
+3560.954	!	conectado
+3560.954	>	SYNC
+3566.080	!	enlace Bluetooth caido
+3567.081	!	conectado
+3567.081	>	SYNC
+3572.206	!	enlace Bluetooth caido
+3573.206	!	conectado
+3573.206	>	SYNC
+3578.332	!	enlace Bluetooth caido
+3579.333	!	conectado
+3579.333	>	SYNC
+3584.459	!	enlace Bluetooth caido
+3585.459	!	conectado
+3585.459	>	SYNC
+3590.586	!	enlace Bluetooth caido
+3591.587	!	conectado
+3591.587	>	SYNC
+3596.726	!	enlace Bluetooth caido
+3597.727	!	conectado
+3597.727	>	SYNC
+3602.853	!	enlace Bluetooth caido
+3603.853	!	conectado
+3603.853	>	SYNC
+3608.981	!	enlace Bluetooth caido
+3609.981	!	conectado
+3609.981	>	SYNC
+3615.108	!	enlace Bluetooth caido
+3616.109	!	conectado
+3616.109	>	SYNC
+3621.236	!	enlace Bluetooth caido
+3622.236	!	conectado
+3622.237	>	SYNC
+3627.363	!	enlace Bluetooth caido
+3628.364	!	conectado
+3628.364	>	SYNC
+3633.490	!	enlace Bluetooth caido
+3634.491	!	conectado
+3634.491	>	SYNC
+3639.616	!	enlace Bluetooth caido
+3640.617	!	conectado
+3640.617	>	SYNC
+3645.744	!	enlace Bluetooth caido
+3646.745	!	conectado
+3646.745	>	SYNC
+3651.870	!	enlace Bluetooth caido
+3652.871	!	conectado
+3652.871	>	SYNC
+3657.996	!	enlace Bluetooth caido
+3658.996	!	conectado
+3658.996	>	SYNC
+3664.123	!	enlace Bluetooth caido
+3665.123	!	conectado
+3665.124	>	SYNC
+3670.250	!	enlace Bluetooth caido
+3671.250	!	conectado
+3671.250	>	SYNC
+3676.376	!	enlace Bluetooth caido
+3677.377	!	conectado
+3677.377	>	SYNC
+3682.503	!	enlace Bluetooth caido
+3683.504	!	conectado
+3683.504	>	SYNC
+3688.630	!	enlace Bluetooth caido
+3689.631	!	conectado
+3689.631	>	SYNC
+3694.756	!	enlace Bluetooth caido
+3695.757	!	conectado
+3695.757	>	SYNC
+3700.882	!	enlace Bluetooth caido
+3701.883	!	conectado
+3701.883	>	SYNC
+3707.009	!	enlace Bluetooth caido
+3708.010	!	conectado
+3708.010	>	SYNC
+3713.136	!	enlace Bluetooth caido
+3714.137	!	conectado
+3714.137	>	SYNC
+3719.262	!	enlace Bluetooth caido
+3720.263	!	conectado
+3720.263	>	SYNC
+3725.389	!	enlace Bluetooth caido
+3726.389	!	conectado
+3726.389	>	SYNC
+3731.516	!	enlace Bluetooth caido
+3732.516	!	conectado
+3732.517	>	SYNC
+3737.643	!	enlace Bluetooth caido
+3738.644	!	conectado
+3738.644	>	SYNC
+3743.769	!	enlace Bluetooth caido
+3744.770	!	conectado
+3744.770	>	SYNC
+3749.895	!	enlace Bluetooth caido
+3750.896	!	conectado
+3750.896	>	SYNC
+3756.022	!	enlace Bluetooth caido
+3757.023	!	conectado
+3757.023	>	SYNC
+3762.149	!	enlace Bluetooth caido
+3763.149	!	conectado
+3763.149	>	SYNC
+3768.275	!	enlace Bluetooth caido
+3769.275	!	conectado
+3769.275	>	SYNC
+3774.402	!	enlace Bluetooth caido
+3775.403	!	conectado
+3775.403	>	SYNC
+3780.529	!	enlace Bluetooth caido
+3781.529	!	conectado
+3781.529	>	SYNC
+3786.662	!	enlace Bluetooth caido
+3787.663	!	conectado
+3787.663	>	SYNC
+3792.792	!	enlace Bluetooth caido
+3793.793	!	conectado
+3793.793	>	SYNC
+3798.919	!	enlace Bluetooth caido
+3799.920	!	conectado
+3799.920	>	SYNC
+3805.045	!	enlace Bluetooth caido
+3806.046	!	conectado
+3806.046	>	SYNC
+3811.171	!	enlace Bluetooth caido
+3812.172	!	conectado
+3812.172	>	SYNC
+3817.298	!	enlace Bluetooth caido
+3818.298	!	conectado
+3818.298	>	SYNC
+3823.424	!	enlace Bluetooth caido
+3824.425	!	conectado
+3824.425	>	SYNC
+3829.551	!	enlace Bluetooth caido
+3830.552	!	conectado
+3830.552	>	SYNC
+3835.677	!	enlace Bluetooth caido
+3836.678	!	conectado
+3836.678	>	SYNC
+3841.804	!	enlace Bluetooth caido
+3842.804	!	conectado
+3842.804	>	SYNC
+3847.931	!	enlace Bluetooth caido
+3848.932	!	conectado
+3848.932	>	SYNC
+3854.058	!	enlace Bluetooth caido
+3855.059	!	conectado
+3855.059	>	SYNC
+3860.184	!	enlace Bluetooth caido
+3861.185	!	conectado
+3861.185	>	SYNC
+3866.311	!	enlace Bluetooth caido
+3867.312	!	conectado
+3867.312	>	SYNC
+3872.439	!	enlace Bluetooth caido
+3873.439	!	conectado
+3873.439	>	SYNC
+3878.565	!	enlace Bluetooth caido
+3879.566	!	conectado
+3879.566	>	SYNC
+3884.692	!	enlace Bluetooth caido
+3885.693	!	conectado
+3885.693	>	SYNC
+3890.819	!	enlace Bluetooth caido
+3891.820	!	conectado
+3891.820	>	SYNC
+3896.945	!	enlace Bluetooth caido
+3897.946	!	conectado
+3897.946	>	SYNC
+3903.071	!	enlace Bluetooth caido
+3904.072	!	conectado
+3904.072	>	SYNC
+3909.198	!	enlace Bluetooth caido
+3910.199	!	conectado
+3910.199	>	SYNC
+3915.325	!	enlace Bluetooth caido
+3916.326	!	conectado
+3916.326	>	SYNC
+3921.451	!	enlace Bluetooth caido
+3922.452	!	conectado
+3922.452	>	SYNC
+3927.578	!	enlace Bluetooth caido
+3928.579	!	conectado
+3928.579	>	SYNC
+3933.705	!	enlace Bluetooth caido
+3934.706	!	conectado
+3934.706	>	SYNC
+3939.832	!	enlace Bluetooth caido
+3940.832	!	conectado
+3940.833	>	SYNC
+3945.957	!	enlace Bluetooth caido
+3946.958	!	conectado
+3946.958	>	SYNC
+3952.085	!	enlace Bluetooth caido
+3953.086	!	conectado
+3953.086	>	SYNC
+3958.212	!	enlace Bluetooth caido
+3959.213	!	conectado
+3959.213	>	SYNC
+3964.339	!	enlace Bluetooth caido
+3965.339	!	conectado
+3965.340	>	SYNC
+3970.466	!	enlace Bluetooth caido
+3971.467	!	conectado
+3971.467	>	SYNC
+3976.593	!	enlace Bluetooth caido
+3977.593	!	conectado
+3977.594	>	SYNC
+3982.719	!	enlace Bluetooth caido
+3983.720	!	conectado
+3983.720	>	SYNC
+3988.846	!	enlace Bluetooth caido
+3989.847	!	conectado
+3989.847	>	SYNC
+3994.973	!	enlace Bluetooth caido
+3995.974	!	conectado
+3995.974	>	SYNC
+4001.100	!	enlace Bluetooth caido
+4002.101	!	conectado
+4002.101	>	SYNC
+4007.227	!	enlace Bluetooth caido
+4008.228	!	conectado
+4008.228	>	SYNC
+4013.354	!	enlace Bluetooth caido
+4014.355	!	conectado
+4014.355	>	SYNC
+4019.482	!	enlace Bluetooth caido
+4020.483	!	conectado
+4020.483	>	SYNC
+4025.610	!	enlace Bluetooth caido
+4026.611	!	conectado
+4026.611	>	SYNC
+4031.737	!	enlace Bluetooth caido
+4032.737	!	conectado
+4032.738	>	SYNC
+4037.864	!	enlace Bluetooth caido
+4038.865	!	conectado
+4038.865	>	SYNC
+4043.991	!	enlace Bluetooth caido
+4044.991	!	conectado
+4044.991	>	SYNC
+4050.117	!	enlace Bluetooth caido
+4051.118	!	conectado
+4051.118	>	SYNC
+4056.243	!	enlace Bluetooth caido
+4057.243	!	conectado
+4057.243	>	SYNC
+4062.370	!	enlace Bluetooth caido
+4063.371	!	conectado
+4063.371	>	SYNC
+4068.497	!	enlace Bluetooth caido
+4069.498	!	conectado
+4069.498	>	SYNC
+4074.623	!	enlace Bluetooth caido
+4075.623	!	conectado
+4075.623	>	SYNC
+4080.750	!	enlace Bluetooth caido
+4081.751	!	conectado
+4081.751	>	SYNC
+4086.877	!	enlace Bluetooth caido
+4087.878	!	conectado
+4087.878	>	SYNC
+4093.003	!	enlace Bluetooth caido
+4094.004	!	conectado
+4094.004	>	SYNC
+4099.129	!	enlace Bluetooth caido
+4100.130	!	conectado
+4100.130	>	SYNC
+4105.256	!	enlace Bluetooth caido
+4106.257	!	conectado
+4106.257	>	SYNC
+4111.383	!	enlace Bluetooth caido
+4112.384	!	conectado
+4112.384	>	SYNC
+4117.509	!	enlace Bluetooth caido
+4118.510	!	conectado
+4118.510	>	SYNC
+4123.636	!	enlace Bluetooth caido
+4124.636	!	conectado
+4124.637	>	SYNC
+4129.763	!	enlace Bluetooth caido
+4130.764	!	conectado
+4130.764	>	SYNC
+4135.890	!	enlace Bluetooth caido
+4136.890	!	conectado
+4136.890	>	SYNC
+4142.016	!	enlace Bluetooth caido
+4143.017	!	conectado
+4143.017	>	SYNC
+4148.144	!	enlace Bluetooth caido
+4149.145	!	conectado
+4149.145	>	SYNC
+4154.271	!	enlace Bluetooth caido
+4155.272	!	conectado
+4155.272	>	SYNC
+4160.397	!	enlace Bluetooth caido
+4161.398	!	conectado
+4161.398	>	SYNC
+4166.524	!	enlace Bluetooth caido
+4167.524	!	conectado
+4167.524	>	SYNC
+4172.651	!	enlace Bluetooth caido
+4173.651	!	conectado
+4173.651	>	SYNC
+4178.777	!	enlace Bluetooth caido
+4179.777	!	conectado
+4179.778	>	SYNC
+4184.903	!	enlace Bluetooth caido
+4185.904	!	conectado
+4185.904	>	SYNC
+4191.030	!	enlace Bluetooth caido
+4192.031	!	conectado
+4192.031	>	SYNC
+4197.157	!	enlace Bluetooth caido
+4198.158	!	conectado
+4198.158	>	SYNC
+4203.283	!	enlace Bluetooth caido
+4204.284	!	conectado
+4204.284	>	SYNC
+4209.409	!	enlace Bluetooth caido
+4210.410	!	conectado
+4210.410	>	SYNC
+4215.536	!	enlace Bluetooth caido
+4216.537	!	conectado
+4216.537	>	SYNC
+4221.664	!	enlace Bluetooth caido
+4222.664	!	conectado
+4222.664	>	SYNC
+4227.789	!	enlace Bluetooth caido
+4228.790	!	conectado
+4228.790	>	SYNC
+4233.917	!	enlace Bluetooth caido
+4234.917	!	conectado
+4234.917	>	SYNC
+4240.044	!	enlace Bluetooth caido
+4241.044	!	conectado
+4241.044	>	SYNC
+4246.170	!	enlace Bluetooth caido
+4247.171	!	conectado
+4247.171	>	SYNC
+4252.295	!	enlace Bluetooth caido
+4253.296	!	conectado
+4253.296	>	SYNC
+4258.423	!	enlace Bluetooth caido
+4259.424	!	conectado
+4259.424	>	SYNC
+4264.550	!	enlace Bluetooth caido
+4265.550	!	conectado
+4265.550	>	SYNC
+4270.676	!	enlace Bluetooth caido
+4271.677	!	conectado
+4271.677	>	SYNC
+4276.802	!	enlace Bluetooth caido
+4277.802	!	conectado
+4277.802	>	SYNC
+4282.929	!	enlace Bluetooth caido
+4283.929	!	conectado
+4283.929	>	SYNC
+4289.056	!	enlace Bluetooth caido
+4290.056	!	conectado
+4290.057	>	SYNC
+4295.182	!	enlace Bluetooth caido
+4296.183	!	conectado
+4296.183	>	SYNC
+4301.308	!	enlace Bluetooth caido
+4302.308	!	conectado
+4302.309	>	SYNC
+4307.435	!	enlace Bluetooth caido
+4308.436	!	conectado
+4308.436	>	SYNC
+4313.562	!	enlace Bluetooth caido
+4314.563	!	conectado
+4314.563	>	SYNC
+4319.688	!	enlace Bluetooth caido
+4320.689	!	conectado
+4320.689	>	SYNC
+4325.816	!	enlace Bluetooth caido
+4326.817	!	conectado
+4326.817	>	SYNC
+4331.943	!	enlace Bluetooth caido
+4332.944	!	conectado
+4332.944	>	SYNC
+4338.070	!	enlace Bluetooth caido
+4339.070	!	conectado
+4339.071	>	SYNC
+4344.196	!	enlace Bluetooth caido
+4345.197	!	conectado
+4345.197	>	SYNC
+4350.324	!	enlace Bluetooth caido
+4351.324	!	conectado
+4351.325	>	SYNC
+4356.450	!	enlace Bluetooth caido
+4357.451	!	conectado
+4357.451	>	SYNC
+4362.576	!	enlace Bluetooth caido
+4363.576	!	conectado
+4363.576	>	SYNC
+4368.703	!	enlace Bluetooth caido
+4369.704	!	conectado
+4369.704	>	SYNC
+4374.830	!	enlace Bluetooth caido
+4375.830	!	conectado
+4375.831	>	SYNC
+4380.956	!	enlace Bluetooth caido
+4381.957	!	conectado
+4381.957	>	SYNC
+4387.083	!	enlace Bluetooth caido
+4388.084	!	conectado
+4388.084	>	SYNC
+4393.210	!	enlace Bluetooth caido
+4394.211	!	conectado
+4394.211	>	SYNC
+4399.337	!	enlace Bluetooth caido
+4400.337	!	conectado
+4400.337	>	SYNC
+4405.464	!	enlace Bluetooth caido
+4406.465	!	conectado
+4406.465	>	SYNC
+4411.595	!	enlace Bluetooth caido
+4412.596	!	conectado
+4412.596	>	SYNC
+4417.721	!	enlace Bluetooth caido
+4418.722	!	conectado
+4418.722	>	SYNC
+4423.847	!	enlace Bluetooth caido
+4424.848	!	conectado
+4424.848	>	SYNC
+4429.975	!	enlace Bluetooth caido
+4430.976	!	conectado
+4430.976	>	SYNC
+4436.103	!	enlace Bluetooth caido
+4437.103	!	conectado
+4437.104	>	SYNC
+4442.231	!	enlace Bluetooth caido
+4443.231	!	conectado
+4443.231	>	SYNC
+4448.357	!	enlace Bluetooth caido
+4449.358	!	conectado
+4449.358	>	SYNC
+4454.483	!	enlace Bluetooth caido
+4455.484	!	conectado
+4455.484	>	SYNC
+4460.610	!	enlace Bluetooth caido
+4461.611	!	conectado
+4461.611	>	SYNC
+4466.738	!	enlace Bluetooth caido
+4467.739	!	conectado
+4467.739	>	SYNC
+4472.864	!	enlace Bluetooth caido
+4473.865	!	conectado
+4473.865	>	SYNC
+4478.992	!	enlace Bluetooth caido
+4479.993	!	conectado
+4479.993	>	SYNC
+4485.119	!	enlace Bluetooth caido
+4486.120	!	conectado
+4486.120	>	SYNC
+4491.246	!	enlace Bluetooth caido
+4492.247	!	conectado
+4492.247	>	SYNC
+4497.374	!	enlace Bluetooth caido
+4498.374	!	conectado
+4498.375	>	SYNC
+4503.500	!	enlace Bluetooth caido
+4504.500	!	conectado
+4504.500	>	SYNC
+4509.626	!	enlace Bluetooth caido
+4510.627	!	conectado
+4510.627	>	SYNC
+4515.752	!	enlace Bluetooth caido
+4516.753	!	conectado
+4516.753	>	SYNC
+4521.879	!	enlace Bluetooth caido
+4522.880	!	conectado
+4522.880	>	SYNC
+4528.006	!	enlace Bluetooth caido
+4529.007	!	conectado
+4529.007	>	SYNC
+4534.132	!	enlace Bluetooth caido
+4535.133	!	conectado
+4535.133	>	SYNC
+4540.259	!	enlace Bluetooth caido
+4541.260	!	conectado
+4541.260	>	SYNC
+4546.386	!	enlace Bluetooth caido
+4547.387	!	conectado
+4547.387	>	SYNC
+4552.512	!	enlace Bluetooth caido
+4553.513	!	conectado
+4553.513	>	SYNC
+4558.639	!	enlace Bluetooth caido
+4559.639	!	conectado
+4559.640	>	SYNC
+4564.766	!	enlace Bluetooth caido
+4565.767	!	conectado
+4565.767	>	SYNC
+4570.893	!	enlace Bluetooth caido
+4571.893	!	conectado
+4571.893	>	SYNC
+4577.019	!	enlace Bluetooth caido
+4578.019	!	conectado
+4578.019	>	SYNC
+4583.145	!	enlace Bluetooth caido
+4584.146	!	conectado
+4584.146	>	SYNC
+4589.273	!	enlace Bluetooth caido
+4590.273	!	conectado
+4590.273	>	SYNC
+4595.399	!	enlace Bluetooth caido
+4596.399	!	conectado
+4596.400	>	SYNC
+4601.525	!	enlace Bluetooth caido
+4602.526	!	conectado
+4602.526	>	SYNC
+4607.651	!	enlace Bluetooth caido
+4608.651	!	conectado
+4608.652	>	SYNC
+4613.778	!	enlace Bluetooth caido
+4614.778	!	conectado
+4614.778	>	SYNC
+4619.905	!	enlace Bluetooth caido
+4620.906	!	conectado
+4620.906	>	SYNC
+4626.033	!	enlace Bluetooth caido
+4627.034	!	conectado
+4627.034	>	SYNC
+4632.160	!	enlace Bluetooth caido
+4633.161	!	conectado
+4633.161	>	SYNC
+4638.286	!	enlace Bluetooth caido
+4639.287	!	conectado
+4639.287	>	SYNC
+4644.412	!	enlace Bluetooth caido
+4645.412	!	conectado
+4645.412	>	SYNC
+4650.539	!	enlace Bluetooth caido
+4651.539	!	conectado
+4651.539	>	SYNC
+4656.666	!	enlace Bluetooth caido
+4657.667	!	conectado
+4657.667	>	SYNC
+4662.792	!	enlace Bluetooth caido
+4663.793	!	conectado
+4663.793	>	SYNC
+4668.918	!	enlace Bluetooth caido
+4669.919	!	conectado
+4669.919	>	SYNC
+4675.046	!	enlace Bluetooth caido
+4676.046	!	conectado
+4676.046	>	SYNC
+4681.172	!	enlace Bluetooth caido
+4682.173	!	conectado
+4682.173	>	SYNC
+4687.299	!	enlace Bluetooth caido
+4688.299	!	conectado
+4688.299	>	SYNC
+4693.425	!	enlace Bluetooth caido
+4694.426	!	conectado
+4694.426	>	SYNC
+4699.552	!	enlace Bluetooth caido
+4700.553	!	conectado
+4700.553	>	SYNC
+4705.679	!	enlace Bluetooth caido
+4706.680	!	conectado
+4706.680	>	SYNC
+4711.805	!	enlace Bluetooth caido
+4712.806	!	conectado
+4712.806	>	SYNC
+4717.933	!	enlace Bluetooth caido
+4718.933	!	conectado
+4718.933	>	SYNC
+4724.059	!	enlace Bluetooth caido
+4725.060	!	conectado
+4725.060	>	SYNC
+4730.185	!	enlace Bluetooth caido
+4731.186	!	conectado
+4731.186	>	SYNC
+4736.312	!	enlace Bluetooth caido
+4737.313	!	conectado
+4737.313	>	SYNC
+4742.439	!	enlace Bluetooth caido
+4743.440	!	conectado
+4743.440	>	SYNC
+4748.565	!	enlace Bluetooth caido
+4749.566	!	conectado
+4749.566	>	SYNC
+4754.693	!	enlace Bluetooth caido
+4755.694	!	conectado
+4755.694	>	SYNC
+4760.820	!	enlace Bluetooth caido
+4761.821	!	conectado
+4761.821	>	SYNC
+4766.946	!	enlace Bluetooth caido
+4767.947	!	conectado
+4767.947	>	SYNC
+4773.072	!	enlace Bluetooth caido
+4774.072	!	conectado
+4774.073	>	SYNC
+4779.199	!	enlace Bluetooth caido
+4780.200	!	conectado
+4780.200	>	SYNC
+4785.327	!	enlace Bluetooth caido
+4786.327	!	conectado
+4786.327	>	SYNC
+4791.453	!	enlace Bluetooth caido
+4792.453	!	conectado
+4792.453	>	SYNC
+4797.579	!	enlace Bluetooth caido
+4798.579	!	conectado
+4798.579	>	SYNC
+4803.706	!	enlace Bluetooth caido
+4804.707	!	conectado
+4804.707	>	SYNC
+4809.833	!	enlace Bluetooth caido
+4810.834	!	conectado
+4810.834	>	SYNC
+4815.961	!	enlace Bluetooth caido
+4816.961	!	conectado
+4816.961	>	SYNC
+4822.088	!	enlace Bluetooth caido
+4823.088	!	conectado
+4823.088	>	SYNC
+4828.213	!	enlace Bluetooth caido
+4829.214	!	conectado
+4829.214	>	SYNC
+4834.340	!	enlace Bluetooth caido
+4835.341	!	conectado
+4835.341	>	SYNC
+4840.467	!	enlace Bluetooth caido
+4841.468	!	conectado
+4841.468	>	SYNC
+4846.594	!	enlace Bluetooth caido
+4847.595	!	conectado
+4847.595	>	SYNC
+4852.720	!	enlace Bluetooth caido
+4853.721	!	conectado
+4853.721	>	SYNC
+4858.848	!	enlace Bluetooth caido
+4859.849	!	conectado
+4859.849	>	SYNC
+4864.975	!	enlace Bluetooth caido
+4865.976	!	conectado
+4865.976	>	SYNC
+4871.103	!	enlace Bluetooth caido
+4872.104	!	conectado
+4872.104	>	SYNC
+4877.230	!	enlace Bluetooth caido
+4878.231	!	conectado
+4878.231	>	SYNC
+4883.356	!	enlace Bluetooth caido
+4884.357	!	conectado
+4884.357	>	SYNC
+4889.482	!	enlace Bluetooth caido
+4890.483	!	conectado
+4890.483	>	SYNC
+4895.609	!	enlace Bluetooth caido
+4896.610	!	conectado
+4896.610	>	SYNC
+4901.736	!	enlace Bluetooth caido
+4902.737	!	conectado
+4902.737	>	SYNC
+4907.863	!	enlace Bluetooth caido
+4908.864	!	conectado
+4908.864	>	SYNC
+4913.991	!	enlace Bluetooth caido
+4914.991	!	conectado
+4914.992	>	SYNC
+4920.118	!	enlace Bluetooth caido
+4921.119	!	conectado
+4921.119	>	SYNC
+4926.246	!	enlace Bluetooth caido
+4927.247	!	conectado
+4927.247	>	SYNC
+4932.373	!	enlace Bluetooth caido
+4933.374	!	conectado
+4933.374	>	SYNC
+4938.501	!	enlace Bluetooth caido
+4939.502	!	conectado
+4939.502	>	SYNC
+4944.629	!	enlace Bluetooth caido
+4945.629	!	conectado
+4945.630	>	SYNC
+4950.755	!	enlace Bluetooth caido
+4951.756	!	conectado
+4951.756	>	SYNC
+4956.882	!	enlace Bluetooth caido
+4957.883	!	conectado
+4957.883	>	SYNC
+4963.009	!	enlace Bluetooth caido
+4964.010	!	conectado
+4964.010	>	SYNC
+4969.137	!	enlace Bluetooth caido
+4970.138	!	conectado
+4970.138	>	SYNC
+4975.265	!	enlace Bluetooth caido
+4976.266	!	conectado
+4976.266	>	SYNC
+4981.393	!	enlace Bluetooth caido
+4982.394	!	conectado
+4982.394	>	SYNC
+4987.520	!	enlace Bluetooth caido
+4988.521	!	conectado
+4988.521	>	SYNC
+4993.646	!	enlace Bluetooth caido
+4994.647	!	conectado
+4994.647	>	SYNC
+4999.774	!	enlace Bluetooth caido
+5000.775	!	conectado
+5000.775	>	SYNC
+5005.901	!	enlace Bluetooth caido
+5006.901	!	conectado
+5006.901	>	SYNC
+5012.027	!	enlace Bluetooth caido
+5013.027	!	conectado
+5013.027	>	SYNC
+5018.153	!	enlace Bluetooth caido
+5019.153	!	conectado
+5019.153	>	SYNC
+5024.279	!	enlace Bluetooth caido
+5025.280	!	conectado
+5025.280	>	SYNC
+5030.407	!	enlace Bluetooth caido
+5031.407	!	conectado
+5031.408	>	SYNC
+5036.532	!	enlace Bluetooth caido
+5037.533	!	conectado
+5037.533	>	SYNC
+5042.659	!	enlace Bluetooth caido
+5043.660	!	conectado
+5043.660	>	SYNC
+5048.786	!	enlace Bluetooth caido
+5049.786	!	conectado
+5049.786	>	SYNC
+5054.913	!	enlace Bluetooth caido
+5055.914	!	conectado
+5055.914	>	SYNC
+5061.039	!	enlace Bluetooth caido
+5062.040	!	conectado
+5062.040	>	SYNC
+5067.165	!	enlace Bluetooth caido
+5068.165	!	conectado
+5068.165	>	SYNC
+5073.292	!	enlace Bluetooth caido
+5074.293	!	conectado
+5074.293	>	SYNC
+5079.419	!	enlace Bluetooth caido
+5080.420	!	conectado
+5080.420	>	SYNC
+5085.545	!	enlace Bluetooth caido
+5086.546	!	conectado
+5086.546	>	SYNC
+5091.672	!	enlace Bluetooth caido
+5092.673	!	conectado
+5092.673	>	SYNC
+5097.799	!	enlace Bluetooth caido
+5098.800	!	conectado
+5098.800	>	SYNC
+5103.925	!	enlace Bluetooth caido
+5104.926	!	conectado
+5104.926	>	SYNC
+5110.052	!	enlace Bluetooth caido
+5111.052	!	conectado
+5111.052	>	SYNC
+5116.178	!	enlace Bluetooth caido
+5117.179	!	conectado
+5117.179	>	SYNC
+5122.306	!	enlace Bluetooth caido
+5123.306	!	conectado
+5123.307	>	SYNC
+5128.432	!	enlace Bluetooth caido
+5129.432	!	conectado
+5129.432	>	SYNC
+5134.557	!	enlace Bluetooth caido
+5135.558	!	conectado
+5135.558	>	SYNC
+5140.685	!	enlace Bluetooth caido
+5141.686	!	conectado
+5141.686	>	SYNC
+5146.812	!	enlace Bluetooth caido
+5147.813	!	conectado
+5147.813	>	SYNC
+5152.938	!	enlace Bluetooth caido
+5153.939	!	conectado
+5153.939	>	SYNC
+5159.064	!	enlace Bluetooth caido
+5160.065	!	conectado
+5160.065	>	SYNC
+5165.191	!	enlace Bluetooth caido
+5166.192	!	conectado
+5166.192	>	SYNC
+5171.318	!	enlace Bluetooth caido
+5172.319	!	conectado
+5172.319	>	SYNC
+5177.444	!	enlace Bluetooth caido
+5178.444	!	conectado
+5178.444	>	SYNC
+5183.571	!	enlace Bluetooth caido
+5184.572	!	conectado
+5184.572	>	SYNC
+5189.698	!	enlace Bluetooth caido
+5190.699	!	conectado
+5190.699	>	SYNC
+5195.825	!	enlace Bluetooth caido
+5196.826	!	conectado
+5196.826	>	SYNC
+5201.952	!	enlace Bluetooth caido
+5202.953	!	conectado
+5202.953	>	SYNC
+5208.080	!	enlace Bluetooth caido
+5209.080	!	conectado
+5209.080	>	SYNC
+5214.207	!	enlace Bluetooth caido
+5215.208	!	conectado
+5215.208	>	SYNC
+5220.334	!	enlace Bluetooth caido
+5221.335	!	conectado
+5221.335	>	SYNC
+5226.461	!	enlace Bluetooth caido
+5227.461	!	conectado
+5227.461	>	SYNC
+5232.586	!	enlace Bluetooth caido
+5233.587	!	conectado
+5233.587	>	SYNC
+5238.714	!	enlace Bluetooth caido
+5239.714	!	conectado
+5239.715	>	SYNC
+5244.841	!	enlace Bluetooth caido
+5245.842	!	conectado
+5245.842	>	SYNC
+5250.969	!	enlace Bluetooth caido
+5251.969	!	conectado
+5251.969	>	SYNC
+5257.096	!	enlace Bluetooth caido
+5258.097	!	conectado
+5258.097	>	SYNC
+5263.222	!	enlace Bluetooth caido
+5264.223	!	conectado
+5264.223	>	SYNC
+5269.348	!	enlace Bluetooth caido
+5270.349	!	conectado
+5270.349	>	SYNC
+5275.475	!	enlace Bluetooth caido
+5276.475	!	conectado
+5276.475	>	SYNC
+5281.602	!	enlace Bluetooth caido
+5282.603	!	conectado
+5282.603	>	SYNC
+5287.728	!	enlace Bluetooth caido
+5288.729	!	conectado
+5288.729	>	SYNC
+5293.854	!	enlace Bluetooth caido
+5294.855	!	conectado
+5294.855	>	SYNC
+5299.981	!	enlace Bluetooth caido
+5300.982	!	conectado
+5300.982	>	SYNC
+5306.108	!	enlace Bluetooth caido
+5307.109	!	conectado
+5307.109	>	SYNC
+5312.234	!	enlace Bluetooth caido
+5313.234	!	conectado
+5313.235	>	SYNC
+5318.361	!	enlace Bluetooth caido
+5319.361	!	conectado
+5319.361	>	SYNC
+5324.487	!	enlace Bluetooth caido
+5325.488	!	conectado
+5325.488	>	SYNC
+5330.615	!	enlace Bluetooth caido
+5331.616	!	conectado
+5331.616	>	SYNC
+5336.743	!	enlace Bluetooth caido
+5337.743	!	conectado
+5337.743	>	SYNC
+5342.870	!	enlace Bluetooth caido
+5343.871	!	conectado
+5343.871	>	SYNC
+5348.996	!	enlace Bluetooth caido
+5349.997	!	conectado
+5349.997	>	SYNC
+5355.123	!	enlace Bluetooth caido
+5356.124	!	conectado
+5356.124	>	SYNC
+5361.251	!	enlace Bluetooth caido
+5362.251	!	conectado
+5362.251	>	SYNC
+5367.377	!	enlace Bluetooth caido
+5368.377	!	conectado
+5368.377	>	SYNC
+5373.502	!	enlace Bluetooth caido
+5374.502	!	conectado
+5374.503	>	SYNC
+5379.629	!	enlace Bluetooth caido
+5380.629	!	conectado
+5380.630	>	SYNC
+5385.756	!	enlace Bluetooth caido
+5386.757	!	conectado
+5386.757	>	SYNC
+5391.882	!	enlace Bluetooth caido
+5392.883	!	conectado
+5392.883	>	SYNC
+5398.008	!	enlace Bluetooth caido
+5399.009	!	conectado
+5399.009	>	SYNC
+5404.135	!	enlace Bluetooth caido
+5405.136	!	conectado
+5405.136	>	SYNC
+5410.262	!	enlace Bluetooth caido
+5411.263	!	conectado
+5411.263	>	SYNC
+5416.388	!	enlace Bluetooth caido
+5417.390	!	conectado
+5417.390	>	SYNC
+5422.517	!	enlace Bluetooth caido
+5423.517	!	conectado
+5423.517	>	SYNC
+5428.644	!	enlace Bluetooth caido
+5429.644	!	conectado
+5429.644	>	SYNC
+5434.770	!	enlace Bluetooth caido
+5435.771	!	conectado
+5435.771	>	SYNC
+5440.896	!	enlace Bluetooth caido
+5441.896	!	conectado
+5441.897	>	SYNC
+5447.023	!	enlace Bluetooth caido
+5448.024	!	conectado
+5448.024	>	SYNC
+5453.150	!	enlace Bluetooth caido
+5454.151	!	conectado
+5454.151	>	SYNC
+5459.276	!	enlace Bluetooth caido
+5460.277	!	conectado
+5460.277	>	SYNC
+5465.402	!	enlace Bluetooth caido
+5466.403	!	conectado
+5466.403	>	SYNC
+5471.529	!	enlace Bluetooth caido
+5472.530	!	conectado
+5472.530	>	SYNC
+5477.656	!	enlace Bluetooth caido
+5478.657	!	conectado
+5478.657	>	SYNC
+5483.782	!	enlace Bluetooth caido
+5484.783	!	conectado
+5484.783	>	SYNC
+5489.909	!	enlace Bluetooth caido
+5490.910	!	conectado
+5490.910	>	SYNC
+5496.036	!	enlace Bluetooth caido
+5497.036	!	conectado
+5497.036	>	SYNC
+5502.162	!	enlace Bluetooth caido
+5503.163	!	conectado
+5503.163	>	SYNC
+5508.288	!	enlace Bluetooth caido
+5509.289	!	conectado
+5509.289	>	SYNC
+5514.415	!	enlace Bluetooth caido
+5515.416	!	conectado
+5515.416	>	SYNC
+5520.543	!	enlace Bluetooth caido
+5521.543	!	conectado
+5521.543	>	SYNC
+5526.669	!	enlace Bluetooth caido
+5527.670	!	conectado
+5527.670	>	SYNC
+5532.797	!	enlace Bluetooth caido
+5533.797	!	conectado
+5533.797	>	SYNC
+5538.924	!	enlace Bluetooth caido
+5539.924	!	conectado
+5539.925	>	SYNC
+5545.050	!	enlace Bluetooth caido
+5546.051	!	conectado
+5546.051	>	SYNC
+5551.177	!	enlace Bluetooth caido
+5552.177	!	conectado
+5552.177	>	SYNC
+5557.303	!	enlace Bluetooth caido
+5558.304	!	conectado
+5558.304	>	SYNC
+5563.430	!	enlace Bluetooth caido
+5564.431	!	conectado
+5564.431	>	SYNC
+5569.556	!	enlace Bluetooth caido
+5570.557	!	conectado
+5570.557	>	SYNC
+5575.683	!	enlace Bluetooth caido
+5576.684	!	conectado
+5576.684	>	SYNC
+5581.810	!	enlace Bluetooth caido
+5582.811	!	conectado
+5582.811	>	SYNC
+5587.936	!	enlace Bluetooth caido
+5588.937	!	conectado
+5588.937	>	SYNC
+5594.064	!	enlace Bluetooth caido
+5595.065	!	conectado
+5595.065	>	SYNC
+5600.191	!	enlace Bluetooth caido
+5601.192	!	conectado
+5601.192	>	SYNC
+5606.317	!	enlace Bluetooth caido
+5607.318	!	conectado
+5607.318	>	SYNC
+5612.444	!	enlace Bluetooth caido
+5613.445	!	conectado
+5613.445	>	SYNC
+5618.571	!	enlace Bluetooth caido
+5619.572	!	conectado
+5619.572	>	SYNC
+5624.697	!	enlace Bluetooth caido
+5625.698	!	conectado
+5625.698	>	SYNC
+5630.823	!	enlace Bluetooth caido
+5631.824	!	conectado
+5631.824	>	SYNC
+5636.951	!	enlace Bluetooth caido
+5637.951	!	conectado
+5637.952	>	SYNC
+5643.078	!	enlace Bluetooth caido
+5644.079	!	conectado
+5644.079	>	SYNC
+5649.204	!	enlace Bluetooth caido
+5650.205	!	conectado
+5650.205	>	SYNC
+5655.331	!	enlace Bluetooth caido
+5656.332	!	conectado
+5656.332	>	SYNC
+5661.459	!	enlace Bluetooth caido
+5662.459	!	conectado
+5662.459	>	SYNC
+5667.585	!	enlace Bluetooth caido
+5668.585	!	conectado
+5668.585	>	SYNC
+5673.712	!	enlace Bluetooth caido
+5674.712	!	conectado
+5674.713	>	SYNC
+5679.839	!	enlace Bluetooth caido
+5680.840	!	conectado
+5680.840	>	SYNC
+5685.965	!	enlace Bluetooth caido
+5686.966	!	conectado
+5686.966	>	SYNC
+5692.091	!	enlace Bluetooth caido
+5693.092	!	conectado
+5693.092	>	SYNC
+5698.218	!	enlace Bluetooth caido
+5699.219	!	conectado
+5699.219	>	SYNC
+5704.345	!	enlace Bluetooth caido
+5705.345	!	conectado
+5705.346	>	SYNC
+5710.471	!	enlace Bluetooth caido
+5711.472	!	conectado
+5711.472	>	SYNC
+5716.597	!	enlace Bluetooth caido
+5717.598	!	conectado
+5717.598	>	SYNC
+5722.724	!	enlace Bluetooth caido
+5723.725	!	conectado
+5723.725	>	SYNC
+5728.852	!	enlace Bluetooth caido
+5729.852	!	conectado
+5729.853	>	SYNC
+5734.980	!	enlace Bluetooth caido
+5735.980	!	conectado
+5735.981	>	SYNC
+5741.106	!	enlace Bluetooth caido
+5742.107	!	conectado
+5742.107	>	SYNC
+5747.232	!	enlace Bluetooth caido
+5748.233	!	conectado
+5748.233	>	SYNC
+5753.358	!	enlace Bluetooth caido
+5754.359	!	conectado
+5754.359	>	SYNC
+5759.486	!	enlace Bluetooth caido
+5760.487	!	conectado
+5760.487	>	SYNC
+5765.613	!	enlace Bluetooth caido
+5766.614	!	conectado
+5766.614	>	SYNC
+5771.739	!	enlace Bluetooth caido
+5772.740	!	conectado
+5772.740	>	SYNC
+5777.865	!	enlace Bluetooth caido
+5778.866	!	conectado
+5778.866	>	SYNC
+5783.992	!	enlace Bluetooth caido
+5784.993	!	conectado
+5784.993	>	SYNC
+5790.119	!	enlace Bluetooth caido
+5791.120	!	conectado
+5791.120	>	SYNC
+5796.245	!	enlace Bluetooth caido
+5797.246	!	conectado
+5797.246	>	SYNC
+5802.373	!	enlace Bluetooth caido
+5803.374	!	conectado
+5803.374	>	SYNC
+5808.500	!	enlace Bluetooth caido
+5809.501	!	conectado
+5809.501	>	SYNC
+5814.626	!	enlace Bluetooth caido
+5815.627	!	conectado
+5815.627	>	SYNC
+5820.753	!	enlace Bluetooth caido
+5821.754	!	conectado
+5821.754	>	SYNC
+5826.881	!	enlace Bluetooth caido
+5827.881	!	conectado
+5827.881	>	SYNC
+5833.007	!	enlace Bluetooth caido
+5834.007	!	conectado
+5834.007	>	SYNC
+5839.133	!	enlace Bluetooth caido
+5840.133	!	conectado
+5840.133	>	SYNC
+5845.260	!	enlace Bluetooth caido
+5846.261	!	conectado
+5846.261	>	SYNC
+5851.387	!	enlace Bluetooth caido
+5852.387	!	conectado
+5852.387	>	SYNC
+5857.512	!	enlace Bluetooth caido
+5858.513	!	conectado
+5858.513	>	SYNC
+5863.640	!	enlace Bluetooth caido
+5864.640	!	conectado
+5864.640	>	SYNC
+5869.767	!	enlace Bluetooth caido
+5870.768	!	conectado
+5870.768	>	SYNC
+5875.893	!	enlace Bluetooth caido
+5876.894	!	conectado
+5876.894	>	SYNC
+5882.019	!	enlace Bluetooth caido
+5883.019	!	conectado
+5883.019	>	SYNC
+5888.146	!	enlace Bluetooth caido
+5889.146	!	conectado
+5889.146	>	SYNC
+5894.273	!	enlace Bluetooth caido
+5895.273	!	conectado
+5895.274	>	SYNC
+5900.399	!	enlace Bluetooth caido
+5901.399	!	conectado
+5901.399	>	SYNC
+5906.526	!	enlace Bluetooth caido
+5907.527	!	conectado
+5907.527	>	SYNC
+5912.653	!	enlace Bluetooth caido
+5913.654	!	conectado
+5913.654	>	SYNC
+5918.779	!	enlace Bluetooth caido
+5919.780	!	conectado
+5919.780	>	SYNC
+5924.907	!	enlace Bluetooth caido
+5925.908	!	conectado
+5925.908	>	SYNC
+5931.035	!	enlace Bluetooth caido
+5932.035	!	conectado
+5932.036	>	SYNC
+5937.162	!	enlace Bluetooth caido
+5938.162	!	conectado
+5938.163	>	SYNC
+5943.289	!	enlace Bluetooth caido
+5944.289	!	conectado
+5944.290	>	SYNC
+5949.415	!	enlace Bluetooth caido
+5950.416	!	conectado
+5950.416	>	SYNC
+5955.542	!	enlace Bluetooth caido
+5956.543	!	conectado
+5956.543	>	SYNC
+5961.668	!	enlace Bluetooth caido
+5962.669	!	conectado
+5962.669	>	SYNC
+5967.795	!	enlace Bluetooth caido
+5968.796	!	conectado
+5968.796	>	SYNC
+5973.922	!	enlace Bluetooth caido
+5974.923	!	conectado
+5974.923	>	SYNC
+5980.048	!	enlace Bluetooth caido
+5981.048	!	conectado
+5981.049	>	SYNC
+5986.175	!	enlace Bluetooth caido
+5987.176	!	conectado
+5987.176	>	SYNC
+5992.303	!	enlace Bluetooth caido
+5993.304	!	conectado
+5993.304	>	SYNC
+5998.431	!	enlace Bluetooth caido
+5999.432	!	conectado
+5999.432	>	SYNC
+6004.558	!	enlace Bluetooth caido
+6005.559	!	conectado
+6005.559	>	SYNC
+6010.686	!	enlace Bluetooth caido
+6011.687	!	conectado
+6011.687	>	SYNC
+6016.813	!	enlace Bluetooth caido
+6017.814	!	conectado
+6017.814	>	SYNC
+6022.940	!	enlace Bluetooth caido
+6023.941	!	conectado
+6023.941	>	SYNC
+6029.067	!	enlace Bluetooth caido
+6030.068	!	conectado
+6030.068	>	SYNC
+6035.195	!	enlace Bluetooth caido
+6036.195	!	conectado
+6036.196	>	SYNC
+6041.321	!	enlace Bluetooth caido
+6042.321	!	conectado
+6042.322	>	SYNC
+6047.447	!	enlace Bluetooth caido
+6048.448	!	conectado
+6048.448	>	SYNC
+6053.575	!	enlace Bluetooth caido
+6054.575	!	conectado
+6054.575	>	SYNC
+6059.701	!	enlace Bluetooth caido
+6060.702	!	conectado
+6060.702	>	SYNC
+6065.827	!	enlace Bluetooth caido
+6066.828	!	conectado
+6066.828	>	SYNC
+6071.955	!	enlace Bluetooth caido
+6072.956	!	conectado
+6072.956	>	SYNC
+6078.082	!	enlace Bluetooth caido
+6079.083	!	conectado
+6079.083	>	SYNC
+6084.208	!	enlace Bluetooth caido
+6085.209	!	conectado
+6085.209	>	SYNC
+6090.335	!	enlace Bluetooth caido
+6091.336	!	conectado
+6091.336	>	SYNC
+6096.462	!	enlace Bluetooth caido
+6097.463	!	conectado
+6097.463	>	SYNC
+6102.588	!	enlace Bluetooth caido
+6103.589	!	conectado
+6103.589	>	SYNC
+6108.715	!	enlace Bluetooth caido
+6109.716	!	conectado
+6109.716	>	SYNC
+6114.842	!	enlace Bluetooth caido
+6115.843	!	conectado
+6115.843	>	SYNC
+6120.968	!	enlace Bluetooth caido
+6121.969	!	conectado
+6121.969	>	SYNC
+6127.094	!	enlace Bluetooth caido
+6128.095	!	conectado
+6128.095	>	SYNC
+6133.222	!	enlace Bluetooth caido
+6134.222	!	conectado
+6134.222	>	SYNC
+6139.349	!	enlace Bluetooth caido
+6140.349	!	conectado
+6140.350	>	SYNC
+6145.476	!	enlace Bluetooth caido
+6146.477	!	conectado
+6146.477	>	SYNC
+6151.603	!	enlace Bluetooth caido
+6152.604	!	conectado
+6152.604	>	SYNC
+6157.729	!	enlace Bluetooth caido
+6158.730	!	conectado
+6158.730	>	SYNC
+6163.856	!	enlace Bluetooth caido
+6164.857	!	conectado
+6164.857	>	SYNC
+6169.982	!	enlace Bluetooth caido
+6170.983	!	conectado
+6170.983	>	SYNC
+6176.110	!	enlace Bluetooth caido
+6177.111	!	conectado
+6177.111	>	SYNC
+6182.236	!	enlace Bluetooth caido
+6183.237	!	conectado
+6183.237	>	SYNC
+6188.363	!	enlace Bluetooth caido
+6189.363	!	conectado
+6189.363	>	SYNC
+6194.490	!	enlace Bluetooth caido
+6195.491	!	conectado
+6195.491	>	SYNC
+6200.616	!	enlace Bluetooth caido
+6201.616	!	conectado
+6201.616	>	SYNC
+6206.742	!	enlace Bluetooth caido
+6207.743	!	conectado
+6207.743	>	SYNC
+6212.868	!	enlace Bluetooth caido
+6213.869	!	conectado
+6213.869	>	SYNC
+6218.995	!	enlace Bluetooth caido
+6219.996	!	conectado
+6219.996	>	SYNC
+6225.122	!	enlace Bluetooth caido
+6226.123	!	conectado
+6226.123	>	SYNC
+6231.249	!	enlace Bluetooth caido
+6232.249	!	conectado
+6232.249	>	SYNC
+6237.375	!	enlace Bluetooth caido
+6238.375	!	conectado
+6238.375	>	SYNC
+6243.501	!	enlace Bluetooth caido
+6244.502	!	conectado
+6244.502	>	SYNC
+6249.629	!	enlace Bluetooth caido
+6250.629	!	conectado
+6250.629	>	SYNC
+6255.755	!	enlace Bluetooth caido
+6256.756	!	conectado
+6256.756	>	SYNC
+6261.881	!	enlace Bluetooth caido
+6262.881	!	conectado
+6262.881	>	SYNC
+6268.008	!	enlace Bluetooth caido
+6269.008	!	conectado
+6269.009	>	SYNC
+6274.135	!	enlace Bluetooth caido
+6275.136	!	conectado
+6275.136	>	SYNC
+6280.261	!	enlace Bluetooth caido
+6281.262	!	conectado
+6281.262	>	SYNC
+6286.388	!	enlace Bluetooth caido
+6287.389	!	conectado
+6287.389	>	SYNC
+6292.515	!	enlace Bluetooth caido
+6293.516	!	conectado
+6293.516	>	SYNC
+6298.641	!	enlace Bluetooth caido
+6299.642	!	conectado
+6299.642	>	SYNC
+6304.769	!	enlace Bluetooth caido
+6305.770	!	conectado
+6305.770	>	SYNC
+6310.896	!	enlace Bluetooth caido
+6311.897	!	conectado
+6311.897	>	SYNC
+6317.022	!	enlace Bluetooth caido
+6318.023	!	conectado
+6318.023	>	SYNC
+6323.148	!	enlace Bluetooth caido
+6324.149	!	conectado
+6324.149	>	SYNC
+6329.275	!	enlace Bluetooth caido
+6330.276	!	conectado
+6330.276	>	SYNC
+6335.402	!	enlace Bluetooth caido
+6336.403	!	conectado
+6336.403	>	SYNC
+6341.529	!	enlace Bluetooth caido
+6342.529	!	conectado
+6342.529	>	SYNC
+6347.656	!	enlace Bluetooth caido
+6348.656	!	conectado
+6348.657	>	SYNC
+6353.783	!	enlace Bluetooth caido
+6354.783	!	conectado
+6354.783	>	SYNC
+6359.909	!	enlace Bluetooth caido
+6360.910	!	conectado
+6360.910	>	SYNC
+6366.035	!	enlace Bluetooth caido
+6367.036	!	conectado
+6367.036	>	SYNC
+6372.163	!	enlace Bluetooth caido
+6373.164	!	conectado
+6373.164	>	SYNC
+6378.289	!	enlace Bluetooth caido
+6379.290	!	conectado
+6379.290	>	SYNC
+6384.415	!	enlace Bluetooth caido
+6385.415	!	conectado
+6385.416	>	SYNC
+6390.541	!	enlace Bluetooth caido
+6391.542	!	conectado
+6391.542	>	SYNC
+6396.668	!	enlace Bluetooth caido
+6397.669	!	conectado
+6397.669	>	SYNC
+6402.795	!	enlace Bluetooth caido
+6403.796	!	conectado
+6403.796	>	SYNC
+6408.921	!	enlace Bluetooth caido
+6409.922	!	conectado
+6409.922	>	SYNC
+6415.048	!	enlace Bluetooth caido
+6416.049	!	conectado
+6416.049	>	SYNC
+6421.175	!	enlace Bluetooth caido
+6422.176	!	conectado
+6422.176	>	SYNC
+6427.301	!	enlace Bluetooth caido
+6428.302	!	conectado
+6428.302	>	SYNC
+6433.428	!	enlace Bluetooth caido
+6434.429	!	conectado
+6434.429	>	SYNC
+6439.556	!	enlace Bluetooth caido
+6440.556	!	conectado
+6440.556	>	SYNC
+6445.682	!	enlace Bluetooth caido
+6446.682	!	conectado
+6446.682	>	SYNC
+6451.807	!	enlace Bluetooth caido
+6452.808	!	conectado
+6452.808	>	SYNC
+6457.933	!	enlace Bluetooth caido
+6458.934	!	conectado
+6458.934	>	SYNC
+6464.060	!	enlace Bluetooth caido
+6465.061	!	conectado
+6465.061	>	SYNC
+6470.187	!	enlace Bluetooth caido
+6471.188	!	conectado
+6471.188	>	SYNC
+6476.313	!	enlace Bluetooth caido
+6477.314	!	conectado
+6477.314	>	SYNC
+6482.440	!	enlace Bluetooth caido
+6483.440	!	conectado
+6483.440	>	SYNC
+6488.567	!	enlace Bluetooth caido
+6489.567	!	conectado
+6489.567	>	SYNC
+6494.694	!	enlace Bluetooth caido
+6495.694	!	conectado
+6495.694	>	SYNC
+6500.820	!	enlace Bluetooth caido
+6501.820	!	conectado
+6501.820	>	SYNC
+6506.947	!	enlace Bluetooth caido
+6507.948	!	conectado
+6507.948	>	SYNC
+6513.074	!	enlace Bluetooth caido
+6514.074	!	conectado
+6514.075	>	SYNC
+6519.199	!	enlace Bluetooth caido
+6520.200	!	conectado
+6520.200	>	SYNC
+6525.326	!	enlace Bluetooth caido
+6526.327	!	conectado
+6526.327	>	SYNC
+6531.454	!	enlace Bluetooth caido
+6532.455	!	conectado
+6532.455	>	SYNC
+6537.580	!	enlace Bluetooth caido
+6538.580	!	conectado
+6538.580	>	SYNC
+6543.706	!	enlace Bluetooth caido
+6544.706	!	conectado
+6544.706	>	SYNC
+6549.832	!	enlace Bluetooth caido
+6550.832	!	conectado
+6550.832	>	SYNC
+6555.959	!	enlace Bluetooth caido
+6556.960	!	conectado
+6556.960	>	SYNC
+6562.086	!	enlace Bluetooth caido
+6563.087	!	conectado
+6563.087	>	SYNC
+6568.212	!	enlace Bluetooth caido
+6569.212	!	conectado
+6569.213	>	SYNC
+6574.338	!	enlace Bluetooth caido
+6575.338	!	conectado
+6575.338	>	SYNC
+6580.465	!	enlace Bluetooth caido
+6581.466	!	conectado
+6581.466	>	SYNC
+6586.592	!	enlace Bluetooth caido
+6587.593	!	conectado
+6587.593	>	SYNC
+6592.719	!	enlace Bluetooth caido
+6593.719	!	conectado
+6593.720	>	SYNC
+6598.846	!	enlace Bluetooth caido
+6599.847	!	conectado
+6599.847	>	SYNC
+6604.973	!	enlace Bluetooth caido
+6605.974	!	conectado
+6605.974	>	SYNC
+6611.099	!	enlace Bluetooth caido
+6612.100	!	conectado
+6612.100	>	SYNC
+6617.226	!	enlace Bluetooth caido
+6618.227	!	conectado
+6618.227	>	SYNC
+6623.353	!	enlace Bluetooth caido
+6624.353	!	conectado
+6624.354	>	SYNC
+6629.479	!	enlace Bluetooth caido
+6630.480	!	conectado
+6630.480	>	SYNC
+6635.606	!	enlace Bluetooth caido
+6636.607	!	conectado
+6636.607	>	SYNC
+6641.733	!	enlace Bluetooth caido
+6642.734	!	conectado
+6642.734	>	SYNC
+6647.860	!	enlace Bluetooth caido
+6648.861	!	conectado
+6648.861	>	SYNC
+6653.988	!	enlace Bluetooth caido
+6654.989	!	conectado
+6654.989	>	SYNC
+6660.114	!	enlace Bluetooth caido
+6661.115	!	conectado
+6661.115	>	SYNC
+6666.240	!	enlace Bluetooth caido
+6667.241	!	conectado
+6667.241	>	SYNC
+6672.365	!	enlace Bluetooth caido
+6673.366	!	conectado
+6673.366	>	SYNC
+6678.493	!	enlace Bluetooth caido
+6679.494	!	conectado
+6679.494	>	SYNC
+6684.621	!	enlace Bluetooth caido
+6685.621	!	conectado
+6685.621	>	SYNC
+6690.746	!	enlace Bluetooth caido
+6691.746	!	conectado
+6691.747	>	SYNC
+6696.872	!	enlace Bluetooth caido
+6697.873	!	conectado
+6697.873	>	SYNC
+6703.000	!	enlace Bluetooth caido
+6704.000	!	conectado
+6704.000	>	SYNC
+6709.127	!	enlace Bluetooth caido
+6710.127	!	conectado
+6710.127	>	SYNC
+6715.252	!	enlace Bluetooth caido
+6716.253	!	conectado
+6716.253	>	SYNC
+6721.380	!	enlace Bluetooth caido
+6722.380	!	conectado
+6722.381	>	SYNC
+6727.507	!	enlace Bluetooth caido
+6728.508	!	conectado
+6728.508	>	SYNC
+6733.633	!	enlace Bluetooth caido
+6734.633	!	conectado
+6734.634	>	SYNC
+6739.759	!	enlace Bluetooth caido
+6740.760	!	conectado
+6740.760	>	SYNC
+6745.886	!	enlace Bluetooth caido
+6746.887	!	conectado
+6746.887	>	SYNC
+6752.013	!	enlace Bluetooth caido
+6753.013	!	conectado
+6753.014	>	SYNC
+6758.139	!	enlace Bluetooth caido
+6759.139	!	conectado
+6759.139	>	SYNC
+6764.265	!	enlace Bluetooth caido
+6765.265	!	conectado
+6765.265	>	SYNC
+6770.392	!	enlace Bluetooth caido
+6771.393	!	conectado
+6771.393	>	SYNC
+6776.519	!	enlace Bluetooth caido
+6777.520	!	conectado
+6777.520	>	SYNC
+6782.647	!	enlace Bluetooth caido
+6783.647	!	conectado
+6783.647	>	SYNC
+6788.774	!	enlace Bluetooth caido
+6789.774	!	conectado
+6789.774	>	SYNC
+6794.900	!	enlace Bluetooth caido
+6795.900	!	conectado
+6795.900	>	SYNC
+6801.026	!	enlace Bluetooth caido
+6802.027	!	conectado
+6802.027	>	SYNC
+6807.153	!	enlace Bluetooth caido
+6808.153	!	conectado
+6808.154	>	SYNC
+6813.280	!	enlace Bluetooth caido
+6814.280	!	conectado
+6814.280	>	SYNC
+6819.406	!	enlace Bluetooth caido
+6820.407	!	conectado
+6820.407	>	SYNC
+6825.532	!	enlace Bluetooth caido
+6826.533	!	conectado
+6826.533	>	SYNC
+6831.660	!	enlace Bluetooth caido
+6832.661	!	conectado
+6832.661	>	SYNC
+6837.786	!	enlace Bluetooth caido
+6838.787	!	conectado
+6838.787	>	SYNC
+6843.912	!	enlace Bluetooth caido
+6844.913	!	conectado
+6844.913	>	SYNC
+6850.038	!	enlace Bluetooth caido
+6851.039	!	conectado
+6851.039	>	SYNC
+6856.165	!	enlace Bluetooth caido
+6857.166	!	conectado
+6857.166	>	SYNC
+6862.293	!	enlace Bluetooth caido
+6863.293	!	conectado
+6863.294	>	SYNC
+6868.420	!	enlace Bluetooth caido
+6869.421	!	conectado
+6869.421	>	SYNC
+6874.547	!	enlace Bluetooth caido
+6875.548	!	conectado
+6875.548	>	SYNC
+6880.674	!	enlace Bluetooth caido
+6881.674	!	conectado
+6881.674	>	SYNC
+6886.800	!	enlace Bluetooth caido
+6887.800	!	conectado
+6887.801	>	SYNC
+6892.926	!	enlace Bluetooth caido
+6893.927	!	conectado
+6893.927	>	SYNC
+6899.054	!	enlace Bluetooth caido
+6900.054	!	conectado
+6900.054	>	SYNC
+6905.179	!	enlace Bluetooth caido
+6906.180	!	conectado
+6906.180	>	SYNC
+6911.307	!	enlace Bluetooth caido
+6912.307	!	conectado
+6912.308	>	SYNC
+6917.434	!	enlace Bluetooth caido
+6918.435	!	conectado
+6918.435	>	SYNC
+6923.560	!	enlace Bluetooth caido
+6924.561	!	conectado
+6924.561	>	SYNC
+6929.686	!	enlace Bluetooth caido
+6930.686	!	conectado
+6930.686	>	SYNC
+6935.813	!	enlace Bluetooth caido
+6936.814	!	conectado
+6936.814	>	SYNC
+6941.954	!	enlace Bluetooth caido
+6942.955	!	conectado
+6942.955	>	SYNC
+6948.081	!	enlace Bluetooth caido
+6949.082	!	conectado
+6949.082	>	SYNC
+6954.207	!	enlace Bluetooth caido
+6955.208	!	conectado
+6955.208	>	SYNC
+6960.335	!	enlace Bluetooth caido
+6961.336	!	conectado
+6961.336	>	SYNC
+6966.461	!	enlace Bluetooth caido
+6967.462	!	conectado
+6967.462	>	SYNC
+6972.587	!	enlace Bluetooth caido
+6973.588	!	conectado
+6973.588	>	SYNC
+6978.715	!	enlace Bluetooth caido
+6979.716	!	conectado
+6979.716	>	SYNC
+6984.842	!	enlace Bluetooth caido
+6985.843	!	conectado
+6985.843	>	SYNC
+6990.968	!	enlace Bluetooth caido
+6991.969	!	conectado
+6991.969	>	SYNC
+6997.095	!	enlace Bluetooth caido
+6998.096	!	conectado
+6998.096	>	SYNC
+7003.222	!	enlace Bluetooth caido
+7004.223	!	conectado
+7004.223	>	SYNC
+7009.348	!	enlace Bluetooth caido
+7010.349	!	conectado
+7010.349	>	SYNC
+7015.474	!	enlace Bluetooth caido
+7016.475	!	conectado
+7016.475	>	SYNC
+7021.601	!	enlace Bluetooth caido
+7022.602	!	conectado
+7022.602	>	SYNC
+7027.728	!	enlace Bluetooth caido
+7028.729	!	conectado
+7028.729	>	SYNC
+7033.855	!	enlace Bluetooth caido
+7034.855	!	conectado
+7034.856	>	SYNC
+7039.981	!	enlace Bluetooth caido
+7040.981	!	conectado
+7040.981	>	SYNC
+7046.107	!	enlace Bluetooth caido
+7047.108	!	conectado
+7047.108	>	SYNC
+7052.234	!	enlace Bluetooth caido
+7053.235	!	conectado
+7053.235	>	SYNC
+7058.361	!	enlace Bluetooth caido
+7059.362	!	conectado
+7059.362	>	SYNC
+7064.487	!	enlace Bluetooth caido
+7065.488	!	conectado
+7065.488	>	SYNC
+7070.613	!	enlace Bluetooth caido
+7071.614	!	conectado
+7071.614	>	SYNC
+7076.741	!	enlace Bluetooth caido
+7077.742	!	conectado
+7077.742	>	SYNC
+7082.867	!	enlace Bluetooth caido
+7083.868	!	conectado
+7083.868	>	SYNC
+7088.994	!	enlace Bluetooth caido
+7089.995	!	conectado
+7089.995	>	SYNC
+7095.121	!	enlace Bluetooth caido
+7096.122	!	conectado
+7096.122	>	SYNC
+7101.247	!	enlace Bluetooth caido
+7102.248	!	conectado
+7102.248	>	SYNC
+7107.373	!	enlace Bluetooth caido
+7108.374	!	conectado
+7108.374	>	SYNC
+7113.500	!	enlace Bluetooth caido
+7114.501	!	conectado
+7114.501	>	SYNC
+7119.627	!	enlace Bluetooth caido
+7120.628	!	conectado
+7120.628	>	SYNC
+7125.753	!	enlace Bluetooth caido
+7126.753	!	conectado
+7126.753	>	SYNC
+7131.880	!	enlace Bluetooth caido
+7132.881	!	conectado
+7132.881	>	SYNC
+7138.007	!	enlace Bluetooth caido
+7139.008	!	conectado
+7139.008	>	SYNC
+7144.133	!	enlace Bluetooth caido
+7145.134	!	conectado
+7145.134	>	SYNC
+7150.261	!	enlace Bluetooth caido
+7151.262	!	conectado
+7151.262	>	SYNC
+7156.388	!	enlace Bluetooth caido
+7157.389	!	conectado
+7157.389	>	SYNC
+7162.514	!	enlace Bluetooth caido
+7163.515	!	conectado
+7163.515	>	SYNC
+7168.641	!	enlace Bluetooth caido
+7169.641	!	conectado
+7169.641	>	SYNC
+7174.768	!	enlace Bluetooth caido
+7175.768	!	conectado
+7175.768	>	SYNC
+7180.895	!	enlace Bluetooth caido
+7181.895	!	conectado
+7181.895	>	SYNC
+7187.021	!	enlace Bluetooth caido
+7188.022	!	conectado
+7188.022	>	SYNC
+7193.147	!	enlace Bluetooth caido
+7194.148	!	conectado
+7194.148	>	SYNC
+7199.273	!	enlace Bluetooth caido
+7200.274	!	conectado
+7200.274	>	SYNC
+7205.401	!	enlace Bluetooth caido
+7206.402	!	conectado
+7206.402	>	SYNC
+7211.529	!	enlace Bluetooth caido
+7212.530	!	conectado
+7212.530	>	SYNC
+7217.657	!	enlace Bluetooth caido
+7218.658	!	conectado
+7218.658	>	SYNC
+7223.785	!	enlace Bluetooth caido
+7224.786	!	conectado
+7224.786	>	SYNC
+7229.912	!	enlace Bluetooth caido
+7230.913	!	conectado
+7230.913	>	SYNC
+7236.038	!	enlace Bluetooth caido
+7237.039	!	conectado
+7237.039	>	SYNC
+7242.165	!	enlace Bluetooth caido
+7243.165	!	conectado
+7243.165	>	SYNC
+7248.292	!	enlace Bluetooth caido
+7249.293	!	conectado
+7249.293	>	SYNC
+7254.418	!	enlace Bluetooth caido
+7255.419	!	conectado
+7255.419	>	SYNC
+7260.544	!	enlace Bluetooth caido
+7261.545	!	conectado
+7261.545	>	SYNC
+7266.671	!	enlace Bluetooth caido
+7267.672	!	conectado
+7267.672	>	SYNC
+7272.798	!	enlace Bluetooth caido
+7273.799	!	conectado
+7273.799	>	SYNC
+7278.924	!	enlace Bluetooth caido
+7279.925	!	conectado
+7279.925	>	SYNC
+7285.050	!	enlace Bluetooth caido
+7286.051	!	conectado
+7286.051	>	SYNC
+7291.177	!	enlace Bluetooth caido
+7292.177	!	conectado
+7292.178	>	SYNC
+7297.304	!	enlace Bluetooth caido
+7298.305	!	conectado
+7298.305	>	SYNC
+7303.431	!	enlace Bluetooth caido
+7304.431	!	conectado
+7304.432	>	SYNC
+7309.556	!	enlace Bluetooth caido
+7310.557	!	conectado
+7310.557	>	SYNC
+7315.684	!	enlace Bluetooth caido
+7316.685	!	conectado
+7316.685	>	SYNC
+7321.811	!	enlace Bluetooth caido
+7322.812	!	conectado
+7322.812	>	SYNC
+7327.939	!	enlace Bluetooth caido
+7328.940	!	conectado
+7328.940	>	SYNC
+7334.065	!	enlace Bluetooth caido
+7335.066	!	conectado
+7335.066	>	SYNC
+7340.192	!	enlace Bluetooth caido
+7341.193	!	conectado
+7341.193	>	SYNC
+7346.318	!	enlace Bluetooth caido
+7347.319	!	conectado
+7347.319	>	SYNC
+7352.445	!	enlace Bluetooth caido
+7353.445	!	conectado
+7353.445	>	SYNC
+7358.572	!	enlace Bluetooth caido
+7359.572	!	conectado
+7359.573	>	SYNC
+7364.698	!	enlace Bluetooth caido
+7365.699	!	conectado
+7365.699	>	SYNC
+7370.824	!	enlace Bluetooth caido
+7371.825	!	conectado
+7371.825	>	SYNC
+7376.951	!	enlace Bluetooth caido
+7377.952	!	conectado
+7377.952	>	SYNC
+7383.078	!	enlace Bluetooth caido
+7384.079	!	conectado
+7384.079	>	SYNC
+7389.205	!	enlace Bluetooth caido
+7390.205	!	conectado
+7390.206	>	SYNC
+7395.332	!	enlace Bluetooth caido
+7396.333	!	conectado
+7396.333	>	SYNC
+7401.459	!	enlace Bluetooth caido
+7402.460	!	conectado
+7402.460	>	SYNC
+7407.586	!	enlace Bluetooth caido
+7408.587	!	conectado
+7408.587	>	SYNC
+7413.724	!	enlace Bluetooth caido
+7414.725	!	conectado
+7414.725	>	SYNC
+7419.851	!	enlace Bluetooth caido
+7420.851	!	conectado
+7420.851	>	SYNC
+7425.975	!	enlace Bluetooth caido
+7426.976	!	conectado
+7426.976	>	SYNC
+7432.102	!	enlace Bluetooth caido
+7433.102	!	conectado
+7433.103	>	SYNC
+7438.228	!	enlace Bluetooth caido
+7439.229	!	conectado
+7439.229	>	SYNC
+7444.355	!	enlace Bluetooth caido
+7445.356	!	conectado
+7445.356	>	SYNC
+7450.481	!	enlace Bluetooth caido
+7451.482	!	conectado
+7451.482	>	SYNC
+7456.609	!	enlace Bluetooth caido
+7457.610	!	conectado
+7457.610	>	SYNC
+7462.737	!	enlace Bluetooth caido
+7463.738	!	conectado
+7463.738	>	SYNC
+7468.863	!	enlace Bluetooth caido
+7469.864	!	conectado
+7469.864	>	SYNC
+7474.990	!	enlace Bluetooth caido
+7475.990	!	conectado
+7475.991	>	SYNC
+7481.117	!	enlace Bluetooth caido
+7482.118	!	conectado
+7482.118	>	SYNC
+7487.243	!	enlace Bluetooth caido
+7488.244	!	conectado
+7488.244	>	SYNC
+7493.369	!	enlace Bluetooth caido
+7494.370	!	conectado
+7494.370	>	SYNC
+7499.496	!	enlace Bluetooth caido
+7500.497	!	conectado
+7500.497	>	SYNC
+7505.623	!	enlace Bluetooth caido
+7506.624	!	conectado
+7506.624	>	SYNC
+7511.749	!	enlace Bluetooth caido
+7512.750	!	conectado
+7512.750	>	SYNC
+7517.875	!	enlace Bluetooth caido
+7518.876	!	conectado
+7518.876	>	SYNC
+7524.003	!	enlace Bluetooth caido
+7525.004	!	conectado
+7525.004	>	SYNC
+7530.129	!	enlace Bluetooth caido
+7531.129	!	conectado
+7531.130	>	SYNC
+7536.255	!	enlace Bluetooth caido
+7537.256	!	conectado
+7537.256	>	SYNC
+7542.382	!	enlace Bluetooth caido
+7543.383	!	conectado
+7543.383	>	SYNC
+7548.510	!	enlace Bluetooth caido
+7549.510	!	conectado
+7549.510	>	SYNC
+7554.636	!	enlace Bluetooth caido
+7555.636	!	conectado
+7555.637	>	SYNC
+7560.764	!	enlace Bluetooth caido
+7561.764	!	conectado
+7561.764	>	SYNC
+7566.891	!	enlace Bluetooth caido
+7567.891	!	conectado
+7567.892	>	SYNC
+7573.018	!	enlace Bluetooth caido
+7574.019	!	conectado
+7574.019	>	SYNC
+7579.146	!	enlace Bluetooth caido
+7580.147	!	conectado
+7580.147	>	SYNC
+7585.272	!	enlace Bluetooth caido
+7586.273	!	conectado
+7586.273	>	SYNC
+7591.400	!	enlace Bluetooth caido
+7592.401	!	conectado
+7592.401	>	SYNC
+7597.527	!	enlace Bluetooth caido
+7598.528	!	conectado
+7598.528	>	SYNC
+7603.661	!	enlace Bluetooth caido
+7604.662	!	conectado
+7604.662	>	SYNC
+7609.787	!	enlace Bluetooth caido
+7610.788	!	conectado
+7610.788	>	SYNC
+7615.913	!	enlace Bluetooth caido
+7616.914	!	conectado
+7616.914	>	SYNC
+7622.039	!	enlace Bluetooth caido
+7623.040	!	conectado
+7623.040	>	SYNC
+7628.166	!	enlace Bluetooth caido
+7629.167	!	conectado
+7629.167	>	SYNC
+7634.293	!	enlace Bluetooth caido
+7635.294	!	conectado
+7635.294	>	SYNC
+7640.419	!	enlace Bluetooth caido
+7641.420	!	conectado
+7641.420	>	SYNC
+7646.545	!	enlace Bluetooth caido
+7647.546	!	conectado
+7647.546	>	SYNC
+7652.673	!	enlace Bluetooth caido
+7653.673	!	conectado
+7653.673	>	SYNC
+7658.799	!	enlace Bluetooth caido
+7659.800	!	conectado
+7659.800	>	SYNC
+7664.926	!	enlace Bluetooth caido
+7665.926	!	conectado
+7665.926	>	SYNC
+7671.052	!	enlace Bluetooth caido
+7672.053	!	conectado
+7672.053	>	SYNC
+7677.180	!	enlace Bluetooth caido
+7678.180	!	conectado
+7678.181	>	SYNC
+7683.306	!	enlace Bluetooth caido
+7684.306	!	conectado
+7684.307	>	SYNC
+7689.432	!	enlace Bluetooth caido
+7690.433	!	conectado
+7690.433	>	SYNC
+7695.559	!	enlace Bluetooth caido
+7696.560	!	conectado
+7696.560	>	SYNC
+7701.685	!	enlace Bluetooth caido
+7702.686	!	conectado
+7702.686	>	SYNC
+7707.812	!	enlace Bluetooth caido
+7708.813	!	conectado
+7708.813	>	SYNC
+7713.940	!	enlace Bluetooth caido
+7714.941	!	conectado
+7714.941	>	SYNC
+7720.067	!	enlace Bluetooth caido
+7721.068	!	conectado
+7721.068	>	SYNC
+7726.193	!	enlace Bluetooth caido
+7727.194	!	conectado
+7727.194	>	SYNC
+7732.321	!	enlace Bluetooth caido
+7733.322	!	conectado
+7733.322	>	SYNC
+7738.448	!	enlace Bluetooth caido
+7739.449	!	conectado
+7739.449	>	SYNC
+7744.574	!	enlace Bluetooth caido
+7745.575	!	conectado
+7745.575	>	SYNC
+7750.701	!	enlace Bluetooth caido
+7751.702	!	conectado
+7751.702	>	SYNC
+7756.828	!	enlace Bluetooth caido
+7757.829	!	conectado
+7757.829	>	SYNC
+7762.954	!	enlace Bluetooth caido
+7763.955	!	conectado
+7763.955	>	SYNC
+7769.080	!	enlace Bluetooth caido
+7770.081	!	conectado
+7770.081	>	SYNC
+7775.207	!	enlace Bluetooth caido
+7776.208	!	conectado
+7776.208	>	SYNC
+7781.334	!	enlace Bluetooth caido
+7782.335	!	conectado
+7782.335	>	SYNC
+7787.460	!	enlace Bluetooth caido
+7788.461	!	conectado
+7788.461	>	SYNC
+7793.588	!	enlace Bluetooth caido
+7794.588	!	conectado
+7794.588	>	SYNC
+7799.715	!	enlace Bluetooth caido
+7800.715	!	conectado
+7800.716	>	SYNC
+7805.841	!	enlace Bluetooth caido
+7806.841	!	conectado
+7806.841	>	SYNC
+7811.967	!	enlace Bluetooth caido
+7812.968	!	conectado
+7812.968	>	SYNC
+7818.094	!	enlace Bluetooth caido
+7819.095	!	conectado
+7819.095	>	SYNC
+7824.221	!	enlace Bluetooth caido
+7825.221	!	conectado
+7825.221	>	SYNC
+7830.347	!	enlace Bluetooth caido
+7831.348	!	conectado
+7831.348	>	SYNC
+7836.475	!	enlace Bluetooth caido
+7837.476	!	conectado
+7837.476	>	SYNC
+7842.602	!	enlace Bluetooth caido
+7843.603	!	conectado
+7843.603	>	SYNC
+7848.730	!	enlace Bluetooth caido
+7849.730	!	conectado
+7849.730	>	SYNC
+7854.857	!	enlace Bluetooth caido
+7855.858	!	conectado
+7855.858	>	SYNC
+7860.984	!	enlace Bluetooth caido
+7861.985	!	conectado
+7861.985	>	SYNC
+7867.111	!	enlace Bluetooth caido
+7868.112	!	conectado
+7868.112	>	SYNC
+7873.238	!	enlace Bluetooth caido
+7874.239	!	conectado
+7874.239	>	SYNC
+7879.366	!	enlace Bluetooth caido
+7880.367	!	conectado
+7880.367	>	SYNC
+7885.494	!	enlace Bluetooth caido
+7886.495	!	conectado
+7886.495	>	SYNC
+7891.620	!	enlace Bluetooth caido
+7892.621	!	conectado
+7892.621	>	SYNC
+7897.747	!	enlace Bluetooth caido
+7898.748	!	conectado
+7898.748	>	SYNC
+7903.875	!	enlace Bluetooth caido
+7904.876	!	conectado
+7904.876	>	SYNC
+7910.002	!	enlace Bluetooth caido
+7911.003	!	conectado
+7911.003	>	SYNC
+7916.130	!	enlace Bluetooth caido
+7917.130	!	conectado
+7917.131	>	SYNC
+7922.255	!	enlace Bluetooth caido
+7923.256	!	conectado
+7923.256	>	SYNC
+7928.382	!	enlace Bluetooth caido
+7929.382	!	conectado
+7929.382	>	SYNC
+7934.509	!	enlace Bluetooth caido
+7935.510	!	conectado
+7935.510	>	SYNC
+7940.635	!	enlace Bluetooth caido
+7941.636	!	conectado
+7941.636	>	SYNC
+7946.762	!	enlace Bluetooth caido
+7947.763	!	conectado
+7947.763	>	SYNC
+7952.888	!	enlace Bluetooth caido
+7953.889	!	conectado
+7953.889	>	SYNC
+7959.015	!	enlace Bluetooth caido
+7960.016	!	conectado
+7960.016	>	SYNC
+7965.142	!	enlace Bluetooth caido
+7966.143	!	conectado
+7966.143	>	SYNC
+7971.268	!	enlace Bluetooth caido
+7972.269	!	conectado
+7972.269	>	SYNC
+7977.396	!	enlace Bluetooth caido
+7978.397	!	conectado
+7978.397	>	SYNC
+7983.523	!	enlace Bluetooth caido
+7984.524	!	conectado
+7984.524	>	SYNC
+7989.649	!	enlace Bluetooth caido
+7990.650	!	conectado
+7990.650	>	SYNC
+7995.776	!	enlace Bluetooth caido
+7996.777	!	conectado
+7996.777	>	SYNC
+8001.903	!	enlace Bluetooth caido
+8002.903	!	conectado
+8002.903	>	SYNC
+8008.029	!	enlace Bluetooth caido
+8009.030	!	conectado
+8009.030	>	SYNC
+8014.156	!	enlace Bluetooth caido
+8015.157	!	conectado
+8015.157	>	SYNC
+8020.283	!	enlace Bluetooth caido
+8021.284	!	conectado
+8021.284	>	SYNC
+8026.410	!	enlace Bluetooth caido
+8027.410	!	conectado
+8027.410	>	SYNC
+8032.535	!	enlace Bluetooth caido
+8033.536	!	conectado
+8033.536	>	SYNC
+8038.661	!	enlace Bluetooth caido
+8039.662	!	conectado
+8039.662	>	SYNC
+8044.788	!	enlace Bluetooth caido
+8045.789	!	conectado
+8045.789	>	SYNC
+8050.915	!	enlace Bluetooth caido
+8051.916	!	conectado
+8051.916	>	SYNC
+8057.041	!	enlace Bluetooth caido
+8058.042	!	conectado
+8058.042	>	SYNC
+8063.168	!	enlace Bluetooth caido
+8064.169	!	conectado
+8064.169	>	SYNC
+8069.296	!	enlace Bluetooth caido
+8070.296	!	conectado
+8070.296	>	SYNC
+8075.422	!	enlace Bluetooth caido
+8076.422	!	conectado
+8076.422	>	SYNC
+8081.548	!	enlace Bluetooth caido
+8082.548	!	conectado
+8082.548	>	SYNC
+8087.675	!	enlace Bluetooth caido
+8088.675	!	conectado
+8088.675	>	SYNC
+8093.802	!	enlace Bluetooth caido
+8094.802	!	conectado
+8094.802	>	SYNC
+8099.928	!	enlace Bluetooth caido
+8100.929	!	conectado
+8100.929	>	SYNC
+8103.217	<	@Y2
+8103.219	<	@G3232
+8103.219	<	@M1
+8103.219	<	@AI
+8103.219	<	@P00N
+8103.232	<	@R0N6VN000000000004
+8103.245	<	@R1NVNN000000000004
+8103.268	<	@R2TLLL000000000004
