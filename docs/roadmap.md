@@ -102,8 +102,8 @@ remove, each with what decides it:
    (0, 0, 90: kept on 09-30 for `calib_analyze.py`'s suggestions) unless
    a `CAL CURVE` session moves them.
 4. **The flash stress tools** of the `virtual` build (`TUNE STRESS`,
-   `REVERSAL`, `HSI`): they reproduce the wedge fixed on 10-05. Delete
-   them after a competition without a "!! flash" line.
+   `REVERSAL`, `HSI`): deleted 11-16 (no hardware change coming; up to
+   e6df08a, `docs/faults/oshwdem2026.md` 2.5).
 5. `motion.c` (905 lines) stays in one file (the user's call, 10-06);
    item 1 is what shortens it.
 

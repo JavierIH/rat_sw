@@ -194,12 +194,15 @@ needs its own measurements).
 
 ### 2.5 How to reproduce
 
-Robot on a stand, wheels free, battery charged (the stress drains it: keep
+The stress tools (`TUNE STRESS`, `REVERSAL`, `HSI`) were deleted on
+11-16 (no hardware change coming, the wedge fixed): they live in the
+`virtual` firmware up to e6df08a. Robot on a stand, wheels free, battery charged (the stress drains it: keep
 an eye on it), ST-Link connected for the flashes, Bluetooth logger running.
 
 1. Flash the virtual firmware at the commit to test: for the wedge without
    fixes 53320cb, in a worktree (`git worktree add /tmp/rat-53320cb 53320cb`,
-   then `pio run -e virtual -t upload` there); for the fixes, the current tree.
+   then `pio run -e virtual -t upload` there); for the fixes, e6df08a the
+   same way.
 2. `TUNE WHEELS 1` (the wheels turn; resets to off at every boot).
 3. `TUNE REVERSAL 60` (~4 min, in short batches for the battery): with
    the HSI kept on (`TUNE HSI 1`, as every firmware before 10-04; the
@@ -285,8 +288,8 @@ ground: the virtual firmware moves them blind.
   a switching module (TR05S3V3) that also feeds the IR and the encoders.
   The motor supply has 10 uF + 100 nF at the TB6612's VM; nothing across
   the motors. So a VDDA filter (ferrite or 10-47 ohm + 1 uF + 100 nF at
-  pin 9) and caps across the motors are what is missing. `TUNE HSI 1` +
-  `TUNE REVERSAL` measure the wedge rate before and after.
+  pin 9) and caps across the motors are what is missing. The user's call
+  (11-16): no hardware change; the firmware lives with the wedge.
 - The slow buttons.
 
 ## 7. The race 2.4 crash and the races that would not start (closed 11-16)

@@ -20,22 +20,21 @@ commit when done. Details go in the docs it points to, not here.
   replays and the pty tests only, not yet with the live robot. If the
   maze shows as boxes in a terminal: `--pixels half`.
 - Waiting on the user: review item 8 (recommended: keep the monitor's
-  planner port, the transcript tests' cross-check of the firmware); the
-  hardware of item 6.
+  planner port, the transcript tests' cross-check of the firmware).
 
 ## Open
 
 - Issue 22, review of 10-22 and audit of 11-11 (`docs/review.md`, last
   two sections). The audit (A1-A6, the doubtful front) is validated on
-  the robot (11-13, `docs/testing.md`). Left: questions 3-6 of 10-22 and
+  the robot (11-13, `docs/testing.md`). Left: questions 3-5 of 10-22 and
   the untracked `docs/img/` (the user's calls); the plan is
   `docs/roadmap.md`.
 
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
-  (LEDs); 5 (split `motion.c`) declined. Left: 1 (large stretch), 4
-  (HC-05 at 115200: the module in AT mode, on the robot), 6 (hardware, the
-  user's call), 8 (monitor draws the robot's route: the user's call). Ideas
+  (LEDs); 5 (split `motion.c`) and 6 (hardware, 11-16) declined. Left: 1
+  (large stretch), 4 (HC-05 at 115200: the module in AT mode, on the
+  robot), 8 (monitor draws the robot's route: the user's call). Ideas
   from issue 15: a SysTick stop if the following error runs away while the
   main loop blocks (no such failure seen: only with one). The SysTick
   load: 444 us worst after searches and races (11-13).
