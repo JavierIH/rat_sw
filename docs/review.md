@@ -179,6 +179,17 @@ far), `test/host/sim.c`, most of `test_main.c`, `docs/lighting.md`,
 4. SysTick worst 424 us after a search (10-08): no cause known. A flash
    halfword stall is ~56 us; find what takes the rest, not only read it
    after a race (issue 19).
+   Analysed 11-16 on an emulated M3 (the firmware's `calib_run()` and
+   `motion_run_path()` with a tick every ms, simulated motors; cycles
+   modelled from the disassembly, x1.42 to match the robot: the 5 us
+   tick at rest and 1024 pops in 4.3 ms both give that factor). A tick
+   while moving: ~265 us typical, ~325 at worst (straights, curves at
+   480, an 11-cell race path alike; turns in place ~175-210): 70 % of it
+   soft-float library calls. The peak is the CAL recorder's halving,
+   +175 us in that one tick: ~450 us predicted, 424/444 measured. No
+   problem: `competition` has no recorder, and the load (27-33 % of the
+   CPU while moving) is already inside the decisions' measured times.
+   Closed, nothing changed.
 5. `CURVE_PRE`, `CURVE_POST` (0) and `CURVE_ANGLE` (90) still sit at their
    neutral values (kept 09-30 for `calib_analyze.py`'s suggestions): keep
    them? The user, 11-16: `CURVE_PRE`/`CURVE_POST` deleted (flash -0.3 KB
@@ -415,8 +426,8 @@ What to do next is in `docs/roadmap.md`.
   Left as it is (11-11): caching it would add state for `TUNE`.
 - The unexplained SysTick peak (424 us, question 4 of 10-22): the CAL
   recorder halves its buffer inside SysTick (`calib.c:96`, 160 struct
-  copies), and `STATUS`'s worst is since boot, CAL tests included. Check:
-  `STATUS` after a search with no CAL test since boot.
+  copies), and `STATUS`'s worst is since boot, CAL tests included.
+  Explained 11-16 on the emulated chip (question 4 above).
 - `CHECK`: `light_check()` alone is 1116 B of flash in `competition`
   (issue 21, waiting on the user).
 - Spanish left beyond the 10-22 list (the monitor's two replay

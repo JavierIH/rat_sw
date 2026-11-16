@@ -151,9 +151,10 @@ race is 17.5 s to the goal.
    (`review.md`, step 2): 2/1 picks the best route in 198 of 200. What
    would still gain is diagonals, which the user dropped.
 4. **CPU.** A plan is ~2 ms (1024 pops), `curve_setup()` 2.1 ms at rest,
-   SysTick 424 us at worst (unexplained: read `STATUS` after a search
-   with no `CAL` test since the boot; the recorder halves its buffer in
-   SysTick). Nothing to do unless the large maze says `late`.
+   SysTick ~265 us a tick while moving, ~325 at worst (emulated chip,
+   11-16: `docs/review.md`, question 4 of 10-22); the 424-444 us of
+   `STATUS` are the CAL recorder halving its buffer. Nothing to do
+   unless the large maze says `late`.
 
 ## Order
 
