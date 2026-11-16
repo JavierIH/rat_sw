@@ -21,7 +21,7 @@ commit when done. Details go in the docs it points to, not here.
   maze shows as boxes in a terminal: `--pixels half`.
 - Waiting on the user: review item 8 (recommended: keep the monitor's
   planner port, the transcript tests' cross-check of the firmware); the
-  hardware of item 6; the race 2.4 crash at OSHWDEM (issue 17).
+  hardware of item 6.
 
 ## Open
 
@@ -30,14 +30,6 @@ commit when done. Details go in the docs it points to, not here.
   the robot (11-13, `docs/testing.md`). Left: questions 3-6 of 10-22 and
   the untracked `docs/img/` (the user's calls); the plan is
   `docs/roadmap.md`.
-
-- Issue 17, OSHWDEM 2026 (2026-10-03; `docs/faults/oshwdem2026.md`): the map
-  loss is solved (saves at the goal, the flash wedge fixed: issue 18,
-  closed), flashed 10-05. Left: the race 2.4 crash well into the maze, and
-  why no race would start after it (a wall marked on the verified path?
-  A candidate with evidence: `docs/review.md`, audit of 11-11, A1);
-  the user will bring them up. A smoke test of the competition firmware in
-  the air needs ~30 cm clear around the sensors.
 
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
@@ -53,6 +45,12 @@ commit when done. Details go in the docs it points to, not here.
   1). The baseboard oscillation check is dropped (11-16: no means to do it).
 
 ## Closed
+
+- 2026-11-16 OSHWDEM 2026 (issue 17; `docs/faults/oshwdem2026.md`, section
+  7): the race 2.4 crash was the old heading-based centring (parallel but
+  off-centre on long corridors), replaced and validated on short
+  straights 11-13; no race starting after it, the HSI wedge (fixed 10-05)
+  or A1 (fixed 11-11). The long-corridor check goes with issue 11.
 
 - 2026-11-13 Robot session after the flash of `practice`
   (`docs/testing.md`, session of 11-13), steps 1-6 all passed. Centring

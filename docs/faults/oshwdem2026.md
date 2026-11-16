@@ -283,7 +283,19 @@ ground: the virtual firmware moves them blind.
   + 100 nF at VDDA, bulk and ceramic capacitors at the H-bridge and across
   the motors may remove the cause. `TUNE HSI 1` + `TUNE REVERSAL` measure
   the wedge rate before and after.
-- The race 2.4 crash; the slow buttons. Why no race would start after the
-  crash: a candidate with evidence, the blocked race marking a wall on its
-  verified path (`docs/review.md`, audit of 11-11, A1; races only read the
-  map since c41d383).
+- The slow buttons.
+
+## 7. The race 2.4 crash and the races that would not start (closed 11-16)
+
+The user's diagnosis (11-16), no log of the day:
+- The crash: the old centring steered on the heading. On long corridors it
+  held the robot parallel to the walls but off the centre line, until it
+  hit one. Replaced by the PD wall follower on the off-centre error
+  (`docs/faults/centring.md`, section 12; validated 11-13: 3-cell
+  straights at 300-900 within 1.8-2.6 deg, crooked starts centre).
+- No race starting afterwards: most likely the HSI wedge (section 2,
+  fixed 10-05); the other candidate, a blocked race marking a wall on its
+  verified path (`docs/review.md`, audit of 11-11, A1), is fixed too
+  (races only read the map since c41d383).
+- Not yet seen on a long stretch of the real robot: issue 11 (a large
+  stretch) is the test.
