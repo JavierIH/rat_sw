@@ -20,8 +20,6 @@ commit when done. Details go in the docs it points to, not here.
   run's clock; no curses) is in `develop` since 11-16: checked with
   replays and the pty tests only, not yet with the live robot. If the
   maze shows as boxes in a terminal: `--pixels half`.
-- Waiting on the user: review item 8 (recommended: keep the monitor's
-  planner port, the transcript tests' cross-check of the firmware).
 
 ## Open
 
@@ -39,7 +37,9 @@ commit when done. Details go in the docs it points to, not here.
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
   (LEDs); 5 (split `motion.c`) and 6 (hardware, 11-16) declined. Left: 1
   (large stretch), 4 (HC-05 at 115200: the module in AT mode, on the
-  robot; the user, 11-16: later, with the next flash), 8 (monitor draws the robot's route: the user's call). Ideas
+  robot; the user, 11-16: later, with the next flash). Item 8 declined
+  11-16: the monitor keeps its planner port (the transcript tests'
+  cross-check of the firmware). Ideas
   from issue 15: a SysTick stop if the following error runs away while the
   main loop blocks (no such failure seen: only with one).
 
