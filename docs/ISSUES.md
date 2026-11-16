@@ -50,7 +50,7 @@ commit when done. Details go in the docs it points to, not here.
 
 - Issue 11, 16x16 competition readiness (`docs/testing.md`): tests 2-5
   done 09-27 (results there). Left: test 1 on a large stretch (review item
-  1), and the oscillation check along a baseboard at 300/450/600/800.
+  1). The baseboard oscillation check is dropped (11-16: no means to do it).
 
 ## Closed
 
