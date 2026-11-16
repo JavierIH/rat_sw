@@ -29,9 +29,7 @@ commit when done. Details go in the docs it points to, not here.
   (`CURVE_PRE`/`CURVE_POST` deleted, next flash); question 4 closed
   11-16 (the SysTick peak is the CAL recorder's halving, the normal tick
   ~265-325 us: emulated, no change). Left: question 3 of 10-22 (only if
-  the robot shows it) and
-  the untracked `docs/img/` (the user's calls); the plan is
-  `docs/roadmap.md`.
+  the robot shows it); the plan is `docs/roadmap.md`.
 
 - Issue 19, work plan of the review (`docs/review.md`): done 10-06 items 2
   (flash defences removed), 3 (`DEV_TOOLS`: competition build lean) and 7
